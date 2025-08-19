@@ -730,4 +730,103 @@ class DatabaseService extends BaseService
         
         return $charset_collate;
     }
+
+    /**
+     * Get conversation by session ID
+     *
+     * @param string $session_id
+     * @return object|null
+     */
+    public function getConversationBySessionId(string $session_id): ?object
+    {
+        $table_name = $this->table_prefix . 'conversations';
+        
+        $result = $this->wpdb->get_row(
+            $this->wpdb->prepare(
+                "SELECT * FROM {$table_name} WHERE session_id = %s",
+                $session_id
+            )
+        );
+        
+        return $result ?: null;
+    }
+
+    /**
+     * Get active session count for user
+     *
+     * @param int $user_id
+     * @return int
+     */
+    public function getActiveSessionCount(int $user_id): int
+    {
+        $table_name = $this->table_prefix . 'conversations';
+        
+        $result = $this->wpdb->get_var(
+            $this->wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND state = 'active'",
+                $user_id
+            )
+        );
+        
+        return (int)($result ?: 0);
+    }
+
+    /**
+     * Get oldest active session for user
+     *
+     * @param int $user_id
+     * @return object|null
+     */
+    public function getOldestActiveSession(int $user_id): ?object
+    {
+        $table_name = $this->table_prefix . 'conversations';
+        
+        $result = $this->wpdb->get_row(
+            $this->wpdb->prepare(
+                "SELECT * FROM {$table_name} WHERE user_id = %d AND state = 'active' ORDER BY created_at ASC LIMIT 1",
+                $user_id
+            )
+        );
+        
+        return $result ?: null;
+    }
+
+    /**
+     * Get expired sessions
+     *
+     * @param int $expired_before_timestamp
+     * @return array<object>
+     */
+    public function getExpiredSessions(int $expired_before_timestamp): array
+    {
+        $table_name = $this->table_prefix . 'conversations';
+        
+        $results = $this->wpdb->get_results(
+            $this->wpdb->prepare(
+                "SELECT * FROM {$table_name} WHERE updated_at < %s AND state IN ('active', 'paused')",
+                date('Y-m-d H:i:s', $expired_before_timestamp)
+            )
+        );
+        
+        return $results ?: [];
+    }
+
+    /**
+     * Delete a conversation
+     *
+     * @param int $conversation_id
+     * @return bool
+     */
+    public function deleteConversation(int $conversation_id): bool
+    {
+        $table_name = $this->table_prefix . 'conversations';
+        
+        $result = $this->wpdb->delete(
+            $table_name,
+            ['id' => $conversation_id],
+            ['%d']
+        );
+        
+        return $result !== false;
+    }
 }

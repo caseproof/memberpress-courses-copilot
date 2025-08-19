@@ -38,6 +38,13 @@ class ProxyConfigService {
     private $masterKey;
 
     /**
+     * MemberPress Copilot proxy service
+     *
+     * @var CopilotProxyService
+     */
+    private $copilotProxy;
+
+    /**
      * Provider model mappings
      *
      * @var array
@@ -109,17 +116,21 @@ class ProxyConfigService {
     /**
      * Constructor
      *
-     * @param string $masterKey Master key for LiteLLM proxy
+     * @param CopilotProxyService $copilotProxy MemberPress Copilot proxy service
      * @param Logger $logger Logger instance
-     * @param string $proxyUrl Optional custom proxy URL
+     * @param string $masterKey Optional master key override
      */
-    public function __construct(string $masterKey, Logger $logger, string $proxyUrl = null) {
-        $this->masterKey = $masterKey;
+    public function __construct(CopilotProxyService $copilotProxy, Logger $logger, string $masterKey = null) {
         $this->logger = $logger;
-        $this->proxyUrl = $proxyUrl ?: 'https://wp-ai-proxy-production-9a5aceb50dde.herokuapp.com';
+        
+        // Use existing MemberPress Copilot configuration
+        $this->copilotProxy = $copilotProxy;
+        $this->proxyUrl = $copilotProxy->getLiteLLMProxyUrl() ?: 'https://wp-ai-proxy-production-9a5aceb50dde.herokuapp.com';
+        $this->masterKey = $masterKey ?: $copilotProxy->getVirtualKey() ?: '';
         
         $this->loadConfiguration();
-    }
+        $this->validateCopilotIntegration();
+    }"
 
     /**
      * Get available providers from the proxy
@@ -297,7 +308,7 @@ class ProxyConfigService {
     }
 
     /**
-     * Make a test request to verify provider availability
+     * Make a test request to verify provider availability using MemberPress Copilot
      *
      * @param string $provider Provider name
      * @param string $model Model name
@@ -305,47 +316,55 @@ class ProxyConfigService {
      * @throws \Exception If test fails
      */
     private function makeTestRequest(string $provider, string $model): array {
-        $url = $this->proxyUrl . '/chat/completions';
-        
         $payload = [
             'model' => $model,
             'messages' => [
-                ['role' => 'user', 'content' => 'Test']
+                ['role' => 'user', 'content' => 'Test connection']
             ],
             'max_tokens' => 5,
             'temperature' => 0.1
         ];
 
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer ' . $this->masterKey
-        ];
+        try {
+            // Use copilot proxy service for the request
+            $response = $this->copilotProxy->makeLLMRequest('/chat/completions', $payload);
 
-        $args = [
-            'method' => 'POST',
-            'headers' => $headers,
-            'body' => json_encode($payload),
-            'timeout' => 10
-        ];
+            if (is_wp_error($response)) {
+                throw new \Exception('Test request failed: ' . $response->get_error_message());
+            }
 
-        $response = wp_remote_request($url, $args);
+            $responseCode = wp_remote_retrieve_response_code($response);
+            if ($responseCode >= 400) {
+                $responseBody = wp_remote_retrieve_body($response);
+                
+                // Try to refresh credentials if unauthorized
+                if ($responseCode === 401 && $this->refreshCredentials()) {
+                    $response = $this->copilotProxy->makeLLMRequest('/chat/completions', $payload);
+                    $responseCode = wp_remote_retrieve_response_code($response);
+                    $responseBody = wp_remote_retrieve_body($response);
+                }
+                
+                if ($responseCode >= 400) {
+                    throw new \Exception("Test request failed with status {$responseCode}: {$responseBody}");
+                }
+            }
 
-        if (is_wp_error($response)) {
-            throw new \Exception('Test request failed: ' . $response->get_error_message());
+            $responseData = json_decode(wp_remote_retrieve_body($response), true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \Exception('Invalid JSON response from test request');
+            }
+
+            return $responseData;
+            
+        } catch (\Exception $e) {
+            $this->logger->error('ProxyConfigService: Test request failed', [
+                'provider' => $provider,
+                'model' => $model,
+                'error' => $e->getMessage()
+            ]);
+            
+            throw $e;
         }
-
-        $responseCode = wp_remote_retrieve_response_code($response);
-        if ($responseCode >= 400) {
-            $responseBody = wp_remote_retrieve_body($response);
-            throw new \Exception("Test request failed with status {$responseCode}: {$responseBody}");
-        }
-
-        $responseData = json_decode(wp_remote_retrieve_body($response), true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \Exception('Invalid JSON response from test request');
-        }
-
-        return $responseData;
     }
 
     /**
@@ -438,16 +457,32 @@ class ProxyConfigService {
     }
 
     /**
-     * Get authentication headers for proxy requests
+     * Get authentication headers with automatic refresh
      *
      * @return array Authentication headers
      */
     public function getAuthHeaders(): array {
-        return [
-            'Authorization' => 'Bearer ' . $this->masterKey,
+        // Check if credentials need refresh
+        if ($this->copilotProxy->isVirtualKeyExpired()) {
+            $this->refreshCredentials();
+        }
+
+        $headers = [
             'Content-Type' => 'application/json',
             'User-Agent' => 'MemberPress-Courses-Copilot/1.0'
         ];
+
+        if (!empty($this->masterKey)) {
+            $headers['Authorization'] = 'Bearer ' . $this->masterKey;
+        } else {
+            // Fallback to copilot proxy headers
+            $copilotHeaders = $this->copilotProxy->getAuthHeaders();
+            if (isset($copilotHeaders['Authorization'])) {
+                $headers['Authorization'] = $copilotHeaders['Authorization'];
+            }
+        }
+
+        return $headers;
     }
 
     /**
@@ -591,5 +626,150 @@ class ProxyConfigService {
      */
     public function getMaskedMasterKey(): string {
         return substr($this->masterKey, 0, 8) . '...' . substr($this->masterKey, -4);
+    }
+
+    /**
+     * Validate MemberPress Copilot integration
+     *
+     * @return void
+     */
+    private function validateCopilotIntegration(): void {
+        if (!$this->copilotProxy->isCopilotActive()) {
+            $this->logger->warning('ProxyConfigService: MemberPress Copilot is not active', [
+                'fallback_url' => $this->proxyUrl
+            ]);
+            return;
+        }
+
+        // Check for virtual key expiration
+        if ($this->copilotProxy->isVirtualKeyExpired()) {
+            $this->logger->warning('ProxyConfigService: Virtual key is expired', [
+                'requires_refresh' => true
+            ]);
+        }
+
+        // Test connection to ensure proxy is accessible
+        $connectionTest = $this->copilotProxy->testConnections();
+        
+        if ($connectionTest['litellm_proxy']['status'] !== 'success') {
+            $this->logger->error('ProxyConfigService: LiteLLM proxy connection failed', [
+                'error' => $connectionTest['litellm_proxy']['message']
+            ]);
+        } else {
+            $this->logger->info('ProxyConfigService: Successfully connected to MemberPress Copilot proxy');
+        }
+    }
+
+    /**
+     * Refresh authentication credentials from MemberPress Copilot
+     *
+     * @return bool True if refresh was successful
+     */
+    public function refreshCredentials(): bool {
+        try {
+            // Reload copilot settings
+            $this->copilotProxy->checkCopilotAvailability();
+            
+            // Update proxy URL and credentials
+            $newProxyUrl = $this->copilotProxy->getLiteLLMProxyUrl();
+            $newVirtualKey = $this->copilotProxy->getVirtualKey();
+            
+            if ($newProxyUrl && $newVirtualKey && !$this->copilotProxy->isVirtualKeyExpired()) {
+                $this->proxyUrl = $newProxyUrl;
+                $this->masterKey = $newVirtualKey;
+                
+                $this->logger->info('ProxyConfigService: Credentials refreshed successfully');
+                return true;
+            }
+            
+            $this->logger->warning('ProxyConfigService: Could not refresh credentials', [
+                'has_proxy_url' => !empty($newProxyUrl),
+                'has_virtual_key' => !empty($newVirtualKey),
+                'key_expired' => $this->copilotProxy->isVirtualKeyExpired()
+            ]);
+            
+            return false;
+            
+        } catch (\Exception $e) {
+            $this->logger->error('ProxyConfigService: Credential refresh failed', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return false;
+        }
+    }
+
+    /**
+     * Get provider health status with detailed diagnostics
+     *
+     * @return array Provider health information
+     */
+    public function getProviderHealthStatus(): array {
+        $health = [
+            'overall_status' => 'unknown',
+            'copilot_integration' => 'unknown',
+            'providers' => [],
+            'last_checked' => time()
+        ];
+
+        try {
+            // Check MemberPress Copilot integration
+            if ($this->copilotProxy->isCopilotActive()) {
+                $health['copilot_integration'] = 'active';
+                
+                if ($this->copilotProxy->isVirtualKeyExpired()) {
+                    $health['copilot_integration'] = 'expired_key';
+                }
+            } else {
+                $health['copilot_integration'] = 'inactive';
+            }
+
+            // Test each provider
+            foreach (array_keys($this->providerModels) as $provider) {
+                $health['providers'][$provider] = $this->testProviderConnection($provider);
+            }
+
+            // Determine overall status
+            $availableCount = count(array_filter($health['providers'], function($status) {
+                return $status['available'];
+            }));
+
+            if ($availableCount === 0) {
+                $health['overall_status'] = 'critical';
+            } elseif ($availableCount < count($health['providers'])) {
+                $health['overall_status'] = 'degraded';
+            } else {
+                $health['overall_status'] = 'healthy';
+            }
+
+        } catch (\Exception $e) {
+            $health['overall_status'] = 'error';
+            $health['error'] = $e->getMessage();
+            
+            $this->logger->error('ProxyConfigService: Health check failed', [
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        return $health;
+    }
+
+    /**
+     * Get comprehensive proxy configuration status
+     *
+     * @return array Configuration status
+     */
+    public function getConfigurationStatus(): array {
+        return [
+            'proxy_url' => $this->proxyUrl,
+            'has_master_key' => !empty($this->masterKey),
+            'master_key_masked' => $this->getMaskedMasterKey(),
+            'copilot_active' => $this->copilotProxy->isCopilotActive(),
+            'virtual_key_expired' => $this->copilotProxy->isVirtualKeyExpired(),
+            'provider_count' => count($this->providerModels),
+            'available_providers' => $this->getAvailableProviders(),
+            'configuration_valid' => !empty($this->proxyUrl) && !empty($this->masterKey),
+            'last_updated' => get_option('mpc_copilot_config', [])['last_updated'] ?? null
+        ];
     }
 }

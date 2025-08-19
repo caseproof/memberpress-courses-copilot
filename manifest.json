@@ -1,0 +1,233 @@
+{
+  "name": "MemberPress Courses Copilot",
+  "short_name": "MP Courses AI",
+  "description": "AI-powered course creation assistant for MemberPress",
+  "version": "1.0.0",
+  "start_url": "/wp-admin/admin.php?page=memberpress-courses-copilot",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0073aa",
+  "background_color": "#ffffff",
+  "scope": "/wp-admin/",
+  "lang": "en-US",
+  "dir": "ltr",
+  
+  "icons": [
+    {
+      "src": "assets/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  
+  "screenshots": [
+    {
+      "src": "assets/screenshots/desktop-chat.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "AI-powered course creation interface"
+    },
+    {
+      "src": "assets/screenshots/mobile-interface.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Mobile-optimized course builder"
+    }
+  ],
+  
+  "categories": [
+    "education",
+    "productivity",
+    "business"
+  ],
+  
+  "shortcuts": [
+    {
+      "name": "Create New Course",
+      "short_name": "New Course",
+      "description": "Start creating a new course with AI assistance",
+      "url": "/wp-admin/admin.php?page=memberpress-courses-copilot&action=new",
+      "icons": [
+        {
+          "src": "assets/icons/shortcut-new-course.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "My Courses",
+      "short_name": "Courses",
+      "description": "View and manage your courses",
+      "url": "/wp-admin/edit.php?post_type=mpcs-course",
+      "icons": [
+        {
+          "src": "assets/icons/shortcut-courses.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Voice Commands",
+      "short_name": "Voice",
+      "description": "Use voice commands to create courses",
+      "url": "/wp-admin/admin.php?page=memberpress-courses-copilot&voice=true",
+      "icons": [
+        {
+          "src": "assets/icons/shortcut-voice.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://memberpress.com/courses/",
+      "id": "memberpress-courses"
+    }
+  ],
+  
+  "prefer_related_applications": false,
+  
+  "protocol_handlers": [
+    {
+      "protocol": "web+mpcourses",
+      "url": "/wp-admin/admin.php?page=memberpress-courses-copilot&import=%s"
+    }
+  ],
+  
+  "share_target": {
+    "action": "/wp-admin/admin.php?page=memberpress-courses-copilot&share=true",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "course_file",
+          "accept": [
+            ".json",
+            ".csv",
+            ".txt",
+            "application/json",
+            "text/csv",
+            "text/plain"
+          ]
+        }
+      ]
+    }
+  },
+  
+  "file_handlers": [
+    {
+      "action": "/wp-admin/admin.php?page=memberpress-courses-copilot&import=true",
+      "accept": {
+        "application/json": [".json"],
+        "text/csv": [".csv"],
+        "text/plain": [".txt"]
+      }
+    }
+  ],
+  
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  
+  "handle_links": "preferred",
+  
+  "capture_links": "existing-client-navigate",
+  
+  "permissions": [
+    "microphone",
+    "camera",
+    "storage-access",
+    "background-sync"
+  ],
+  
+  "features": [
+    "voice-input",
+    "offline-support",
+    "background-sync",
+    "gesture-navigation",
+    "adaptive-ui"
+  ],
+  
+  "custom": {
+    "wordpress": {
+      "plugin": "memberpress-courses-copilot",
+      "version": "1.0.0",
+      "requires_login": true,
+      "capabilities": [
+        "manage_options",
+        "edit_courses"
+      ]
+    },
+    "ai_features": {
+      "voice_commands": true,
+      "multilingual": true,
+      "offline_mode": true,
+      "gesture_support": true
+    },
+    "mobile_features": {
+      "touch_optimized": true,
+      "swipe_navigation": true,
+      "haptic_feedback": true,
+      "adaptive_layout": true
+    }
+  }
+}

@@ -65,6 +65,26 @@ class CourseContentRouter {
             'provider' => 'openai',
             'model' => 'gpt-4',
             'reason' => 'OpenAI excels at content analysis and data processing'
+        ],
+        'structured_analysis' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4',
+            'reason' => 'OpenAI excels at extracting structured data from unstructured input'
+        ],
+        'learning_objectives' => [
+            'provider' => 'anthropic',
+            'model' => 'claude-3-sonnet-20240229',
+            'reason' => 'Anthropic creates comprehensive and well-structured learning objectives'
+        ],
+        'assessment_rubric' => [
+            'provider' => 'openai',
+            'model' => 'gpt-4',
+            'reason' => 'OpenAI handles structured assessment criteria effectively'
+        ],
+        'course_summary' => [
+            'provider' => 'anthropic',
+            'model' => 'claude-3-haiku-20240307',
+            'reason' => 'Fast and efficient for generating concise summaries'
         ]
     ];
 
@@ -575,5 +595,285 @@ class CourseContentRouter {
             'fallback_chains' => $this->fallbackChain,
             'provider_capabilities' => array_keys($this->providerCapabilities)
         ];
+    }
+
+    /**
+     * Get optimal model configuration for course generation task
+     *
+     * @param string $taskType Type of generation task
+     * @param array $requirements Task requirements
+     * @return array Model configuration
+     */
+    public function getOptimalConfiguration(string $taskType, array $requirements = []): array {
+        $config = $this->getProviderForContentType($taskType, $requirements);
+        
+        // Enhance configuration based on requirements
+        if (isset($requirements['complexity']) && $requirements['complexity'] === 'high') {
+            // Use more powerful models for complex tasks
+            if ($config['provider'] === 'anthropic') {
+                $config['model'] = 'claude-3-opus-20240229';
+                $config['options']['max_tokens'] = 8000;
+            } elseif ($config['provider'] === 'openai') {
+                $config['model'] = 'gpt-4-turbo-preview';
+                $config['options']['max_tokens'] = 4096;
+            }
+        }
+
+        // Adjust temperature for consistency requirements
+        if (isset($requirements['consistency']) && $requirements['consistency'] === 'high') {
+            $config['options']['temperature'] = 0.2;
+        }
+
+        // Add cost optimization
+        if (isset($requirements['budget_conscious']) && $requirements['budget_conscious']) {
+            $config = $this->optimizeForCost($config, $taskType);
+        }
+
+        return $config;
+    }
+
+    /**
+     * Optimize configuration for cost efficiency
+     *
+     * @param array $config Current configuration
+     * @param string $taskType Task type
+     * @return array Optimized configuration
+     */
+    private function optimizeForCost(array $config, string $taskType): array {
+        $costOptimalModels = [
+            'anthropic' => 'claude-3-haiku-20240307',
+            'openai' => 'gpt-3.5-turbo'
+        ];
+
+        if (isset($costOptimalModels[$config['provider']])) {
+            $config['model'] = $costOptimalModels[$config['provider']];
+            $config['reason'] = 'Cost-optimized model selection';
+            
+            // Adjust token limits for cost efficiency
+            $config['options']['max_tokens'] = min($config['options']['max_tokens'] ?? 2000, 2000);
+        }
+
+        return $config;
+    }
+
+    /**
+     * Get provider load balancing recommendation
+     *
+     * @param string $contentType Content type
+     * @return array Load balancing recommendation
+     */
+    public function getLoadBalancingRecommendation(string $contentType): array {
+        $primaryConfig = $this->getProviderForContentType($contentType);
+        $fallbackConfig = $this->getFallbackProvider($contentType);
+        
+        return [
+            'primary' => $primaryConfig,
+            'fallback' => $fallbackConfig,
+            'load_distribution' => [
+                'primary_weight' => 80,
+                'fallback_weight' => 20
+            ]
+        ];
+    }
+
+    /**
+     * Validate provider availability for critical operations
+     *
+     * @param string $contentType Content type
+     * @return bool True if provider is available
+     */
+    public function validateProviderAvailability(string $contentType): bool {
+        $config = $this->getProviderForContentType($contentType);
+        $availableProviders = $this->proxyConfig->getAvailableProviders();
+        
+        if (!in_array($config['provider'], $availableProviders)) {
+            $this->logger->warning('CourseContentRouter: Primary provider unavailable', [
+                'content_type' => $contentType,
+                'requested_provider' => $config['provider'],
+                'available_providers' => $availableProviders
+            ]);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get recommended batch size for content generation
+     *
+     * @param string $contentType Content type
+     * @param array $context Generation context
+     * @return int Recommended batch size
+     */
+    public function getRecommendedBatchSize(string $contentType, array $context = []): int {
+        // Default batch sizes based on content type complexity
+        $batchSizes = [
+            'course_outline' => 1,        // Complex, generate individually
+            'lesson_content' => 3,        // Moderate complexity
+            'quiz_questions' => 5,        // Lightweight, can batch more
+            'course_metadata' => 10,      // Very lightweight
+            'content_analysis' => 5,      // Moderate complexity
+            'learning_objectives' => 3    // Moderate complexity
+        ];
+
+        $defaultSize = $batchSizes[$contentType] ?? 3;
+        
+        // Adjust based on context
+        if (isset($context['total_items']) && $context['total_items'] < $defaultSize) {
+            return $context['total_items'];
+        }
+
+        // Reduce batch size for high complexity requirements
+        if (isset($context['complexity']) && $context['complexity'] === 'high') {
+            return max(1, intval($defaultSize / 2));
+        }
+
+        return $defaultSize;
+    }
+
+    /**
+     * Get estimated generation time for content type
+     *
+     * @param string $contentType Content type
+     * @param int $itemCount Number of items to generate
+     * @return int Estimated time in seconds
+     */
+    public function getEstimatedGenerationTime(string $contentType, int $itemCount): int {
+        // Average generation times in seconds per item
+        $baseTimes = [
+            'course_outline' => 60,       // 1 minute per outline
+            'lesson_content' => 45,       // 45 seconds per lesson
+            'quiz_questions' => 20,       // 20 seconds per question set
+            'course_metadata' => 10,      // 10 seconds per metadata
+            'content_analysis' => 15,     // 15 seconds per analysis
+            'learning_objectives' => 25   // 25 seconds per objective set
+        ];
+
+        $baseTime = $baseTimes[$contentType] ?? 30;
+        $totalTime = $baseTime * $itemCount;
+        
+        // Add overhead for API calls and processing
+        $overhead = min($itemCount * 5, 60); // Max 1 minute overhead
+        
+        return $totalTime + $overhead;
+    }
+
+    /**
+     * Get rate limiting recommendations
+     *
+     * @param string $provider Provider name
+     * @return array Rate limiting configuration
+     */
+    public function getRateLimitingConfig(string $provider): array {
+        $rateLimits = [
+            'anthropic' => [
+                'requests_per_minute' => 20,
+                'tokens_per_minute' => 100000,
+                'delay_between_requests' => 3  // seconds
+            ],
+            'openai' => [
+                'requests_per_minute' => 60,
+                'tokens_per_minute' => 150000,
+                'delay_between_requests' => 1  // seconds
+            ]
+        ];
+
+        return $rateLimits[$provider] ?? [
+            'requests_per_minute' => 30,
+            'tokens_per_minute' => 75000,
+            'delay_between_requests' => 2
+        ];
+    }
+
+    /**
+     * Monitor and log provider performance
+     *
+     * @param string $provider Provider name
+     * @param string $model Model name
+     * @param float $responseTime Response time in seconds
+     * @param int $tokenCount Token count
+     * @return void
+     */
+    public function logProviderPerformance(string $provider, string $model, float $responseTime, int $tokenCount): void {
+        $performanceData = [
+            'provider' => $provider,
+            'model' => $model,
+            'response_time' => $responseTime,
+            'token_count' => $tokenCount,
+            'tokens_per_second' => $tokenCount / max($responseTime, 0.1),
+            'timestamp' => time()
+        ];
+
+        $this->logger->info('CourseContentRouter: Provider performance logged', $performanceData);
+        
+        // Store performance data for analytics
+        $this->storePerformanceMetrics($performanceData);
+    }
+
+    /**
+     * Store performance metrics for analysis
+     *
+     * @param array $metrics Performance metrics
+     * @return void
+     */
+    private function storePerformanceMetrics(array $metrics): void {
+        $existingMetrics = get_option('mpc_provider_performance', []);
+        
+        // Keep only last 100 entries to prevent bloat
+        if (count($existingMetrics) >= 100) {
+            $existingMetrics = array_slice($existingMetrics, -99);
+        }
+        
+        $existingMetrics[] = $metrics;
+        update_option('mpc_provider_performance', $existingMetrics);
+    }
+
+    /**
+     * Get performance analytics
+     *
+     * @param int $days Number of days to analyze
+     * @return array Performance analytics
+     */
+    public function getPerformanceAnalytics(int $days = 7): array {
+        $metrics = get_option('mpc_provider_performance', []);
+        $cutoffTime = time() - ($days * 24 * 3600);
+        
+        // Filter metrics by time range
+        $recentMetrics = array_filter($metrics, function($metric) use ($cutoffTime) {
+            return $metric['timestamp'] >= $cutoffTime;
+        });
+
+        if (empty($recentMetrics)) {
+            return ['error' => 'No performance data available'];
+        }
+
+        // Calculate analytics by provider
+        $analytics = [];
+        foreach ($recentMetrics as $metric) {
+            $provider = $metric['provider'];
+            
+            if (!isset($analytics[$provider])) {
+                $analytics[$provider] = [
+                    'request_count' => 0,
+                    'total_response_time' => 0,
+                    'total_tokens' => 0,
+                    'models_used' => []
+                ];
+            }
+            
+            $analytics[$provider]['request_count']++;
+            $analytics[$provider]['total_response_time'] += $metric['response_time'];
+            $analytics[$provider]['total_tokens'] += $metric['token_count'];
+            $analytics[$provider]['models_used'][] = $metric['model'];
+        }
+
+        // Calculate averages and unique models
+        foreach ($analytics as $provider => &$data) {
+            $data['avg_response_time'] = round($data['total_response_time'] / $data['request_count'], 2);
+            $data['avg_tokens_per_second'] = round($data['total_tokens'] / $data['total_response_time'], 2);
+            $data['models_used'] = array_unique($data['models_used']);
+        }
+
+        return $analytics;
     }
 }

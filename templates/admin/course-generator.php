@@ -107,7 +107,7 @@ $current_user = wp_get_current_user();
             </div>
         </div>
 
-        <!-- Preview Panel -->
+        <!-- Enhanced Preview Panel -->
         <div class="mpcc-preview-panel">
             <div class="mpcc-preview-header">
                 <h2><?php esc_html_e('Course Preview', 'memberpress-courses-copilot'); ?></h2>

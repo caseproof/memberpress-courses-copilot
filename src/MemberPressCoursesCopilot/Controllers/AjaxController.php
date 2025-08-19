@@ -63,7 +63,18 @@ class AjaxController extends BaseController
         'mpcc_get_templates',
         'mpcc_get_course_patterns',
         'mpcc_upload_content',
-        'mpcc_process_bulk_action'
+        'mpcc_process_bulk_action',
+        // Enhanced preview system actions
+        'mpcc_stream_generation',
+        'mpcc_update_course_element',
+        'mpcc_reorder_elements',
+        'mpcc_get_metrics',
+        'mpcc_validate_element',
+        'mpcc_auto_save',
+        'mpcc_ping',
+        'mpcc_generate_response',
+        'mpcc_get_suggestions',
+        'mpcc_get_learning_path'
     ];
 
     /**
@@ -191,6 +202,17 @@ class AjaxController extends BaseController
             'get_course_patterns' => $this->handleGetCoursePatterns(),
             'upload_content' => $this->handleUploadContent(),
             'process_bulk_action' => $this->handleProcessBulkAction(),
+            // Enhanced preview system actions
+            'stream_generation' => $this->handleStreamGeneration(),
+            'update_course_element' => $this->handleUpdateCourseElement(),
+            'reorder_elements' => $this->handleReorderElements(),
+            'get_metrics' => $this->handleGetMetrics(),
+            'validate_element' => $this->handleValidateElement(),
+            'auto_save' => $this->handleAutoSave(),
+            'ping' => $this->handlePing(),
+            'generate_response' => $this->handleGenerateResponse(),
+            'get_suggestions' => $this->handleGetSuggestions(),
+            'get_learning_path' => $this->handleGetLearningPath(),
             default => throw new \Exception("Unknown action: {$action}")
         };
     }
@@ -1376,5 +1398,807 @@ class AjaxController extends BaseController
 
         echo $data;
         exit;
+    }
+
+    // ==================================================================================
+    // Enhanced Preview System Handlers
+    // ==================================================================================
+
+    /**
+     * Handle streaming generation for real-time updates
+     * 
+     * @return array Response data
+     */
+    private function handleStreamGeneration(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $streamType = $this->sanitizeInput($_POST['stream_type'] ?? '');
+        $lastUpdateId = $this->sanitizeInput($_POST['last_update_id'] ?? '');
+
+        if (empty($sessionId)) {
+            throw new \Exception('Session ID is required');
+        }
+
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            throw new \Exception('Invalid or expired session');
+        }
+
+        // Check for new updates since last poll
+        $updates = $this->getStreamUpdates($sessionId, $lastUpdateId, $streamType);
+        
+        // Add generation progress if streaming is active
+        $isGenerating = $conversationState['is_generating'] ?? false;
+        $generationProgress = $conversationState['generation_progress'] ?? [];
+
+        return [
+            'success' => true,
+            'data' => [
+                'updates' => $updates,
+                'is_generating' => $isGenerating,
+                'progress' => $generationProgress,
+                'last_update_id' => $updates ? end($updates)['id'] : $lastUpdateId,
+                'timestamp' => current_time('c')
+            ]
+        ];
+    }
+
+    /**
+     * Handle course element updates for real-time editing
+     * 
+     * @return array Response data
+     */
+    private function handleUpdateCourseElement(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $elementType = $this->sanitizeInput($_POST['element_type'] ?? '');
+        $elementId = $this->sanitizeInput($_POST['element_id'] ?? '');
+        $updates = $_POST['updates'] ?? [];
+
+        if (empty($sessionId) || empty($elementType) || empty($elementId)) {
+            throw new \Exception('Session ID, element type, and element ID are required');
+        }
+
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            throw new \Exception('Invalid or expired session');
+        }
+
+        // Update the specific element
+        $result = $this->updateCourseElement($conversationState, $elementType, $elementId, $updates);
+        
+        if ($result['success']) {
+            // Save updated state
+            $this->saveSessionData($sessionId, $conversationState);
+            
+            // Add to update stream
+            $this->addStreamUpdate($sessionId, [
+                'type' => 'element_updated',
+                'element_type' => $elementType,
+                'element_id' => $elementId,
+                'updates' => $updates,
+                'timestamp' => current_time('c')
+            ]);
+        }
+
+        return [
+            'success' => $result['success'],
+            'data' => [
+                'element_type' => $elementType,
+                'element_id' => $elementId,
+                'updated_fields' => $result['updated_fields'] ?? [],
+                'validation' => $this->validateElementUpdates($elementType, $updates),
+                'metrics' => $this->calculateElementMetrics($conversationState, $elementType, $elementId)
+            ]
+        ];
+    }
+
+    /**
+     * Handle element reordering for drag-and-drop functionality
+     * 
+     * @return array Response data
+     */
+    private function handleReorderElements(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $sourceElement = $_POST['source_element'] ?? [];
+        $targetElement = $_POST['target_element'] ?? [];
+        $operation = $this->sanitizeInput($_POST['operation'] ?? 'move'); // move, copy, swap
+
+        if (empty($sessionId) || empty($sourceElement) || empty($targetElement)) {
+            throw new \Exception('Session ID, source element, and target element are required');
+        }
+
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            throw new \Exception('Invalid or expired session');
+        }
+
+        // Perform reordering operation
+        $result = $this->reorderCourseElements($conversationState, $sourceElement, $targetElement, $operation);
+        
+        if ($result['success']) {
+            // Save updated state
+            $this->saveSessionData($sessionId, $conversationState);
+            
+            // Add to update stream
+            $this->addStreamUpdate($sessionId, [
+                'type' => 'elements_reordered',
+                'operation' => $operation,
+                'source' => $sourceElement,
+                'target' => $targetElement,
+                'timestamp' => current_time('c')
+            ]);
+        }
+
+        return [
+            'success' => $result['success'],
+            'data' => [
+                'operation' => $operation,
+                'affected_elements' => $result['affected_elements'] ?? [],
+                'new_structure' => $this->getCourseStructure($conversationState),
+                'validation' => $this->validateCourseStructure($conversationState)
+            ]
+        ];
+    }
+
+    /**
+     * Handle metrics calculation for course analytics
+     * 
+     * @return array Response data
+     */
+    private function handleGetMetrics(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $metricsType = $this->sanitizeInput($_POST['metrics_type'] ?? 'all');
+
+        if (empty($sessionId)) {
+            throw new \Exception('Session ID is required');
+        }
+
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            throw new \Exception('Invalid or expired session');
+        }
+
+        $generatedCourse = $conversationState['generated_course'] ?? null;
+        if (!$generatedCourse) {
+            throw new \Exception('No course data available');
+        }
+
+        $metrics = [];
+
+        if ($metricsType === 'all' || $metricsType === 'basic') {
+            $metrics['basic'] = $this->generateCourseStatistics($generatedCourse);
+        }
+
+        if ($metricsType === 'all' || $metricsType === 'quality') {
+            $metrics['quality'] = $this->performQualityCheck($generatedCourse);
+        }
+
+        if ($metricsType === 'all' || $metricsType === 'engagement') {
+            $metrics['engagement'] = $this->calculateEngagementMetrics($generatedCourse);
+        }
+
+        if ($metricsType === 'all' || $metricsType === 'learning_path') {
+            $metrics['learning_path'] = $this->generateLearningPathMetrics($generatedCourse);
+        }
+
+        return [
+            'success' => true,
+            'data' => [
+                'metrics' => $metrics,
+                'calculated_at' => current_time('c'),
+                'metrics_type' => $metricsType
+            ]
+        ];
+    }
+
+    /**
+     * Handle element validation for real-time feedback
+     * 
+     * @return array Response data
+     */
+    private function handleValidateElement(): array
+    {
+        $elementType = $this->sanitizeInput($_POST['element_type'] ?? '');
+        $elementData = $_POST['element_data'] ?? [];
+        $validationLevel = $this->sanitizeInput($_POST['validation_level'] ?? 'basic');
+
+        if (empty($elementType)) {
+            throw new \Exception('Element type is required');
+        }
+
+        $validation = $this->validateElement($elementType, $elementData, $validationLevel);
+
+        return [
+            'success' => true,
+            'data' => [
+                'validation' => $validation,
+                'element_type' => $elementType,
+                'validation_level' => $validationLevel,
+                'suggestions' => $this->getElementSuggestions($elementType, $elementData, $validation)
+            ]
+        ];
+    }
+
+    /**
+     * Handle auto-save functionality
+     * 
+     * @return array Response data
+     */
+    private function handleAutoSave(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $autoSaveData = $_POST['auto_save_data'] ?? [];
+
+        if (empty($sessionId)) {
+            throw new \Exception('Session ID is required');
+        }
+
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            throw new \Exception('Invalid or expired session');
+        }
+
+        // Update auto-save data
+        $conversationState['auto_save'] = array_merge(
+            $conversationState['auto_save'] ?? [],
+            $autoSaveData
+        );
+        $conversationState['last_auto_save'] = current_time('timestamp');
+
+        $this->saveSessionData($sessionId, $conversationState);
+
+        $this->logger->debug('Auto-save completed', [
+            'session_id' => $sessionId,
+            'data_size' => strlen(json_encode($autoSaveData))
+        ]);
+
+        return [
+            'success' => true,
+            'data' => [
+                'saved_at' => current_time('c'),
+                'size' => strlen(json_encode($autoSaveData)),
+                'next_save_in' => 30 // seconds
+            ]
+        ];
+    }
+
+    /**
+     * Handle ping for connection monitoring
+     * 
+     * @return array Response data
+     */
+    private function handlePing(): array
+    {
+        return [
+            'success' => true,
+            'data' => [
+                'status' => 'online',
+                'timestamp' => current_time('c'),
+                'server_time' => time(),
+                'user_id' => get_current_user_id()
+            ]
+        ];
+    }
+
+    /**
+     * Handle AI response generation with streaming support
+     * 
+     * @return array Response data
+     */
+    private function handleGenerateResponse(): array
+    {
+        $message = $this->sanitizeInput($_POST['message'] ?? '', 'textarea');
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $context = $_POST['context'] ?? [];
+        $streaming = $_POST['streaming'] === 'true';
+
+        if (empty($message)) {
+            throw new \Exception('Message is required');
+        }
+
+        if (empty($sessionId)) {
+            throw new \Exception('Session ID is required');
+        }
+
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            throw new \Exception('Invalid or expired session');
+        }
+
+        // Set generation flag for streaming
+        if ($streaming) {
+            $conversationState['is_generating'] = true;
+            $conversationState['generation_progress'] = ['stage' => 'starting', 'percentage' => 0];
+            $this->saveSessionData($sessionId, $conversationState);
+        }
+
+        try {
+            // Restore conversation context
+            $this->restoreConversationContext($conversationState);
+
+            // Process message with progress tracking
+            $response = $this->courseGenerator->processMessage($message, $context, [
+                'streaming' => $streaming,
+                'progress_callback' => $streaming ? function($progress) use ($sessionId) {
+                    $this->updateGenerationProgress($sessionId, $progress);
+                } : null
+            ]);
+
+            // Update conversation state
+            $conversationState['is_generating'] = false;
+            $conversationState['generation_progress'] = ['stage' => 'completed', 'percentage' => 100];
+            $this->saveSessionData($sessionId, $this->courseGenerator->getConversationState());
+
+            // Add response to stream
+            if ($streaming) {
+                $this->addStreamUpdate($sessionId, [
+                    'type' => 'ai_response',
+                    'message' => $response['message'] ?? '',
+                    'course_updates' => $response['course'] ?? null,
+                    'timestamp' => current_time('c')
+                ]);
+            }
+
+            return [
+                'success' => true,
+                'data' => $response,
+                'streaming' => $streaming,
+                'timestamp' => current_time('c')
+            ];
+
+        } catch (\Exception $e) {
+            // Clear generation flag on error
+            $conversationState['is_generating'] = false;
+            $conversationState['generation_error'] = $e->getMessage();
+            $this->saveSessionData($sessionId, $conversationState);
+            
+            throw $e;
+        }
+    }
+
+    /**
+     * Handle getting contextual suggestions
+     * 
+     * @return array Response data
+     */
+    private function handleGetSuggestions(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $suggestionType = $this->sanitizeInput($_POST['suggestion_type'] ?? 'general');
+        $context = $_POST['context'] ?? [];
+
+        if (empty($sessionId)) {
+            throw new \Exception('Session ID is required');
+        }
+
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            throw new \Exception('Invalid or expired session');
+        }
+
+        $suggestions = $this->generateSuggestions($conversationState, $suggestionType, $context);
+
+        return [
+            'success' => true,
+            'data' => [
+                'suggestions' => $suggestions,
+                'suggestion_type' => $suggestionType,
+                'context' => $context,
+                'generated_at' => current_time('c')
+            ]
+        ];
+    }
+
+    /**
+     * Handle learning path generation
+     * 
+     * @return array Response data
+     */
+    private function handleGetLearningPath(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $pathType = $this->sanitizeInput($_POST['path_type'] ?? 'linear');
+
+        if (empty($sessionId)) {
+            throw new \Exception('Session ID is required');
+        }
+
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            throw new \Exception('Invalid or expired session');
+        }
+
+        $generatedCourse = $conversationState['generated_course'] ?? null;
+        if (!$generatedCourse) {
+            throw new \Exception('No course data available');
+        }
+
+        $learningPath = $this->generateLearningPath($generatedCourse, $pathType);
+
+        return [
+            'success' => true,
+            'data' => [
+                'learning_path' => $learningPath,
+                'path_type' => $pathType,
+                'course_title' => $generatedCourse->getTitle(),
+                'generated_at' => current_time('c')
+            ]
+        ];
+    }
+
+    // ==================================================================================
+    // Enhanced Preview System Helper Methods
+    // ==================================================================================
+
+    /**
+     * Get stream updates since last poll
+     * 
+     * @param string $sessionId Session ID
+     * @param string $lastUpdateId Last update ID
+     * @param string $streamType Stream type filter
+     * @return array Updates
+     */
+    private function getStreamUpdates(string $sessionId, string $lastUpdateId, string $streamType): array
+    {
+        $streamKey = "mpcc_stream_{$sessionId}";
+        $updates = get_transient($streamKey) ?: [];
+        
+        if ($lastUpdateId) {
+            // Find the index of the last update and return only newer ones
+            $lastIndex = -1;
+            foreach ($updates as $index => $update) {
+                if ($update['id'] === $lastUpdateId) {
+                    $lastIndex = $index;
+                    break;
+                }
+            }
+            
+            if ($lastIndex >= 0) {
+                $updates = array_slice($updates, $lastIndex + 1);
+            }
+        }
+
+        // Filter by stream type if specified
+        if ($streamType && $streamType !== 'all') {
+            $updates = array_filter($updates, function($update) use ($streamType) {
+                return ($update['stream_type'] ?? 'general') === $streamType;
+            });
+        }
+
+        return array_values($updates);
+    }
+
+    /**
+     * Add update to stream
+     * 
+     * @param string $sessionId Session ID
+     * @param array $update Update data
+     * @return void
+     */
+    private function addStreamUpdate(string $sessionId, array $update): void
+    {
+        $streamKey = "mpcc_stream_{$sessionId}";
+        $updates = get_transient($streamKey) ?: [];
+        
+        $update['id'] = uniqid('update_', true);
+        $update['timestamp'] = current_time('c');
+        
+        $updates[] = $update;
+        
+        // Keep only last 50 updates
+        $updates = array_slice($updates, -50);
+        
+        set_transient($streamKey, $updates, HOUR_IN_SECONDS);
+    }
+
+    /**
+     * Update specific course element
+     * 
+     * @param array &$conversationState Conversation state (by reference)
+     * @param string $elementType Element type
+     * @param string $elementId Element ID
+     * @param array $updates Update data
+     * @return array Result
+     */
+    private function updateCourseElement(array &$conversationState, string $elementType, string $elementId, array $updates): array
+    {
+        $generatedCourse = $conversationState['generated_course'] ?? null;
+        if (!$generatedCourse) {
+            return ['success' => false, 'error' => 'No course data available'];
+        }
+
+        $updatedFields = [];
+
+        try {
+            switch ($elementType) {
+                case 'course':
+                    foreach ($updates as $field => $value) {
+                        $method = 'set' . ucfirst($field);
+                        if (method_exists($generatedCourse, $method)) {
+                            $generatedCourse->$method($this->sanitizeInput($value, $field === 'description' ? 'textarea' : 'text'));
+                            $updatedFields[] = $field;
+                        }
+                    }
+                    break;
+
+                case 'section':
+                    $sections = $generatedCourse->getSections();
+                    $sectionIndex = (int) $elementId;
+                    if (isset($sections[$sectionIndex])) {
+                        $section = $sections[$sectionIndex];
+                        foreach ($updates as $field => $value) {
+                            $method = 'set' . ucfirst($field);
+                            if (method_exists($section, $method)) {
+                                $section->$method($this->sanitizeInput($value, $field === 'description' ? 'textarea' : 'text'));
+                                $updatedFields[] = $field;
+                            }
+                        }
+                    }
+                    break;
+
+                case 'lesson':
+                    list($sectionIndex, $lessonIndex) = explode('.', $elementId);
+                    $sections = $generatedCourse->getSections();
+                    if (isset($sections[(int)$sectionIndex])) {
+                        $lessons = $sections[(int)$sectionIndex]->getLessons();
+                        if (isset($lessons[(int)$lessonIndex])) {
+                            $lesson = $lessons[(int)$lessonIndex];
+                            foreach ($updates as $field => $value) {
+                                $method = 'set' . ucfirst($field);
+                                if (method_exists($lesson, $method)) {
+                                    $lesson->$method($this->sanitizeInput($value, $field === 'content' ? 'textarea' : 'text'));
+                                    $updatedFields[] = $field;
+                                }
+                            }
+                        }
+                    }
+                    break;
+            }
+
+            $conversationState['generated_course'] = $generatedCourse;
+            $conversationState['last_modified'] = current_time('timestamp');
+
+            return ['success' => true, 'updated_fields' => $updatedFields];
+
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Update generation progress for streaming
+     * 
+     * @param string $sessionId Session ID
+     * @param array $progress Progress data
+     * @return void
+     */
+    private function updateGenerationProgress(string $sessionId, array $progress): void
+    {
+        $conversationState = $this->getSessionData($sessionId);
+        if ($conversationState) {
+            $conversationState['generation_progress'] = $progress;
+            $this->saveSessionData($sessionId, $conversationState);
+            
+            // Add progress update to stream
+            $this->addStreamUpdate($sessionId, [
+                'type' => 'generation_progress',
+                'progress' => $progress,
+                'stream_type' => 'progress'
+            ]);
+        }
+    }
+
+    /**
+     * Generate contextual suggestions
+     * 
+     * @param array $conversationState Conversation state
+     * @param string $suggestionType Suggestion type
+     * @param array $context Context data
+     * @return array Suggestions
+     */
+    private function generateSuggestions(array $conversationState, string $suggestionType, array $context): array
+    {
+        $suggestions = [];
+        $generatedCourse = $conversationState['generated_course'] ?? null;
+
+        switch ($suggestionType) {
+            case 'quick_replies':
+                $suggestions = [
+                    'Add more sections',
+                    'Improve lesson content',
+                    'Add assessments',
+                    'Include resources',
+                    'Review structure'
+                ];
+                break;
+
+            case 'content_improvement':
+                if ($generatedCourse) {
+                    $qualityCheck = $this->performQualityCheck($generatedCourse);
+                    $suggestions = $qualityCheck['suggestions'] ?? [];
+                }
+                break;
+
+            case 'next_steps':
+                $currentState = $conversationState['current_state'] ?? '';
+                $suggestions = $this->getNextStepSuggestions($currentState);
+                break;
+
+            case 'template_specific':
+                $selectedTemplate = $conversationState['selected_template'] ?? null;
+                if ($selectedTemplate) {
+                    $suggestions = $this->getTemplateSuggestions($selectedTemplate);
+                }
+                break;
+        }
+
+        return $suggestions;
+    }
+
+    /**
+     * Generate learning path visualization data
+     * 
+     * @param GeneratedCourse $course Generated course
+     * @param string $pathType Path type
+     * @return array Learning path data
+     */
+    private function generateLearningPath(GeneratedCourse $course, string $pathType): array
+    {
+        $sections = $course->getSections();
+        $pathData = [
+            'nodes' => [],
+            'connections' => [],
+            'metadata' => [
+                'total_sections' => count($sections),
+                'path_type' => $pathType,
+                'estimated_duration' => $this->calculateEstimatedTime($course)
+            ]
+        ];
+
+        foreach ($sections as $index => $section) {
+            $node = [
+                'id' => "section_{$index}",
+                'type' => 'section',
+                'title' => $section->getTitle(),
+                'description' => $section->getDescription(),
+                'lessons_count' => count($section->getLessons()),
+                'position' => ['x' => $index * 200, 'y' => 100]
+            ];
+
+            $pathData['nodes'][] = $node;
+
+            // Add connection to next section
+            if ($index < count($sections) - 1) {
+                $pathData['connections'][] = [
+                    'from' => "section_{$index}",
+                    'to' => "section_" . ($index + 1),
+                    'type' => 'sequential'
+                ];
+            }
+        }
+
+        return $pathData;
+    }
+
+    /**
+     * Calculate engagement metrics
+     * 
+     * @param GeneratedCourse $course Generated course
+     * @return array Engagement metrics
+     */
+    private function calculateEngagementMetrics(GeneratedCourse $course): array
+    {
+        $totalLessons = 0;
+        $interactiveLessons = 0;
+        $assessments = 0;
+        $resources = 0;
+
+        foreach ($course->getSections() as $section) {
+            foreach ($section->getLessons() as $lesson) {
+                $totalLessons++;
+                
+                $lessonType = $lesson->getType() ?? 'video';
+                if (in_array($lessonType, ['quiz', 'assignment', 'discussion'])) {
+                    $interactiveLessons++;
+                }
+                
+                if ($lessonType === 'quiz' || $lessonType === 'assignment') {
+                    $assessments++;
+                }
+            }
+        }
+
+        $interactivityRatio = $totalLessons > 0 ? ($interactiveLessons / $totalLessons) * 100 : 0;
+
+        return [
+            'total_lessons' => $totalLessons,
+            'interactive_lessons' => $interactiveLessons,
+            'interactivity_ratio' => round($interactivityRatio, 1),
+            'assessments_count' => $assessments,
+            'resources_count' => $resources,
+            'engagement_score' => $this->calculateEngagementScore($interactivityRatio, $assessments, $resources)
+        ];
+    }
+
+    /**
+     * Calculate engagement score
+     * 
+     * @param float $interactivityRatio Interactivity ratio
+     * @param int $assessments Number of assessments
+     * @param int $resources Number of resources
+     * @return int Engagement score (0-100)
+     */
+    private function calculateEngagementScore(float $interactivityRatio, int $assessments, int $resources): int
+    {
+        $score = 0;
+        
+        // Base score from interactivity
+        $score += min($interactivityRatio, 50);
+        
+        // Bonus for assessments
+        $score += min($assessments * 10, 30);
+        
+        // Bonus for resources
+        $score += min($resources * 5, 20);
+        
+        return min(round($score), 100);
+    }
+
+    /**
+     * Generate learning path metrics
+     * 
+     * @param GeneratedCourse $course Generated course
+     * @return array Learning path metrics
+     */
+    private function generateLearningPathMetrics(GeneratedCourse $course): array
+    {
+        $sections = $course->getSections();
+        $pathMetrics = [
+            'complexity_score' => 0,
+            'progression_difficulty' => 'linear',
+            'knowledge_dependencies' => [],
+            'learning_outcomes_alignment' => 0
+        ];
+
+        // Calculate complexity based on section and lesson count
+        $totalSections = count($sections);
+        $totalLessons = array_sum(array_map(function($section) {
+            return count($section->getLessons());
+        }, $sections));
+
+        $pathMetrics['complexity_score'] = min(($totalSections * 10 + $totalLessons * 5), 100);
+
+        // Analyze progression difficulty
+        $lessonCounts = array_map(function($section) {
+            return count($section->getLessons());
+        }, $sections);
+
+        $variance = $this->calculateVariance($lessonCounts);
+        $pathMetrics['progression_difficulty'] = $variance < 2 ? 'linear' : ($variance < 5 ? 'moderate' : 'complex');
+
+        return $pathMetrics;
+    }
+
+    /**
+     * Calculate variance for array of numbers
+     * 
+     * @param array $numbers Array of numbers
+     * @return float Variance
+     */
+    private function calculateVariance(array $numbers): float
+    {
+        if (empty($numbers)) {
+            return 0;
+        }
+
+        $mean = array_sum($numbers) / count($numbers);
+        $squaredDiffs = array_map(function($x) use ($mean) {
+            return pow($x - $mean, 2);
+        }, $numbers);
+
+        return array_sum($squaredDiffs) / count($numbers);
     }
 }
