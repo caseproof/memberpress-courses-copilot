@@ -104,6 +104,68 @@ class CourseIntegrationService extends BaseService
         
         ?>
         <script type="text/javascript">
+        // Define global function that uses jQuery properly
+        window.mpccOpenAIInterface = function() {
+            jQuery(document).ready(function($) {
+                // Create modal for AI course creation
+                var modalHtml = '<div id="mpcc-ai-modal" style="display: none; position: fixed; z-index: 100000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">' +
+                    '<div style="background-color: #fefefe; margin: 5% auto; padding: 0; border: none; border-radius: 8px; width: 90%; max-width: 1200px; height: 85%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
+                        '<div style="display: flex; height: 100%;">' +
+                            '<div style="flex: 1; padding: 0; height: 100%;">' +
+                                '<div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px 8px 0 0;">' +
+                                    '<h2 style="margin: 0; color: white;"><?php echo esc_js(__('Create Course with AI', 'memberpress-courses-copilot')); ?></h2>' +
+                                    '<span id="mpcc-close-modal" style="cursor: pointer; font-size: 24px; font-weight: bold; color: white;">&times;</span>' +
+                                '</div>' +
+                                '<div id="mpcc-ai-interface-container" style="height: calc(100% - 80px); padding: 0;">' +
+                                    '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">' +
+                                        '<div style="text-align: center;">' +
+                                            '<div class="spinner is-active" style="float: none; margin: 0 auto 20px;"></div>' +
+                                            '<p><?php echo esc_js(__('Loading AI Assistant...', 'memberpress-courses-copilot')); ?></p>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+                
+                $('body').append(modalHtml);
+                $('#mpcc-ai-modal').show();
+                
+                // Close modal events
+                $('#mpcc-close-modal, #mpcc-ai-modal').on('click', function(e) {
+                    if (e.target === this) {
+                        $('#mpcc-ai-modal').remove();
+                    }
+                });
+                
+                // Load AI interface via AJAX
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'mpcc_load_ai_interface',
+                        nonce: '<?php echo wp_create_nonce('mpcc_ai_interface'); ?>',
+                        context: 'course_creation'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#mpcc-ai-interface-container').html(response.data.html);
+                            // Initialize the AI chat interface
+                            if (typeof window.initializeMPCCAIInterface === 'function') {
+                                window.initializeMPCCAIInterface('course_creation');
+                            }
+                        } else {
+                            $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
+                        }
+                    },
+                    error: function() {
+                        $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p><?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?></p></div>');
+                    }
+                });
+            });
+        };
+        
         jQuery(document).ready(function($) {
             // Add "Create with AI" button next to "Add New Course"
             var createWithAIButton = '<a href="#" id="mpcc-create-with-ai" class="page-title-action" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; text-shadow: none;">' + 
@@ -116,68 +178,9 @@ class CourseIntegrationService extends BaseService
             // Handle click event
             $('#mpcc-create-with-ai').on('click', function(e) {
                 e.preventDefault();
-                mpccOpenAIInterface();
+                window.mpccOpenAIInterface();
             });
         });
-        
-        function mpccOpenAIInterface() {
-            // Create modal for AI course creation
-            var modalHtml = '<div id="mpcc-ai-modal" style="display: none; position: fixed; z-index: 100000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">' +
-                '<div style="background-color: #fefefe; margin: 5% auto; padding: 0; border: none; border-radius: 8px; width: 90%; max-width: 1200px; height: 85%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
-                    '<div style="display: flex; height: 100%;">' +
-                        '<div style="flex: 1; padding: 0; height: 100%;">' +
-                            '<div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px 8px 0 0;">' +
-                                '<h2 style="margin: 0; color: white;"><?php echo esc_js(__('Create Course with AI', 'memberpress-courses-copilot')); ?></h2>' +
-                                '<span id="mpcc-close-modal" style="cursor: pointer; font-size: 24px; font-weight: bold; color: white;">&times;</span>' +
-                            '</div>' +
-                            '<div id="mpcc-ai-interface-container" style="height: calc(100% - 80px); padding: 0;">' +
-                                '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">' +
-                                    '<div style="text-align: center;">' +
-                                        '<div class="spinner is-active" style="float: none; margin: 0 auto 20px;"></div>' +
-                                        '<p><?php echo esc_js(__('Loading AI Assistant...', 'memberpress-courses-copilot')); ?></p>' +
-                                    '</div>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
-            
-            $('body').append(modalHtml);
-            $('#mpcc-ai-modal').show();
-            
-            // Close modal events
-            $('#mpcc-close-modal, #mpcc-ai-modal').on('click', function(e) {
-                if (e.target === this) {
-                    $('#mpcc-ai-modal').remove();
-                }
-            });
-            
-            // Load AI interface via AJAX
-            $.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'mpcc_load_ai_interface',
-                    nonce: '<?php echo wp_create_nonce('mpcc_ai_interface'); ?>',
-                    context: 'course_creation'
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#mpcc-ai-interface-container').html(response.data.html);
-                        // Initialize the AI chat interface
-                        if (typeof window.initializeMPCCAIInterface === 'function') {
-                            window.initializeMPCCAIInterface('course_creation');
-                        }
-                    } else {
-                        $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
-                    }
-                },
-                error: function() {
-                    $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p><?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?></p></div>');
-                }
-            });
-        }
         </script>
         <?php
     }
