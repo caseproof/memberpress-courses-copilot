@@ -214,6 +214,11 @@ Refer to `/docs/IMPLEMENTATION_PLAN.md` for complete 16-week development roadmap
 - **Commits**: Conventional commit messages
 - **Code Review**: All changes require review
 - **Standards**: PHPCS must pass before merge
+- **GitHub CLI**: ALWAYS use `gh` commands for GitHub operations:
+  - Create PRs: `gh pr create`
+  - Push code: `gh repo sync` or create with `gh repo create --source . --push`
+  - View issues: `gh issue view <number>`
+  - NEVER use `git push` directly - use GitHub CLI commands
 
 ## Performance Guidelines
 
