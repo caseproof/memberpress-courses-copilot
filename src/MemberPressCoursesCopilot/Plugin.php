@@ -91,15 +91,20 @@ final class Plugin
      */
     public function initializeComponents(): void
     {
-        // Initialize controllers, services, and other components here
-        // This will be expanded as we add more functionality
+        // Initialize the copilot proxy service to interface with existing MemberPress Copilot
+        $copilot_proxy_service = new \MemberPressCoursesCopilot\Services\CopilotProxyService();
+        $copilot_proxy_service->init();
+        
+        // Initialize the course integration service for MemberPress Courses UI integration
+        $course_integration_service = new \MemberPressCoursesCopilot\Services\CourseIntegrationService();
+        $course_integration_service->init();
         
         /**
          * Fires after plugin components are initialized
          *
          * @since 1.0.0
          */
-        do_action('memberpress_courses_copilot_components_initialized');
+        do_action('memberpress_courses_copilot_components_initialized', $copilot_proxy_service, $course_integration_service);
     }
 
     /**
@@ -113,14 +118,19 @@ final class Plugin
             return;
         }
 
-        // Initialize admin-specific components here
+        // Initialize admin menu and settings
+        $settings_page = new \MemberPressCoursesCopilot\Admin\SettingsPage();
+        $settings_page->init();
+        
+        $admin_menu = new \MemberPressCoursesCopilot\Admin\AdminMenu($settings_page);
+        $admin_menu->init();
         
         /**
          * Fires after admin components are initialized
          *
          * @since 1.0.0
          */
-        do_action('memberpress_courses_copilot_admin_initialized');
+        do_action('memberpress_courses_copilot_admin_initialized', $admin_menu, $settings_page);
     }
 
     /**

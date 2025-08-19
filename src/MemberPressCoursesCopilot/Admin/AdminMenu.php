@@ -10,6 +10,7 @@ namespace MemberPressCoursesCopilot\Admin;
 
 /**
  * AdminMenu class handles the WordPress admin menu integration
+ * Simplified to work with existing MemberPress Copilot plugin
  */
 class AdminMenu {
     /**
@@ -49,25 +50,41 @@ class AdminMenu {
             return;
         }
 
-        // Add submenu under MemberPress Courses
+        // Only add course generator if MemberPress Copilot is active
+        if (!$this->isCopilotActive()) {
+            return;
+        }
+
+        // Add submenu under MemberPress Courses for the course generator
         add_submenu_page(
-            'memberpress-courses',
-            __('AI Copilot', 'memberpress-courses-copilot'),
-            __('AI Copilot', 'memberpress-courses-copilot'),
-            'edit_courses',
+            'edit.php?post_type=mpcs-course',
+            __('AI Course Generator', 'memberpress-courses-copilot'),
+            __('AI Course Generator', 'memberpress-courses-copilot'),
+            'edit_posts',
             'mpcc-course-generator',
             [$this, 'renderCourseGenerator']
         );
 
-        // Add settings submenu
+        // Add status page as submenu
         add_submenu_page(
-            'memberpress-courses',
-            __('AI Copilot Settings', 'memberpress-courses-copilot'),
-            __('AI Copilot Settings', 'memberpress-courses-copilot'),
+            'edit.php?post_type=mpcs-course',
+            __('AI Copilot Status', 'memberpress-courses-copilot'),
+            __('AI Copilot Status', 'memberpress-courses-copilot'),
             'manage_options',
-            'mpcc-settings',
+            'mpcc-status',
             [$this->settingsPage, 'render']
         );
+    }
+
+    /**
+     * Check if MemberPress Copilot is active
+     *
+     * @return bool
+     */
+    private function isCopilotActive(): bool {
+        return class_exists('MemberpressAiAssistant') && 
+               function_exists('is_plugin_active') && 
+               is_plugin_active('memberpress-copilot/memberpress-ai-assistant.php');
     }
 
     /**
@@ -77,12 +94,44 @@ class AdminMenu {
      */
     public function renderCourseGenerator(): void {
         // Check capabilities
-        if (!current_user_can('edit_courses')) {
+        if (!current_user_can('edit_posts')) {
             wp_die(__('You do not have sufficient permissions to access this page.', 'memberpress-courses-copilot'));
         }
 
+        // Check if MemberPress Copilot is active
+        if (!$this->isCopilotActive()) {
+            $this->renderCopilotRequiredNotice();
+            return;
+        }
+
         // Include template
-        include MPCC_PLUGIN_DIR . 'templates/admin/course-generator.php';
+        include MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'templates/admin/course-generator.php';
+    }
+
+    /**
+     * Render copilot required notice
+     *
+     * @return void
+     */
+    private function renderCopilotRequiredNotice(): void {
+        ?>
+        <div class="wrap">
+            <h1><?php esc_html_e('AI Course Generator', 'memberpress-courses-copilot'); ?></h1>
+            <div class="notice notice-error">
+                <p>
+                    <strong><?php esc_html_e('MemberPress Copilot Required', 'memberpress-courses-copilot'); ?></strong>
+                </p>
+                <p>
+                    <?php 
+                    printf(
+                        __('The AI Course Generator requires %s to be installed and activated. Please install and activate MemberPress Copilot first.', 'memberpress-courses-copilot'),
+                        '<strong>MemberPress Copilot</strong>'
+                    ); 
+                    ?>
+                </p>
+            </div>
+        </div>
+        <?php
     }
 
     /**
@@ -93,36 +142,39 @@ class AdminMenu {
      */
     public function enqueueAssets(string $hook): void {
         // Only load on our pages
-        if (!in_array($hook, ['memberpress-courses_page_mpcc-course-generator', 'memberpress-courses_page_mpcc-settings'], true)) {
+        if (!in_array($hook, ['mpcs-course_page_mpcc-course-generator', 'mpcs-course_page_mpcc-status'], true)) {
             return;
         }
 
         // Enqueue styles
         wp_enqueue_style(
             'mpcc-admin',
-            MPCC_PLUGIN_URL . 'assets/css/admin.css',
+            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/courses-integration.css',
             ['wp-components'],
-            MPCC_VERSION
+            MEMBERPRESS_COURSES_COPILOT_VERSION
         );
 
         // Enqueue scripts for course generator page
-        if ($hook === 'memberpress-courses_page_mpcc-course-generator') {
+        if ($hook === 'mpcs-course_page_mpcc-course-generator') {
             wp_enqueue_script(
                 'mpcc-course-generator',
-                MPCC_PLUGIN_URL . 'assets/js/course-generator.js',
-                ['jquery', 'wp-element', 'wp-components', 'wp-api-fetch'],
-                MPCC_VERSION,
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/courses-integration.js',
+                ['jquery', 'wp-element', 'wp-components'],
+                MEMBERPRESS_COURSES_COPILOT_VERSION,
                 true
             );
 
             // Localize script
-            wp_localize_script('mpcc-course-generator', 'mpccAdmin', [
+            wp_localize_script('mpcc-course-generator', 'mpccCoursesIntegration', [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('mpcc_generate_course'),
+                'nonce' => wp_create_nonce('mpcc_courses_integration'),
                 'strings' => [
                     'generating' => __('Generating course...', 'memberpress-courses-copilot'),
                     'error' => __('An error occurred. Please try again.', 'memberpress-courses-copilot'),
                     'success' => __('Course generated successfully!', 'memberpress-courses-copilot'),
+                    'createWithAI' => __('Create with AI', 'memberpress-courses-copilot'),
+                    'aiAssistant' => __('AI Assistant', 'memberpress-courses-copilot'),
+                    'loading' => __('Loading...', 'memberpress-courses-copilot'),
                 ],
                 'templates' => $this->getCourseTemplates(),
             ]);
