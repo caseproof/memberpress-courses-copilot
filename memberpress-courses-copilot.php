@@ -44,12 +44,22 @@ function memberpress_courses_copilot_is_memberpress_active(): bool {
 }
 
 /**
- * Check if MemberPress Courses is active
+ * Check if MemberPress Courses is active and properly loaded
  *
  * @return bool
  */
 function memberpress_courses_copilot_is_courses_active(): bool {
-    return defined( 'MPCS_PLUGIN_NAME' ) && class_exists( 'MpcsCtrlFactory' );
+    // First check if plugin is active
+    if ( ! is_plugin_active( 'memberpress-courses/main.php' ) ) {
+        return false;
+    }
+    
+    // Check if main namespace and core classes exist
+    return (
+        defined( 'memberpress\\courses\\VERSION' ) &&
+        class_exists( 'memberpress\\courses\\models\\Course' ) &&
+        class_exists( 'memberpress\\courses\\controllers\\App' )
+    );
 }
 
 /**

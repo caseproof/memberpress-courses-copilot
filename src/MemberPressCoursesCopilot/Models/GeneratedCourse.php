@@ -137,24 +137,57 @@ class GeneratedCourse
     }
 
     /**
-     * Create WordPress course post and associated lessons
+     * Create WordPress course using MemberPress Courses models
      */
     public function createWordPressCourse(): int
     {
-        $courseData = $this->toMemberPressFormat();
-        $sectionsData = $courseData['sections'];
-        unset($courseData['sections']);
+        // Use MemberPress Courses model if available
+        if (class_exists('memberpress\\courses\\models\\Course')) {
+            $course = new \memberpress\courses\models\Course();
+            $course->post_title = $this->title;
+            $course->post_content = $this->description;
+            $course->post_status = 'draft';
+            $course->post_author = get_current_user_id();
+            
+            // Save the course using MemberPress method
+            $courseId = $course->store();
+            
+            if (!$courseId) {
+                throw new \Exception('Failed to create MemberPress course');
+            }
+        } else {
+            // Fallback to direct WordPress post creation
+            $courseData = $this->toMemberPressFormat();
+            $sectionsData = $courseData['sections'];
+            unset($courseData['sections']);
 
-        // Create the main course post
-        $courseId = wp_insert_post($courseData);
+            // Create the main course post
+            $courseId = wp_insert_post($courseData);
 
-        if (is_wp_error($courseId)) {
-            throw new \Exception('Failed to create course: ' . $courseId->get_error_message());
+            if (is_wp_error($courseId)) {
+                throw new \Exception('Failed to create course: ' . $courseId->get_error_message());
+            }
         }
 
+        // Store additional metadata
+        update_post_meta($courseId, 'mpcs_course_difficulty', $this->metadata['difficulty'] ?? 'intermediate');
+        update_post_meta($courseId, 'mpcs_course_template_type', $this->templateType);
+        update_post_meta($courseId, 'mpcs_course_generated_by_ai', true);
+        update_post_meta($courseId, 'mpcs_course_generation_date', current_time('mysql'));
+        update_post_meta($courseId, 'mpcs_learning_objectives', $this->learningObjectives);
+
         // Create sections and lessons
-        foreach ($sectionsData as $sectionIndex => $sectionData) {
-            $this->createCourseSectionInWordPress($courseId, $sectionData, $sectionIndex);
+        if (isset($sectionsData)) {
+            foreach ($sectionsData as $sectionIndex => $sectionData) {
+                $this->createCourseSectionInWordPress($courseId, $sectionData, $sectionIndex);
+            }
+        } else {
+            // Use object sections if we used MemberPress model
+            foreach ($this->sections as $sectionIndex => $section) {
+                if (method_exists($section, 'createInCourse')) {
+                    $section->createInCourse($courseId, $sectionIndex);
+                }
+            }
         }
 
         return $courseId;
