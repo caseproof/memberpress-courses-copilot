@@ -107,20 +107,28 @@ class CourseIntegrationService extends BaseService
         // Define global function that uses jQuery properly
         window.mpccOpenAIInterface = function() {
             jQuery(document).ready(function($) {
-                // Create modal for AI course creation
+                // Create modal for AI course creation with dual pane layout
                 var modalHtml = '<div id="mpcc-ai-modal" style="display: none; position: fixed; z-index: 100000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">' +
-                    '<div style="background-color: #fefefe; margin: 5% auto; padding: 0; border: none; border-radius: 8px; width: 90%; max-width: 1200px; height: 85%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
-                        '<div style="display: flex; height: 100%;">' +
-                            '<div style="flex: 1; padding: 0; height: 100%;">' +
-                                '<div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px 8px 0 0;">' +
-                                    '<h2 style="margin: 0; color: white;"><?php echo esc_js(__('Create Course with AI', 'memberpress-courses-copilot')); ?></h2>' +
-                                    '<span id="mpcc-close-modal" style="cursor: pointer; font-size: 24px; font-weight: bold; color: white;">&times;</span>' +
-                                '</div>' +
-                                '<div id="mpcc-ai-interface-container" style="height: calc(100% - 80px); padding: 0;">' +
+                    '<div style="background-color: #fefefe; margin: 2% auto; padding: 0; border: none; border-radius: 8px; width: 95%; max-width: 1600px; height: 92%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
+                        '<div style="display: flex; flex-direction: column; height: 100%;">' +
+                            '<div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px 8px 0 0;">' +
+                                '<h2 style="margin: 0; color: white;"><?php echo esc_js(__('Create Course with AI Assistant', 'memberpress-courses-copilot')); ?></h2>' +
+                                '<span id="mpcc-close-modal" style="cursor: pointer; font-size: 24px; font-weight: bold; color: white;">&times;</span>' +
+                            '</div>' +
+                            '<div style="display: flex; flex: 1; overflow: hidden;">' +
+                                '<div id="mpcc-ai-interface-container" style="flex: 1; height: 100%; border-right: 1px solid #ddd; display: flex; flex-direction: column;">' +
                                     '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">' +
                                         '<div style="text-align: center;">' +
                                             '<div class="spinner is-active" style="float: none; margin: 0 auto 20px;"></div>' +
                                             '<p><?php echo esc_js(__('Loading AI Assistant...', 'memberpress-courses-copilot')); ?></p>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div id="mpcc-preview-pane" style="flex: 1; height: 100%; background: #f8f9fa; overflow-y: auto; display: none;">' +
+                                    '<div style="padding: 20px;">' +
+                                        '<h3 style="margin: 0 0 20px 0; color: #333;"><?php echo esc_js(__('Course Preview', 'memberpress-courses-copilot')); ?></h3>' +
+                                        '<div id="mpcc-preview-content">' +
+                                            '<p style="color: #666; text-align: center; padding: 40px;"><?php echo esc_js(__('Course preview will appear here as you build it...', 'memberpress-courses-copilot')); ?></p>' +
                                         '</div>' +
                                     '</div>' +
                                 '</div>' +
@@ -391,8 +399,8 @@ class CourseIntegrationService extends BaseService
         } else {
             // Fallback basic interface
             ?>
-            <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>">
-                <div class="mpcc-chat-messages" style="height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; background: white;">
+            <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>" style="height: 100%; display: flex; flex-direction: column;">
+                <div class="mpcc-chat-messages" style="flex: 1; overflow-y: auto; border: none; padding: 20px; background: white;">
                     <div class="mpcc-welcome-message" style="padding: 20px; text-align: center; color: #666;">
                         <div style="font-size: 48px; margin-bottom: 15px;">🤖</div>
                         <h3 style="margin: 0 0 10px 0;"><?php esc_html_e('AI Course Assistant', 'memberpress-courses-copilot'); ?></h3>
@@ -403,13 +411,30 @@ class CourseIntegrationService extends BaseService
                                 <?php esc_html_e('Hi! I\'m here to help you improve your course. What would you like to work on?', 'memberpress-courses-copilot'); ?>
                             <?php endif; ?>
                         </p>
+                        
+                        <?php if ($context === 'course_creation'): ?>
+                        <div style="margin-top: 30px;">
+                            <p style="font-size: 14px; color: #999; margin-bottom: 20px;"><?php esc_html_e('Quick starters:', 'memberpress-courses-copilot'); ?></p>
+                            <div class="mpcc-quick-starters" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                <button type="button" class="mpcc-quick-start button button-secondary" data-prompt="Programming Course">
+                                    <?php esc_html_e('Programming Course', 'memberpress-courses-copilot'); ?>
+                                </button>
+                                <button type="button" class="mpcc-quick-start button button-secondary" data-prompt="Business Skills">
+                                    <?php esc_html_e('Business Skills', 'memberpress-courses-copilot'); ?>
+                                </button>
+                                <button type="button" class="mpcc-quick-start button button-secondary" data-prompt="Creative Arts">
+                                    <?php esc_html_e('Creative Arts', 'memberpress-courses-copilot'); ?>
+                                </button>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
-                <div class="mpcc-chat-input-container">
+                <div class="mpcc-chat-input-container" style="padding: 20px; border-top: 1px solid #ddd; background: #f8f9fa;">
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="mpcc-chat-input" placeholder="<?php esc_attr_e('Type your message here...', 'memberpress-courses-copilot'); ?>" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                        <button type="button" id="mpcc-send-message" class="button button-primary" style="padding: 10px 20px;">
+                        <input type="text" id="mpcc-chat-input" placeholder="<?php esc_attr_e('Type your message here...', 'memberpress-courses-copilot'); ?>" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                        <button type="button" id="mpcc-send-message" class="button button-primary" style="padding: 12px 24px;">
                             <?php esc_html_e('Send', 'memberpress-courses-copilot'); ?>
                         </button>
                     </div>
@@ -477,6 +502,7 @@ class CourseIntegrationService extends BaseService
         $context = sanitize_text_field($_POST['context'] ?? 'course_editing');
         $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         $conversation_history = $_POST['conversation_history'] ?? [];
+        $conversation_state = $_POST['conversation_state'] ?? [];
         
         if (empty($message)) {
             wp_send_json_error('Message is required');
@@ -497,9 +523,18 @@ class CourseIntegrationService extends BaseService
                 }
             }
             
+            // Get current conversation state for course creation
+            $current_step = $conversation_state['current_step'] ?? 'initial';
+            $collected_data = $conversation_state['collected_data'] ?? [];
+            
             // Prepare the full prompt
             $system_prompt = $this->getSystemPrompt($context);
             $full_prompt = $system_prompt . "\n\nConversation history:" . $conversation_context . "\n\nUser: " . $message . "\n\nAssistant:";
+            
+            // Add current state context for course creation
+            if ($context === 'course_creation' && !empty($collected_data)) {
+                $full_prompt .= "\n\nCurrent collected course data: " . json_encode($collected_data);
+            }
             
             // Make request to AI service
             $response = $llm_service->generateContent($full_prompt, 'course_assistance', [
@@ -516,20 +551,50 @@ class CourseIntegrationService extends BaseService
             
             // Extract any course data from the response if it contains structured data
             $course_data = null;
+            $ready_to_create = false;
+            
             if (preg_match('/```json\s*([\s\S]*?)\s*```/', $ai_message, $matches)) {
                 $json_data = json_decode($matches[1], true);
                 if (json_last_error() === JSON_ERROR_NONE) {
                     $course_data = $json_data;
                     // Remove JSON from message
                     $ai_message = trim(str_replace($matches[0], '', $ai_message));
+                    
+                    // Check if we have enough data to create a course
+                    if (isset($course_data['title']) && isset($course_data['sections']) && count($course_data['sections']) > 0) {
+                        $ready_to_create = true;
+                    }
                 }
+            }
+            
+            // Update conversation state
+            if ($course_data) {
+                $collected_data = array_merge($collected_data, $course_data);
+            }
+            
+            // Determine next step
+            $next_step = $current_step;
+            $actions = [];
+            
+            if ($ready_to_create) {
+                $next_step = 'ready_to_create';
+                $actions = [
+                    ['action' => 'create_course', 'label' => 'Create Course', 'type' => 'primary'],
+                    ['action' => 'modify', 'label' => 'Modify Details', 'type' => 'secondary']
+                ];
             }
             
             wp_send_json_success([
                 'message' => $ai_message,
                 'course_data' => $course_data,
                 'context' => $context,
-                'timestamp' => current_time('timestamp')
+                'timestamp' => current_time('timestamp'),
+                'conversation_state' => [
+                    'current_step' => $next_step,
+                    'collected_data' => $collected_data
+                ],
+                'actions' => $actions,
+                'ready_to_create' => $ready_to_create
             ]);
             
         } catch (\Exception $e) {
@@ -555,11 +620,48 @@ class CourseIntegrationService extends BaseService
             return;
         }
         
-        // TODO: Implement course creation with AI
-        wp_send_json_success([
-            'message' => 'AI course creation functionality will be implemented here',
-            'redirect' => admin_url('post-new.php?post_type=mpcs-course')
-        ]);
+        $course_data = $_POST['course_data'] ?? [];
+        
+        if (empty($course_data)) {
+            wp_send_json_error('No course data provided');
+            return;
+        }
+        
+        try {
+            // Initialize the Course Generator Service
+            $logger = new \MemberPressCoursesCopilot\Utilities\Logger();
+            $generator = new \MemberPressCoursesCopilot\Services\CourseGeneratorService($logger);
+            
+            // Validate course data
+            $validation = $generator->validateCourseData($course_data);
+            if (!$validation['valid']) {
+                wp_send_json_error([
+                    'message' => 'Course data validation failed',
+                    'errors' => $validation['errors']
+                ]);
+                return;
+            }
+            
+            // Generate the course
+            $result = $generator->generateCourse($course_data);
+            
+            if ($result['success']) {
+                wp_send_json_success([
+                    'message' => 'Course created successfully!',
+                    'course_id' => $result['course_id'],
+                    'edit_url' => $result['edit_url'],
+                    'preview_url' => $result['preview_url']
+                ]);
+            } else {
+                wp_send_json_error([
+                    'message' => 'Failed to create course',
+                    'error' => $result['error']
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            wp_send_json_error('Failed to create course: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -574,7 +676,38 @@ class CourseIntegrationService extends BaseService
         
         switch ($context) {
             case 'course_creation':
-                return $base_prompt . " You are helping a user create a new course from scratch. Focus on understanding their topic, target audience, and learning goals. Help them structure a comprehensive curriculum with sections and lessons. Provide specific, actionable content suggestions. When you have enough information to create a course structure, include it in JSON format wrapped in ```json``` code blocks.";
+                return $base_prompt . " You are helping a user create a new course from scratch. Focus on understanding their topic, target audience, and learning goals. Help them structure a comprehensive curriculum with sections and lessons. 
+
+Your conversation should be natural and helpful. Ask clarifying questions when needed. Once you have enough information to create a course structure, generate it in the following JSON format wrapped in ```json``` code blocks:
+
+```json
+{
+  \"title\": \"Course Title\",
+  \"description\": \"Course description\",
+  \"sections\": [
+    {
+      \"title\": \"Section 1 Title\",
+      \"description\": \"Section description\",
+      \"lessons\": [
+        {
+          \"title\": \"Lesson Title\",
+          \"content\": \"Lesson content (can be HTML)\",
+          \"type\": \"text\",
+          \"duration\": \"15\"
+        }
+      ]
+    }
+  ],
+  \"settings\": {
+    \"course_progress\": \"enabled\",
+    \"auto_advance\": \"enabled\"
+  },
+  \"categories\": [\"Category 1\"],
+  \"tags\": [\"tag1\", \"tag2\"]
+}
+```
+
+Be conversational and guide the user through the process naturally. Don't rush to generate the JSON - make sure you understand their needs first.";
                 
             case 'course_editing':
                 return $base_prompt . " You are helping a user improve an existing course. Focus on enhancing content, improving structure, adding engaging elements, and optimizing the learning experience. Be specific about improvements and provide concrete suggestions. When suggesting course modifications, include structured data in JSON format wrapped in ```json``` code blocks.";
