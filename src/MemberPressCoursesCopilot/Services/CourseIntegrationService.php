@@ -484,40 +484,46 @@ class CourseIntegrationService extends BaseService
         }
         
         try {
-            // Get copilot proxy service
-            $copilot_proxy = new \MemberPressCoursesCopilot\Services\CopilotProxyService();
+            // Use LLMService for AI requests
+            $llm_service = new \MemberPressCoursesCopilot\Services\LLMService();
             
-            // Prepare the AI request
-            $ai_request_data = [
-                'message' => $message,
-                'context' => [
-                    'type' => 'course_assistance',
-                    'action' => $context,
-                    'post_id' => $post_id,
-                    'plugin' => 'memberpress-courses-copilot'
-                ],
-                'conversation_history' => $conversation_history,
-                'system_prompt' => $this->getSystemPrompt($context)
-            ];
+            // Build conversation context
+            $conversation_context = '';
+            if (!empty($conversation_history)) {
+                foreach ($conversation_history as $entry) {
+                    $role = $entry['role'] ?? 'user';
+                    $content = $entry['content'] ?? '';
+                    $conversation_context .= "\n{$role}: {$content}";
+                }
+            }
             
-            // Make request to AI service via proxy
-            $response = $copilot_proxy->makeProxyRequest('/api/v1/chat', $ai_request_data);
+            // Prepare the full prompt
+            $system_prompt = $this->getSystemPrompt($context);
+            $full_prompt = $system_prompt . "\n\nConversation history:" . $conversation_context . "\n\nUser: " . $message . "\n\nAssistant:";
             
-            if (is_wp_error($response)) {
-                wp_send_json_error('AI service error: ' . $response->get_error_message());
+            // Make request to AI service
+            $response = $llm_service->generateContent($full_prompt, 'course_assistance', [
+                'temperature' => 0.7,
+                'max_tokens' => 2000
+            ]);
+            
+            if ($response['error']) {
+                wp_send_json_error('AI service error: ' . $response['message']);
                 return;
             }
             
-            $response_code = wp_remote_retrieve_response_code($response);
-            $response_body = json_decode(wp_remote_retrieve_body($response), true);
+            $ai_message = $response['content'];
             
-            if ($response_code !== 200) {
-                wp_send_json_error('AI service returned error: ' . ($response_body['message'] ?? 'Unknown error'));
-                return;
+            // Extract any course data from the response if it contains structured data
+            $course_data = null;
+            if (preg_match('/```json\s*([\s\S]*?)\s*```/', $ai_message, $matches)) {
+                $json_data = json_decode($matches[1], true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $course_data = $json_data;
+                    // Remove JSON from message
+                    $ai_message = trim(str_replace($matches[0], '', $ai_message));
+                }
             }
-            
-            $ai_message = $response_body['message'] ?? 'I apologize, but I\'m having trouble processing your request right now.';
-            $course_data = $response_body['course_data'] ?? null;
             
             wp_send_json_success([
                 'message' => $ai_message,
@@ -568,13 +574,13 @@ class CourseIntegrationService extends BaseService
         
         switch ($context) {
             case 'course_creation':
-                return $base_prompt . " You are helping a user create a new course from scratch. Focus on understanding their topic, target audience, and learning goals. Help them structure a comprehensive curriculum with sections and lessons. Provide specific, actionable content suggestions.";
+                return $base_prompt . " You are helping a user create a new course from scratch. Focus on understanding their topic, target audience, and learning goals. Help them structure a comprehensive curriculum with sections and lessons. Provide specific, actionable content suggestions. When you have enough information to create a course structure, include it in JSON format wrapped in ```json``` code blocks.";
                 
             case 'course_editing':
-                return $base_prompt . " You are helping a user improve an existing course. Focus on enhancing content, improving structure, adding engaging elements, and optimizing the learning experience. Be specific about improvements and provide concrete suggestions.";
+                return $base_prompt . " You are helping a user improve an existing course. Focus on enhancing content, improving structure, adding engaging elements, and optimizing the learning experience. Be specific about improvements and provide concrete suggestions. When suggesting course modifications, include structured data in JSON format wrapped in ```json``` code blocks.";
                 
             default:
-                return $base_prompt . " Provide helpful, specific guidance for course creation and improvement.";
+                return $base_prompt . " Provide helpful, specific guidance for course creation and improvement. When providing course data, use JSON format wrapped in ```json``` code blocks.";
         }
     }
 

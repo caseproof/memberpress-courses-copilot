@@ -1,5 +1,48 @@
 # MemberPress Courses Copilot Development Guidelines
 
+## Core Development Principles
+
+### KISS (Keep It Simple, Stupid)
+- **One service for AI**: Just `LLMService.php` with hardcoded credentials
+- **No user configuration**: Everything works out of the box
+- **Simple interfaces**: Methods do one thing well
+- **Avoid abstraction layers**: Direct API calls, no complex wrappers
+
+### DRY (Don't Repeat Yourself)
+- **Single source of truth**: Proxy credentials in ONE place (LLMService constants)
+- **Reusable components**: One AI service used everywhere
+- **Shared prompts**: System prompts defined once and reused
+- **No duplicate functionality**: One way to do each task
+
+### YAGNI (You Aren't Gonna Need It)
+- **No settings UI**: Users don't need to configure AI
+- **No provider switching**: Hardcoded to use what works
+- **No complex DI**: Simple instantiation where needed
+- **No unused features**: Only implement what's actually used
+
+## Architecture Principles
+
+### Simplicity First
+```php
+// GOOD: Simple, direct, works
+$llm = new LLMService();
+$response = $llm->generateContent($prompt);
+
+// BAD: Over-engineered, complex
+$container->get('llm.factory')->create('anthropic')->withConfig($config)->generate($prompt);
+```
+
+### Minimal Dependencies
+- Services should work standalone when possible
+- Avoid service chains and circular dependencies
+- Use WordPress APIs directly, don't wrap them
+
+### Clear Boundaries
+- **LLMService**: All AI communication (ONE service only!)
+- **CourseIntegrationService**: UI integration with MemberPress Courses
+- **ContentGenerationService**: Course content creation logic
+- Each service has a clear, single responsibility
+
 ## Project Overview
 This plugin is an AI-powered conversational course creation assistant that reduces course development time from 6-10 hours to 10-30 minutes using LiteLLM proxy infrastructure and intelligent content generation.
 
@@ -29,10 +72,9 @@ memberpress-courses-copilot/
 │   │   ├── AjaxController.php
 │   │   └── CourseGenerationController.php
 │   ├── Services/
-│   │   ├── LLMService.php
+│   │   ├── LLMService.php (Single, simple AI service with hardcoded credentials)
 │   │   ├── CourseGeneratorService.php
-│   │   ├── CourseContentRouter.php
-│   │   └── ProxyConfigService.php
+│   │   └── CourseIntegrationService.php
 │   ├── Models/
 │   │   ├── CourseTemplate.php
 │   │   └── GeneratedCourse.php
@@ -81,11 +123,24 @@ memberpress-courses-copilot/
 
 ## LiteLLM Proxy Integration Guidelines
 
-### Proxy Configuration
-- **Proxy URL**: `https://wp-ai-proxy-production-9a5aceb50dde.herokuapp.com`
-- **Master Key**: Use existing LiteLLM master key from MemberPress Copilot
-- **Endpoint**: All providers use `/chat/completions` (OpenAI-compatible)
-- **Authentication**: Master key in Authorization header
+### KISS Implementation
+```php
+// This is ALL you need - no configuration, no settings, no complexity
+class LLMService {
+    private const PROXY_URL = 'https://wp-ai-proxy-production-9a5aceb50dde.herokuapp.com';
+    private const MASTER_KEY = 'sk-litellm-EkFY6Wgp9MaDGjbrkCQx4qmbSH4wa0XrEVJmklFcYgw=';
+    
+    public function generateContent($prompt) {
+        // Direct API call - simple and works
+        return wp_remote_post(self::PROXY_URL . '/chat/completions', [...]);
+    }
+}
+```
+
+### Why This Follows Our Principles
+- **KISS**: One service, hardcoded values, direct API calls
+- **DRY**: Constants defined once, used everywhere in the service
+- **YAGNI**: No proxy managers, no config services, no settings UI
 
 ### Provider Routing Strategy
 ```php
@@ -110,28 +165,40 @@ private $providerFallbacks = [
 ];
 ```
 
-### API Client Pattern
+### DON'T DO THIS (Overcomplicated)
 ```php
+// BAD: Too many abstractions, configuration, complexity
+class ProxyConfigService { /* Don't create this */ }
+class TokenUsageService { /* Don't create this */ }
+class CourseContentRouter { /* Don't create this */ }
+class ErrorHandlingService { /* Don't create this */ }
+
+// BAD: Dependency injection nightmare
+public function __construct(
+    ProxyConfigService $proxy,
+    TokenUsageService $tokens,
+    CourseContentRouter $router,
+    ErrorHandlingService $errors,
+    Logger $logger,
+    // ... 10 more dependencies
+) {
+    // This is too complex!
+}
+```
+
+### DO THIS INSTEAD (Simple and Clean)
+```php
+// GOOD: Everything in one simple service
 class LLMService {
-    private $proxyUrl = 'https://wp-ai-proxy-production-9a5aceb50dde.herokuapp.com';
-    
-    public function sendRequest(array $messages, string $contentType = 'content'): array {
-        $provider = $this->getProviderForContentType($contentType);
-        $model = $this->getModelForProvider($provider);
-        
-        $response = wp_remote_post($this->proxyUrl . '/chat/completions', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->getMasterKey(),
-                'Content-Type' => 'application/json'
-            ],
+    public function generateContent($prompt, $type = 'general') {
+        $response = wp_remote_post(self::PROXY_URL . '/chat/completions', [
+            'headers' => ['Authorization' => 'Bearer ' . self::MASTER_KEY],
             'body' => json_encode([
-                'model' => $model,
-                'messages' => $messages,
-                'temperature' => $this->getTemperatureForContentType($contentType)
+                'model' => $this->getModel($type),
+                'messages' => [['role' => 'user', 'content' => $prompt]]
             ])
         ]);
-        
-        return $this->handleResponse($response, $provider);
+        return $this->parseResponse($response);
     }
 }
 ```
@@ -275,17 +342,46 @@ Refer to `/docs/IMPLEMENTATION_PLAN.md` for complete 16-week development roadmap
 - **Settings Migration**: Preserve user configurations
 - **Feature Flags**: Enable gradual feature rollout
 
+## What NOT to Build (YAGNI)
+
+### ❌ Don't Create These
+- **Settings pages for AI configuration** - Hardcode it
+- **Multiple AI service classes** - One LLMService is enough
+- **Dependency injection containers** - Use `new LLMService()`
+- **Configuration managers** - Use constants
+- **Provider switchers** - Hardcode what works
+- **Token tracking services** - Not needed for MVP
+- **Complex error handlers** - Use try/catch and WP_Error
+- **Abstract base classes** - Keep it concrete and simple
+- **Service locators** - Just instantiate what you need
+
+### ✅ Do This Instead
+```php
+// Simple instantiation wherever needed
+$llm = new LLMService();
+$result = $llm->generateContent($prompt);
+
+// Direct error handling
+if ($result['error']) {
+    wp_send_json_error($result['message']);
+}
+```
+
 ## Common Patterns & Examples
 
-### Service Registration (DI Container)
+### Service Registration (SIMPLE)
 ```php
+// DON'T do complex DI containers
+// DO this simple initialization
 class Plugin {
-    private Container $container;
-    
-    public function initServices(): void {
-        $this->container->register(LLMService::class);
-        $this->container->register(CourseGeneratorService::class);
-        $this->container->register(AdminController::class);
+    public function initializeComponents(): void {
+        // Simple, direct, works
+        global $mpcc_llm_service;
+        $mpcc_llm_service = new LLMService();
+        
+        // Initialize other services as needed
+        $integration = new CourseIntegrationService();
+        $integration->init();
     }
 }
 ```
@@ -308,4 +404,24 @@ class AjaxController {
 }
 ```
 
-Remember: This plugin leverages existing LiteLLM proxy infrastructure to provide AI-powered course creation while maintaining WordPress standards and MemberPress integration patterns. Always prioritize user experience, educational quality, and system reliability.
+## Remember These Principles
+
+### 🎯 KISS - Keep It Simple
+- One LLMService with hardcoded credentials
+- Direct WordPress API usage
+- No unnecessary abstractions
+
+### 🔄 DRY - Don't Repeat Yourself  
+- Single source of truth for AI configuration
+- Reusable prompt templates
+- Shared validation logic
+
+### ⚡ YAGNI - You Aren't Gonna Need It
+- No settings UI (users don't need it)
+- No provider switching (hardcode what works)
+- No complex patterns (simple instantiation)
+
+### The Golden Rule
+**If you're creating more than one file to solve a problem, you're probably overcomplicating it.**
+
+This plugin leverages existing LiteLLM proxy infrastructure to provide AI-powered course creation while maintaining WordPress standards and MemberPress integration patterns. Always prioritize simplicity, user experience, and getting things done over architectural perfection.

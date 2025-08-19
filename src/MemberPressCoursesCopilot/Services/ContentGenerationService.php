@@ -13,13 +13,13 @@ use MemberPressCoursesCopilot\Utilities\Logger;
 class ContentGenerationService
 {
     private LLMService $llmService;
-    private MultimediaService $multimediaService;
-    private Logger $logger;
+    private ?MultimediaService $multimediaService;
+    private ?Logger $logger;
     
     public function __construct()
     {
         $this->llmService = new LLMService();
-        $this->multimediaService = new MultimediaService();
+        $this->multimediaService = class_exists(MultimediaService::class) ? new MultimediaService() : null;
         $this->logger = new Logger();
     }
     

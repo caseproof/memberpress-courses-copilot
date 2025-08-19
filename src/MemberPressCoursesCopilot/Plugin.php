@@ -91,9 +91,9 @@ final class Plugin
      */
     public function initializeComponents(): void
     {
-        // Initialize the copilot proxy service to interface with existing MemberPress Copilot
-        $copilot_proxy_service = new \MemberPressCoursesCopilot\Services\CopilotProxyService();
-        $copilot_proxy_service->init();
+        // Initialize LLM service as global
+        global $mpcc_llm_service;
+        $mpcc_llm_service = new \MemberPressCoursesCopilot\Services\LLMService();
         
         // Initialize the course integration service for MemberPress Courses UI integration
         $course_integration_service = new \MemberPressCoursesCopilot\Services\CourseIntegrationService();
@@ -104,7 +104,7 @@ final class Plugin
          *
          * @since 1.0.0
          */
-        do_action('memberpress_courses_copilot_components_initialized', $copilot_proxy_service, $course_integration_service);
+        do_action('memberpress_courses_copilot_components_initialized', $course_integration_service);
     }
 
     /**

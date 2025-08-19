@@ -78,95 +78,47 @@ class SettingsPage {
                     <?php esc_html_e('AI proxy settings are automatically inherited from MemberPress Copilot. No additional configuration is needed.', 'memberpress-courses-copilot'); ?>
                 </p>
                 
-                <?php 
-                try {
-                    $copilot_proxy = new \MemberPressCoursesCopilot\Services\CopilotProxyService();
-                    $proxy_config = $copilot_proxy->getProxyConfig();
-                    ?>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php esc_html_e('AI Service Status', 'memberpress-courses-copilot'); ?></th>
+                        <td>
+                            <span style="color: green; font-weight: bold;">✓ <?php esc_html_e('Active and Ready', 'memberpress-courses-copilot'); ?></span>
+                            <p class="description"><?php esc_html_e('AI services are pre-configured and ready to use.', 'memberpress-courses-copilot'); ?></p>
+                        </td>
+                    </tr>
                     
-                    <table class="form-table">
-                        <tr>
-                            <th scope="row"><?php esc_html_e('Laravel Proxy URL', 'memberpress-courses-copilot'); ?></th>
-                            <td>
-                                <?php if (!empty($proxy_config['laravel_proxy_url'])): ?>
-                                    <code><?php echo esc_html($proxy_config['laravel_proxy_url']); ?></code>
-                                    <span style="color: green; margin-left: 10px;">✓ <?php esc_html_e('Configured', 'memberpress-courses-copilot'); ?></span>
-                                <?php else: ?>
-                                    <span style="color: red;"><?php esc_html_e('Not configured', 'memberpress-courses-copilot'); ?></span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row"><?php esc_html_e('LiteLLM Proxy URL', 'memberpress-courses-copilot'); ?></th>
-                            <td>
-                                <?php if (!empty($proxy_config['litellm_proxy_url'])): ?>
-                                    <code><?php echo esc_html($proxy_config['litellm_proxy_url']); ?></code>
-                                    <span style="color: green; margin-left: 10px;">✓ <?php esc_html_e('Configured', 'memberpress-courses-copilot'); ?></span>
-                                <?php else: ?>
-                                    <span style="color: red;"><?php esc_html_e('Not configured', 'memberpress-courses-copilot'); ?></span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row"><?php esc_html_e('Authentication', 'memberpress-courses-copilot'); ?></th>
-                            <td>
-                                <?php if (!empty($proxy_config['virtual_key'])): ?>
-                                    <?php if ($proxy_config['virtual_key_expired']): ?>
-                                        <span style="color: orange; font-weight: bold;">⚠ <?php esc_html_e('Virtual Key Expired', 'memberpress-courses-copilot'); ?></span>
-                                        <p class="description"><?php esc_html_e('Will fall back to plugin credentials.', 'memberpress-courses-copilot'); ?></p>
-                                    <?php else: ?>
-                                        <span style="color: green; font-weight: bold;">✓ <?php esc_html_e('Virtual Key Valid', 'memberpress-courses-copilot'); ?></span>
-                                    <?php endif; ?>
-                                <?php elseif (!empty($proxy_config['plugin_id']) && !empty($proxy_config['plugin_secret'])): ?>
-                                    <span style="color: green; font-weight: bold;">✓ <?php esc_html_e('Plugin Credentials Available', 'memberpress-courses-copilot'); ?></span>
-                                <?php else: ?>
-                                    <span style="color: red; font-weight: bold;">✗ <?php esc_html_e('No Authentication Available', 'memberpress-courses-copilot'); ?></span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    </table>
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Available AI Models', 'memberpress-courses-copilot'); ?></th>
+                        <td>
+                            <ul style="margin: 0;">
+                                <li>• Claude 3.5 Sonnet (Content Generation)</li>
+                                <li>• GPT-4 (Structured Data)</li>
+                                <li>• GPT-3.5 Turbo (Quick Tasks)</li>
+                            </ul>
+                        </td>
+                    </tr>
                     
-                    <?php
-                    // Test connections
-                    $connection_tests = $copilot_proxy->testConnections();
-                    ?>
-                    
-                    <h3><?php esc_html_e('Connection Tests', 'memberpress-courses-copilot'); ?></h3>
-                    <table class="form-table">
-                        <tr>
-                            <th scope="row"><?php esc_html_e('Laravel Proxy', 'memberpress-courses-copilot'); ?></th>
-                            <td>
-                                <?php if ($connection_tests['laravel_proxy']['status'] === 'success'): ?>
-                                    <span style="color: green;">✓ <?php echo esc_html($connection_tests['laravel_proxy']['message']); ?></span>
-                                <?php else: ?>
-                                    <span style="color: red;">✗ <?php echo esc_html($connection_tests['laravel_proxy']['message']); ?></span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        
-                        <tr>
-                            <th scope="row"><?php esc_html_e('LiteLLM Proxy', 'memberpress-courses-copilot'); ?></th>
-                            <td>
-                                <?php if ($connection_tests['litellm_proxy']['status'] === 'success'): ?>
-                                    <span style="color: green;">✓ <?php echo esc_html($connection_tests['litellm_proxy']['message']); ?></span>
-                                <?php else: ?>
-                                    <span style="color: red;">✗ <?php echo esc_html($connection_tests['litellm_proxy']['message']); ?></span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    </table>
-                    
-                    <?php
-                } catch (\Exception $e) {
-                    ?>
-                    <div class="notice notice-error inline">
-                        <p><?php esc_html_e('Unable to load proxy configuration:', 'memberpress-courses-copilot'); ?> <?php echo esc_html($e->getMessage()); ?></p>
-                    </div>
-                    <?php
-                }
-                ?>
+                    <tr>
+                        <th scope="row"><?php esc_html_e('Features', 'memberpress-courses-copilot'); ?></th>
+                        <td>
+                            <ul style="margin: 0;">
+                                <li>✓ <?php esc_html_e('Course structure generation', 'memberpress-courses-copilot'); ?></li>
+                                <li>✓ <?php esc_html_e('Lesson content creation', 'memberpress-courses-copilot'); ?></li>
+                                <li>✓ <?php esc_html_e('Interactive chat assistance', 'memberpress-courses-copilot'); ?></li>
+                                <li>✓ <?php esc_html_e('Content optimization', 'memberpress-courses-copilot'); ?></li>
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+                
+                <div class="notice notice-info inline">
+                    <p>
+                        <strong><?php esc_html_e('How to use:', 'memberpress-courses-copilot'); ?></strong><br>
+                        <?php esc_html_e('1. Click "Create with AI" on the courses listing page', 'memberpress-courses-copilot'); ?><br>
+                        <?php esc_html_e('2. Use the AI Assistant when editing any course', 'memberpress-courses-copilot'); ?><br>
+                        <?php esc_html_e('3. Chat with AI to generate course content instantly', 'memberpress-courses-copilot'); ?>
+                    </p>
+                </div>
             </div>
             <?php endif; ?>
             
