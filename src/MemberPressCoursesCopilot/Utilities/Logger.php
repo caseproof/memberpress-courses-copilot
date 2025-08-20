@@ -120,6 +120,15 @@ class Logger {
      */
     private function __construct(string $logLevel = self::LEVEL_INFO, bool $debugMode = false) {
         $this->loggingEnabled = $this->determineLoggingState();
+        
+        // Check for log level configuration in wp-config.php
+        if (defined('MPCC_LOG_LEVEL')) {
+            $validLevels = [self::LEVEL_DEBUG, self::LEVEL_INFO, self::LEVEL_WARNING, self::LEVEL_ERROR, self::LEVEL_CRITICAL];
+            if (in_array(MPCC_LOG_LEVEL, $validLevels)) {
+                $logLevel = MPCC_LOG_LEVEL;
+            }
+        }
+        
         $this->logLevel = $logLevel;
         $this->debugMode = $debugMode || defined('WP_DEBUG') && WP_DEBUG;
         
