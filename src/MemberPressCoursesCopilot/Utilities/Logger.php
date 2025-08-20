@@ -24,6 +24,20 @@ class Logger {
     const LEVEL_CRITICAL = 'critical';
 
     /**
+     * Singleton instance
+     *
+     * @var Logger|null
+     */
+    private static $instance = null;
+
+    /**
+     * Whether logging is enabled
+     *
+     * @var bool
+     */
+    private $loggingEnabled;
+
+    /**
      * Current log level
      *
      * @var string
@@ -45,18 +59,32 @@ class Logger {
     private $logFile;
 
     /**
-     * Cost tracking data
+     * Cost tracking data (lazy loaded)
      *
-     * @var array
+     * @var array|null
      */
-    private $costTracker = [];
+    private $costTracker = null;
 
     /**
-     * API usage statistics
+     * API usage statistics (lazy loaded)
      *
-     * @var array
+     * @var array|null
      */
-    private $apiStats = [];
+    private $apiStats = null;
+
+    /**
+     * Whether cost tracker has been loaded
+     *
+     * @var bool
+     */
+    private $costTrackerLoaded = false;
+
+    /**
+     * Whether API stats have been loaded
+     *
+     * @var bool
+     */
+    private $apiStatsLoaded = false;
 
     /**
      * Maximum log file size in bytes (10MB)
@@ -73,26 +101,93 @@ class Logger {
     private $rotationCount = 5;
 
     /**
-     * Constructor
+     * Get singleton instance
+     *
+     * @return self
+     */
+    public static function getInstance(): self {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    /**
+     * Private constructor for singleton
      *
      * @param string $logLevel Minimum log level to record
      * @param bool $debugMode Whether debug mode is enabled
      */
-    public function __construct(string $logLevel = self::LEVEL_INFO, bool $debugMode = false) {
+    private function __construct(string $logLevel = self::LEVEL_INFO, bool $debugMode = false) {
+        $this->loggingEnabled = $this->determineLoggingState();
         $this->logLevel = $logLevel;
         $this->debugMode = $debugMode || defined('WP_DEBUG') && WP_DEBUG;
         
+        // Only initialize log file if logging is enabled
+        if ($this->loggingEnabled) {
+            $this->initializeLogFile();
+        }
+    }
+
+    /**
+     * Prevent cloning of singleton
+     */
+    private function __clone() {}
+
+    /**
+     * Prevent unserialization of singleton
+     */
+    public function __wakeup() {
+        throw new \Exception("Cannot unserialize singleton");
+    }
+
+    /**
+     * Determine if logging should be enabled based on configuration
+     *
+     * @return bool
+     */
+    private function determineLoggingState(): bool {
+        // Only enable logging if WP_DEBUG is active
+        return defined('WP_DEBUG') && WP_DEBUG;
+    }
+
+    /**
+     * Initialize log file path and directory
+     *
+     * @return void
+     */
+    private function initializeLogFile(): void {
         $uploadDir = wp_upload_dir();
         $logDir = $uploadDir['basedir'] . '/memberpress-courses-copilot/logs';
         
         if (!file_exists($logDir)) {
             wp_mkdir_p($logDir);
+            $this->protectLogFiles($logDir);
         }
         
         $this->logFile = $logDir . '/copilot.log';
+    }
+
+    /**
+     * Protect log files from web access
+     *
+     * @param string $logDir Log directory path
+     * @return void
+     */
+    private function protectLogFiles(string $logDir): void {
+        // Create .htaccess to prevent web access
+        $htaccessPath = $logDir . '/.htaccess';
+        $htaccessContent = "Order Deny,Allow\nDeny from all\n";
         
-        $this->loadCostTracker();
-        $this->loadApiStats();
+        if (!file_exists($htaccessPath)) {
+            @file_put_contents($htaccessPath, $htaccessContent);
+        }
+        
+        // Create index.php to prevent directory listing
+        $indexPath = $logDir . '/index.php';
+        if (!file_exists($indexPath)) {
+            @file_put_contents($indexPath, '<?php // Silence is golden');
+        }
     }
 
     /**
@@ -103,6 +198,11 @@ class Logger {
      * @return void
      */
     public function debug(string $message, array $context = []): void {
+        // Early return for performance when logging is disabled
+        if (!$this->loggingEnabled) {
+            return;
+        }
+        
         if ($this->shouldLog(self::LEVEL_DEBUG)) {
             $this->log(self::LEVEL_DEBUG, $message, $context);
         }
@@ -116,6 +216,11 @@ class Logger {
      * @return void
      */
     public function info(string $message, array $context = []): void {
+        // Early return for performance when logging is disabled
+        if (!$this->loggingEnabled) {
+            return;
+        }
+        
         if ($this->shouldLog(self::LEVEL_INFO)) {
             $this->log(self::LEVEL_INFO, $message, $context);
         }
@@ -129,6 +234,11 @@ class Logger {
      * @return void
      */
     public function warning(string $message, array $context = []): void {
+        // Early return for performance when logging is disabled
+        if (!$this->loggingEnabled) {
+            return;
+        }
+        
         if ($this->shouldLog(self::LEVEL_WARNING)) {
             $this->log(self::LEVEL_WARNING, $message, $context);
         }
@@ -142,6 +252,11 @@ class Logger {
      * @return void
      */
     public function error(string $message, array $context = []): void {
+        // Early return for performance when logging is disabled
+        if (!$this->loggingEnabled) {
+            return;
+        }
+        
         if ($this->shouldLog(self::LEVEL_ERROR)) {
             $this->log(self::LEVEL_ERROR, $message, $context);
         }
@@ -155,6 +270,11 @@ class Logger {
      * @return void
      */
     public function critical(string $message, array $context = []): void {
+        // Early return for performance when logging is disabled
+        if (!$this->loggingEnabled) {
+            return;
+        }
+        
         if ($this->shouldLog(self::LEVEL_CRITICAL)) {
             $this->log(self::LEVEL_CRITICAL, $message, $context);
         }
@@ -195,17 +315,24 @@ class Logger {
      * @return void
      */
     private function trackCost(string $provider, string $model, float $cost, array $usage): void {
+        // Early return if logging is disabled
+        if (!$this->loggingEnabled) {
+            return;
+        }
+        
+        // Use lazy loading to get cost tracker data
+        $costTracker = $this->getCostTrackerData();
         $date = date('Y-m-d');
         
-        if (!isset($this->costTracker[$date])) {
-            $this->costTracker[$date] = [
+        if (!isset($costTracker[$date])) {
+            $costTracker[$date] = [
                 'total_cost' => 0.0,
                 'providers' => []
             ];
         }
 
-        if (!isset($this->costTracker[$date]['providers'][$provider])) {
-            $this->costTracker[$date]['providers'][$provider] = [
+        if (!isset($costTracker[$date]['providers'][$provider])) {
+            $costTracker[$date]['providers'][$provider] = [
                 'cost' => 0.0,
                 'calls' => 0,
                 'tokens' => 0,
@@ -213,8 +340,8 @@ class Logger {
             ];
         }
 
-        if (!isset($this->costTracker[$date]['providers'][$provider]['models'][$model])) {
-            $this->costTracker[$date]['providers'][$provider]['models'][$model] = [
+        if (!isset($costTracker[$date]['providers'][$provider]['models'][$model])) {
+            $costTracker[$date]['providers'][$provider]['models'][$model] = [
                 'cost' => 0.0,
                 'calls' => 0,
                 'tokens' => 0
@@ -222,21 +349,23 @@ class Logger {
         }
 
         // Update totals
-        $this->costTracker[$date]['total_cost'] += $cost;
-        $this->costTracker[$date]['providers'][$provider]['cost'] += $cost;
-        $this->costTracker[$date]['providers'][$provider]['calls']++;
-        $this->costTracker[$date]['providers'][$provider]['models'][$model]['cost'] += $cost;
-        $this->costTracker[$date]['providers'][$provider]['models'][$model]['calls']++;
+        $costTracker[$date]['total_cost'] += $cost;
+        $costTracker[$date]['providers'][$provider]['cost'] += $cost;
+        $costTracker[$date]['providers'][$provider]['calls']++;
+        $costTracker[$date]['providers'][$provider]['models'][$model]['cost'] += $cost;
+        $costTracker[$date]['providers'][$provider]['models'][$model]['calls']++;
 
         // Track tokens if available
         $totalTokens = ($usage['total_tokens'] ?? 0) ?: 
                       (($usage['prompt_tokens'] ?? 0) + ($usage['completion_tokens'] ?? 0));
         
         if ($totalTokens > 0) {
-            $this->costTracker[$date]['providers'][$provider]['tokens'] += $totalTokens;
-            $this->costTracker[$date]['providers'][$provider]['models'][$model]['tokens'] += $totalTokens;
+            $costTracker[$date]['providers'][$provider]['tokens'] += $totalTokens;
+            $costTracker[$date]['providers'][$provider]['models'][$model]['tokens'] += $totalTokens;
         }
 
+        // Update the instance variable and save
+        $this->costTracker = $costTracker;
         $this->saveCostTracker();
     }
 
@@ -453,6 +582,11 @@ class Logger {
      * @return bool Whether to log the message
      */
     private function shouldLog(string $level): bool {
+        // Early return for performance when logging is disabled
+        if (!$this->loggingEnabled) {
+            return false;
+        }
+        
         $levels = [
             self::LEVEL_DEBUG => 0,
             self::LEVEL_INFO => 1,
@@ -500,12 +634,22 @@ class Logger {
     }
 
     /**
-     * Load cost tracker from WordPress options
+     * Load cost tracker from WordPress options (lazy loaded)
      *
-     * @return void
+     * @return array
      */
-    private function loadCostTracker(): void {
-        $this->costTracker = get_option('mpc_copilot_cost_tracker', []);
+    private function getCostTrackerData(): array {
+        if (!$this->costTrackerLoaded) {
+            $this->costTracker = get_option('mpc_copilot_cost_tracker', []);
+            $this->costTrackerLoaded = true;
+            
+            // Implement size limits to prevent memory issues
+            if (strlen(serialize($this->costTracker)) > 1048576) { // 1MB limit
+                $this->rotateCostData();
+            }
+        }
+        
+        return $this->costTracker ?? [];
     }
 
     /**
@@ -514,16 +658,23 @@ class Logger {
      * @return void
      */
     private function saveCostTracker(): void {
-        update_option('mpc_copilot_cost_tracker', $this->costTracker);
+        if ($this->costTracker !== null) {
+            update_option('mpc_copilot_cost_tracker', $this->costTracker);
+        }
     }
 
     /**
-     * Load API stats from WordPress options
+     * Load API stats from WordPress options (lazy loaded)
      *
-     * @return void
+     * @return array
      */
-    private function loadApiStats(): void {
-        $this->apiStats = get_option('mpc_copilot_api_stats', []);
+    private function getApiStatsData(): array {
+        if (!$this->apiStatsLoaded) {
+            $this->apiStats = get_option('mpc_copilot_api_stats', []);
+            $this->apiStatsLoaded = true;
+        }
+        
+        return $this->apiStats ?? [];
     }
 
     /**
@@ -532,7 +683,29 @@ class Logger {
      * @return void
      */
     private function saveApiStats(): void {
-        update_option('mpc_copilot_api_stats', $this->apiStats);
+        if ($this->apiStats !== null) {
+            update_option('mpc_copilot_api_stats', $this->apiStats);
+        }
+    }
+
+    /**
+     * Rotate cost data when it gets too large
+     *
+     * @return void
+     */
+    private function rotateCostData(): void {
+        if (!$this->costTracker) {
+            return;
+        }
+        
+        // Keep only last 30 days of data
+        $cutoffDate = date('Y-m-d', time() - (30 * 86400));
+        
+        foreach (array_keys($this->costTracker) as $date) {
+            if ($date < $cutoffDate) {
+                unset($this->costTracker[$date]);
+            }
+        }
     }
 
     /**
@@ -580,5 +753,36 @@ class Logger {
      */
     public function getLogFile(): string {
         return $this->logFile;
+    }
+
+    /**
+     * Enable or disable logging (only works if WP_DEBUG is active)
+     *
+     * @param bool $enabled Whether logging should be enabled
+     * @return void
+     */
+    public function setLoggingEnabled(bool $enabled): void {
+        // Only allow enabling if WP_DEBUG is active
+        $this->loggingEnabled = $enabled && defined('WP_DEBUG') && WP_DEBUG;
+    }
+
+    /**
+     * Check if logging is enabled
+     *
+     * @return bool Whether logging is enabled
+     */
+    public function isLoggingEnabled(): bool {
+        return $this->loggingEnabled;
+    }
+
+    /**
+     * Static method to check if logging is enabled globally
+     * Useful for quick checks without instantiating the logger
+     *
+     * @return bool Whether logging is enabled
+     */
+    public static function isLoggingEnabledGlobally(): bool {
+        // Only enable logging if WP_DEBUG is active
+        return defined('WP_DEBUG') && WP_DEBUG;
     }
 }

@@ -8,11 +8,30 @@ namespace MemberPressCoursesCopilot\Services;
  * Provides a simple interface to the LiteLLM proxy with hardcoded credentials
  * exactly like MemberPress Copilot, without any user-facing configuration.
  */
-class LLMService
+class LLMService extends BaseService
 {
     // Hardcoded proxy configuration (same as MemberPress Copilot)
     private const PROXY_URL = 'https://wp-ai-proxy-production-9a5aceb50dde.herokuapp.com';
     private const MASTER_KEY = 'sk-litellm-EkFY6Wgp9MaDGjbrkCQx4qmbSH4wa0XrEVJmklFcYgw=';
+    
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        parent::__construct(); // Initialize logger from BaseService
+    }
+
+    /**
+     * Initialize the service (required by BaseService)
+     *
+     * @return void
+     */
+    public function init(): void
+    {
+        // LLMService doesn't need specific initialization
+        // The parent constructor already initializes the logger
+    }
     
     /**
      * Make a simple request to the AI service
@@ -31,9 +50,13 @@ class LLMService
             'max_tokens' => $options['max_tokens'] ?? 2000
         ];
         
-        error_log('MPCC LLMService: Making request to ' . self::PROXY_URL . '/chat/completions');
-        error_log('MPCC LLMService: Using model ' . $model . ' (provider: ' . $provider . ')');
-        error_log('MPCC LLMService: Payload: ' . json_encode($payload));
+        $this->logger->debug('Making API request', [
+            'endpoint' => self::PROXY_URL . '/chat/completions',
+            'model' => $model,
+            'provider' => $provider,
+            'payload' => $payload,
+            'content_type' => $contentType
+        ]);
         
         $response = wp_remote_post(self::PROXY_URL . '/chat/completions', [
             'headers' => [
@@ -46,7 +69,12 @@ class LLMService
         
         if (is_wp_error($response)) {
             $error_message = $response->get_error_message();
-            error_log('MPCC LLMService ERROR: WP_Error - ' . $error_message);
+            $this->logger->error('WordPress HTTP request failed', [
+                'error_message' => $error_message,
+                'endpoint' => self::PROXY_URL . '/chat/completions',
+                'model' => $model,
+                'provider' => $provider
+            ]);
             return [
                 'error' => true,
                 'message' => $error_message,
@@ -57,12 +85,22 @@ class LLMService
         $responseCode = wp_remote_retrieve_response_code($response);
         $responseBody = wp_remote_retrieve_body($response);
         
-        error_log('MPCC LLMService: Response code: ' . $responseCode);
-        error_log('MPCC LLMService: Response body: ' . $responseBody);
+        $this->logger->debug('API response received', [
+            'response_code' => $responseCode,
+            'response_body' => $responseBody,
+            'model' => $model,
+            'provider' => $provider
+        ]);
         
         if ($responseCode >= 400) {
             $error_message = "API error {$responseCode}: {$responseBody}";
-            error_log('MPCC LLMService ERROR: ' . $error_message);
+            $this->logger->error('API request failed', [
+                'response_code' => $responseCode,
+                'response_body' => $responseBody,
+                'error_message' => $error_message,
+                'model' => $model,
+                'provider' => $provider
+            ]);
             return [
                 'error' => true,
                 'message' => $error_message,
@@ -73,8 +111,13 @@ class LLMService
         $data = json_decode($responseBody, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             $error_message = 'Invalid JSON response: ' . json_last_error_msg();
-            error_log('MPCC LLMService ERROR: ' . $error_message);
-            error_log('MPCC LLMService: Raw response body: ' . $responseBody);
+            $this->logger->error('JSON parsing failed', [
+                'error_message' => $error_message,
+                'json_error' => json_last_error_msg(),
+                'raw_response_body' => $responseBody,
+                'model' => $model,
+                'provider' => $provider
+            ]);
             return [
                 'error' => true,
                 'message' => $error_message,
@@ -84,8 +127,12 @@ class LLMService
         
         if (!isset($data['choices'][0]['message']['content'])) {
             $error_message = 'Unexpected response format - no content in choices';
-            error_log('MPCC LLMService ERROR: ' . $error_message);
-            error_log('MPCC LLMService: Response structure: ' . json_encode($data));
+            $this->logger->error('Unexpected API response format', [
+                'error_message' => $error_message,
+                'response_structure' => $data,
+                'model' => $model,
+                'provider' => $provider
+            ]);
             return [
                 'error' => true,
                 'message' => $error_message,
@@ -93,7 +140,13 @@ class LLMService
             ];
         }
         
-        error_log('MPCC LLMService SUCCESS: Generated ' . strlen($data['choices'][0]['message']['content']) . ' characters of content');
+        $this->logger->info('Content generated successfully', [
+            'content_length' => strlen($data['choices'][0]['message']['content']),
+            'model' => $model,
+            'provider' => $provider,
+            'content_type' => $contentType,
+            'usage' => $data['usage'] ?? []
+        ]);
         
         return [
             'error' => false,
@@ -117,7 +170,11 @@ class LLMService
         ]);
         
         if ($response['error']) {
-            error_log('MPCC LLMService ERROR in determineTemplateType: ' . $response['message']);
+            $this->logger->error('Failed to determine template type', [
+                'error_message' => $response['message'],
+                'user_input' => $userInput,
+                'method' => 'determineTemplateType'
+            ]);
             throw new \Exception('Failed to determine template type: ' . $response['message']);
         }
         
@@ -137,7 +194,11 @@ class LLMService
         ]);
         
         if ($response['error']) {
-            error_log('MPCC LLMService ERROR in extractCourseRequirements: ' . $response['message']);
+            $this->logger->error('Failed to extract course requirements', [
+                'error_message' => $response['message'],
+                'user_message' => $message,
+                'method' => 'extractCourseRequirements'
+            ]);
             throw new \Exception('Failed to extract course requirements: ' . $response['message']);
         }
         
@@ -150,7 +211,12 @@ class LLMService
             ]);
         }
         
-        error_log('MPCC LLMService ERROR: Failed to parse AI response as JSON. Response: ' . $response['content']);
+        $this->logger->error('Failed to parse AI response as JSON', [
+            'ai_response' => $response['content'],
+            'json_error' => json_last_error_msg(),
+            'method' => 'extractCourseRequirements',
+            'user_message' => $message
+        ]);
         throw new \Exception('Failed to parse AI response as valid JSON');
     }
     
@@ -172,7 +238,13 @@ class LLMService
         ]);
         
         if ($response['error']) {
-            error_log('MPCC LLMService ERROR in generateLessonContent: ' . $response['message']);
+            $this->logger->error('Failed to generate lesson content', [
+                'error_message' => $response['message'],
+                'section_title' => $sectionTitle,
+                'lesson_number' => $lessonNumber,
+                'requirements' => $requirements,
+                'method' => 'generateLessonContent'
+            ]);
             throw new \Exception('Failed to generate lesson content: ' . $response['message']);
         }
         

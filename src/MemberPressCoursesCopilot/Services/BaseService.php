@@ -4,16 +4,33 @@ declare(strict_types=1);
 
 namespace MemberPressCoursesCopilot\Services;
 
+use MemberPressCoursesCopilot\Utilities\Logger;
+
 /**
  * Base Service class
  * 
  * Abstract base class for all services in the plugin
+ * Provides centralized logging and common utilities
  * 
  * @package MemberPressCoursesCopilot\Services
  * @since 1.0.0
  */
 abstract class BaseService
 {
+    /**
+     * Logger instance
+     *
+     * @var Logger
+     */
+    protected Logger $logger;
+
+    /**
+     * Constructor - initialize logger for all services
+     */
+    public function __construct()
+    {
+        $this->logger = Logger::getInstance();
+    }
     /**
      * Service initialization
      * 
@@ -60,21 +77,63 @@ abstract class BaseService
     }
 
     /**
-     * Log message for debugging
+     * Log message using the centralized Logger (enhanced version)
      *
      * @param string $message The message to log
-     * @param string $level Log level (info, warning, error)
+     * @param string $level Log level (debug, info, warning, error, critical)
+     * @param array $context Additional context data
      * @return void
      */
-    protected function log(string $message, string $level = 'info'): void
+    protected function log(string $message, string $level = 'info', array $context = []): void
     {
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log(sprintf(
-                '[MemberPress Courses Copilot] [%s] %s',
-                strtoupper($level),
-                $message
-            ));
+        // Add service context automatically
+        $context['service'] = static::class;
+        
+        // Map level to Logger methods
+        switch (strtolower($level)) {
+            case 'debug':
+                $this->logger->debug($message, $context);
+                break;
+            case 'warning':
+                $this->logger->warning($message, $context);
+                break;
+            case 'error':
+                $this->logger->error($message, $context);
+                break;
+            case 'critical':
+                $this->logger->critical($message, $context);
+                break;
+            case 'info':
+            default:
+                $this->logger->info($message, $context);
+                break;
         }
+    }
+
+    /**
+     * Log API call with cost tracking
+     *
+     * @param string $provider Provider name (anthropic, openai, etc.)
+     * @param string $model Model name
+     * @param array $usage Usage statistics
+     * @param float $cost Estimated cost
+     * @param array $context Additional context
+     * @return void
+     */
+    protected function logApiCall(string $provider, string $model, array $usage, float $cost, array $context = []): void
+    {
+        $context['service'] = static::class;
+        $this->logger->logApiCall($provider, $model, $usage, $cost, $context);
+    }
+
+    /**
+     * Get logger instance for advanced logging features
+     *
+     * @return Logger
+     */
+    protected function getLogger(): Logger
+    {
+        return $this->logger;
     }
 
     /**
