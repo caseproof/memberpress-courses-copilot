@@ -5,14 +5,17 @@ namespace MemberPressCoursesCopilot\Services;
 /**
  * LLM Service
  * 
- * Provides a simple interface to the LiteLLM proxy with hardcoded credentials
- * exactly like MemberPress Copilot, without any user-facing configuration.
+ * Provides a secure interface to the LiteLLM proxy through an authentication gateway.
+ * API keys are stored securely on the gateway server, never exposed in the plugin code.
  */
 class LLMService extends BaseService
 {
-    // Hardcoded proxy configuration (same as MemberPress Copilot)
-    private const PROXY_URL = 'https://wp-ai-proxy-production-9a5aceb50dde.herokuapp.com';
-    private const MASTER_KEY = 'sk-litellm-EkFY6Wgp9MaDGjbrkCQx4qmbSH4wa0XrEVJmklFcYgw=';
+    // Auth gateway configuration (secure proxy for API keys)
+    private const AUTH_GATEWAY_URL = 'http://localhost:3001';
+    
+    // License key for authentication with the gateway
+    // In production, this should come from MemberPress license system
+    private const LICENSE_KEY = 'dev-license-key-001';
     
     /**
      * Constructor
@@ -51,16 +54,16 @@ class LLMService extends BaseService
         ];
         
         $this->logger->debug('Making API request', [
-            'endpoint' => self::PROXY_URL . '/chat/completions',
+            'endpoint' => self::AUTH_GATEWAY_URL . '/v1/chat/completions',
             'model' => $model,
             'provider' => $provider,
             'payload' => $payload,
             'content_type' => $contentType
         ]);
         
-        $response = wp_remote_post(self::PROXY_URL . '/chat/completions', [
+        $response = wp_remote_post(self::AUTH_GATEWAY_URL . '/v1/chat/completions', [
             'headers' => [
-                'Authorization' => 'Bearer ' . self::MASTER_KEY,
+                'Authorization' => 'Bearer ' . self::LICENSE_KEY,
                 'Content-Type' => 'application/json'
             ],
             'body' => json_encode($payload),
@@ -71,7 +74,7 @@ class LLMService extends BaseService
             $error_message = $response->get_error_message();
             $this->logger->error('WordPress HTTP request failed', [
                 'error_message' => $error_message,
-                'endpoint' => self::PROXY_URL . '/chat/completions',
+                'endpoint' => self::AUTH_GATEWAY_URL . '/v1/chat/completions',
                 'model' => $model,
                 'provider' => $provider
             ]);
