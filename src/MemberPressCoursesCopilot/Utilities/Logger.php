@@ -147,16 +147,7 @@ class Logger {
      * @return bool
      */
     private function determineLoggingState(): bool {
-        // Priority order: Constants > Options > WP_DEBUG
-        if (defined('MPCC_LOGGING_ENABLED')) {
-            return MPCC_LOGGING_ENABLED;
-        }
-        
-        $option = get_option('mpcc_logging_enabled', null);
-        if ($option !== null) {
-            return (bool) $option;
-        }
-        
+        // Only enable logging if WP_DEBUG is active
         return defined('WP_DEBUG') && WP_DEBUG;
     }
 
@@ -765,14 +756,14 @@ class Logger {
     }
 
     /**
-     * Enable or disable logging
+     * Enable or disable logging (only works if WP_DEBUG is active)
      *
      * @param bool $enabled Whether logging should be enabled
      * @return void
      */
     public function setLoggingEnabled(bool $enabled): void {
-        $this->loggingEnabled = $enabled;
-        update_option('mpcc_logging_enabled', $enabled);
+        // Only allow enabling if WP_DEBUG is active
+        $this->loggingEnabled = $enabled && defined('WP_DEBUG') && WP_DEBUG;
     }
 
     /**
@@ -791,16 +782,7 @@ class Logger {
      * @return bool Whether logging is enabled
      */
     public static function isLoggingEnabledGlobally(): bool {
-        // Priority order: Constants > Options > WP_DEBUG
-        if (defined('MPCC_LOGGING_ENABLED')) {
-            return MPCC_LOGGING_ENABLED;
-        }
-        
-        $option = get_option('mpcc_logging_enabled', null);
-        if ($option !== null) {
-            return (bool) $option;
-        }
-        
+        // Only enable logging if WP_DEBUG is active
         return defined('WP_DEBUG') && WP_DEBUG;
     }
 }

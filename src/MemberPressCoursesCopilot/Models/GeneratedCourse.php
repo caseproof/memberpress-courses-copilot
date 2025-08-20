@@ -2,6 +2,8 @@
 
 namespace MemberPressCoursesCopilot\Models;
 
+use MemberPressCoursesCopilot\Utilities\Logger;
+
 /**
  * Generated Course Model
  * 
@@ -212,7 +214,13 @@ class GeneratedCourse
             $lessonId = wp_insert_post($lessonData);
 
             if (is_wp_error($lessonId)) {
-                error_log('Failed to create lesson: ' . $lessonId->get_error_message());
+                Logger::getInstance()->error('Failed to create lesson', [
+                    'error_message' => $lessonId->get_error_message(),
+                    'lesson_data' => $lessonData,
+                    'section_key' => $sectionKey,
+                    'lesson_index' => $lessonIndex,
+                    'method' => 'createMemberPressCoursesEntities'
+                ]);
                 continue;
             }
 

@@ -11,7 +11,7 @@ use MemberPressCoursesCopilot\Models\CourseTemplate;
  * template mixing and hybridization, custom template creation,
  * and template performance analytics.
  */
-class TemplateEngine
+class TemplateEngine extends BaseService
 {
     private array $templateCache = [];
     private array $selectionHistory = [];
@@ -20,8 +20,20 @@ class TemplateEngine
 
     public function __construct(?LLMService $llmService = null)
     {
+        parent::__construct(); // Initialize logger from BaseService
         $this->llmService = $llmService;
         $this->initializeTemplateCache();
+    }
+    
+    /**
+     * Initialize the service (required by BaseService)
+     *
+     * @return void
+     */
+    public function init(): void
+    {
+        // TemplateEngine doesn't need specific initialization
+        // The parent constructor already initializes the logger
     }
 
     /**
@@ -83,7 +95,12 @@ class TemplateEngine
             $aiResponse = $this->llmService->generateResponse($prompt);
             return $this->parseAIRecommendations($aiResponse);
         } catch (\Exception $e) {
-            error_log("AI template recommendation failed: " . $e->getMessage());
+            $this->logger->error('AI template recommendation failed', [
+                'error_message' => $e->getMessage(),
+                'course_description' => $description,
+                'context' => $context,
+                'method' => 'getAIRecommendations'
+            ]);
             return [];
         }
     }

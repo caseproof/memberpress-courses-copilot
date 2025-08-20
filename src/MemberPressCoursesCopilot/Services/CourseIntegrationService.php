@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Services\BaseService;
+use MemberPressCoursesCopilot\Utilities\Logger;
 
 /**
  * Course Integration Service
@@ -409,11 +410,20 @@ class CourseIntegrationService extends BaseService
     {
         // Verify nonce
         if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_ai_interface')) {
+            $this->logger->warning('AI interface load failed: invalid nonce', [
+                'user_id' => get_current_user_id(),
+                'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+            ]);
             wp_die('Security check failed');
         }
         
         // Check user capabilities
         if (!current_user_can('edit_posts')) {
+            $this->logger->warning('AI interface load failed: insufficient permissions', [
+                'user_id' => get_current_user_id(),
+                'required_capability' => 'edit_posts'
+            ]);
             wp_send_json_error('Insufficient permissions');
             return;
         }
@@ -422,10 +432,23 @@ class CourseIntegrationService extends BaseService
         $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         
         try {
+            $this->logger->info('Loading AI interface', [
+                'user_id' => get_current_user_id(),
+                'context' => $context,
+                'post_id' => $post_id
+            ]);
+            
             // Generate the AI interface HTML
             ob_start();
             $this->renderAIInterface($context, $post_id);
             $html = ob_get_clean();
+            
+            $this->logger->debug('AI interface HTML generated successfully', [
+                'user_id' => get_current_user_id(),
+                'context' => $context,
+                'post_id' => $post_id,
+                'html_length' => strlen($html)
+            ]);
             
             wp_send_json_success([
                 'html' => $html,
@@ -433,6 +456,14 @@ class CourseIntegrationService extends BaseService
                 'post_id' => $post_id
             ]);
         } catch (\Exception $e) {
+            $this->logger->error('Failed to load AI interface', [
+                'user_id' => get_current_user_id(),
+                'context' => $context,
+                'post_id' => $post_id,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine()
+            ]);
             wp_send_json_error('Failed to load AI interface: ' . $e->getMessage());
         }
     }
@@ -543,12 +574,21 @@ class CourseIntegrationService extends BaseService
     {
         // Verify nonce
         if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            $this->logger->warning('AI chat request failed: invalid nonce', [
+                'user_id' => get_current_user_id(),
+                'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+            ]);
             wp_send_json_error('Security check failed');
             return;
         }
         
         // Check user capabilities
         if (!current_user_can('edit_posts')) {
+            $this->logger->warning('AI chat request failed: insufficient permissions', [
+                'user_id' => get_current_user_id(),
+                'required_capability' => 'edit_posts'
+            ]);
             wp_send_json_error('Insufficient permissions');
             return;
         }
@@ -560,15 +600,25 @@ class CourseIntegrationService extends BaseService
         $conversation_state = $_POST['conversation_state'] ?? [];
         
         if (empty($message)) {
+            $this->logger->warning('AI chat request failed: empty message', [
+                'user_id' => get_current_user_id(),
+                'context' => $context,
+                'post_id' => $post_id
+            ]);
             wp_send_json_error('Message is required');
             return;
         }
         
         try {
-            error_log('MPCC CourseIntegrationService: handleAIChat called with message: ' . $message);
-            error_log('MPCC CourseIntegrationService: Context: ' . $context);
-            error_log('MPCC CourseIntegrationService: Conversation history count: ' . count($conversation_history));
-            error_log('MPCC CourseIntegrationService: Conversation state: ' . json_encode($conversation_state));
+            $this->logger->info('AI chat request initiated', [
+                'user_id' => get_current_user_id(),
+                'message_length' => strlen($message),
+                'context' => $context,
+                'post_id' => $post_id,
+                'conversation_history_count' => count($conversation_history),
+                'conversation_state' => $conversation_state,
+                'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+            ]);
             
             // Use LLMService for AI requests
             $llm_service = new \MemberPressCoursesCopilot\Services\LLMService();
@@ -596,7 +646,13 @@ class CourseIntegrationService extends BaseService
                 $full_prompt .= "\n\nCurrent collected course data: " . json_encode($collected_data);
             }
             
-            error_log('MPCC CourseIntegrationService: About to call LLM service');
+            $this->logger->debug('Preparing LLM service call', [
+                'user_id' => get_current_user_id(),
+                'context' => $context,
+                'current_step' => $current_step,
+                'collected_data_keys' => array_keys($collected_data),
+                'prompt_length' => strlen($full_prompt)
+            ]);
             
             // Make request to AI service
             $response = $llm_service->generateContent($full_prompt, 'course_assistance', [
@@ -604,10 +660,21 @@ class CourseIntegrationService extends BaseService
                 'max_tokens' => 2000
             ]);
             
-            error_log('MPCC CourseIntegrationService: LLM service returned: ' . json_encode($response));
+            $this->logger->debug('LLM service response received', [
+                'user_id' => get_current_user_id(),
+                'context' => $context,
+                'has_error' => $response['error'] ?? false,
+                'response_content_length' => isset($response['content']) ? strlen($response['content']) : 0,
+                'response_keys' => array_keys($response)
+            ]);
             
             if ($response['error']) {
-                error_log('MPCC CourseIntegrationService ERROR: AI service error - ' . $response['message']);
+                $this->logger->error('LLM service returned error', [
+                    'user_id' => get_current_user_id(),
+                    'context' => $context,
+                    'error_message' => $response['message'] ?? 'Unknown error',
+                    'full_response' => $response
+                ]);
                 wp_send_json_error('AI service error: ' . $response['message']);
                 return;
             }
@@ -649,6 +716,16 @@ class CourseIntegrationService extends BaseService
                 ];
             }
             
+            $this->logger->info('AI chat request completed successfully', [
+                'user_id' => get_current_user_id(),
+                'context' => $context,
+                'next_step' => $next_step,
+                'ready_to_create' => $ready_to_create,
+                'has_course_data' => !empty($course_data),
+                'response_message_length' => strlen($ai_message),
+                'actions_count' => count($actions)
+            ]);
+            
             wp_send_json_success([
                 'message' => $ai_message,
                 'course_data' => $course_data,
@@ -663,6 +740,14 @@ class CourseIntegrationService extends BaseService
             ]);
             
         } catch (\Exception $e) {
+            $this->logger->error('AI chat request failed with exception', [
+                'user_id' => get_current_user_id(),
+                'context' => $context,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'stack_trace' => $e->getTraceAsString()
+            ]);
             wp_send_json_error('Failed to process AI request: ' . $e->getMessage());
         }
     }
@@ -676,11 +761,20 @@ class CourseIntegrationService extends BaseService
     {
         // Verify nonce
         if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            $this->logger->warning('Course creation failed: invalid nonce', [
+                'user_id' => get_current_user_id(),
+                'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+            ]);
             wp_die('Security check failed');
         }
         
         // Check user capabilities
         if (!current_user_can('publish_posts')) {
+            $this->logger->warning('Course creation failed: insufficient permissions', [
+                'user_id' => get_current_user_id(),
+                'required_capability' => 'publish_posts'
+            ]);
             wp_send_json_error('Insufficient permissions');
             return;
         }
@@ -688,11 +782,21 @@ class CourseIntegrationService extends BaseService
         $course_data = $_POST['course_data'] ?? [];
         
         if (empty($course_data)) {
+            $this->logger->warning('Course creation failed: no course data provided', [
+                'user_id' => get_current_user_id()
+            ]);
             wp_send_json_error('No course data provided');
             return;
         }
         
         try {
+            $this->logger->info('Course creation initiated', [
+                'user_id' => get_current_user_id(),
+                'course_title' => $course_data['title'] ?? 'Unknown',
+                'sections_count' => count($course_data['sections'] ?? []),
+                'course_data_keys' => array_keys($course_data)
+            ]);
+            
             // Initialize the Course Generator Service
             $logger = new \MemberPressCoursesCopilot\Utilities\Logger();
             $generator = new \MemberPressCoursesCopilot\Services\CourseGeneratorService($logger);
@@ -700,6 +804,11 @@ class CourseIntegrationService extends BaseService
             // Validate course data
             $validation = $generator->validateCourseData($course_data);
             if (!$validation['valid']) {
+                $this->logger->error('Course creation failed: validation errors', [
+                    'user_id' => get_current_user_id(),
+                    'course_title' => $course_data['title'] ?? 'Unknown',
+                    'validation_errors' => $validation['errors']
+                ]);
                 wp_send_json_error([
                     'message' => 'Course data validation failed',
                     'errors' => $validation['errors']
@@ -711,6 +820,12 @@ class CourseIntegrationService extends BaseService
             $result = $generator->generateCourse($course_data);
             
             if ($result['success']) {
+                $this->logger->info('Course created successfully', [
+                    'user_id' => get_current_user_id(),
+                    'course_id' => $result['course_id'],
+                    'course_title' => $course_data['title'] ?? 'Unknown',
+                    'sections_count' => count($course_data['sections'] ?? [])
+                ]);
                 wp_send_json_success([
                     'message' => 'Course created successfully!',
                     'course_id' => $result['course_id'],
@@ -718,6 +833,11 @@ class CourseIntegrationService extends BaseService
                     'preview_url' => $result['preview_url']
                 ]);
             } else {
+                $this->logger->error('Course creation failed', [
+                    'user_id' => get_current_user_id(),
+                    'course_title' => $course_data['title'] ?? 'Unknown',
+                    'error' => $result['error']
+                ]);
                 wp_send_json_error([
                     'message' => 'Failed to create course',
                     'error' => $result['error']
@@ -725,6 +845,14 @@ class CourseIntegrationService extends BaseService
             }
             
         } catch (\Exception $e) {
+            $this->logger->error('Course creation failed with exception', [
+                'user_id' => get_current_user_id(),
+                'course_title' => $course_data['title'] ?? 'Unknown',
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'stack_trace' => $e->getTraceAsString()
+            ]);
             wp_send_json_error('Failed to create course: ' . $e->getMessage());
         }
     }
@@ -818,9 +946,18 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         // Verify nonce
         if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            $this->logger->warning('Ping request failed: invalid nonce', [
+                'user_id' => get_current_user_id(),
+                'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+            ]);
             wp_send_json_error('Security check failed');
             return;
         }
+        
+        $this->logger->debug('Ping request received', [
+            'user_id' => get_current_user_id(),
+            'timestamp' => current_time('timestamp')
+        ]);
         
         // Simple ping response
         wp_send_json_success([
