@@ -820,7 +820,7 @@ class CourseIntegrationService extends BaseService
             ]);
             
             // Initialize the Course Generator Service
-            $logger = new \MemberPressCoursesCopilot\Utilities\Logger();
+            $logger = \MemberPressCoursesCopilot\Utilities\Logger::getInstance();
             $generator = new \MemberPressCoursesCopilot\Services\CourseGeneratorService($logger);
             
             // Validate course data

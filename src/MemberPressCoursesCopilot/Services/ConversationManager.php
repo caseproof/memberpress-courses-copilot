@@ -32,8 +32,17 @@ class ConversationManager extends BaseService
 
     public function __construct(?DatabaseService $databaseService = null)
     {
+        parent::__construct();
         $this->databaseService = $databaseService ?: new DatabaseService();
-        
+    }
+    
+    /**
+     * Initialize the service
+     *
+     * @return void
+     */
+    public function init(): void
+    {
         // Schedule cleanup tasks
         add_action('init', [$this, 'scheduleCleanupTasks']);
         add_action('mpcc_cleanup_sessions', [$this, 'cleanupExpiredSessions']);
