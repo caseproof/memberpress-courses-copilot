@@ -565,6 +565,11 @@ class CourseIntegrationService extends BaseService
         }
         
         try {
+            error_log('MPCC CourseIntegrationService: handleAIChat called with message: ' . $message);
+            error_log('MPCC CourseIntegrationService: Context: ' . $context);
+            error_log('MPCC CourseIntegrationService: Conversation history count: ' . count($conversation_history));
+            error_log('MPCC CourseIntegrationService: Conversation state: ' . json_encode($conversation_state));
+            
             // Use LLMService for AI requests
             $llm_service = new \MemberPressCoursesCopilot\Services\LLMService();
             
@@ -591,13 +596,18 @@ class CourseIntegrationService extends BaseService
                 $full_prompt .= "\n\nCurrent collected course data: " . json_encode($collected_data);
             }
             
+            error_log('MPCC CourseIntegrationService: About to call LLM service');
+            
             // Make request to AI service
             $response = $llm_service->generateContent($full_prompt, 'course_assistance', [
                 'temperature' => 0.7,
                 'max_tokens' => 2000
             ]);
             
+            error_log('MPCC CourseIntegrationService: LLM service returned: ' . json_encode($response));
+            
             if ($response['error']) {
+                error_log('MPCC CourseIntegrationService ERROR: AI service error - ' . $response['message']);
                 wp_send_json_error('AI service error: ' . $response['message']);
                 return;
             }

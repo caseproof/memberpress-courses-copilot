@@ -20,6 +20,17 @@
 - **No complex DI**: Simple instantiation where needed
 - **No unused features**: Only implement what's actually used
 
+## CRITICAL: NO FAKE/MOCK DATA EVER
+- **NEVER USE FALLBACKS** - If an API fails, FAIL PROPERLY with proper error logging
+- **NEVER CREATE MOCK DATA** - No fake responses, fake content, fake anything
+- **NEVER USE PLACEHOLDER CONTENT** - No "Lorem ipsum", no "Sample content"  
+- **NO SIMULATION CODE** - Every function must work with real data or throw exceptions
+- **FAIL FAST AND LOUD** - When something breaks, let it break visibly with proper error messages
+- **LOG EVERYTHING** - Use error_log() extensively to debug real issues, not mask them
+- **NO GRACEFUL DEGRADATION** - If the AI service is down, the feature doesn't work. Period.
+- **EXCEPTION THROWING** - Throw exceptions when things fail, don't return fake success
+- **REAL OR NOTHING** - Either it works with real data/APIs or it doesn't work at all
+
 ## Architecture Principles
 
 ### Simplicity First
