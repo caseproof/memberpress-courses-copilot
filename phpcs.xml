@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="CaseproofWP">
-    <description>Caseproof WordPress Coding Standards</description>
+<ruleset name="MemberPressCoursesCopilot">
+    <description>MemberPress Courses Copilot coding standards based on Caseproof-WP-Standard</description>
 
     <!-- What to scan -->
     <file>.</file>
@@ -9,8 +9,11 @@
     <exclude-pattern>/vendor/*</exclude-pattern>
     <exclude-pattern>/node_modules/*</exclude-pattern>
     <exclude-pattern>/tests/*</exclude-pattern>
+    <exclude-pattern>/assets/*</exclude-pattern>
     <exclude-pattern>*.min.js</exclude-pattern>
     <exclude-pattern>*.min.css</exclude-pattern>
+    <exclude-pattern>/Sites/*</exclude-pattern>
+    <exclude-pattern>/logs/*</exclude-pattern>
 
     <!-- How to scan -->
     <arg value="sp"/> <!-- Show sniff and progress -->
@@ -19,45 +22,54 @@
     <arg name="extensions" value="php"/>
     <arg name="parallel" value="8"/>
 
-    <!-- Rules: WordPress Coding Standards -->
+    <!-- Use WordPress Coding Standards as base following Caseproof guidelines -->
     <rule ref="WordPress">
-        <!-- Allow short array syntax -->
+        <!-- Allow camelCase for class methods per our coding guidelines -->
+        <exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
+        <!-- Allow short array syntax per Caseproof standard -->
         <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
     </rule>
-
+    
     <!-- Additional WordPress rules -->
     <rule ref="WordPress-Extra"/>
     <rule ref="WordPress-Docs"/>
-
-    <!-- Namespace and class naming -->
-    <rule ref="PSR1.Classes.ClassDeclaration"/>
-    <rule ref="PSR1.Files.SideEffects"/>
+    
+    <!-- PSR compliance per Caseproof standard -->
+    <rule ref="PSR12"/>
+    
+    <!-- PHP compatibility -->
+    <rule ref="PHPCompatibilityWP">
+        <config name="minimum_wp_version" value="6.0"/>
+    </rule>
 
     <!-- Text domain -->
     <rule ref="WordPress.WP.I18n">
         <properties>
-            <property name="text_domain" value="memberpress-courses-copilot"/>
+            <property name="text_domain" type="array">
+                <element value="memberpress-courses-copilot"/>
+            </property>
         </properties>
     </rule>
 
-    <!-- Allow camelCase for class methods -->
-    <rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
-        <severity>0</severity>
+    <!-- Prefixes for global functions/variables -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="mpcc"/>
+                <element value="memberpress_courses_copilot"/>
+            </property>
+        </properties>
     </rule>
 
-    <!-- Hook naming -->
-    <rule ref="WordPress.NamingConventions.ValidHookName"/>
+    <!-- Hook naming prefix -->
+    <rule ref="WordPress.NamingConventions.ValidHookName">
+        <properties>
+            <property name="additionalWordDelimiters" value="-_"/>
+        </properties>
+    </rule>
 
-    <!-- Security -->
-    <rule ref="WordPress.Security"/>
-    
-    <!-- Database -->
-    <rule ref="WordPress.DB"/>
 
-    <!-- Performance -->
-    <rule ref="WordPress.WP.AlternativeFunctions"/>
-
-    <!-- Custom overrides for modern PHP -->
+    <!-- Custom overrides for this plugin -->
     <rule ref="WordPress.PHP.YodaConditions">
         <severity>0</severity>
     </rule>

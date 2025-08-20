@@ -25,7 +25,10 @@
         "php": ">=8.0"
     },
     "require-dev": {
-        "caseproof/caseproof-wp-coding-standard": "^1.0"
+        "phpunit/phpunit": "^9.0",
+        "wp-coding-standards/wpcs": "^3.0",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "phpcompatibility/phpcompatibility-wp": "^2.1"
     },
     "autoload": {
         "psr-4": {
