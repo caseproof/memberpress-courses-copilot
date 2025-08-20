@@ -66,6 +66,11 @@ class CourseIntegrationService extends BaseService
     {
         global $pagenow, $post_type;
         
+        // Check if we're on the AI Course Generator page
+        if (isset($_GET['page']) && $_GET['page'] === 'mpcc-course-generator') {
+            return true;
+        }
+        
         // Check if we're on courses listing page
         if ($pagenow === 'edit.php' && $post_type === 'mpcs-course') {
             return true;
@@ -310,6 +315,9 @@ class CourseIntegrationService extends BaseService
             return;
         }
         
+        // Check if we're on the course generator page
+        $is_generator_page = isset($_GET['page']) && $_GET['page'] === 'mpcc-course-generator';
+        
         // Enqueue AI interface CSS
         wp_enqueue_style(
             'mpcc-courses-integration',
@@ -325,6 +333,16 @@ class CourseIntegrationService extends BaseService
             [],
             MEMBERPRESS_COURSES_COPILOT_VERSION
         );
+        
+        // Enqueue course preview CSS if on generator page
+        if ($is_generator_page) {
+            wp_enqueue_style(
+                'mpcc-course-preview',
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/course-preview.css',
+                [],
+                MEMBERPRESS_COURSES_COPILOT_VERSION
+            );
+        }
         
         // Enqueue AI interface JavaScript
         wp_enqueue_script(
@@ -343,6 +361,25 @@ class CourseIntegrationService extends BaseService
             MEMBERPRESS_COURSES_COPILOT_VERSION,
             true
         );
+        
+        // Enqueue additional scripts for generator page
+        if ($is_generator_page) {
+            wp_enqueue_script(
+                'mpcc-course-preview',
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/course-preview.js',
+                ['jquery'],
+                MEMBERPRESS_COURSES_COPILOT_VERSION,
+                true
+            );
+            
+            wp_enqueue_script(
+                'mpcc-preview-integration',
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/preview-integration.js',
+                ['jquery', 'mpcc-course-preview'],
+                MEMBERPRESS_COURSES_COPILOT_VERSION,
+                true
+            );
+        }
         
         // Localize script with needed data
         wp_localize_script('mpcc-courses-integration', 'mpccCoursesIntegration', [
