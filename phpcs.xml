@@ -38,9 +38,8 @@
     <rule ref="PSR12"/>
     
     <!-- PHP compatibility -->
-    <rule ref="PHPCompatibilityWP">
-        <config name="minimum_wp_version" value="6.0"/>
-    </rule>
+    <rule ref="PHPCompatibilityWP"/>
+    <config name="testVersion" value="8.0-"/>
 
     <!-- Text domain -->
     <rule ref="WordPress.WP.I18n">

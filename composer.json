@@ -32,7 +32,7 @@
     },
     "autoload": {
         "psr-4": {
-            "MemberPressCoursesCopilot\\": "src/"
+            "MemberPressCoursesCopilot\\": "src/MemberPressCoursesCopilot/"
         }
     },
     "autoload-dev": {
