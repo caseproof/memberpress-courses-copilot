@@ -156,10 +156,27 @@ class AdminMenu {
 
         // Enqueue scripts for course generator page
         if ($hook === 'mpcs-course_page_mpcc-course-generator') {
+            // Enqueue AI Copilot CSS
+            wp_enqueue_style(
+                'mpcc-ai-copilot',
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/ai-copilot.css',
+                [],
+                MEMBERPRESS_COURSES_COPILOT_VERSION
+            );
+            
             wp_enqueue_script(
                 'mpcc-course-generator',
                 MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/courses-integration.js',
                 ['jquery', 'wp-element', 'wp-components'],
+                MEMBERPRESS_COURSES_COPILOT_VERSION,
+                true
+            );
+            
+            // Enqueue AI Copilot JavaScript
+            wp_enqueue_script(
+                'mpcc-ai-copilot',
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/ai-copilot.js',
+                ['jquery'],
                 MEMBERPRESS_COURSES_COPILOT_VERSION,
                 true
             );
@@ -177,6 +194,12 @@ class AdminMenu {
                     'loading' => __('Loading...', 'memberpress-courses-copilot'),
                 ],
                 'templates' => $this->getCourseTemplates(),
+            ]);
+            
+            // Also localize the AI copilot script
+            wp_localize_script('mpcc-ai-copilot', 'mpccAISettings', [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('mpcc_courses_integration')
             ]);
         }
     }

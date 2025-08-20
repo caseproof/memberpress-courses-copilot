@@ -38,6 +38,7 @@ class CourseIntegrationService extends BaseService
         add_action('wp_ajax_mpcc_load_ai_interface', [$this, 'loadAIInterface']);
         add_action('wp_ajax_mpcc_create_course_with_ai', [$this, 'createCourseWithAI']);
         add_action('wp_ajax_mpcc_ai_chat', [$this, 'handleAIChat']);
+        add_action('wp_ajax_mpcc_ping', [$this, 'handlePing']);
     }
 
     /**
@@ -159,7 +160,18 @@ class CourseIntegrationService extends BaseService
                     success: function(response) {
                         if (response.success) {
                             $('#mpcc-ai-interface-container').html(response.data.html);
-                            // The interface will initialize itself when ready
+                            $('#mpcc-preview-pane').show(); // Show the preview pane
+                            
+                            // Initialize AI interface after content is loaded
+                            setTimeout(function() {
+                                console.log('Initializing AI interface after AJAX load');
+                                // Trigger any initialization needed
+                                if (typeof window.AICopilot !== 'undefined' && $('#mpcc-chat-messages').length > 0) {
+                                    if (!window.mpccCopilot) {
+                                        window.mpccCopilot = new window.AICopilot();
+                                    }
+                                }
+                            }, 200);
                         } else {
                             $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
                         }
@@ -313,6 +325,14 @@ class CourseIntegrationService extends BaseService
         wp_enqueue_style(
             'mpcc-courses-integration',
             MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/courses-integration.css',
+            [],
+            MEMBERPRESS_COURSES_COPILOT_VERSION
+        );
+        
+        // Enqueue AI Copilot CSS
+        wp_enqueue_style(
+            'mpcc-ai-copilot',
+            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/ai-copilot.css',
             [],
             MEMBERPRESS_COURSES_COPILOT_VERSION
         );
@@ -740,5 +760,25 @@ Be conversational and guide the user through the process naturally. Don't rush t
         }
         
         return $show_screen;
+    }
+
+    /**
+     * Handle AJAX ping request for connection testing
+     *
+     * @return void
+     */
+    public function handlePing(): void
+    {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        // Simple ping response
+        wp_send_json_success([
+            'pong' => true,
+            'timestamp' => current_time('timestamp')
+        ]);
     }
 }

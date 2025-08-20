@@ -3,8 +3,9 @@
 /node_modules/
 
 # Build artifacts
-/assets/css/
-/assets/js/
+# Temporarily commenting out to commit current assets
+# /assets/css/
+# /assets/js/
 /build/
 /dist/
 
