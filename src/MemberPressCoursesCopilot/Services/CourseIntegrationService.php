@@ -161,17 +161,6 @@ class CourseIntegrationService extends BaseService
                         if (response.success) {
                             $('#mpcc-ai-interface-container').html(response.data.html);
                             $('#mpcc-preview-pane').show(); // Show the preview pane
-                            
-                            // Initialize AI interface after content is loaded
-                            setTimeout(function() {
-                                console.log('Initializing AI interface after AJAX load');
-                                // Trigger any initialization needed
-                                if (typeof window.AICopilot !== 'undefined' && $('#mpcc-chat-messages').length > 0) {
-                                    if (!window.mpccCopilot) {
-                                        window.mpccCopilot = new window.AICopilot();
-                                    }
-                                }
-                            }, 200);
                         } else {
                             $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
                         }

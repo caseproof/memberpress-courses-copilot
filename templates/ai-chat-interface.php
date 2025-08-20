@@ -78,10 +78,14 @@ jQuery(document).ready(function($) {
     // Initialize AI Copilot if not already initialized
     if (typeof window.mpccCopilot === 'undefined' && typeof window.AICopilot !== 'undefined') {
         console.log('Initializing AI Copilot from template');
-        // Wait a moment for the DOM to settle
+        // Wait a moment for the DOM to settle and check if not already initializing
         setTimeout(function() {
-            if ($('#mpcc-chat-messages').length > 0) {
-                window.mpccCopilot = new window.AICopilot();
+            if ($('#mpcc-chat-messages').length > 0 && typeof window.mpccCopilot === 'undefined') {
+                try {
+                    window.mpccCopilot = new window.AICopilot();
+                } catch (error) {
+                    console.error('Error initializing AI Copilot:', error);
+                }
             }
         }, 100);
     }
@@ -90,16 +94,29 @@ jQuery(document).ready(function($) {
     $('#mpcc-send-message').off('click').on('click', function(e) {
         e.preventDefault();
         console.log('Send button clicked');
+        
+        // Prevent duplicate clicks
+        var $button = $(this);
+        if ($button.prop('disabled')) {
+            return;
+        }
+        $button.prop('disabled', true);
+        
         var message = $('#mpcc-chat-input').val().trim();
         
         if (!message) {
             console.log('No message to send');
+            $button.prop('disabled', false);
             return;
         }
         
         if (window.mpccCopilot && typeof window.mpccCopilot.handleSendMessage === 'function') {
             console.log('Using AI Copilot to send message');
             window.mpccCopilot.handleSendMessage();
+            // Re-enable button after a delay
+            setTimeout(function() {
+                $button.prop('disabled', false);
+            }, 1000);
         } else {
             console.log('AI Copilot not ready, using fallback');
             // Fallback: Add message to chat and make AJAX call directly
@@ -130,12 +147,16 @@ jQuery(document).ready(function($) {
                         $('#mpcc-chat-messages').append(aiMessage);
                         $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
                     }
+                    // Re-enable button
+                    $button.prop('disabled', false);
                 },
                 error: function() {
                     $('#mpcc-typing').remove();
                     var errorMessage = '<div style="margin-bottom: 15px;"><div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 70%; color: #d63638;">Sorry, I encountered an error. Please try again.</div></div>';
                     $('#mpcc-chat-messages').append(errorMessage);
                     $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
+                    // Re-enable button
+                    $button.prop('disabled', false);
                 }
             });
         }
@@ -149,14 +170,20 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // Handle quick start button clicks
+    // Handle quick start button clicks (prevent duplicate bindings)
     $('.mpcc-quick-start').off('click').on('click', function(e) {
         e.preventDefault();
         console.log('Quick start button clicked');
         var message = $(this).data('message');
         if (message) {
             $('#mpcc-chat-input').val(message);
+            // Trigger click only once
             $('#mpcc-send-message').trigger('click');
+            // Prevent further clicks for 2 seconds
+            $('.mpcc-quick-start').prop('disabled', true);
+            setTimeout(function() {
+                $('.mpcc-quick-start').prop('disabled', false);
+            }, 2000);
         }
     });
     

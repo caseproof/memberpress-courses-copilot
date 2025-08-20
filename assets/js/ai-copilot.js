@@ -62,64 +62,29 @@
         init() {
             this.initializeInterface();
             this.bindEvents();
-            this.setupWordCounter();
+            // this.setupWordCounter();
             this.loadChatHistory();
-            this.initializeVoiceSupport();
-            this.initializeDragDrop();
-            this.setupTheme();
+            // Removed unnecessary features
+            // this.initializeVoiceSupport();
+            // this.initializeDragDrop();
+            // this.setupTheme();
             this.startConnectionMonitoring();
-            this.setupKeyboardShortcuts();
-            this.initializeProgressTracking();
+            // this.setupKeyboardShortcuts();
+            // this.initializeProgressTracking();
         }
 
         initializeInterface() {
-            // Create enhanced chat interface elements
-            this.createVoiceButton();
-            this.createProgressIndicator();
+            // Create basic chat interface elements only
+            // Removed unnecessary UI elements like voice, theme toggle, etc.
             this.createConnectionStatus();
-            this.createThemeToggle();
-            this.createFullscreenToggle();
-            this.enhanceChatInput();
         }
 
         bindEvents() {
-            // Template selection
-            $(document).on('click', '.mpcc-template-card', this.handleTemplateSelection.bind(this));
-            $(document).on('dblclick', '.mpcc-template-card', this.handleTemplatePreview.bind(this));
-
+            // Only bind essential events
+            
             // Chat input and actions
             $('#mpcc-chat-input').on('keydown', this.handleChatKeydown.bind(this));
             $('#mpcc-send-message').on('click', this.handleSendMessage.bind(this));
-            $('#mpcc-voice-button').on('click', this.handleVoiceToggle.bind(this));
-
-            // Chat management
-            $('#mpcc-clear-chat').on('click', this.handleClearChat.bind(this));
-            $('#mpcc-export-chat').on('click', this.handleExportChat.bind(this));
-            $('#mpcc-import-chat').on('click', this.handleImportChat.bind(this));
-
-            // Course actions
-            $('#mpcc-save-draft').on('click', this.handleSaveDraft.bind(this));
-            $('#mpcc-create-course').on('click', this.handleCreateCourse.bind(this));
-            $('#mpcc-preview-course').on('click', this.handlePreviewCourse.bind(this));
-
-            // Interface controls
-            $('#mpcc-theme-toggle').on('click', this.handleThemeToggle.bind(this));
-            $('#mpcc-fullscreen-toggle').on('click', this.handleFullscreenToggle.bind(this));
-            
-            // Message actions
-            $(document).on('click', '.mpcc-message-action', this.handleMessageAction.bind(this));
-            $(document).on('click', '.mpcc-regenerate-response', this.handleRegenerateResponse.bind(this));
-
-            // Drag and drop for course structure
-            $(document).on('dragstart', '.mpcc-draggable', this.handleDragStart.bind(this));
-            $(document).on('dragover', '.mpcc-drop-zone', this.handleDragOver.bind(this));
-            $(document).on('drop', '.mpcc-drop-zone', this.handleDrop.bind(this));
-            $(document).on('dragend', '.mpcc-draggable', this.handleDragEnd.bind(this));
-
-            // Window events
-            $(window).on('beforeunload', this.handleBeforeUnload.bind(this));
-            $(window).on('resize', this.handleResize.bind(this));
-            $(document).on('visibilitychange', this.handleVisibilityChange.bind(this));
 
             // Auto-save
             setInterval(this.autoSave.bind(this), 30000); // Auto-save every 30 seconds
@@ -287,15 +252,10 @@
         }
 
         handleChatKeydown(e) {
-            // Enhanced keyboard handling
+            // Simple keyboard handling - only handle Enter key
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.handleSendMessage();
-            } else if (e.key === 'Tab') {
-                e.preventDefault();
-                this.showInputSuggestions();
-            } else if (e.ctrlKey || e.metaKey) {
-                this.handleKeyboardShortcuts(e);
             }
         }
 
@@ -305,10 +265,18 @@
             if (!message || this.isGenerating) {
                 return;
             }
+            
+            // Prevent duplicate messages
+            const $sendButton = $('#mpcc-send-message');
+            if ($sendButton.prop('disabled')) {
+                return;
+            }
+            $sendButton.prop('disabled', true);
 
             // Validate message length
             if (message.length > 2000) {
                 this.showNotification('Message too long. Please keep it under 2000 characters.', 'error');
+                $sendButton.prop('disabled', false);
                 return;
             }
 
@@ -437,6 +405,8 @@
                     this.isGenerating = false;
                     this.hideTypingIndicator();
                     this.updateConnectionStatus('connected');
+                    // Re-enable send button
+                    $('#mpcc-send-message').prop('disabled', false);
                 }
             });
         }
