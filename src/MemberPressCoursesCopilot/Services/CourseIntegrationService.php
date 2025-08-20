@@ -696,7 +696,16 @@ class CourseIntegrationService extends BaseService
             case 'course_creation':
                 return $base_prompt . " You are helping a user create a new course from scratch. Focus on understanding their topic, target audience, and learning goals. Help them structure a comprehensive curriculum with sections and lessons. 
 
-Your conversation should be natural and helpful. Ask clarifying questions when needed. Once you have enough information to create a course structure, generate it in the following JSON format wrapped in ```json``` code blocks:
+IMPORTANT: When the user has provided:
+1. The subject/topic of the course
+2. Target audience
+3. Main objectives or what students will build/learn
+4. Approximate duration
+5. Whether it includes hands-on exercises
+
+You MUST generate a complete course structure immediately. Do not ask for more clarification unless absolutely necessary.
+
+Your conversation should be natural and helpful. If you need clarification, ask only 1-2 specific questions. Once you have the basic information above, generate the course structure in the following JSON format wrapped in ```json``` code blocks:
 
 ```json
 {
@@ -725,7 +734,9 @@ Your conversation should be natural and helpful. Ask clarifying questions when n
 }
 ```
 
-Be conversational and guide the user through the process naturally. Don't rush to generate the JSON - make sure you understand their needs first.";
+Be conversational and guide the user through the process naturally. When you have the 5 key pieces of information listed above, immediately generate the complete course structure. Do not continue asking questions.
+
+Example: If a user says they want to create a PHP course for people with HTML/CSS knowledge to build a todo app in 4 hours with OOP, PDO, and MVC - you have ALL the information needed. Generate the course immediately.";
                 
             case 'course_editing':
                 return $base_prompt . " You are helping a user improve an existing course. Focus on enhancing content, improving structure, adding engaging elements, and optimizing the learning experience. Be specific about improvements and provide concrete suggestions. When suggesting course modifications, include structured data in JSON format wrapped in ```json``` code blocks.";

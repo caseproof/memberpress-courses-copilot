@@ -457,8 +457,13 @@
                 }
 
                 // Enable action buttons if course is ready
-                if (data.course && data.course.complete) {
+                if (data.ready_to_create || (data.course_data && data.course_data.sections)) {
                     this.enableCourseActions();
+                }
+                
+                // Handle action buttons from server
+                if (data.actions && data.actions.length > 0) {
+                    this.showCourseActions(data.actions);
                 }
 
                 // Auto-save progress
@@ -1219,6 +1224,70 @@
 
         enableCourseActions() {
             $('#mpcc-save-draft, #mpcc-create-course, #mpcc-preview-course').prop('disabled', false);
+        }
+        
+        showCourseActions(actions) {
+            // Display action buttons in the chat interface
+            const actionButtons = actions.map(action => {
+                const btnClass = action.type === 'primary' ? 'button-primary' : 'button-secondary';
+                return `<button class="button ${btnClass} mpcc-course-action" data-action="${action.action}">${action.label}</button>`;
+            }).join(' ');
+            
+            const actionHtml = `
+                <div class="mpcc-action-container" style="margin: 15px 0; padding: 15px; background: #f0f7ff; border-radius: 8px; text-align: center;">
+                    <p style="margin: 0 0 10px 0; font-weight: bold;">Your course is ready!</p>
+                    ${actionButtons}
+                </div>
+            `;
+            
+            $('#mpcc-chat-messages').append(actionHtml);
+            this.scrollToBottom();
+            
+            // Bind action handlers
+            $('.mpcc-course-action').on('click', (e) => {
+                const action = $(e.target).data('action');
+                if (action === 'create_course') {
+                    this.createCourse();
+                } else if (action === 'modify') {
+                    this.addMessage('user', 'I want to modify the course structure');
+                    this.generateAIResponse('I want to modify the course structure');
+                }
+            });
+        }
+        
+        createCourse() {
+            if (!this.currentCourse) {
+                this.showNotification('No course data available', 'error');
+                return;
+            }
+            
+            this.showNotification('Creating your course...', 'info');
+            
+            $.ajax({
+                url: this.getAjaxUrl(),
+                type: 'POST',
+                data: {
+                    action: 'mpcc_create_course_with_ai',
+                    nonce: this.getNonce(),
+                    course_data: this.currentCourse
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.showNotification('Course created successfully!', 'success');
+                        // Redirect to edit course page
+                        if (response.data.edit_url) {
+                            setTimeout(() => {
+                                window.location.href = response.data.edit_url;
+                            }, 2000);
+                        }
+                    } else {
+                        this.showNotification('Failed to create course: ' + response.data.message, 'error');
+                    }
+                },
+                error: () => {
+                    this.showNotification('Failed to create course', 'error');
+                }
+            });
         }
 
         // Additional utility methods would be implemented here...
