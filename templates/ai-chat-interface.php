@@ -69,13 +69,6 @@ $post_id = $post_id ?? 0;
 
 <script type="text/javascript">
 jQuery(document).ready(function($) {
-    // Handle quick start buttons
-    $(document).on('click', '.mpcc-quick-start', function() {
-        var message = $(this).data('message');
-        $('#mpcc-chat-input').val(message);
-        $('#mpcc-send-message').click();
-    });
-    
     // Auto-focus input
     $('#mpcc-chat-input').focus();
     
