@@ -3,6 +3,10 @@
  * Minimal implementation that just works
  */
 jQuery(document).ready(function($) {
+    // Initialize conversation state
+    window.mpccConversationHistory = window.mpccConversationHistory || [];
+    window.mpccConversationState = window.mpccConversationState || { current_step: 'initial', collected_data: {} };
+    
     // Enable/disable send button based on input
     $('#mpcc-chat-input').on('input keyup', function() {
         const hasText = $(this).val().trim().length > 0;
@@ -24,6 +28,9 @@ jQuery(document).ready(function($) {
         
         // Disable button to prevent double-click
         $(this).prop('disabled', true);
+        
+        // Add user message to conversation history
+        window.mpccConversationHistory.push({ role: 'user', content: message });
         
         // Add user message to chat
         const userHtml = `
@@ -58,12 +65,22 @@ jQuery(document).ready(function($) {
                 action: 'mpcc_ai_chat',
                 nonce: $('#mpcc-ajax-nonce').val() || mpccAISettings?.nonce || '',
                 message: message,
-                context: 'course_creation'
+                context: 'course_creation',
+                conversation_history: window.mpccConversationHistory,
+                conversation_state: window.mpccConversationState
             },
             success: function(response) {
                 $('#mpcc-typing').remove();
                 
                 if (response.success) {
+                    // Add AI response to conversation history
+                    window.mpccConversationHistory.push({ role: 'assistant', content: response.data.message });
+                    
+                    // Update conversation state
+                    if (response.data.conversation_state) {
+                        window.mpccConversationState = response.data.conversation_state;
+                    }
+                    
                     // Add AI response
                     const aiHtml = `
                         <div style="margin-bottom: 15px;">
@@ -106,6 +123,9 @@ jQuery(document).ready(function($) {
                 }
                 
                 $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
+                
+                // Re-enable send button
+                $('#mpcc-send-message').prop('disabled', false);
             },
             error: function() {
                 $('#mpcc-typing').remove();
@@ -118,6 +138,9 @@ jQuery(document).ready(function($) {
                 `;
                 $('#mpcc-chat-messages').append(errorHtml);
                 $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
+                
+                // Re-enable send button
+                $('#mpcc-send-message').prop('disabled', false);
             }
         });
     });
