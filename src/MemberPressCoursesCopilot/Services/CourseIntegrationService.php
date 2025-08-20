@@ -159,10 +159,7 @@ class CourseIntegrationService extends BaseService
                     success: function(response) {
                         if (response.success) {
                             $('#mpcc-ai-interface-container').html(response.data.html);
-                            // Initialize the AI chat interface
-                            if (typeof window.initializeMPCCAIInterface === 'function') {
-                                window.initializeMPCCAIInterface('course_creation');
-                            }
+                            // The interface will initialize itself when ready
                         } else {
                             $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
                         }
@@ -283,10 +280,7 @@ class CourseIntegrationService extends BaseService
                             success: function(response) {
                                 if (response.success) {
                                     $('#mpcc-ai-chat-container').html(response.data.html).data('loaded', true);
-                                    // Initialize the AI chat interface
-                                    if (typeof window.initializeMPCCAIInterface === 'function') {
-                                        window.initializeMPCCAIInterface('course_editing', <?php echo (int) $post->ID; ?>);
-                                    }
+                                    // The interface will initialize itself when ready
                                 } else {
                                     $('#mpcc-ai-chat-container').html('<div style="text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
                                 }
@@ -332,6 +326,15 @@ class CourseIntegrationService extends BaseService
             true
         );
         
+        // Enqueue AI Copilot JavaScript
+        wp_enqueue_script(
+            'mpcc-ai-copilot',
+            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/ai-copilot.js',
+            ['jquery'],
+            MEMBERPRESS_COURSES_COPILOT_VERSION,
+            true
+        );
+        
         // Localize script with needed data
         wp_localize_script('mpcc-courses-integration', 'mpccCoursesIntegration', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -342,6 +345,12 @@ class CourseIntegrationService extends BaseService
                 'loading' => __('Loading...', 'memberpress-courses-copilot'),
                 'error' => __('An error occurred. Please try again.', 'memberpress-courses-copilot'),
             ]
+        ]);
+        
+        // Localize AI copilot script
+        wp_localize_script('mpcc-ai-copilot', 'mpccAISettings', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('mpcc_courses_integration')
         ]);
     }
 

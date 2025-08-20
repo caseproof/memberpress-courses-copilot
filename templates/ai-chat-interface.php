@@ -14,7 +14,7 @@ $post_id = $post_id ?? 0;
 ?>
 
 <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>">
-    <div class="mpcc-chat-messages" style="height: <?php echo $context === 'course_creation' ? '400px' : '300px'; ?>; overflow-y: auto; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; background: #f8f9fa; border-radius: 8px;">
+    <div id="mpcc-chat-messages" class="mpcc-chat-messages" style="height: <?php echo $context === 'course_creation' ? '400px' : '300px'; ?>; overflow-y: auto; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; background: #f8f9fa; border-radius: 8px;">
         <div class="mpcc-welcome-message" style="text-align: center; padding: 20px; color: #666;">
             <div style="font-size: 32px; margin-bottom: 15px;">🤖</div>
             <h3 style="margin: 0 0 10px 0; color: #1a73e8;"><?php esc_html_e('AI Course Assistant', 'memberpress-courses-copilot'); ?></h3>
@@ -79,8 +79,9 @@ jQuery(document).ready(function($) {
     // Auto-focus input
     $('#mpcc-chat-input').focus();
     
-    // Initialize the AI interface manager if it exists
-    if (typeof window.initializeMPCCAIInterface === 'function') {
+    // Initialize the AI interface manager if it exists (only once)
+    if (typeof window.initializeMPCCAIInterface === 'function' && !window.mpccAIInitialized) {
+        window.mpccAIInitialized = true;
         window.initializeMPCCAIInterface('<?php echo esc_js($context); ?>', <?php echo (int) $post_id; ?>);
     }
 });
