@@ -1,0 +1,1710 @@
+/**
+ * MemberPress Courses Copilot - AI Chat Interface Styles
+ * Modern, responsive styling with dark/light theme support
+ *
+ * @package MemberPressCoursesCopilot
+ * @version 1.0.0
+ */
+
+/* ==========================================================================
+   CSS Custom Properties (Variables)
+   ========================================================================== */
+
+:root {
+  /* Light Theme Colors */
+  --mpcc-primary: #0073aa;
+  --mpcc-primary-dark: #005a87;
+  --mpcc-primary-light: #0085c8;
+  --mpcc-secondary: #50575e;
+  --mpcc-success: #46b450;
+  --mpcc-warning: #f56e28;
+  --mpcc-error: #dc3232;
+  --mpcc-info: #00a0d2;
+  
+  /* Background Colors */
+  --mpcc-bg-primary: #ffffff;
+  --mpcc-bg-secondary: #f9f9f9;
+  --mpcc-bg-tertiary: #f0f0f1;
+  --mpcc-bg-chat: #ffffff;
+  --mpcc-bg-message-user: #0073aa;
+  --mpcc-bg-message-assistant: #f8f9fa;
+  --mpcc-bg-input: #ffffff;
+  
+  /* Text Colors */
+  --mpcc-text-primary: #2c3338;
+  --mpcc-text-secondary: #50575e;
+  --mpcc-text-muted: #8c8f94;
+  --mpcc-text-inverse: #ffffff;
+  
+  /* Border Colors */
+  --mpcc-border-primary: #dcdcde;
+  --mpcc-border-secondary: #e0e0e0;
+  --mpcc-border-focus: #0073aa;
+  --mpcc-border-error: #dc3232;
+  --mpcc-border-success: #46b450;
+  
+  /* Shadow */
+  --mpcc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --mpcc-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --mpcc-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+  --mpcc-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);
+  
+  /* Spacing */
+  --mpcc-spacing-xs: 0.25rem;
+  --mpcc-spacing-sm: 0.5rem;
+  --mpcc-spacing-md: 1rem;
+  --mpcc-spacing-lg: 1.5rem;
+  --mpcc-spacing-xl: 2rem;
+  --mpcc-spacing-2xl: 3rem;
+  
+  /* Border Radius */
+  --mpcc-radius-sm: 4px;
+  --mpcc-radius-md: 8px;
+  --mpcc-radius-lg: 12px;
+  --mpcc-radius-xl: 16px;
+  --mpcc-radius-full: 9999px;
+  
+  /* Typography */
+  --mpcc-font-size-xs: 0.75rem;
+  --mpcc-font-size-sm: 0.875rem;
+  --mpcc-font-size-base: 1rem;
+  --mpcc-font-size-lg: 1.125rem;
+  --mpcc-font-size-xl: 1.25rem;
+  --mpcc-font-size-2xl: 1.5rem;
+  
+  /* Transitions */
+  --mpcc-transition-fast: 150ms ease-in-out;
+  --mpcc-transition-base: 250ms ease-in-out;
+  --mpcc-transition-slow: 350ms ease-in-out;
+  
+  /* Z-Index */
+  --mpcc-z-dropdown: 1000;
+  --mpcc-z-modal: 1050;
+  --mpcc-z-tooltip: 1070;
+  --mpcc-z-notification: 1080;
+}
+
+/* Dark Theme Variables */
+.mpcc-theme-dark {
+  --mpcc-bg-primary: #1e1e1e;
+  --mpcc-bg-secondary: #2d2d2d;
+  --mpcc-bg-tertiary: #3c3c3c;
+  --mpcc-bg-chat: #1e1e1e;
+  --mpcc-bg-message-user: #0073aa;
+  --mpcc-bg-message-assistant: #2d2d2d;
+  --mpcc-bg-input: #2d2d2d;
+  
+  --mpcc-text-primary: #e0e0e0;
+  --mpcc-text-secondary: #b0b0b0;
+  --mpcc-text-muted: #888888;
+  --mpcc-text-inverse: #2c3338;
+  
+  --mpcc-border-primary: #404040;
+  --mpcc-border-secondary: #505050;
+  
+  --mpcc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --mpcc-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --mpcc-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+  --mpcc-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================================================
+   Base Styles
+   ========================================================================== */
+
+.mpcc-generator-container {
+  display: flex;
+  gap: var(--mpcc-spacing-lg);
+  margin-top: var(--mpcc-spacing-lg);
+  min-height: 600px;
+  position: relative;
+  transition: var(--mpcc-transition-base);
+}
+
+.mpcc-generator-container.theme-transitioning {
+  opacity: 0.8;
+}
+
+.mpcc-chat-panel,
+.mpcc-preview-panel {
+  flex: 1;
+  background: var(--mpcc-bg-primary);
+  border: 1px solid var(--mpcc-border-primary);
+  border-radius: var(--mpcc-radius-lg);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--mpcc-shadow-md);
+  transition: var(--mpcc-transition-base);
+}
+
+/* ==========================================================================
+   Connection Status
+   ========================================================================== */
+
+.mpcc-connection-status {
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-sm);
+  padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-md);
+  border-radius: var(--mpcc-radius-sm);
+  font-size: var(--mpcc-font-size-sm);
+  margin-bottom: var(--mpcc-spacing-md);
+  transition: var(--mpcc-transition-fast);
+}
+
+.mpcc-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--mpcc-radius-full);
+  animation: pulse 2s infinite;
+}
+
+.mpcc-connection-status.connected {
+  background: rgba(70, 180, 80, 0.1);
+  color: var(--mpcc-success);
+}
+
+.mpcc-connection-status.connected .mpcc-status-indicator {
+  background: var(--mpcc-success);
+}
+
+.mpcc-connection-status.disconnected {
+  background: rgba(220, 50, 50, 0.1);
+  color: var(--mpcc-error);
+}
+
+.mpcc-connection-status.disconnected .mpcc-status-indicator {
+  background: var(--mpcc-error);
+}
+
+.mpcc-connection-status.generating {
+  background: rgba(0, 115, 170, 0.1);
+  color: var(--mpcc-primary);
+}
+
+.mpcc-connection-status.generating .mpcc-status-indicator {
+  background: var(--mpcc-primary);
+}
+
+/* ==========================================================================
+   Progress Tracking
+   ========================================================================== */
+
+.mpcc-progress-container {
+  padding: var(--mpcc-spacing-lg);
+  border-bottom: 1px solid var(--mpcc-border-secondary);
+  background: var(--mpcc-bg-secondary);
+}
+
+.mpcc-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--mpcc-bg-tertiary);
+  border-radius: var(--mpcc-radius-full);
+  overflow: hidden;
+  margin-bottom: var(--mpcc-spacing-lg);
+  position: relative;
+}
+
+.mpcc-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--mpcc-primary), var(--mpcc-primary-light));
+  border-radius: var(--mpcc-radius-full);
+  transition: width var(--mpcc-transition-slow);
+  position: relative;
+}
+
+.mpcc-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 2s infinite;
+}
+
+.mpcc-progress-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mpcc-progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mpcc-spacing-sm);
+  flex: 1;
+  position: relative;
+}
+
+.mpcc-step-indicator {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--mpcc-radius-full);
+  background: var(--mpcc-bg-tertiary);
+  color: var(--mpcc-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--mpcc-font-size-sm);
+  font-weight: 600;
+  transition: var(--mpcc-transition-base);
+  border: 2px solid var(--mpcc-border-secondary);
+}
+
+.mpcc-progress-step.active .mpcc-step-indicator {
+  background: var(--mpcc-primary);
+  color: var(--mpcc-text-inverse);
+  border-color: var(--mpcc-primary);
+  box-shadow: 0 0 0 4px rgba(0, 115, 170, 0.2);
+}
+
+.mpcc-progress-step.completed .mpcc-step-indicator {
+  background: var(--mpcc-success);
+  color: var(--mpcc-text-inverse);
+  border-color: var(--mpcc-success);
+}
+
+.mpcc-progress-step.completed .mpcc-step-indicator::before {
+  content: '✓';
+}
+
+.mpcc-step-label {
+  font-size: var(--mpcc-font-size-xs);
+  color: var(--mpcc-text-secondary);
+  text-align: center;
+  font-weight: 500;
+}
+
+.mpcc-progress-step.active .mpcc-step-label {
+  color: var(--mpcc-primary);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Chat Interface
+   ========================================================================== */
+
+.mpcc-chat-header {
+  padding: var(--mpcc-spacing-xl);
+  border-bottom: 1px solid var(--mpcc-border-secondary);
+  background: var(--mpcc-bg-secondary);
+}
+
+.mpcc-chat-header h2 {
+  margin: 0 0 var(--mpcc-spacing-sm) 0;
+  font-size: var(--mpcc-font-size-xl);
+  color: var(--mpcc-text-primary);
+  font-weight: 700;
+}
+
+.mpcc-chat-header .description {
+  margin: 0;
+  color: var(--mpcc-text-secondary);
+  line-height: 1.5;
+}
+
+/* Template Selection */
+.mpcc-templates-section {
+  padding: var(--mpcc-spacing-xl);
+  border-bottom: 1px solid var(--mpcc-border-secondary);
+  background: var(--mpcc-bg-primary);
+}
+
+.mpcc-templates-section h3 {
+  margin: 0 0 var(--mpcc-spacing-lg) 0;
+  font-size: var(--mpcc-font-size-lg);
+  color: var(--mpcc-text-primary);
+  font-weight: 600;
+}
+
+.mpcc-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--mpcc-spacing-lg);
+}
+
+.mpcc-template-card {
+  padding: var(--mpcc-spacing-lg);
+  border: 2px solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-lg);
+  cursor: pointer;
+  transition: var(--mpcc-transition-base);
+  text-align: center;
+  background: var(--mpcc-bg-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.mpcc-template-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: var(--mpcc-transition-base);
+}
+
+.mpcc-template-card:hover::before {
+  left: 100%;
+}
+
+.mpcc-template-card:hover {
+  border-color: var(--mpcc-primary);
+  box-shadow: var(--mpcc-shadow-lg);
+  transform: translateY(-2px);
+}
+
+.mpcc-template-card.selected {
+  border-color: var(--mpcc-primary);
+  background: linear-gradient(135deg, rgba(0, 115, 170, 0.05), rgba(0, 115, 170, 0.1));
+  box-shadow: 0 0 0 4px rgba(0, 115, 170, 0.1);
+}
+
+.mpcc-template-card.mpcc-card-fade {
+  opacity: 0.6;
+  transform: scale(0.98);
+}
+
+.mpcc-template-icon {
+  margin-bottom: var(--mpcc-spacing-md);
+}
+
+.mpcc-template-icon .dashicons {
+  font-size: 48px;
+  color: var(--mpcc-primary);
+  transition: var(--mpcc-transition-base);
+}
+
+.mpcc-template-card:hover .mpcc-template-icon .dashicons {
+  transform: scale(1.1);
+}
+
+.mpcc-template-card h4 {
+  margin: 0 0 var(--mpcc-spacing-sm) 0;
+  font-size: var(--mpcc-font-size-base);
+  font-weight: 600;
+  color: var(--mpcc-text-primary);
+}
+
+.mpcc-template-card p {
+  margin: 0;
+  font-size: var(--mpcc-font-size-sm);
+  color: var(--mpcc-text-secondary);
+  line-height: 1.5;
+}
+
+/* Chat Messages */
+.mpcc-chat-interface {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mpcc-chat-messages {
+  flex: 1;
+  padding: var(--mpcc-spacing-xl);
+  overflow-y: auto;
+  background: var(--mpcc-bg-chat);
+  scrollbar-width: thin;
+  scrollbar-color: var(--mpcc-border-secondary) transparent;
+}
+
+.mpcc-chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mpcc-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mpcc-chat-messages::-webkit-scrollbar-thumb {
+  background: var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-full);
+}
+
+.mpcc-message {
+  display: flex;
+  gap: var(--mpcc-spacing-md);
+  margin-bottom: var(--mpcc-spacing-xl);
+  opacity: 0;
+  animation: messageSlideIn var(--mpcc-transition-base) ease-out forwards;
+}
+
+.mpcc-message:last-child {
+  margin-bottom: 0;
+}
+
+.mpcc-message-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--mpcc-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  position: relative;
+  transition: var(--mpcc-transition-base);
+}
+
+.mpcc-message-assistant .mpcc-message-avatar {
+  background: linear-gradient(135deg, var(--mpcc-primary), var(--mpcc-primary-dark));
+  color: var(--mpcc-text-inverse);
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+.mpcc-message-user .mpcc-message-avatar {
+  background: linear-gradient(135deg, var(--mpcc-secondary), #6c757d);
+  color: var(--mpcc-text-inverse);
+  box-shadow: var(--mpcc-shadow-md);
+  order: 2;
+}
+
+.mpcc-message-content {
+  flex: 1;
+  padding: var(--mpcc-spacing-lg);
+  border-radius: var(--mpcc-radius-lg);
+  position: relative;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.mpcc-message-assistant .mpcc-message-content {
+  background: var(--mpcc-bg-message-assistant);
+  border: 1px solid var(--mpcc-border-secondary);
+  box-shadow: var(--mpcc-shadow-sm);
+}
+
+.mpcc-message-user .mpcc-message-content {
+  background: var(--mpcc-bg-message-user);
+  color: var(--mpcc-text-inverse);
+  margin-left: auto;
+  max-width: 80%;
+  order: 1;
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+.mpcc-message-content p {
+  margin: 0 0 var(--mpcc-spacing-sm) 0;
+}
+
+.mpcc-message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.mpcc-message-content h2,
+.mpcc-message-content h3,
+.mpcc-message-content h4 {
+  margin: var(--mpcc-spacing-md) 0 var(--mpcc-spacing-sm) 0;
+  color: inherit;
+}
+
+.mpcc-message-content ul,
+.mpcc-message-content ol {
+  margin: var(--mpcc-spacing-sm) 0;
+  padding-left: var(--mpcc-spacing-lg);
+}
+
+.mpcc-message-content li {
+  margin-bottom: var(--mpcc-spacing-xs);
+}
+
+.mpcc-message-content code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: var(--mpcc-spacing-xs) var(--mpcc-spacing-sm);
+  border-radius: var(--mpcc-radius-sm);
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+.mpcc-message-content pre {
+  background: rgba(0, 0, 0, 0.05);
+  padding: var(--mpcc-spacing-md);
+  border-radius: var(--mpcc-radius-md);
+  margin: var(--mpcc-spacing-md) 0;
+  overflow-x: auto;
+}
+
+.mpcc-message-content pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Message Suggestions */
+.mpcc-message-suggestions {
+  margin-top: var(--mpcc-spacing-lg);
+  padding-top: var(--mpcc-spacing-lg);
+  border-top: 1px solid var(--mpcc-border-secondary);
+}
+
+.mpcc-suggestions-label {
+  font-size: var(--mpcc-font-size-sm);
+  color: var(--mpcc-text-secondary);
+  margin-bottom: var(--mpcc-spacing-sm);
+  font-weight: 500;
+}
+
+.mpcc-suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mpcc-spacing-sm);
+}
+
+.mpcc-suggestion-btn {
+  padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-md);
+  background: var(--mpcc-bg-tertiary);
+  border: 1px solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-full);
+  font-size: var(--mpcc-font-size-sm);
+  color: var(--mpcc-text-secondary);
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+}
+
+.mpcc-suggestion-btn:hover {
+  background: var(--mpcc-primary);
+  color: var(--mpcc-text-inverse);
+  border-color: var(--mpcc-primary);
+  transform: translateY(-1px);
+}
+
+/* Message Actions */
+.mpcc-message-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--mpcc-spacing-sm);
+  opacity: 0.7;
+  transition: var(--mpcc-transition-fast);
+}
+
+.mpcc-message:hover .mpcc-message-meta {
+  opacity: 1;
+}
+
+.mpcc-message-time {
+  font-size: var(--mpcc-font-size-xs);
+  color: var(--mpcc-text-muted);
+}
+
+.mpcc-message-actions {
+  display: flex;
+  gap: var(--mpcc-spacing-xs);
+}
+
+.mpcc-message-action {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  color: var(--mpcc-text-muted);
+  cursor: pointer;
+  border-radius: var(--mpcc-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--mpcc-transition-fast);
+}
+
+.mpcc-message-action:hover {
+  background: var(--mpcc-bg-tertiary);
+  color: var(--mpcc-text-secondary);
+}
+
+.mpcc-message-action .dashicons {
+  font-size: 14px;
+}
+
+/* Chat Input */
+.mpcc-input-enhancements {
+  display: flex;
+  gap: var(--mpcc-spacing-sm);
+  padding: var(--mpcc-spacing-md) var(--mpcc-spacing-xl) var(--mpcc-spacing-sm);
+  border-bottom: 1px solid var(--mpcc-border-secondary);
+}
+
+.mpcc-input-tool {
+  padding: var(--mpcc-spacing-sm);
+  background: none;
+  border: 1px solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-sm);
+  color: var(--mpcc-text-secondary);
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+  font-size: var(--mpcc-font-size-sm);
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mpcc-input-tool:hover {
+  background: var(--mpcc-bg-tertiary);
+  border-color: var(--mpcc-border-focus);
+  color: var(--mpcc-text-primary);
+}
+
+.mpcc-chat-input-container {
+  padding: var(--mpcc-spacing-xl);
+  background: var(--mpcc-bg-secondary);
+  border-top: 1px solid var(--mpcc-border-secondary);
+}
+
+.mpcc-chat-input-wrapper {
+  display: flex;
+  gap: var(--mpcc-spacing-md);
+  align-items: flex-end;
+}
+
+#mpcc-chat-input {
+  flex: 1;
+  resize: vertical;
+  min-height: 60px;
+  max-height: 120px;
+  padding: var(--mpcc-spacing-md);
+  border: 2px solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-lg);
+  font-size: var(--mpcc-font-size-base);
+  line-height: 1.5;
+  background: var(--mpcc-bg-input);
+  color: var(--mpcc-text-primary);
+  transition: var(--mpcc-transition-fast);
+  font-family: inherit;
+}
+
+#mpcc-chat-input:focus {
+  outline: none;
+  border-color: var(--mpcc-border-focus);
+  box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.1);
+}
+
+#mpcc-chat-input::placeholder {
+  color: var(--mpcc-text-muted);
+}
+
+#mpcc-send-message {
+  height: 48px;
+  padding: 0 var(--mpcc-spacing-lg);
+  background: var(--mpcc-primary);
+  color: var(--mpcc-text-inverse);
+  border: none;
+  border-radius: var(--mpcc-radius-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-sm);
+  white-space: nowrap;
+}
+
+#mpcc-send-message:hover:not(:disabled) {
+  background: var(--mpcc-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+#mpcc-send-message:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Voice Button */
+.mpcc-voice-btn {
+  position: relative;
+  height: 48px;
+  width: 48px;
+  border: 2px solid var(--mpcc-border-secondary);
+  background: var(--mpcc-bg-input);
+  color: var(--mpcc-text-secondary);
+  border-radius: var(--mpcc-radius-lg);
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mpcc-voice-btn:hover {
+  border-color: var(--mpcc-primary);
+  color: var(--mpcc-primary);
+  background: rgba(0, 115, 170, 0.05);
+}
+
+.mpcc-voice-btn.recording {
+  background: var(--mpcc-error);
+  color: var(--mpcc-text-inverse);
+  border-color: var(--mpcc-error);
+  animation: pulse 1s infinite;
+}
+
+.mpcc-voice-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--mpcc-radius-full);
+  background: var(--mpcc-error);
+  opacity: 0;
+  transition: var(--mpcc-transition-fast);
+}
+
+.mpcc-voice-indicator.active {
+  opacity: 1;
+  animation: pulse 1s infinite;
+}
+
+.mpcc-input-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--mpcc-spacing-md);
+}
+
+.mpcc-input-stats {
+  display: flex;
+  gap: var(--mpcc-spacing-md);
+  font-size: var(--mpcc-font-size-sm);
+  color: var(--mpcc-text-muted);
+}
+
+.mpcc-char-count.warning {
+  color: var(--mpcc-warning);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Preview Panel
+   ========================================================================== */
+
+.mpcc-preview-header {
+  padding: var(--mpcc-spacing-xl);
+  border-bottom: 1px solid var(--mpcc-border-secondary);
+  background: var(--mpcc-bg-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mpcc-preview-header h2 {
+  margin: 0;
+  font-size: var(--mpcc-font-size-xl);
+  color: var(--mpcc-text-primary);
+  font-weight: 700;
+}
+
+.mpcc-preview-actions {
+  display: flex;
+  gap: var(--mpcc-spacing-sm);
+}
+
+.mpcc-icon-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--mpcc-border-secondary);
+  background: var(--mpcc-bg-primary);
+  color: var(--mpcc-text-secondary);
+  border-radius: var(--mpcc-radius-md);
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mpcc-icon-btn:hover {
+  background: var(--mpcc-bg-tertiary);
+  border-color: var(--mpcc-primary);
+  color: var(--mpcc-primary);
+}
+
+.mpcc-preview-content {
+  flex: 1;
+  padding: var(--mpcc-spacing-xl);
+  overflow-y: auto;
+  background: var(--mpcc-bg-primary);
+  scrollbar-width: thin;
+  scrollbar-color: var(--mpcc-border-secondary) transparent;
+}
+
+.mpcc-preview-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mpcc-preview-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mpcc-preview-content::-webkit-scrollbar-thumb {
+  background: var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-full);
+}
+
+.mpcc-preview-content.mpcc-updating {
+  opacity: 0.7;
+  transition: opacity var(--mpcc-transition-base);
+}
+
+.mpcc-preview-placeholder {
+  text-align: center;
+  color: var(--mpcc-text-muted);
+  padding: var(--mpcc-spacing-2xl);
+}
+
+.mpcc-preview-icon .dashicons {
+  font-size: 64px;
+  color: var(--mpcc-border-secondary);
+  margin-bottom: var(--mpcc-spacing-lg);
+}
+
+.mpcc-preview-placeholder h3 {
+  margin: 0 0 var(--mpcc-spacing-md) 0;
+  color: var(--mpcc-text-secondary);
+  font-weight: 600;
+}
+
+.mpcc-preview-placeholder p {
+  margin: 0;
+  line-height: 1.6;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+/* Course Structure Preview */
+.mpcc-course-structure {
+  max-width: 100%;
+}
+
+.mpcc-course-header h3 {
+  margin: 0 0 var(--mpcc-spacing-md) 0;
+  font-size: var(--mpcc-font-size-2xl);
+  color: var(--mpcc-text-primary);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.mpcc-course-description {
+  margin: 0 0 var(--mpcc-spacing-lg) 0;
+  color: var(--mpcc-text-secondary);
+  line-height: 1.6;
+  font-size: var(--mpcc-font-size-base);
+}
+
+.mpcc-course-meta {
+  display: flex;
+  gap: var(--mpcc-spacing-md);
+  margin-bottom: var(--mpcc-spacing-xl);
+  flex-wrap: wrap;
+}
+
+.mpcc-course-meta span {
+  padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-md);
+  background: var(--mpcc-bg-tertiary);
+  border-radius: var(--mpcc-radius-full);
+  font-size: var(--mpcc-font-size-sm);
+  color: var(--mpcc-text-secondary);
+  font-weight: 500;
+  border: 1px solid var(--mpcc-border-secondary);
+}
+
+.mpcc-course-objectives {
+  margin-bottom: var(--mpcc-spacing-xl);
+}
+
+.mpcc-course-objectives h4 {
+  margin: 0 0 var(--mpcc-spacing-md) 0;
+  font-size: var(--mpcc-font-size-lg);
+  color: var(--mpcc-text-primary);
+  font-weight: 600;
+}
+
+.mpcc-objectives-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.mpcc-objective-item {
+  position: relative;
+  padding-left: var(--mpcc-spacing-xl);
+  margin-bottom: var(--mpcc-spacing-sm);
+  line-height: 1.5;
+  color: var(--mpcc-text-secondary);
+}
+
+.mpcc-objective-item::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--mpcc-success);
+  font-weight: bold;
+}
+
+.mpcc-course-sections h4 {
+  margin: 0 0 var(--mpcc-spacing-lg) 0;
+  font-size: var(--mpcc-font-size-lg);
+  color: var(--mpcc-text-primary);
+  font-weight: 600;
+}
+
+/* Sections and Lessons */
+.mpcc-section {
+  margin-bottom: var(--mpcc-spacing-xl);
+  padding: var(--mpcc-spacing-lg);
+  background: var(--mpcc-bg-secondary);
+  border-radius: var(--mpcc-radius-lg);
+  border-left: 4px solid var(--mpcc-primary);
+  box-shadow: var(--mpcc-shadow-sm);
+  transition: var(--mpcc-transition-base);
+  position: relative;
+}
+
+.mpcc-section:hover {
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+.mpcc-section.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+}
+
+.mpcc-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-md);
+  margin-bottom: var(--mpcc-spacing-md);
+}
+
+.mpcc-drag-handle {
+  cursor: grab;
+  color: var(--mpcc-text-muted);
+  opacity: 0;
+  transition: var(--mpcc-transition-fast);
+}
+
+.mpcc-section:hover .mpcc-drag-handle,
+.mpcc-lesson:hover .mpcc-drag-handle {
+  opacity: 1;
+}
+
+.mpcc-drag-handle:active {
+  cursor: grabbing;
+}
+
+.mpcc-section-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--mpcc-font-size-lg);
+  color: var(--mpcc-text-primary);
+  font-weight: 600;
+}
+
+.mpcc-section-actions {
+  display: flex;
+  gap: var(--mpcc-spacing-xs);
+  opacity: 0;
+  transition: var(--mpcc-transition-fast);
+}
+
+.mpcc-section:hover .mpcc-section-actions,
+.mpcc-lesson:hover .mpcc-lesson-actions {
+  opacity: 1;
+}
+
+.mpcc-section-actions button,
+.mpcc-lesson-actions button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--mpcc-bg-primary);
+  color: var(--mpcc-text-muted);
+  border-radius: var(--mpcc-radius-sm);
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mpcc-section-actions button:hover,
+.mpcc-lesson-actions button:hover {
+  background: var(--mpcc-bg-tertiary);
+  color: var(--mpcc-text-primary);
+}
+
+.mpcc-section-description {
+  margin: 0 0 var(--mpcc-spacing-lg) 0;
+  font-size: var(--mpcc-font-size-sm);
+  color: var(--mpcc-text-secondary);
+  line-height: 1.5;
+}
+
+.mpcc-section-lessons {
+  margin-top: var(--mpcc-spacing-md);
+  padding: var(--mpcc-spacing-md);
+  background: var(--mpcc-bg-primary);
+  border-radius: var(--mpcc-radius-md);
+  min-height: 60px;
+  position: relative;
+}
+
+.mpcc-section-lessons.drag-over {
+  background: rgba(0, 115, 170, 0.05);
+  border: 2px dashed var(--mpcc-primary);
+}
+
+.mpcc-lesson {
+  display: flex;
+  align-items: center;
+  padding: var(--mpcc-spacing-md);
+  border-bottom: 1px solid var(--mpcc-border-secondary);
+  transition: var(--mpcc-transition-fast);
+  border-radius: var(--mpcc-radius-sm);
+  margin-bottom: var(--mpcc-spacing-xs);
+  background: var(--mpcc-bg-primary);
+}
+
+.mpcc-lesson:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.mpcc-lesson:hover {
+  background: var(--mpcc-bg-tertiary);
+}
+
+.mpcc-lesson.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.mpcc-lesson-content {
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-md);
+  width: 100%;
+}
+
+.mpcc-lesson-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mpcc-spacing-xs);
+}
+
+.mpcc-lesson-title {
+  font-size: var(--mpcc-font-size-sm);
+  color: var(--mpcc-text-primary);
+  font-weight: 500;
+}
+
+.mpcc-lesson-type {
+  font-size: var(--mpcc-font-size-xs);
+  color: var(--mpcc-text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.mpcc-lesson-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-md);
+}
+
+.mpcc-lesson-duration {
+  font-size: var(--mpcc-font-size-xs);
+  color: var(--mpcc-text-muted);
+  min-width: 50px;
+}
+
+.mpcc-lesson-actions {
+  display: flex;
+  gap: var(--mpcc-spacing-xs);
+}
+
+.mpcc-add-lesson {
+  margin-top: var(--mpcc-spacing-md);
+  padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-md);
+  background: none;
+  border: 2px dashed var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-md);
+  color: var(--mpcc-text-muted);
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mpcc-spacing-sm);
+  font-size: var(--mpcc-font-size-sm);
+}
+
+.mpcc-add-lesson:hover {
+  border-color: var(--mpcc-primary);
+  color: var(--mpcc-primary);
+  background: rgba(0, 115, 170, 0.05);
+}
+
+/* ==========================================================================
+   Notifications
+   ========================================================================== */
+
+.mpcc-notification {
+  position: fixed;
+  top: var(--mpcc-spacing-lg);
+  right: var(--mpcc-spacing-lg);
+  z-index: var(--mpcc-z-notification);
+  background: var(--mpcc-bg-primary);
+  border: 1px solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-lg);
+  box-shadow: var(--mpcc-shadow-xl);
+  max-width: 400px;
+  animation: slideInRight var(--mpcc-transition-base) ease-out;
+}
+
+.mpcc-notification-success {
+  border-left: 4px solid var(--mpcc-success);
+}
+
+.mpcc-notification-error {
+  border-left: 4px solid var(--mpcc-error);
+}
+
+.mpcc-notification-warning {
+  border-left: 4px solid var(--mpcc-warning);
+}
+
+.mpcc-notification-info {
+  border-left: 4px solid var(--mpcc-info);
+}
+
+.mpcc-notification-content {
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-md);
+  padding: var(--mpcc-spacing-lg);
+}
+
+.mpcc-notification-icon {
+  font-size: 18px;
+}
+
+.mpcc-notification-success .mpcc-notification-icon {
+  color: var(--mpcc-success);
+}
+
+.mpcc-notification-error .mpcc-notification-icon {
+  color: var(--mpcc-error);
+}
+
+.mpcc-notification-warning .mpcc-notification-icon {
+  color: var(--mpcc-warning);
+}
+
+.mpcc-notification-info .mpcc-notification-icon {
+  color: var(--mpcc-info);
+}
+
+.mpcc-notification-text {
+  flex: 1;
+  color: var(--mpcc-text-primary);
+  line-height: 1.4;
+}
+
+.mpcc-notification-close {
+  position: absolute;
+  top: var(--mpcc-spacing-sm);
+  right: var(--mpcc-spacing-sm);
+  background: none;
+  border: none;
+  color: var(--mpcc-text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: var(--mpcc-transition-fast);
+}
+
+.mpcc-notification-close:hover {
+  color: var(--mpcc-text-secondary);
+}
+
+/* ==========================================================================
+   Modal Styles
+   ========================================================================== */
+
+.mpcc-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: var(--mpcc-z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mpcc-spacing-lg);
+  animation: fadeIn var(--mpcc-transition-base) ease-out;
+}
+
+.mpcc-modal {
+  background: var(--mpcc-bg-primary);
+  border-radius: var(--mpcc-radius-xl);
+  box-shadow: var(--mpcc-shadow-xl);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: scaleIn var(--mpcc-transition-base) ease-out;
+}
+
+.mpcc-modal-header {
+  padding: var(--mpcc-spacing-xl);
+  border-bottom: 1px solid var(--mpcc-border-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--mpcc-bg-secondary);
+}
+
+.mpcc-modal-header h3 {
+  margin: 0;
+  color: var(--mpcc-text-primary);
+  font-size: var(--mpcc-font-size-xl);
+  font-weight: 600;
+}
+
+.mpcc-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--mpcc-text-muted);
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+  line-height: 1;
+  padding: var(--mpcc-spacing-sm);
+}
+
+.mpcc-modal-close:hover {
+  color: var(--mpcc-text-secondary);
+}
+
+.mpcc-modal-body {
+  padding: var(--mpcc-spacing-xl);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.mpcc-modal-footer {
+  padding: var(--mpcc-spacing-xl);
+  border-top: 1px solid var(--mpcc-border-secondary);
+  display: flex;
+  gap: var(--mpcc-spacing-md);
+  justify-content: flex-end;
+  background: var(--mpcc-bg-secondary);
+}
+
+/* ==========================================================================
+   Celebration Animation
+   ========================================================================== */
+
+.mpcc-celebration-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: var(--mpcc-z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn var(--mpcc-transition-base) ease-out;
+}
+
+.mpcc-celebration-content {
+  text-align: center;
+  color: var(--mpcc-text-inverse);
+  animation: celebrationBounce 1s ease-out;
+}
+
+.mpcc-celebration-icon {
+  font-size: 80px;
+  margin-bottom: var(--mpcc-spacing-lg);
+  animation: bounceIn 1s ease-out;
+}
+
+.mpcc-celebration-content h3 {
+  margin: 0 0 var(--mpcc-spacing-md) 0;
+  font-size: var(--mpcc-font-size-2xl);
+  font-weight: 700;
+}
+
+.mpcc-celebration-content p {
+  margin: 0;
+  font-size: var(--mpcc-font-size-lg);
+  opacity: 0.9;
+}
+
+/* ==========================================================================
+   Loading States
+   ========================================================================== */
+
+.mpcc-typing {
+  opacity: 0.8;
+}
+
+.mpcc-typing-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: var(--mpcc-spacing-md) 0;
+}
+
+.mpcc-typing-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--mpcc-radius-full);
+  background: var(--mpcc-text-muted);
+  animation: typingDot 1.4s infinite ease-in-out;
+}
+
+.mpcc-typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.mpcc-typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+  .mpcc-generator-container {
+    flex-direction: column;
+  }
+  
+  .mpcc-template-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+  
+  .mpcc-progress-steps {
+    flex-wrap: wrap;
+    gap: var(--mpcc-spacing-md);
+  }
+  
+  .mpcc-progress-step {
+    flex: 0 0 auto;
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mpcc-generator-container {
+    gap: var(--mpcc-spacing-md);
+    margin-top: var(--mpcc-spacing-md);
+  }
+  
+  .mpcc-chat-header,
+  .mpcc-preview-header,
+  .mpcc-templates-section,
+  .mpcc-chat-input-container,
+  .mpcc-preview-content {
+    padding: var(--mpcc-spacing-lg);
+  }
+  
+  .mpcc-template-grid {
+    grid-template-columns: 1fr;
+    gap: var(--mpcc-spacing-md);
+  }
+  
+  .mpcc-preview-header {
+    flex-direction: column;
+    gap: var(--mpcc-spacing-md);
+    align-items: stretch;
+  }
+  
+  .mpcc-preview-actions {
+    justify-content: center;
+  }
+  
+  .mpcc-course-meta {
+    flex-direction: column;
+    gap: var(--mpcc-spacing-sm);
+  }
+  
+  .mpcc-message-content {
+    padding: var(--mpcc-spacing-md);
+  }
+  
+  .mpcc-message-user .mpcc-message-content {
+    max-width: 90%;
+  }
+  
+  .mpcc-chat-input-wrapper {
+    flex-direction: column;
+    gap: var(--mpcc-spacing-md);
+  }
+  
+  #mpcc-send-message,
+  .mpcc-voice-btn {
+    width: 100%;
+    height: 48px;
+  }
+  
+  .mpcc-input-enhancements {
+    flex-wrap: wrap;
+  }
+  
+  .mpcc-notification {
+    top: var(--mpcc-spacing-md);
+    right: var(--mpcc-spacing-md);
+    left: var(--mpcc-spacing-md);
+    max-width: none;
+  }
+  
+  .mpcc-section-header {
+    flex-wrap: wrap;
+    gap: var(--mpcc-spacing-sm);
+  }
+  
+  .mpcc-lesson-content {
+    flex-wrap: wrap;
+    gap: var(--mpcc-spacing-sm);
+  }
+  
+  .mpcc-lesson-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  .mpcc-chat-header h2,
+  .mpcc-preview-header h2 {
+    font-size: var(--mpcc-font-size-lg);
+  }
+  
+  .mpcc-message {
+    gap: var(--mpcc-spacing-sm);
+  }
+  
+  .mpcc-message-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .mpcc-section {
+    padding: var(--mpcc-spacing-md);
+  }
+  
+  .mpcc-modal {
+    margin: var(--mpcc-spacing-md);
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .mpcc-progress-step {
+    min-width: 80px;
+  }
+  
+  .mpcc-step-label {
+    font-size: 10px;
+  }
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes celebrationBounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -30px, 0);
+  }
+  70% {
+    transform: translate3d(0, -15px, 0);
+  }
+  90% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@keyframes messageSlideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes typingDot {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.mpcc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus styles for keyboard navigation */
+.mpcc-template-card:focus,
+.mpcc-suggestion-btn:focus,
+.mpcc-message-action:focus,
+#mpcc-chat-input:focus,
+#mpcc-send-message:focus,
+.mpcc-voice-btn:focus,
+.mpcc-icon-btn:focus {
+  outline: 2px solid var(--mpcc-primary);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --mpcc-border-primary: #000000;
+    --mpcc-border-secondary: #333333;
+    --mpcc-text-muted: #666666;
+  }
+  
+  .mpcc-theme-dark {
+    --mpcc-border-primary: #ffffff;
+    --mpcc-border-secondary: #cccccc;
+    --mpcc-text-muted: #aaaaaa;
+  }
+}
+
+/* Print styles */
+@media print {
+  .mpcc-generator-container {
+    flex-direction: column;
+    box-shadow: none;
+  }
+  
+  .mpcc-chat-panel,
+  .mpcc-preview-panel {
+    border: 1px solid #ddd;
+    box-shadow: none;
+  }
+  
+  .mpcc-templates-section,
+  .mpcc-chat-input-container,
+  .mpcc-preview-actions {
+    display: none;
+  }
+  
+  .mpcc-message-actions,
+  .mpcc-section-actions,
+  .mpcc-lesson-actions {
+    display: none;
+  }
+}

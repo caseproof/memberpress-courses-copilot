@@ -31,6 +31,10 @@ class LLMService
             'max_tokens' => $options['max_tokens'] ?? 2000
         ];
         
+        error_log('MPCC LLMService: Making request to ' . self::PROXY_URL . '/chat/completions');
+        error_log('MPCC LLMService: Using model ' . $model . ' (provider: ' . $provider . ')');
+        error_log('MPCC LLMService: Payload: ' . json_encode($payload));
+        
         $response = wp_remote_post(self::PROXY_URL . '/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer ' . self::MASTER_KEY,
@@ -41,9 +45,11 @@ class LLMService
         ]);
         
         if (is_wp_error($response)) {
+            $error_message = $response->get_error_message();
+            error_log('MPCC LLMService ERROR: WP_Error - ' . $error_message);
             return [
                 'error' => true,
-                'message' => $response->get_error_message(),
+                'message' => $error_message,
                 'content' => ''
             ];
         }
@@ -51,30 +57,43 @@ class LLMService
         $responseCode = wp_remote_retrieve_response_code($response);
         $responseBody = wp_remote_retrieve_body($response);
         
+        error_log('MPCC LLMService: Response code: ' . $responseCode);
+        error_log('MPCC LLMService: Response body: ' . $responseBody);
+        
         if ($responseCode >= 400) {
+            $error_message = "API error {$responseCode}: {$responseBody}";
+            error_log('MPCC LLMService ERROR: ' . $error_message);
             return [
                 'error' => true,
-                'message' => "API error {$responseCode}: {$responseBody}",
+                'message' => $error_message,
                 'content' => ''
             ];
         }
         
         $data = json_decode($responseBody, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
+            $error_message = 'Invalid JSON response: ' . json_last_error_msg();
+            error_log('MPCC LLMService ERROR: ' . $error_message);
+            error_log('MPCC LLMService: Raw response body: ' . $responseBody);
             return [
                 'error' => true,
-                'message' => 'Invalid JSON response',
+                'message' => $error_message,
                 'content' => ''
             ];
         }
         
         if (!isset($data['choices'][0]['message']['content'])) {
+            $error_message = 'Unexpected response format - no content in choices';
+            error_log('MPCC LLMService ERROR: ' . $error_message);
+            error_log('MPCC LLMService: Response structure: ' . json_encode($data));
             return [
                 'error' => true,
-                'message' => 'Unexpected response format',
+                'message' => $error_message,
                 'content' => ''
             ];
         }
+        
+        error_log('MPCC LLMService SUCCESS: Generated ' . strlen($data['choices'][0]['message']['content']) . ' characters of content');
         
         return [
             'error' => false,
@@ -98,7 +117,8 @@ class LLMService
         ]);
         
         if ($response['error']) {
-            return $this->fallbackTemplateDetection($userInput);
+            error_log('MPCC LLMService ERROR in determineTemplateType: ' . $response['message']);
+            throw new \Exception('Failed to determine template type: ' . $response['message']);
         }
         
         return $this->parseTemplateResponse($response['content']);
@@ -117,12 +137,8 @@ class LLMService
         ]);
         
         if ($response['error']) {
-            return [
-                'raw_input' => $message,
-                'timestamp' => current_time('timestamp'),
-                'extraction_method' => 'fallback',
-                'error' => $response['message']
-            ];
+            error_log('MPCC LLMService ERROR in extractCourseRequirements: ' . $response['message']);
+            throw new \Exception('Failed to extract course requirements: ' . $response['message']);
         }
         
         $extracted = json_decode(trim($response['content']), true);
@@ -134,12 +150,8 @@ class LLMService
             ]);
         }
         
-        return [
-            'raw_input' => $message,
-            'timestamp' => current_time('timestamp'),
-            'extraction_method' => 'fallback',
-            'parsing_error' => 'Failed to parse AI response as JSON'
-        ];
+        error_log('MPCC LLMService ERROR: Failed to parse AI response as JSON. Response: ' . $response['content']);
+        throw new \Exception('Failed to parse AI response as valid JSON');
     }
     
     /**
@@ -160,7 +172,8 @@ class LLMService
         ]);
         
         if ($response['error']) {
-            return $this->generateFallbackLessonContent($sectionTitle, $lessonNumber, $requirements);
+            error_log('MPCC LLMService ERROR in generateLessonContent: ' . $response['message']);
+            throw new \Exception('Failed to generate lesson content: ' . $response['message']);
         }
         
         return trim($response['content']);
@@ -233,33 +246,4 @@ class LLMService
         return null;
     }
     
-    /**
-     * Fallback template detection
-     */
-    private function fallbackTemplateDetection(string $input): ?string
-    {
-        $input = strtolower($input);
-        
-        if (strpos($input, 'technical') !== false || strpos($input, 'programming') !== false || strpos($input, 'coding') !== false) {
-            return 'technical';
-        } elseif (strpos($input, 'business') !== false || strpos($input, 'marketing') !== false || strpos($input, 'management') !== false) {
-            return 'business';
-        } elseif (strpos($input, 'creative') !== false || strpos($input, 'art') !== false || strpos($input, 'design') !== false) {
-            return 'creative';
-        } elseif (strpos($input, 'academic') !== false || strpos($input, 'research') !== false || strpos($input, 'theory') !== false) {
-            return 'academic';
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Generate fallback lesson content
-     */
-    private function generateFallbackLessonContent(string $sectionTitle, int $lessonNumber, array $requirements): string
-    {
-        $lessonTitle = $requirements['lesson_title'] ?? "Lesson {$lessonNumber}";
-        
-        return "# {$lessonTitle}\n\n## Learning Objectives\n\nBy the end of this lesson, you will be able to:\n\n- Understand the key concepts covered in this lesson\n- Apply the knowledge to practical situations\n- Build upon this foundation for future lessons\n\n## Content\n\nThis lesson covers important concepts related to {$sectionTitle}. The content will help you develop a solid understanding of the topic and prepare you for more advanced material.\n\n## Key Takeaways\n\n- Review the main concepts covered\n- Practice applying what you've learned\n- Prepare for the next lesson in the sequence\n\n*Note: This content was generated using a fallback method due to AI service unavailability.*";
-    }
 }

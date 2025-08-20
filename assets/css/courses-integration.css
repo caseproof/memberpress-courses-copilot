@@ -1,0 +1,414 @@
+/**
+ * MemberPress Courses Copilot - Courses Integration Styles
+ * Styles for integrating AI features into MemberPress Courses admin interface
+ *
+ * @package MemberPressCoursesCopilot
+ * @version 1.0.0
+ */
+
+/* ==========================================================================
+   Create with AI Button
+   ========================================================================== */
+
+#mpcc-create-with-ai {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    text-shadow: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+#mpcc-create-with-ai:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#mpcc-create-with-ai .dashicons {
+    margin-right: 5px;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+/* ==========================================================================
+   AI Modal Styles
+   ========================================================================== */
+
+#mpcc-ai-modal {
+    display: none;
+    position: fixed;
+    z-index: 100000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#mpcc-ai-modal > div {
+    background-color: #fefefe;
+    margin: 2% auto;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    width: 95%;
+    max-width: 1600px;
+    height: 92%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal Header */
+#mpcc-ai-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px 8px 0 0;
+}
+
+#mpcc-ai-modal .modal-header h2 {
+    margin: 0;
+    color: white;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+#mpcc-close-modal {
+    cursor: pointer;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    background: none;
+    border: none;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+#mpcc-close-modal:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Modal Content */
+#mpcc-ai-modal .modal-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100% - 70px);
+}
+
+#mpcc-ai-interface-container {
+    flex: 1;
+    height: 100%;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+}
+
+#mpcc-preview-pane {
+    flex: 1;
+    height: 100%;
+    background: #f8f9fa;
+    overflow-y: auto;
+    display: none;
+}
+
+#mpcc-preview-pane.active {
+    display: block;
+}
+
+/* Loading State */
+.mpcc-loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #666;
+}
+
+.mpcc-loading-container .spinner {
+    float: none;
+    margin: 0 auto 20px;
+}
+
+/* ==========================================================================
+   AI Assistant Meta Box
+   ========================================================================== */
+
+#mpcc-ai-assistant-metabox {
+    padding: 0;
+}
+
+#mpcc-toggle-ai-chat {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    transition: all 0.3s ease;
+}
+
+#mpcc-toggle-ai-chat:hover {
+    background: #e9ecef;
+    border-color: #0073aa;
+}
+
+#mpcc-toggle-ai-chat .dashicons {
+    line-height: 1;
+    font-size: 16px;
+}
+
+#mpcc-ai-chat-container {
+    display: none;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f9f9f9;
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#mpcc-ai-chat-loading {
+    text-align: center;
+    color: #666;
+}
+
+#mpcc-ai-chat-loading .spinner {
+    float: none;
+    margin: 0 auto 10px;
+}
+
+/* ==========================================================================
+   Chat Interface (within meta box)
+   ========================================================================== */
+
+#mpcc-ai-chat-interface {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#mpcc-ai-chat-interface .mpcc-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    border: none;
+    padding: 20px;
+    background: white;
+    max-height: 300px;
+}
+
+#mpcc-ai-chat-interface .mpcc-welcome-message {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+}
+
+#mpcc-ai-chat-interface .mpcc-welcome-message h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+#mpcc-ai-chat-interface .mpcc-quick-starters {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+#mpcc-ai-chat-interface .mpcc-quick-start {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+#mpcc-ai-chat-interface .mpcc-chat-input-container {
+    padding: 20px;
+    border-top: 1px solid #ddd;
+    background: #f8f9fa;
+}
+
+#mpcc-ai-chat-interface #mpcc-chat-input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#mpcc-ai-chat-interface #mpcc-send-message {
+    padding: 12px 24px;
+}
+
+/* ==========================================================================
+   Basic Message Styles
+   ========================================================================== */
+
+.mpcc-message {
+    margin-bottom: 15px;
+}
+
+.mpcc-message.user {
+    text-align: right;
+}
+
+.mpcc-message.assistant {
+    text-align: left;
+}
+
+.mpcc-message-bubble {
+    display: inline-block;
+    padding: 10px 15px;
+    border-radius: 18px;
+    max-width: 70%;
+    word-wrap: break-word;
+}
+
+.mpcc-message.user .mpcc-message-bubble {
+    background: #0073aa;
+    color: white;
+}
+
+.mpcc-message.assistant .mpcc-message-bubble {
+    background: #f0f0f0;
+    color: #333;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+    #mpcc-ai-modal > div {
+        width: 98%;
+        margin: 1% auto;
+        height: 96%;
+    }
+}
+
+@media (max-width: 768px) {
+    #mpcc-ai-modal .modal-content {
+        flex-direction: column;
+    }
+    
+    #mpcc-ai-interface-container {
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        height: 50%;
+    }
+    
+    #mpcc-preview-pane {
+        height: 50%;
+    }
+    
+    #mpcc-ai-modal .modal-header h2 {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    #mpcc-ai-modal .modal-header {
+        padding: 15px;
+    }
+    
+    #mpcc-ai-modal .modal-header h2 {
+        font-size: 18px;
+    }
+    
+    #mpcc-close-modal {
+        font-size: 20px;
+    }
+}
+
+/* ==========================================================================
+   Animation Classes
+   ========================================================================== */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.mpcc-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.mpcc-slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* ==========================================================================
+   Loading Animations
+   ========================================================================== */
+
+.mpcc-loading-dots {
+    display: inline-block;
+}
+
+.mpcc-loading-dots::after {
+    content: '';
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+.mpcc-hidden {
+    display: none !important;
+}
+
+.mpcc-visible {
+    display: block !important;
+}
+
+.mpcc-text-center {
+    text-align: center;
+}
+
+.mpcc-text-muted {
+    color: #666;
+}
+
+.mpcc-mt-20 {
+    margin-top: 20px;
+}
+
+.mpcc-mb-20 {
+    margin-bottom: 20px;
+}
+
+.mpcc-p-20 {
+    padding: 20px;
+}

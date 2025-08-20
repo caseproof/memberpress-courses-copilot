@@ -38,6 +38,7 @@ class CourseIntegrationService extends BaseService
         add_action('wp_ajax_mpcc_load_ai_interface', [$this, 'loadAIInterface']);
         add_action('wp_ajax_mpcc_create_course_with_ai', [$this, 'createCourseWithAI']);
         add_action('wp_ajax_mpcc_ai_chat', [$this, 'handleAIChat']);
+        add_action('wp_ajax_mpcc_ping', [$this, 'handlePing']);
     }
 
     /**
@@ -64,6 +65,11 @@ class CourseIntegrationService extends BaseService
     private function isCoursesAdminPage(): bool
     {
         global $pagenow, $post_type;
+        
+        // Check if we're on the AI Course Generator page
+        if (isset($_GET['page']) && $_GET['page'] === 'mpcc-course-generator') {
+            return true;
+        }
         
         // Check if we're on courses listing page
         if ($pagenow === 'edit.php' && $post_type === 'mpcs-course') {
@@ -159,7 +165,7 @@ class CourseIntegrationService extends BaseService
                     success: function(response) {
                         if (response.success) {
                             $('#mpcc-ai-interface-container').html(response.data.html);
-                            // The interface will initialize itself when ready
+                            $('#mpcc-preview-pane').show(); // Show the preview pane
                         } else {
                             $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
                         }
@@ -309,6 +315,9 @@ class CourseIntegrationService extends BaseService
             return;
         }
         
+        // Check if we're on the course generator page
+        $is_generator_page = isset($_GET['page']) && $_GET['page'] === 'mpcc-course-generator';
+        
         // Enqueue AI interface CSS
         wp_enqueue_style(
             'mpcc-courses-integration',
@@ -316,6 +325,24 @@ class CourseIntegrationService extends BaseService
             [],
             MEMBERPRESS_COURSES_COPILOT_VERSION
         );
+        
+        // Enqueue AI Copilot CSS
+        wp_enqueue_style(
+            'mpcc-ai-copilot',
+            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/ai-copilot.css',
+            [],
+            MEMBERPRESS_COURSES_COPILOT_VERSION
+        );
+        
+        // Enqueue course preview CSS if on generator page
+        if ($is_generator_page) {
+            wp_enqueue_style(
+                'mpcc-course-preview',
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/course-preview.css',
+                [],
+                MEMBERPRESS_COURSES_COPILOT_VERSION
+            );
+        }
         
         // Enqueue AI interface JavaScript
         wp_enqueue_script(
@@ -334,6 +361,25 @@ class CourseIntegrationService extends BaseService
             MEMBERPRESS_COURSES_COPILOT_VERSION,
             true
         );
+        
+        // Enqueue additional scripts for generator page
+        if ($is_generator_page) {
+            wp_enqueue_script(
+                'mpcc-course-preview',
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/course-preview.js',
+                ['jquery'],
+                MEMBERPRESS_COURSES_COPILOT_VERSION,
+                true
+            );
+            
+            wp_enqueue_script(
+                'mpcc-preview-integration',
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/preview-integration.js',
+                ['jquery', 'mpcc-course-preview'],
+                MEMBERPRESS_COURSES_COPILOT_VERSION,
+                true
+            );
+        }
         
         // Localize script with needed data
         wp_localize_script('mpcc-courses-integration', 'mpccCoursesIntegration', [
@@ -519,6 +565,11 @@ class CourseIntegrationService extends BaseService
         }
         
         try {
+            error_log('MPCC CourseIntegrationService: handleAIChat called with message: ' . $message);
+            error_log('MPCC CourseIntegrationService: Context: ' . $context);
+            error_log('MPCC CourseIntegrationService: Conversation history count: ' . count($conversation_history));
+            error_log('MPCC CourseIntegrationService: Conversation state: ' . json_encode($conversation_state));
+            
             // Use LLMService for AI requests
             $llm_service = new \MemberPressCoursesCopilot\Services\LLMService();
             
@@ -545,13 +596,18 @@ class CourseIntegrationService extends BaseService
                 $full_prompt .= "\n\nCurrent collected course data: " . json_encode($collected_data);
             }
             
+            error_log('MPCC CourseIntegrationService: About to call LLM service');
+            
             // Make request to AI service
             $response = $llm_service->generateContent($full_prompt, 'course_assistance', [
                 'temperature' => 0.7,
                 'max_tokens' => 2000
             ]);
             
+            error_log('MPCC CourseIntegrationService: LLM service returned: ' . json_encode($response));
+            
             if ($response['error']) {
+                error_log('MPCC CourseIntegrationService ERROR: AI service error - ' . $response['message']);
                 wp_send_json_error('AI service error: ' . $response['message']);
                 return;
             }
@@ -687,7 +743,16 @@ class CourseIntegrationService extends BaseService
             case 'course_creation':
                 return $base_prompt . " You are helping a user create a new course from scratch. Focus on understanding their topic, target audience, and learning goals. Help them structure a comprehensive curriculum with sections and lessons. 
 
-Your conversation should be natural and helpful. Ask clarifying questions when needed. Once you have enough information to create a course structure, generate it in the following JSON format wrapped in ```json``` code blocks:
+IMPORTANT: When the user has provided:
+1. The subject/topic of the course
+2. Target audience
+3. Main objectives or what students will build/learn
+4. Approximate duration
+5. Whether it includes hands-on exercises
+
+You MUST generate a complete course structure immediately. Do not ask for more clarification unless absolutely necessary.
+
+Your conversation should be natural and helpful. If you need clarification, ask only 1-2 specific questions. Once you have the basic information above, generate the course structure in the following JSON format wrapped in ```json``` code blocks:
 
 ```json
 {
@@ -716,7 +781,9 @@ Your conversation should be natural and helpful. Ask clarifying questions when n
 }
 ```
 
-Be conversational and guide the user through the process naturally. Don't rush to generate the JSON - make sure you understand their needs first.";
+Be conversational and guide the user through the process naturally. When you have the 5 key pieces of information listed above, immediately generate the complete course structure. Do not continue asking questions.
+
+Example: If a user says they want to create a PHP course for people with HTML/CSS knowledge to build a todo app in 4 hours with OOP, PDO, and MVC - you have ALL the information needed. Generate the course immediately.";
                 
             case 'course_editing':
                 return $base_prompt . " You are helping a user improve an existing course. Focus on enhancing content, improving structure, adding engaging elements, and optimizing the learning experience. Be specific about improvements and provide concrete suggestions. When suggesting course modifications, include structured data in JSON format wrapped in ```json``` code blocks.";
@@ -740,5 +807,25 @@ Be conversational and guide the user through the process naturally. Don't rush t
         }
         
         return $show_screen;
+    }
+
+    /**
+     * Handle AJAX ping request for connection testing
+     *
+     * @return void
+     */
+    public function handlePing(): void
+    {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        // Simple ping response
+        wp_send_json_success([
+            'pong' => true,
+            'timestamp' => current_time('timestamp')
+        ]);
     }
 }
