@@ -29,7 +29,11 @@ define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 // Autoloader
-require_once MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'vendor/autoload.php';
+$autoload_file = MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'vendor/autoload.php';
+if ( ! file_exists( $autoload_file ) ) {
+    wp_die( 'Composer autoload file not found. Please run composer install.' );
+}
+require_once $autoload_file;
 
 use MemberPressCoursesCopilot\Plugin;
 use MemberPressCoursesCopilot\Services\DatabaseService;
