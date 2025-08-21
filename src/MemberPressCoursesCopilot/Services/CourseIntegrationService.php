@@ -650,6 +650,27 @@ class CourseIntegrationService extends BaseService
         $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         $conversation_history = $_POST['conversation_history'] ?? [];
         $conversation_state = $_POST['conversation_state'] ?? [];
+        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        
+        // Load session if provided
+        $session = null;
+        $conversationManager = null;
+        if (!empty($sessionId)) {
+            try {
+                $conversationManager = new ConversationManager();
+                $session = $conversationManager->loadSession($sessionId);
+                if ($session && $session->getUserId() === get_current_user_id()) {
+                    // Update session state from conversation state
+                    $currentStep = $conversation_state['current_step'] ?? 'initial';
+                    $session->setCurrentState($currentStep);
+                }
+            } catch (\Exception $e) {
+                $this->logger->warning('Failed to load session in AI chat', [
+                    'session_id' => $sessionId,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
         
         if (empty($message)) {
             $this->logger->warning('AI chat request failed: empty message', [
@@ -768,6 +789,22 @@ class CourseIntegrationService extends BaseService
                     ['action' => 'create_course', 'label' => 'Create Course', 'type' => 'primary'],
                     ['action' => 'modify', 'label' => 'Modify Details', 'type' => 'secondary']
                 ];
+            }
+            
+            // Update session state and progress if we have a session
+            if ($session && $conversationManager) {
+                $session->setCurrentState($next_step);
+                $session->setContext($collected_data, null);
+                
+                // Save the session to persist progress
+                try {
+                    $conversationManager->saveSession($session);
+                } catch (\Exception $e) {
+                    $this->logger->warning('Failed to save session after AI chat', [
+                        'session_id' => $sessionId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
             
             $this->logger->info('AI chat request completed successfully', [
@@ -896,6 +933,32 @@ class CourseIntegrationService extends BaseService
                     'course_title' => $course_data['title'] ?? 'Unknown',
                     'sections_count' => count($course_data['sections'] ?? [])
                 ]);
+                
+                // Update session title if we have a session ID
+                if (isset($_POST['session_id']) && !empty($_POST['session_id'])) {
+                    try {
+                        $sessionId = sanitize_text_field($_POST['session_id']);
+                        $conversationManager = new ConversationManager();
+                        $session = $conversationManager->loadSession($sessionId);
+                        
+                        if ($session && $session->getUserId() === get_current_user_id()) {
+                            $courseTitle = $course_data['title'] ?? 'Unknown Course';
+                            $session->setTitle('Course: ' . $courseTitle);
+                            $conversationManager->saveSession($session);
+                            
+                            $this->logger->info('Updated session title after course creation', [
+                                'session_id' => $sessionId,
+                                'course_title' => $courseTitle
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        // Log but don't fail the course creation
+                        $this->logger->warning('Failed to update session title after course creation', [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+                
                 wp_send_json_success([
                     'message' => 'Course created successfully!',
                     'course_id' => $result['course_id'],
@@ -1057,7 +1120,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $session = $conversationManager->createSession([
                 'user_id' => get_current_user_id(),
                 'context' => sanitize_text_field($_POST['context'] ?? 'course_creation'),
-                'title' => sanitize_text_field($_POST['title'] ?? 'New Course Creation'),
+                'title' => sanitize_text_field($_POST['title'] ?? 'New Course (Draft)'),
                 'state' => 'initial',
                 'initial_data' => []
             ]);
@@ -1131,6 +1194,25 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             // Update state
             $session->setCurrentState($conversationState['current_step'] ?? 'initial');
             $session->setContext($conversationState['collected_data'] ?? [], null);
+            
+            // Update session title if course data is available
+            $collectedData = $conversationState['collected_data'] ?? [];
+            if (isset($collectedData['course_structure']['title'])) {
+                $courseTitle = $collectedData['course_structure']['title'];
+                $session->setTitle('Course: ' . $courseTitle);
+                $this->logger->info('Updated session title with course name', [
+                    'session_id' => $sessionId,
+                    'course_title' => $courseTitle
+                ]);
+            } elseif (isset($collectedData['title']) && isset($collectedData['sections'])) {
+                // Fallback for old format
+                $courseTitle = $collectedData['title'];
+                $session->setTitle('Course: ' . $courseTitle);
+                $this->logger->info('Updated session title with course name (old format)', [
+                    'session_id' => $sessionId,
+                    'course_title' => $courseTitle
+                ]);
+            }
             
             // Save to database
             $saved = $conversationManager->saveSession($session);

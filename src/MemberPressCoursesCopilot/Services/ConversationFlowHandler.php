@@ -543,7 +543,35 @@ class ConversationFlowHandler extends BaseService
     private function executeBranchTransition(ConversationSession $session, string $branch, array $data): array { 
         return ['success' => true]; 
     }
-    private function updateProgressForBranch(ConversationSession $session, string $branch): void {}
+    private function updateProgressForBranch(ConversationSession $session, string $branch): void 
+    {
+        // Define progress percentages for each state
+        $stateProgress = [
+            'welcome' => 0,
+            'template_selection' => 10,
+            'requirements_gathering' => 20,
+            'structure_generation' => 35,
+            'structure_review' => 45,
+            'content_generation' => 60,
+            'content_review' => 75,
+            'final_review' => 90,
+            'wordpress_creation' => 95,
+            'completed' => 100
+        ];
+        
+        // Get current state
+        $currentState = $session->getCurrentState();
+        
+        // Update progress based on current state
+        if (isset($stateProgress[$currentState])) {
+            $session->updateProgress($stateProgress[$currentState]);
+        }
+        
+        // If branch indicates completion, set to 100%
+        if ($branch === 'complete' || $currentState === 'completed') {
+            $session->updateProgress(100);
+        }
+    }
     private function determineOptimalBacktrackTarget(ConversationSession $session, array $options): string { 
         return 'welcome'; 
     }

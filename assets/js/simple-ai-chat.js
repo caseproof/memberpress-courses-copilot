@@ -7,6 +7,10 @@
  * - Multi-session management
  * - Unsaved changes warnings
  */
+
+// Global configuration constant for session storage key
+const MPCC_SESSION_STORAGE_KEY = 'mpcc_current_session_id';
+
 jQuery(document).ready(function($) {
     // Prevent multiple initializations
     if (window.mpccChatInitialized) {
@@ -17,7 +21,7 @@ jQuery(document).ready(function($) {
     
     // Configuration
     const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
-    const SESSION_STORAGE_KEY = 'mpcc_current_session_id';
+    const SESSION_STORAGE_KEY = MPCC_SESSION_STORAGE_KEY; // Use global constant
     const DEBOUNCE_DELAY = 1000;
     const CONNECTION_CHECK_INTERVAL = 30000; // 30 seconds
     
@@ -169,6 +173,10 @@ jQuery(document).ready(function($) {
                 saveConversation(true); // Synchronous save
                 return 'You have unsaved changes. Are you sure you want to leave?';
             }
+            // Always ensure session ID is in storage before leaving
+            if (currentSessionId) {
+                sessionStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
+            }
         });
         
         // Initialize UI components
@@ -193,7 +201,7 @@ jQuery(document).ready(function($) {
                 action: 'mpcc_create_conversation',
                 nonce: $('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
                 context: 'course_creation',
-                title: 'Course Creation - ' + new Date().toLocaleString()
+                title: 'New Course (Draft)'
             },
             success: function(response) {
                 if (response.success) {
@@ -649,15 +657,25 @@ jQuery(document).ready(function($) {
                     let sessionListHtml = '<div style="padding: 15px; background: #f5f5f5; border-radius: 4px;"><h4>Recent Conversations</h4><ul style="list-style: none; padding: 0;">';
                     
                     response.data.sessions.forEach(function(session) {
-                        const date = new Date(session.created_at * 1000).toLocaleDateString();
+                        const date = new Date(session.created_at * 1000);
+                        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         const isActive = session.session_id === currentSessionId;
+                        
+                        // Extract course name from title if it exists
+                        let displayTitle = session.title;
+                        if (displayTitle.startsWith('Course: ')) {
+                            displayTitle = displayTitle.substring(8); // Remove "Course: " prefix for cleaner display
+                        } else if (displayTitle.includes('Course Creation')) {
+                            displayTitle = 'New Course (In Progress)';
+                        }
                         
                         sessionListHtml += `
                             <li style="margin-bottom: 10px; padding: 10px; background: white; border-radius: 4px; ${isActive ? 'border: 2px solid #0073aa;' : 'border: 1px solid #ddd;'}">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <strong>${$('<div>').text(session.title).html()}</strong><br>
-                                        <small>Created: ${date} | Progress: ${session.progress || 0}%</small>
+                                    <div style="flex: 1; margin-right: 10px;">
+                                        <strong style="display: block; margin-bottom: 4px;">${$('<div>').text(displayTitle).html()}</strong>
+                                        <small style="color: #666;">Created: ${dateStr}</small>
+                                        ${session.progress > 0 ? `<small style="color: #666;"> | Progress: ${Math.round(session.progress)}%</small>` : ''}
                                     </div>
                                     ${!isActive ? `<button class="button button-small mpcc-load-session" data-session-id="${session.session_id}">Load</button>` : '<span style="color: #0073aa; font-weight: bold;">Active</span>'}
                                 </div>
@@ -707,11 +725,17 @@ jQuery(document).ready(function($) {
     window.initializeUIComponents = initializeUIComponents;
     window.createNewConversation = createNewConversation;
     window.showSessionManager = showSessionManager;
+    window.saveConversation = saveConversation;
     
     // Expose state for other scripts
     Object.defineProperty(window, 'isDirty', {
         get: function() { return isDirty; },
         set: function(value) { isDirty = value; }
+    });
+    
+    // Expose current session ID
+    Object.defineProperty(window, 'currentSessionId', {
+        get: function() { return currentSessionId; }
     });
     
     // REMOVED: Duplicate handler - handled in line 828 below
@@ -928,7 +952,7 @@ jQuery(document).ready(function($) {
         }
         
         // Clear session data
-        sessionStorage.removeItem('mpcc_current_session_id');
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
         window.mpccConversationHistory = [];
         window.mpccConversationState = { current_step: 'initial', collected_data: {} };
         window.mpccCurrentCourse = null;
@@ -1017,7 +1041,8 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
         data: {
             action: 'mpcc_create_course_with_ai',
             nonce: jQuery('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
-            course_data: courseData
+            course_data: courseData,
+            session_id: sessionStorage.getItem(MPCC_SESSION_STORAGE_KEY) || ''
         },
         success: function(response) {
             if (response.success) {
