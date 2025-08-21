@@ -7,6 +7,31 @@
  */
 
 /* ==========================================================================
+   Dashicons Font Fix
+   ========================================================================== */
+
+/* Ensure dashicons font is properly loaded and displayed */
+.dashicons,
+.dashicons::before,
+.dashicons-before::before {
+  font-family: 'dashicons' !important;
+  font-weight: 400;
+  font-style: normal;
+  speak: never;
+  text-decoration: inherit;
+  text-transform: none;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1;
+}
+
+/* Keep vertical-align for session control buttons only */
+.mpcc-session-controls .dashicons {
+  vertical-align: middle;
+}
+
+/* ==========================================================================
    CSS Custom Properties (Variables)
    ========================================================================== */
 
@@ -1710,9 +1735,9 @@
 }
 
 .mpcc-session-controls button {
-  padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-lg);
+  padding: var(--mpcc-spacing-md) var(--mpcc-spacing-xl);
   background: var(--mpcc-bg-primary);
-  border: 1px solid var(--mpcc-border-secondary);
+  border: 2px solid var(--mpcc-border-secondary);
   border-radius: var(--mpcc-radius-md);
   color: var(--mpcc-text-primary);
   cursor: pointer;
@@ -1720,13 +1745,23 @@
   display: flex;
   align-items: center;
   gap: var(--mpcc-spacing-sm);
+  font-weight: 500;
+  font-size: var(--mpcc-font-size-sm);
+  box-shadow: var(--mpcc-shadow-sm);
 }
 
 .mpcc-session-controls button:hover {
   background: var(--mpcc-primary);
   color: var(--mpcc-text-inverse);
   border-color: var(--mpcc-primary);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+.mpcc-session-controls button .dashicons {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
 }
 
 #mpcc-session-list {

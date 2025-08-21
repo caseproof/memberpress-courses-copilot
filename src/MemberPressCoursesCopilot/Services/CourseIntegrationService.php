@@ -194,7 +194,7 @@ class CourseIntegrationService extends BaseService
         jQuery(document).ready(function($) {
             // Add "Create with AI" button next to "Add New Course"
             var createWithAIButton = '<a href="#" id="mpcc-create-with-ai" class="page-title-action" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; text-shadow: none;">' + 
-                '<span class="dashicons dashicons-robot" style="margin-right: 5px; vertical-align: middle; line-height: 1;"></span>' +
+                '<span class="dashicons dashicons-admin-generic" style="margin-right: 5px; vertical-align: middle; line-height: 1;"></span>' +
                 '<?php echo esc_js(__('Create with AI', 'memberpress-courses-copilot')); ?>' +
                 '</a>';
             
@@ -331,6 +331,27 @@ class CourseIntegrationService extends BaseService
         
         // Check if we're on the course generator page
         $is_generator_page = isset($_GET['page']) && $_GET['page'] === 'mpcc-course-generator';
+        
+        // Explicitly enqueue dashicons
+        wp_enqueue_style('dashicons');
+        
+        // Add font-face fallback for dashicons
+        add_action('admin_head', function() {
+            ?>
+            <style>
+                @font-face {
+                    font-family: "dashicons";
+                    src: url("<?php echo includes_url('fonts/dashicons.eot'); ?>");
+                    src: url("<?php echo includes_url('fonts/dashicons.eot?#iefix'); ?>") format("embedded-opentype"),
+                         url("<?php echo includes_url('fonts/dashicons.woff'); ?>") format("woff"),
+                         url("<?php echo includes_url('fonts/dashicons.ttf'); ?>") format("truetype"),
+                         url("<?php echo includes_url('fonts/dashicons.svg#dashicons'); ?>") format("svg");
+                    font-weight: normal;
+                    font-style: normal;
+                }
+            </style>
+            <?php
+        });
         
         // Enqueue AI interface CSS
         wp_enqueue_style(

@@ -156,6 +156,9 @@ class AdminMenu {
 
         // Enqueue scripts for course generator page
         if ($hook === 'mpcs-course_page_mpcc-course-generator') {
+            // Explicitly enqueue dashicons
+            wp_enqueue_style('dashicons');
+            
             // Enqueue AI Copilot CSS
             wp_enqueue_style(
                 'mpcc-ai-copilot',
