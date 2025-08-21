@@ -521,6 +521,15 @@
 
 .mpcc-message-content li {
   margin-bottom: var(--mpcc-spacing-xs);
+  margin-left: var(--mpcc-spacing-sm);
+  display: list-item !important;
+  list-style: inherit !important;
+}
+.mpcc-message-content ul {
+  list-style-type: disc !important;
+}
+.mpcc-message-content ol {
+  list-style-type: decimal !important;
 }
 
 .mpcc-message-content code {

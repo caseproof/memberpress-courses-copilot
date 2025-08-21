@@ -336,7 +336,7 @@ class CourseIntegrationService extends BaseService
         wp_enqueue_style(
             'mpcc-courses-integration',
             MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/courses-integration.css',
-            [],
+            ['dashicons'],
             MEMBERPRESS_COURSES_COPILOT_VERSION
         );
         
@@ -344,7 +344,7 @@ class CourseIntegrationService extends BaseService
         wp_enqueue_style(
             'mpcc-ai-copilot',
             MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/ai-copilot.css',
-            [],
+            ['dashicons'],
             MEMBERPRESS_COURSES_COPILOT_VERSION
         );
         
