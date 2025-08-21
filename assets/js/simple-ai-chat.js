@@ -135,12 +135,16 @@ jQuery(document).ready(function($) {
                     rebuildChatInterface();
                     
                     // Check if we have course data in the conversation state and rebuild preview
+                    console.log('Checking for course data in loaded conversation:', window.mpccConversationState);
                     if (window.mpccConversationState && window.mpccConversationState.collected_data && 
                         window.mpccConversationState.collected_data.course_structure) {
+                        console.log('Found course data, updating preview:', window.mpccConversationState.collected_data.course_structure);
                         window.mpccCurrentCourse = window.mpccConversationState.collected_data.course_structure;
                         if (typeof window.mpccUpdatePreview === 'function') {
                             window.mpccUpdatePreview(window.mpccCurrentCourse);
                         }
+                    } else {
+                        console.log('No course data found in conversation state');
                     }
                     
                     // Update last save time
@@ -694,6 +698,13 @@ jQuery(document).ready(function($) {
                     // Update course preview if data available
                     if (response.data.course_data) {
                         window.mpccCurrentCourse = response.data.course_data;
+                        
+                        // Store course data in conversation state for persistence
+                        if (!window.mpccConversationState.collected_data) {
+                            window.mpccConversationState.collected_data = {};
+                        }
+                        window.mpccConversationState.collected_data.course_structure = response.data.course_data;
+                        
                         if (typeof window.mpccUpdatePreview === 'function') {
                             window.mpccUpdatePreview(response.data.course_data);
                         }
