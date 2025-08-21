@@ -31,6 +31,14 @@ class CourseGeneratorService
     public function generateCourse(array $courseData): array
     {
         try {
+            // Log the incoming course data
+            $this->logger->info('Course generation started', [
+                'course_title' => $courseData['title'] ?? 'No title',
+                'sections_count' => count($courseData['sections'] ?? []),
+                'course_data_keys' => array_keys($courseData),
+                'full_course_data' => json_encode($courseData)
+            ]);
+            
             // Create the main course
             $courseId = $this->createCourse($courseData);
             
@@ -38,17 +46,34 @@ class CourseGeneratorService
                 throw new \Exception('Failed to create course');
             }
             
+            $this->logger->info('Course post created', ['course_id' => $courseId]);
+            
             // Create sections and lessons
             $sectionOrder = 1;
-            foreach ($courseData['sections'] as $sectionData) {
-                $sectionId = $this->createSection($sectionData, $courseId, $sectionOrder++);
-                
-                if ($sectionId && !empty($sectionData['lessons'])) {
-                    $lessonOrder = 1;
-                    foreach ($sectionData['lessons'] as $lessonData) {
-                        $this->createLesson($lessonData, $sectionId, $courseId, $lessonOrder++);
+            if (isset($courseData['sections']) && is_array($courseData['sections'])) {
+                foreach ($courseData['sections'] as $sectionData) {
+                    $this->logger->info('Creating section', [
+                        'section_title' => $sectionData['title'] ?? 'No title',
+                        'section_order' => $sectionOrder,
+                        'lessons_count' => count($sectionData['lessons'] ?? [])
+                    ]);
+                    
+                    $sectionId = $this->createSection($sectionData, $courseId, $sectionOrder++);
+                    
+                    if ($sectionId && !empty($sectionData['lessons'])) {
+                        $lessonOrder = 1;
+                        foreach ($sectionData['lessons'] as $lessonData) {
+                            $this->logger->info('Creating lesson', [
+                                'lesson_title' => $lessonData['title'] ?? 'No title',
+                                'lesson_order' => $lessonOrder,
+                                'section_id' => $sectionId
+                            ]);
+                            $this->createLesson($lessonData, $sectionId, $courseId, $lessonOrder++);
+                        }
                     }
                 }
+            } else {
+                $this->logger->warning('No sections found in course data');
             }
             
             $this->logger->info('Course generated successfully', ['course_id' => $courseId]);
@@ -61,7 +86,9 @@ class CourseGeneratorService
             ];
             
         } catch (\Exception $e) {
-            $this->logger->error('Course generation failed: ' . $e->getMessage());
+            $this->logger->error('Course generation failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return [
                 'success' => false,
                 'error' => $e->getMessage()
@@ -135,27 +162,29 @@ class CourseGeneratorService
      */
     private function createSection(array $sectionData, int $courseId, int $order): int
     {
-        $postData = [
-            'post_title' => $sectionData['title'] ?? 'Section ' . $order,
-            'post_content' => $sectionData['description'] ?? '',
-            'post_status' => 'publish',
-            'post_type' => 'mpcs-section',
-            'post_parent' => $courseId,
-            'menu_order' => $order,
-            'post_author' => get_current_user_id()
-        ];
+        // Sections in MemberPress Courses are stored in a custom table, not as posts
+        $section = new Section();
+        $section->title = $sectionData['title'] ?? 'Section ' . $order;
+        $section->description = $sectionData['description'] ?? '';
+        $section->course_id = $courseId;
+        $section->section_order = $order;
+        $section->created_at = current_time('mysql');
+        $section->uuid = wp_generate_uuid4(); // Generate a UUID for the section
         
-        $sectionId = wp_insert_post($postData);
+        $this->logger->debug('Creating section object', [
+            'title' => $section->title,
+            'description' => $section->description,
+            'course_id' => $section->course_id,
+            'section_order' => $section->section_order,
+            'uuid' => $section->uuid
+        ]);
+        
+        $sectionId = $section->store();
         
         if (is_wp_error($sectionId)) {
             $this->logger->error('Failed to create section: ' . $sectionId->get_error_message());
             return 0;
         }
-        
-        // Initialize Section model to ensure meta fields are set
-        $section = new Section($sectionId);
-        $section->course_id = $courseId;
-        $section->store();
         
         return $sectionId;
     }
@@ -170,7 +199,7 @@ class CourseGeneratorService
             'post_content' => $lessonData['content'] ?? '',
             'post_status' => 'publish',
             'post_type' => 'mpcs-lesson',
-            'post_parent' => $sectionId,
+            'post_parent' => $courseId, // Parent should be the course, not the section
             'menu_order' => $order,
             'post_author' => get_current_user_id()
         ];
@@ -184,19 +213,10 @@ class CourseGeneratorService
         
         // Initialize Lesson model
         $lesson = new Lesson($lessonId);
-        $lesson->course_id = $courseId;
-        $lesson->section_id = $sectionId;
+        $lesson->section_id = $sectionId; // Section ID is stored as metadata
+        $lesson->lesson_order = $order;
         
-        // Set lesson type and duration
-        $lesson->lesson_type = $lessonData['type'] ?? 'text';
-        $lesson->duration = $lessonData['duration'] ?? '5';
-        
-        // Add video URL if it's a video lesson
-        if ($lesson->lesson_type === 'video' && !empty($lessonData['video_url'])) {
-            $lesson->lesson_video_url = $lessonData['video_url'];
-            $lesson->lesson_video_type = $lessonData['video_type'] ?? 'youtube';
-        }
-        
+        // Store the lesson to save metadata
         $lesson->store();
         
         return $lessonId;
