@@ -400,6 +400,11 @@ jQuery(document).ready(function($) {
             if (message) {
                 $('#mpcc-chat-input').val(message);
                 $('#mpcc-send-message').trigger('click');
+                
+                // Ensure input is cleared after triggering send
+                setTimeout(function() {
+                    $('#mpcc-chat-input').val('');
+                }, 100);
             }
         });
     }

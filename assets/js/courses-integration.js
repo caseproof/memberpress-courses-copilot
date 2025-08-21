@@ -77,6 +77,11 @@
             // Add the message to the chat input and send
             $('#mpcc-chat-input').val(message);
             $('#mpcc-send-message').trigger('click');
+            
+            // Ensure input is cleared after triggering send
+            setTimeout(function() {
+                $('#mpcc-chat-input').val('');
+            }, 100);
         }
 
         handleSuggestion(e) {
@@ -87,6 +92,11 @@
             // Add the suggestion to the chat input and send
             $('#mpcc-chat-input').val(suggestion);
             $('#mpcc-send-message').trigger('click');
+            
+            // Ensure input is cleared after triggering send
+            setTimeout(function() {
+                $('#mpcc-chat-input').val('');
+            }, 100);
         }
 
         handleActionButton(e) {
