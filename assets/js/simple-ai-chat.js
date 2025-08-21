@@ -408,8 +408,17 @@ jQuery(document).ready(function($) {
      * Format text message to HTML with proper structure
      */
     function formatMessageToHTML(message) {
+        // First, handle escaped characters from the server
+        let formatted = message
+            .replace(/\\'/g, "'")      // Replace escaped single quotes
+            .replace(/\\"/g, '"')      // Replace escaped double quotes
+            .replace(/\\\\/g, '\\')    // Replace escaped backslashes
+            .replace(/\\n/g, '\n')     // Replace escaped newlines with actual newlines
+            .replace(/\\r/g, '\r')     // Replace escaped carriage returns
+            .replace(/\\t/g, '\t');    // Replace escaped tabs
+        
         // Escape HTML to prevent XSS
-        let formatted = $('<div>').text(message).html();
+        formatted = $('<div>').text(formatted).html();
         
         // Convert numbered lists (e.g., "1. Item" or "1) Item")
         formatted = formatted.replace(/^(\d+)[\.\)]\s+(.+)$/gm, '<li value="$1">$2</li>');
@@ -419,8 +428,9 @@ jQuery(document).ready(function($) {
             return '<ol>' + match + '</ol>';
         });
         
-        // Convert bullet points (-, *, •) to unordered lists
-        formatted = formatted.replace(/^[-*•]\s+(.+)$/gm, '<li>$1</li>');
+        // Convert bullet points (-, *, •) and indented lines to unordered lists
+        // Also handle lines that start with multiple spaces (likely bullet points without markers)
+        formatted = formatted.replace(/^(\s{2,}|\s*[-*•]\s+)(.+)$/gm, '<li>$2</li>');
         
         // Wrap consecutive unordered list items
         formatted = formatted.replace(/(<li>.*?<\/li>\n?)+/g, function(match) {
