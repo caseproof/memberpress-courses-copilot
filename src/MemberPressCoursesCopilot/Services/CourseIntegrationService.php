@@ -129,22 +129,24 @@ class CourseIntegrationService extends BaseService
                                 '<h2 style="margin: 0; color: white;"><?php echo esc_js(__('Create Course with AI Assistant', 'memberpress-courses-copilot')); ?></h2>' +
                                 '<span id="mpcc-close-modal" style="cursor: pointer; font-size: 24px; font-weight: bold; color: white;">&times;</span>' +
                             '</div>' +
-                            '<div style="display: flex; flex: 1; overflow: hidden;">' +
-                                '<div id="mpcc-ai-interface-container" style="flex: 1; height: 100%; border-right: 1px solid #ddd; display: flex; flex-direction: column;">' +
-                                    '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">' +
+                            '<div style="display: flex; flex: 1; overflow: hidden; height: calc(100% - 71px);">' +
+                                '<div id="mpcc-ai-interface-container" style="flex: 1; min-height: 0; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow: hidden;">' +
+                                    '<div style="display: flex; justify-content: center; align-items: center; flex: 1; color: #666;">' +
                                         '<div style="text-align: center;">' +
                                             '<div class="spinner is-active" style="float: none; margin: 0 auto 20px;"></div>' +
                                             '<p><?php echo esc_js(__('Loading AI Assistant...', 'memberpress-courses-copilot')); ?></p>' +
                                         '</div>' +
                                     '</div>' +
                                 '</div>' +
-                                '<div id="mpcc-preview-pane" style="flex: 1; height: 100%; background: #f8f9fa; overflow-y: auto; display: none;">' +
-                                    '<div style="padding: 20px;">' +
-                                        '<h3 style="margin: 0 0 20px 0; color: #333;"><?php echo esc_js(__('Course Preview', 'memberpress-courses-copilot')); ?></h3>' +
-                                        '<div id="mpcc-preview-content">' +
-                                            '<p style="color: #666; text-align: center; padding: 40px;"><?php echo esc_js(__('Course preview will appear here as you build it...', 'memberpress-courses-copilot')); ?></p>' +
+                                '<div id="mpcc-preview-pane" style="flex: 1; min-height: 0; background: #f8f9fa; display: none; flex-direction: column;">' +
+                                    '<div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">' +
+                                        '<div style="padding: 20px; flex: 1;">' +
+                                            '<h3 style="margin: 0 0 20px 0; color: #333;"><?php echo esc_js(__('Course Preview', 'memberpress-courses-copilot')); ?></h3>' +
+                                            '<div id="mpcc-preview-content">' +
+                                                '<p style="color: #666; text-align: center; padding: 40px;"><?php echo esc_js(__('Course preview will appear here as you build it...', 'memberpress-courses-copilot')); ?></p>' +
+                                            '</div>' +
                                         '</div>' +
-                                        '<div style="padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; justify-content: flex-end;">' +
+                                        '<div style="padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; justify-content: flex-end; background: #f8f9fa;">' +
                                             '<button id="mpcc-save-draft" class="button" disabled><?php echo esc_js(__('Save Draft', 'memberpress-courses-copilot')); ?></button>' +
                                             '<button id="mpcc-create-course" class="button button-primary" disabled><?php echo esc_js(__('Create Course', 'memberpress-courses-copilot')); ?></button>' +
                                         '</div>' +
@@ -177,7 +179,7 @@ class CourseIntegrationService extends BaseService
                     success: function(response) {
                         if (response.success) {
                             $('#mpcc-ai-interface-container').html(response.data.html);
-                            $('#mpcc-preview-pane').addClass('active').show(); // Show the preview pane
+                            $('#mpcc-preview-pane').addClass('active').css('display', 'flex'); // Show the preview pane with flex display
                         } else {
                             $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
                         }
@@ -512,7 +514,7 @@ class CourseIntegrationService extends BaseService
             // Fallback basic interface
             ?>
             <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>" style="height: 100%; display: flex; flex-direction: column;">
-                <div class="mpcc-chat-messages" style="flex: 1; overflow-y: auto; border: none; padding: 20px; background: white;">
+                <div class="mpcc-chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; border: none; padding: 20px; background: white;">
                     <div class="mpcc-welcome-message" style="padding: 20px; text-align: center; color: #666;">
                         <div style="font-size: 48px; margin-bottom: 15px;">🤖</div>
                         <h3 style="margin: 0 0 10px 0;"><?php esc_html_e('AI Course Assistant', 'memberpress-courses-copilot'); ?></h3>
