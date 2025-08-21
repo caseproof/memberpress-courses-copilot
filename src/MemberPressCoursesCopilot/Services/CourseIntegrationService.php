@@ -6,6 +6,7 @@ namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Services\BaseService;
 use MemberPressCoursesCopilot\Utilities\Logger;
+use MemberPressCoursesCopilot\Services\ConversationManager;
 
 /**
  * Course Integration Service
@@ -40,6 +41,12 @@ class CourseIntegrationService extends BaseService
         add_action('wp_ajax_mpcc_create_course_with_ai', [$this, 'createCourseWithAI']);
         add_action('wp_ajax_mpcc_ai_chat', [$this, 'handleAIChat']);
         add_action('wp_ajax_mpcc_ping', [$this, 'handlePing']);
+        
+        // Conversation persistence endpoints
+        add_action('wp_ajax_mpcc_save_conversation', [$this, 'saveConversation']);
+        add_action('wp_ajax_mpcc_load_conversation', [$this, 'loadConversation']);
+        add_action('wp_ajax_mpcc_create_conversation', [$this, 'createConversation']);
+        add_action('wp_ajax_mpcc_list_conversations', [$this, 'listConversations']);
     }
 
     /**
@@ -137,6 +144,10 @@ class CourseIntegrationService extends BaseService
                                         '<div id="mpcc-preview-content">' +
                                             '<p style="color: #666; text-align: center; padding: 40px;"><?php echo esc_js(__('Course preview will appear here as you build it...', 'memberpress-courses-copilot')); ?></p>' +
                                         '</div>' +
+                                        '<div style="padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; justify-content: flex-end;">' +
+                                            '<button id="mpcc-save-draft" class="button" disabled><?php echo esc_js(__('Save Draft', 'memberpress-courses-copilot')); ?></button>' +
+                                            '<button id="mpcc-create-course" class="button button-primary" disabled><?php echo esc_js(__('Create Course', 'memberpress-courses-copilot')); ?></button>' +
+                                        '</div>' +
                                     '</div>' +
                                 '</div>' +
                             '</div>' +
@@ -166,7 +177,7 @@ class CourseIntegrationService extends BaseService
                     success: function(response) {
                         if (response.success) {
                             $('#mpcc-ai-interface-container').html(response.data.html);
-                            $('#mpcc-preview-pane').show(); // Show the preview pane
+                            $('#mpcc-preview-pane').addClass('active').show(); // Show the preview pane
                         } else {
                             $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
                         }
@@ -363,6 +374,15 @@ class CourseIntegrationService extends BaseService
             true
         );
         
+        // Enqueue enhanced AI chat with persistence
+        wp_enqueue_script(
+            'mpcc-simple-ai-chat',
+            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/simple-ai-chat.js',
+            ['jquery'],
+            MEMBERPRESS_COURSES_COPILOT_VERSION,
+            true
+        );
+        
         // Enqueue additional scripts for generator page
         if ($is_generator_page) {
             wp_enqueue_script(
@@ -396,6 +416,12 @@ class CourseIntegrationService extends BaseService
         
         // Localize AI copilot script
         wp_localize_script('mpcc-ai-copilot', 'mpccAISettings', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('mpcc_courses_integration')
+        ]);
+        
+        // Localize simple AI chat script
+        wp_localize_script('mpcc-simple-ai-chat', 'mpccAISettings', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('mpcc_courses_integration')
         ]);
@@ -798,7 +824,7 @@ class CourseIntegrationService extends BaseService
             ]);
             
             // Initialize the Course Generator Service
-            $logger = new \MemberPressCoursesCopilot\Utilities\Logger();
+            $logger = \MemberPressCoursesCopilot\Utilities\Logger::getInstance();
             $generator = new \MemberPressCoursesCopilot\Services\CourseGeneratorService($logger);
             
             // Validate course data
@@ -964,5 +990,248 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             'pong' => true,
             'timestamp' => current_time('timestamp')
         ]);
+    }
+    
+    /**
+     * Create new conversation session
+     *
+     * @return void
+     */
+    public function createConversation(): void
+    {
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            $this->logger->warning('Create conversation failed: invalid nonce', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        try {
+            $conversationManager = new ConversationManager();
+            
+            $session = $conversationManager->createSession([
+                'user_id' => get_current_user_id(),
+                'context' => sanitize_text_field($_POST['context'] ?? 'course_creation'),
+                'title' => sanitize_text_field($_POST['title'] ?? 'New Course Creation'),
+                'state' => 'initial',
+                'initial_data' => []
+            ]);
+            
+            $this->logger->info('Created new conversation session', [
+                'session_id' => $session->getSessionId(),
+                'user_id' => get_current_user_id()
+            ]);
+            
+            wp_send_json_success([
+                'session_id' => $session->getSessionId(),
+                'created_at' => $session->getCreatedAt()
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to create conversation', [
+                'error' => $e->getMessage(),
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Failed to create conversation');
+        }
+    }
+    
+    /**
+     * Save conversation state
+     *
+     * @return void
+     */
+    public function saveConversation(): void
+    {
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            $this->logger->warning('Save conversation failed: invalid nonce', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        if (empty($sessionId)) {
+            wp_send_json_error('Session ID required');
+            return;
+        }
+        
+        try {
+            $conversationManager = new ConversationManager();
+            $session = $conversationManager->loadSession($sessionId);
+            
+            if (!$session || $session->getUserId() !== get_current_user_id()) {
+                $this->logger->warning('Save conversation failed: access denied', [
+                    'session_id' => $sessionId,
+                    'user_id' => get_current_user_id()
+                ]);
+                wp_send_json_error('Session not found or access denied');
+                return;
+            }
+            
+            // Update session with new data
+            $conversationHistory = $_POST['conversation_history'] ?? [];
+            $conversationState = $_POST['conversation_state'] ?? [];
+            
+            // Clear existing messages and add new ones
+            $session->clearMessages();
+            foreach ($conversationHistory as $message) {
+                $session->addMessage(
+                    $message['role'],
+                    $message['content'],
+                    ['timestamp' => $message['timestamp'] ?? time()]
+                );
+            }
+            
+            // Update state
+            $session->setCurrentState($conversationState['current_step'] ?? 'initial');
+            $session->setContext($conversationState['collected_data'] ?? [], null);
+            
+            // Save to database
+            $saved = $conversationManager->saveSession($session);
+            
+            $this->logger->info('Saved conversation', [
+                'session_id' => $sessionId,
+                'user_id' => get_current_user_id(),
+                'messages_count' => count($conversationHistory)
+            ]);
+            
+            wp_send_json_success([
+                'saved' => $saved,
+                'last_saved' => time()
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to save conversation', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage()
+            ]);
+            wp_send_json_error('Failed to save conversation');
+        }
+    }
+    
+    /**
+     * Load conversation session
+     *
+     * @return void
+     */
+    public function loadConversation(): void
+    {
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            $this->logger->warning('Load conversation failed: invalid nonce', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        if (empty($sessionId)) {
+            wp_send_json_error('Session ID required');
+            return;
+        }
+        
+        try {
+            $conversationManager = new ConversationManager();
+            $session = $conversationManager->loadSession($sessionId);
+            
+            if (!$session || $session->getUserId() !== get_current_user_id()) {
+                $this->logger->warning('Load conversation failed: access denied', [
+                    'session_id' => $sessionId,
+                    'user_id' => get_current_user_id()
+                ]);
+                wp_send_json_error('Session not found or access denied');
+                return;
+            }
+            
+            // Format messages for frontend
+            $messages = [];
+            foreach ($session->getMessages() as $message) {
+                if ($message['type'] !== 'system') {
+                    $messages[] = [
+                        'role' => $message['type'],
+                        'content' => $message['content'],
+                        'timestamp' => $message['timestamp']
+                    ];
+                }
+            }
+            
+            $this->logger->info('Loaded conversation', [
+                'session_id' => $sessionId,
+                'user_id' => get_current_user_id(),
+                'messages_count' => count($messages)
+            ]);
+            
+            wp_send_json_success([
+                'session_id' => $session->getSessionId(),
+                'conversation_history' => $messages,
+                'conversation_state' => [
+                    'current_step' => $session->getCurrentState(),
+                    'collected_data' => $session->getContext()
+                ],
+                'created_at' => $session->getCreatedAt(),
+                'last_updated' => $session->getLastUpdated()
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to load conversation', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage()
+            ]);
+            wp_send_json_error('Failed to load conversation');
+        }
+    }
+    
+    /**
+     * List user conversations
+     *
+     * @return void
+     */
+    public function listConversations(): void
+    {
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            $this->logger->warning('List conversations failed: invalid nonce', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        try {
+            $conversationManager = new ConversationManager();
+            $sessions = $conversationManager->getUserSessions(
+                get_current_user_id(),
+                10, // limit
+                0   // offset
+            );
+            
+            $sessionList = [];
+            foreach ($sessions as $session) {
+                $sessionList[] = [
+                    'session_id' => $session->getSessionId(),
+                    'title' => $session->getTitle(),
+                    'created_at' => $session->getCreatedAt(),
+                    'last_updated' => $session->getLastUpdated(),
+                    'is_active' => $session->isActive(),
+                    'progress' => $session->getProgress()
+                ];
+            }
+            
+            $this->logger->info('Listed conversations', [
+                'user_id' => get_current_user_id(),
+                'count' => count($sessionList)
+            ]);
+            
+            wp_send_json_success([
+                'sessions' => $sessionList
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to list conversations', [
+                'error' => $e->getMessage()
+            ]);
+            wp_send_json_error('Failed to list conversations');
+        }
     }
 }

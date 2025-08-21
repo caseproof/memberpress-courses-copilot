@@ -11,7 +11,7 @@ namespace MemberPressCoursesCopilot\Services;
 class LLMService extends BaseService
 {
     // Auth gateway configuration (secure proxy for API keys)
-    private const AUTH_GATEWAY_URL = 'http://localhost:3001';
+    private const AUTH_GATEWAY_URL = 'https://memberpress-auth-gateway-49bbf7ff52ea.herokuapp.com';
     
     // License key for authentication with the gateway
     // In production, this should come from MemberPress license system

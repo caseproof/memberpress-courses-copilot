@@ -8,13 +8,6 @@
  * - Unsaved changes warnings
  */
 jQuery(document).ready(function($) {
-    // Prevent multiple initializations
-    if (window.mpccChatInitialized) {
-        console.log('Chat already initialized, skipping...');
-        return;
-    }
-    window.mpccChatInitialized = true;
-    
     // Configuration
     const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
     const SESSION_STORAGE_KEY = 'mpcc_current_session_id';
@@ -26,26 +19,26 @@ jQuery(document).ready(function($) {
     let lastSaveTime = 0;
     let isDirty = false;
     let saveDebounceTimer = null;
-    let isProcessingMessage = false;
     
-    // Initialize conversation state only if not already initialized
-    if (!window.mpccConversationHistory) {
-        window.mpccConversationHistory = [];
-    }
-    if (!window.mpccConversationState) {
-        window.mpccConversationState = { 
-            current_step: 'initial', 
-            collected_data: {} 
-        };
-    }
+    // Initialize conversation state
+    window.mpccConversationHistory = window.mpccConversationHistory || [];
+    window.mpccConversationState = window.mpccConversationState || { 
+        current_step: 'initial', 
+        collected_data: {} 
+    };
     
     /**
      * Initialize chat interface with persistence
      */
     function initializeChat() {
-        // Always start with a new conversation
-        // Previous conversations can be loaded via the "Previous Conversations" button
-        createNewConversation();
+        // Check for existing session
+        const storedSessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        
+        if (storedSessionId) {
+            loadConversation(storedSessionId);
+        } else {
+            createNewConversation();
+        }
         
         // Set up auto-save
         startAutoSave();
@@ -263,25 +256,19 @@ jQuery(document).ready(function($) {
      * Rebuild chat interface from history
      */
     function rebuildChatInterface() {
-        // Only clear and rebuild if we have messages to display
-        if (window.mpccConversationHistory && window.mpccConversationHistory.length > 0) {
-            $('#mpcc-chat-messages').empty();
-            
-            // Add messages from history
-            window.mpccConversationHistory.forEach(function(message) {
-                if (message.role === 'user') {
-                    addUserMessage(message.content, false);
-                } else if (message.role === 'assistant') {
-                    addAssistantMessage(message.content, false);
-                }
-            });
-            
-            // Scroll to bottom
-            scrollToBottom();
-        } else {
-            // If no messages, ensure welcome message is visible
-            showWelcomeMessage();
-        }
+        $('#mpcc-chat-messages').empty();
+        
+        // Add messages from history
+        window.mpccConversationHistory.forEach(function(message) {
+            if (message.role === 'user') {
+                addUserMessage(message.content, false);
+            } else if (message.role === 'assistant') {
+                addAssistantMessage(message.content, false);
+            }
+        });
+        
+        // Scroll to bottom
+        scrollToBottom();
     }
     
     /**
@@ -289,39 +276,14 @@ jQuery(document).ready(function($) {
      */
     function showWelcomeMessage() {
         $('#mpcc-chat-messages').html(`
-            <div class="mpcc-welcome-message" style="text-align: center; padding: 20px; color: #666;">
-                <div style="font-size: 32px; margin-bottom: 15px;">🤖</div>
-                <h3 style="margin: 0 0 10px 0; color: #1a73e8;">AI Course Assistant</h3>
-                <p style="margin: 0; line-height: 1.5;">
-                    Hi! I'm here to help you create an amazing course. What kind of course would you like to build today?
+            <div class="mpcc-welcome-message" style="padding: 20px; text-align: center; color: #666;">
+                <div style="font-size: 48px; margin-bottom: 15px;">🤖</div>
+                <h3 style="margin: 0 0 10px 0;">AI Course Assistant</h3>
+                <p style="margin: 0;">
+                    Hi! I'm here to help you create an amazing course. What kind of course would you like to build?
                 </p>
-                
-                <div style="margin-top: 20px;">
-                    <p style="font-size: 14px; color: #888; margin-bottom: 10px;">Quick starters:</p>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
-                        <button type="button" class="button button-small mpcc-quick-start" data-message="Help me create a programming course for beginners">
-                            Programming Course
-                        </button>
-                        <button type="button" class="button button-small mpcc-quick-start" data-message="I want to create a business skills course">
-                            Business Skills
-                        </button>
-                        <button type="button" class="button button-small mpcc-quick-start" data-message="Help me design a creative arts course">
-                            Creative Arts
-                        </button>
-                    </div>
-                </div>
             </div>
         `);
-        
-        // Re-bind quick start button handlers
-        $('.mpcc-quick-start').off('click').on('click', function(e) {
-            e.preventDefault();
-            var message = $(this).data('message');
-            if (message) {
-                $('#mpcc-chat-input').val(message);
-                $('#mpcc-send-message').trigger('click');
-            }
-        });
     }
     
     /**
@@ -361,9 +323,6 @@ jQuery(document).ready(function($) {
      * Add assistant message to chat
      */
     function addAssistantMessage(message, save = true) {
-        // Remove welcome message if it exists
-        $('.mpcc-welcome-message').remove();
-        
         const aiHtml = `
             <div class="mpcc-message mpcc-message--assistant" style="margin-bottom: 15px;">
                 <div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 70%;">
@@ -375,7 +334,6 @@ jQuery(document).ready(function($) {
             </div>
         `;
         $('#mpcc-chat-messages').append(aiHtml);
-        scrollToBottom();
         
         if (save) {
             markDirty();
@@ -495,30 +453,6 @@ jQuery(document).ready(function($) {
     // Initialize on load
     initializeChat();
     
-    // Handle Create Course button click (if not already handled by courses-integration.js)
-    $(document).on('click', '#mpcc-create-course:not(.mpcc-handled)', function(e) {
-        e.preventDefault();
-        $(this).addClass('mpcc-handled');
-        if (window.mpccCurrentCourse) {
-            window.mpccCreateCourse(window.mpccCurrentCourse);
-        } else {
-            alert('No course data available. Please complete the course creation process first.');
-        }
-    });
-    
-    // Handle Save Draft button click
-    $(document).on('click', '#mpcc-save-draft:not(.mpcc-handled)', function(e) {
-        e.preventDefault();
-        $(this).addClass('mpcc-handled');
-        if (window.mpccCurrentCourse) {
-            // For now, just save the conversation
-            saveConversation();
-            alert('Course draft saved to your conversation history.');
-        } else {
-            alert('No course data to save.');
-        }
-    });
-    
     // Enable/disable send button based on input
     $('#mpcc-chat-input').on('input keyup', function() {
         const hasText = $(this).val().trim().length > 0;
@@ -534,16 +468,9 @@ jQuery(document).ready(function($) {
     });
     
     // Handle send button click
-    $('#mpcc-send-message').off('click').on('click', function() {
+    $('#mpcc-send-message').on('click', function() {
         const message = $('#mpcc-chat-input').val().trim();
         if (!message) return;
-        
-        // Prevent duplicate processing
-        if (isProcessingMessage) {
-            console.log('Already processing a message, ignoring duplicate');
-            return;
-        }
-        isProcessingMessage = true;
         
         // Disable button to prevent double-click
         $(this).prop('disabled', true);
@@ -590,9 +517,7 @@ jQuery(document).ready(function($) {
                 session_id: currentSessionId
             },
             success: function(response) {
-                // Remove typing indicator
                 $('#mpcc-typing').remove();
-                console.log('Typing indicator removed');
                 
                 if (response.success) {
                     // Add AI response to conversation history
@@ -608,41 +533,7 @@ jQuery(document).ready(function($) {
                     }
                     
                     // Add AI response
-                    console.log('AI Response received:', response.data.message);
-                    
-                    // Force add the message directly to ensure it's visible
-                    const $container = $('#mpcc-chat-messages');
-                    console.log('Container found:', $container.length, 'Container ID:', $container.attr('id'));
-                    console.log('Container visible:', $container.is(':visible'), 'Height:', $container.height());
-                    
-                    // Ensure container is visible
-                    if (!$container.is(':visible')) {
-                        console.warn('Chat container is hidden! Making it visible...');
-                        $container.show();
-                    }
-                    
-                    // Remove welcome message
-                    $('.mpcc-welcome-message').remove();
-                    
-                    // Add the assistant message HTML directly
-                    const aiHtml = `
-                        <div class="mpcc-message mpcc-message--assistant" style="margin-bottom: 15px;">
-                            <div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 70%;">
-                                ${response.data.message}
-                            </div>
-                            <div class="mpcc-message-time" style="font-size: 11px; color: #999; margin-top: 5px;">
-                                ${new Date().toLocaleTimeString()}
-                            </div>
-                        </div>
-                    `;
-                    $container.append(aiHtml);
-                    console.log('Message HTML added directly');
-                    
-                    // Force scroll
-                    $container.scrollTop($container[0].scrollHeight);
-                    
-                    // Mark as dirty for auto-save
-                    markDirty();
+                    addAssistantMessage(response.data.message);
                     
                     // Show action buttons if available
                     if (response.data.actions && response.data.actions.length > 0) {
@@ -672,23 +563,21 @@ jQuery(document).ready(function($) {
                     showError(response.data || 'Something went wrong');
                 }
                 
-                // Re-enable send button and reset processing flag
+                // Re-enable send button
                 $('#mpcc-send-message').prop('disabled', false);
-                isProcessingMessage = false;
             },
             error: function(xhr, status, error) {
                 $('#mpcc-typing').remove();
                 showError('Failed to connect to AI service. Please try again.');
                 
-                // Re-enable send button and reset processing flag
+                // Re-enable send button
                 $('#mpcc-send-message').prop('disabled', false);
-                isProcessingMessage = false;
             }
         });
     });
     
     // Handle Create Course button click
-    jQuery(document).on('click', '#mpcc-create-course', function(e) {
+    $(document).on('click', '#mpcc-create-course', function(e) {
         e.preventDefault();
         console.log('Create course button clicked');
         if (window.mpccCurrentCourse) {
@@ -699,14 +588,13 @@ jQuery(document).ready(function($) {
     });
     
     // Handle Save Draft button click
-    jQuery(document).on('click', '#mpcc-save-draft', function(e) {
+    $(document).on('click', '#mpcc-save-draft', function(e) {
         e.preventDefault();
         console.log('Save draft button clicked');
         // Trigger save conversation
-        if (typeof window.saveConversation === 'function') {
-            window.saveConversation();
-            alert('Draft saved successfully!');
-        }
+        saveConversation();
+        updateSaveIndicator('saved');
+        alert('Draft saved successfully!');
     });
 });
 
@@ -729,7 +617,7 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
     console.log('Creating course:', courseData);
     
     // Show loading state
-    const $createButton = jQuery('#mpcc-create-course');
+    const $createButton = $('#mpcc-create-course');
     const originalText = $createButton.text();
     $createButton.prop('disabled', true).text('Creating...');
     
@@ -754,7 +642,7 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
             } else {
                 // Show error message
                 alert('Failed to create course: ' + (response.data.message || response.data || 'Unknown error'));
-                jQuery('#mpcc-create-course').prop('disabled', false).text(originalText);
+                $createButton.prop('disabled', false).text(originalText);
             }
         },
         error: function(xhr, status, error) {
@@ -768,8 +656,8 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
     console.log('Update preview:', courseData);
     
     // Check if we're in the modal with preview pane
-    const $previewPane = jQuery('#mpcc-preview-pane');
-    const $previewContent = jQuery('#mpcc-preview-content');
+    const $previewPane = $('#mpcc-preview-pane');
+    const $previewContent = $('#mpcc-preview-content');
     
     if ($previewContent.length === 0) {
         console.warn('Preview content container not found');
@@ -790,12 +678,12 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
     // Course title and description
     if (courseData.title) {
         previewHtml += '<h3 class="mpcc-course-title" style="margin: 0 0 10px 0; color: #1a73e8;">' + 
-                       jQuery('<div>').text(courseData.title).html() + '</h3>';
+                       $('<div>').text(courseData.title).html() + '</h3>';
     }
     
     if (courseData.description) {
         previewHtml += '<p class="mpcc-course-description" style="color: #666; margin-bottom: 20px;">' + 
-                       jQuery('<div>').text(courseData.description).html() + '</p>';
+                       $('<div>').text(courseData.description).html() + '</p>';
     }
     
     // Course sections and lessons
@@ -806,11 +694,11 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
         courseData.sections.forEach(function(section, sectionIndex) {
             previewHtml += '<div class="mpcc-section" style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e0e0e0; border-radius: 4px;">';
             previewHtml += '<h5 style="margin: 0 0 10px 0; color: #1a73e8; font-size: 16px;">' + 
-                          'Section ' + (sectionIndex + 1) + ': ' + jQuery('<div>').text(section.title).html() + '</h5>';
+                          'Section ' + (sectionIndex + 1) + ': ' + $('<div>').text(section.title).html() + '</h5>';
             
             if (section.description) {
                 previewHtml += '<p style="color: #666; margin: 0 0 10px 0; font-size: 14px;">' + 
-                              jQuery('<div>').text(section.description).html() + '</p>';
+                              $('<div>').text(section.description).html() + '</p>';
             }
             
             if (section.lessons && section.lessons.length > 0) {
@@ -818,7 +706,7 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
                 section.lessons.forEach(function(lesson, lessonIndex) {
                     previewHtml += '<li style="margin-bottom: 8px; color: #333;">';
                     previewHtml += '<strong>Lesson ' + (sectionIndex + 1) + '.' + (lessonIndex + 1) + ':</strong> ';
-                    previewHtml += jQuery('<div>').text(lesson.title).html();
+                    previewHtml += $('<div>').text(lesson.title).html();
                     if (lesson.duration) {
                         previewHtml += ' <span style="color: #666; font-size: 12px;">(' + lesson.duration + ' min)</span>';
                     }
@@ -839,12 +727,12 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
         
         if (courseData.categories && courseData.categories.length > 0) {
             previewHtml += '<p style="margin: 0 0 10px 0;"><strong>Categories:</strong> ' + 
-                          courseData.categories.map(cat => jQuery('<div>').text(cat).html()).join(', ') + '</p>';
+                          courseData.categories.map(cat => $('<div>').text(cat).html()).join(', ') + '</p>';
         }
         
         if (courseData.tags && courseData.tags.length > 0) {
             previewHtml += '<p style="margin: 0;"><strong>Tags:</strong> ' + 
-                          courseData.tags.map(tag => jQuery('<div>').text(tag).html()).join(', ') + '</p>';
+                          courseData.tags.map(tag => $('<div>').text(tag).html()).join(', ') + '</p>';
         }
         
         previewHtml += '</div>';
@@ -856,12 +744,12 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
     $previewContent.html(previewHtml);
     
     // Ensure the preview pane is visible
-    jQuery('#mpcc-preview-pane').show();
+    $('#mpcc-preview-pane').show();
     
     // Enable the create course button if we have enough data
     if (courseData.title && courseData.sections && courseData.sections.length > 0) {
-        jQuery('#mpcc-create-course').prop('disabled', false);
-        jQuery('#mpcc-save-draft').prop('disabled', false);
+        $('#mpcc-create-course').prop('disabled', false);
+        $('#mpcc-save-draft').prop('disabled', false);
     }
 };
 
