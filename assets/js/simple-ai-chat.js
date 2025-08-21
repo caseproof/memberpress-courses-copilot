@@ -428,9 +428,11 @@ jQuery(document).ready(function($) {
             return '<ol>' + match + '</ol>';
         });
         
-        // Convert bullet points (-, *, •) and indented lines to unordered lists
-        // Also handle lines that start with multiple spaces (likely bullet points without markers)
-        formatted = formatted.replace(/^(\s{2,}|\s*[-*•]\s+)(.+)$/gm, '<li>$2</li>');
+        // Convert bullet points (-, *, •) to unordered lists
+        formatted = formatted.replace(/^\s*[-*•]\s+(.+)$/gm, '<li>$1</li>');
+        
+        // Handle indented lines that should be list items (2+ spaces at start)
+        formatted = formatted.replace(/^\s{2,}(?!<li>)(.+)$/gm, '<li>$1</li>');
         
         // Wrap consecutive unordered list items
         formatted = formatted.replace(/(<li>.*?<\/li>\n?)+/g, function(match) {
