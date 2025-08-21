@@ -781,14 +781,15 @@ jQuery(document).ready(function($) {
                     // Remove welcome message
                     $('.mpcc-welcome-message').remove();
                     
-                    // Add the assistant message HTML directly
+                    // Add the assistant message HTML directly with proper formatting
+                    const formattedMessage = formatMessageToHTML(response.data.message);
                     const aiHtml = `
                         <div class="mpcc-message mpcc-message-assistant">
                             <div class="mpcc-message-avatar">
                                 <span class="dashicons dashicons-format-chat"></span>
                             </div>
                             <div class="mpcc-message-content">
-                                ${response.data.message}
+                                ${formattedMessage}
                             </div>
                             <div class="mpcc-message-meta">
                                 <span class="mpcc-message-time">${new Date().toLocaleTimeString()}</span>
@@ -796,7 +797,7 @@ jQuery(document).ready(function($) {
                         </div>
                     `;
                     $container.append(aiHtml);
-                    console.log('Message HTML added directly');
+                    console.log('Message HTML added directly with formatting');
                     
                     // Force scroll
                     $container.scrollTop($container[0].scrollHeight);
