@@ -134,6 +134,15 @@ jQuery(document).ready(function($) {
                     // Rebuild chat UI
                     rebuildChatInterface();
                     
+                    // Check if we have course data in the conversation state and rebuild preview
+                    if (window.mpccConversationState && window.mpccConversationState.collected_data && 
+                        window.mpccConversationState.collected_data.course_structure) {
+                        window.mpccCurrentCourse = window.mpccConversationState.collected_data.course_structure;
+                        if (typeof window.mpccUpdatePreview === 'function') {
+                            window.mpccUpdatePreview(window.mpccCurrentCourse);
+                        }
+                    }
+                    
                     // Update last save time
                     lastSaveTime = Date.now();
                     isDirty = false;
@@ -350,12 +359,15 @@ jQuery(document).ready(function($) {
      */
     function addUserMessage(message, save = true) {
         const userHtml = `
-            <div class="mpcc-message mpcc-message--user" style="margin-bottom: 15px; text-align: right;">
-                <div style="display: inline-block; background: #0073aa; color: white; padding: 10px 15px; border-radius: 18px; max-width: 70%;">
+            <div class="mpcc-message mpcc-message-user">
+                <div class="mpcc-message-avatar">
+                    <span class="dashicons dashicons-admin-users"></span>
+                </div>
+                <div class="mpcc-message-content">
                     ${$('<div>').text(message).html()}
                 </div>
-                <div class="mpcc-message-time" style="font-size: 11px; color: #999; margin-top: 5px;">
-                    ${new Date().toLocaleTimeString()}
+                <div class="mpcc-message-meta">
+                    <span class="mpcc-message-time">${new Date().toLocaleTimeString()}</span>
                 </div>
             </div>
         `;
@@ -374,12 +386,15 @@ jQuery(document).ready(function($) {
         $('.mpcc-welcome-message').remove();
         
         const aiHtml = `
-            <div class="mpcc-message mpcc-message--assistant" style="margin-bottom: 15px;">
-                <div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 70%;">
+            <div class="mpcc-message mpcc-message-assistant">
+                <div class="mpcc-message-avatar">
+                    <span class="dashicons dashicons-superhero-alt"></span>
+                </div>
+                <div class="mpcc-message-content">
                     ${message}
                 </div>
-                <div class="mpcc-message-time" style="font-size: 11px; color: #999; margin-top: 5px;">
-                    ${new Date().toLocaleTimeString()}
+                <div class="mpcc-message-meta">
+                    <span class="mpcc-message-time">${new Date().toLocaleTimeString()}</span>
                 </div>
             </div>
         `;
@@ -418,7 +433,7 @@ jQuery(document).ready(function($) {
                 </div>
                 <div id="mpcc-session-list" style="display: none;"></div>
             `;
-            $('#mpcc-chat-input-container').prepend(sessionControls);
+            $('#mpcc-chat-input-container').after(sessionControls);
             
             // Bind events
             $('#mpcc-session-manager-btn').on('click', function() {
@@ -640,12 +655,15 @@ jQuery(document).ready(function($) {
                     
                     // Add the assistant message HTML directly
                     const aiHtml = `
-                        <div class="mpcc-message mpcc-message--assistant" style="margin-bottom: 15px;">
-                            <div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 70%;">
+                        <div class="mpcc-message mpcc-message-assistant">
+                            <div class="mpcc-message-avatar">
+                                <span class="dashicons dashicons-superhero-alt"></span>
+                            </div>
+                            <div class="mpcc-message-content">
                                 ${response.data.message}
                             </div>
-                            <div class="mpcc-message-time" style="font-size: 11px; color: #999; margin-top: 5px;">
-                                ${new Date().toLocaleTimeString()}
+                            <div class="mpcc-message-meta">
+                                <span class="mpcc-message-time">${new Date().toLocaleTimeString()}</span>
                             </div>
                         </div>
                     `;

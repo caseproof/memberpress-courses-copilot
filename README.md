@@ -2,6 +2,14 @@
 
 AI-powered conversational course creation assistant for MemberPress Courses that reduces course development time from 6-10 hours to 10-30 minutes.
 
+## Recent Updates (2025-08-21)
+
+- Fixed AI response formatting to use proper CSS classes for better visual presentation
+- Moved conversation management buttons (Previous Conversations/New Conversation) below the chat area
+- Added course preview restoration when loading saved conversations
+- Increased chat window vertical space for better usability
+- See [STATUS.md](STATUS.md) for detailed technical status
+
 ## Overview
 
 MemberPress Courses Copilot is a WordPress plugin that integrates directly with MemberPress Courses to provide an intelligent, conversational AI assistant for course creation. Using advanced language models through LiteLLM proxy infrastructure, it guides users through course development with natural language conversations.
