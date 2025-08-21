@@ -485,13 +485,18 @@ jQuery(document).ready(function($) {
             para = para.trim();
             // Don't wrap lists or empty strings in paragraphs
             if (para && !para.startsWith('<ul>') && !para.startsWith('<ol>')) {
+                // Replace single line breaks with spaces within paragraphs
+                // This prevents excessive <br> tags for normal text flow
+                para = para.replace(/\n/g, ' ');
                 return '<p>' + para + '</p>';
             }
             return para;
         }).join('');
         
-        // Convert single line breaks to <br> within paragraphs
-        formatted = formatted.replace(/\n/g, '<br>');
+        // Only add <br> for line breaks within lists
+        formatted = formatted.replace(/(<li[^>]*>)(.*?)(<\/li>)/g, function(match, start, content, end) {
+            return start + content.replace(/\n/g, '<br>') + end;
+        });
         
         // Clean up any double-wrapped lists
         formatted = formatted.replace(/<p>(<[uo]l>.*?<\/[uo]l>)<\/p>/g, '$1');
