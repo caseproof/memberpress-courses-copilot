@@ -144,6 +144,10 @@ class CourseIntegrationService extends BaseService
                                         '<div id="mpcc-preview-content">' +
                                             '<p style="color: #666; text-align: center; padding: 40px;"><?php echo esc_js(__('Course preview will appear here as you build it...', 'memberpress-courses-copilot')); ?></p>' +
                                         '</div>' +
+                                        '<div style="padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; justify-content: flex-end;">' +
+                                            '<button id="mpcc-save-draft" class="button" disabled><?php echo esc_js(__('Save Draft', 'memberpress-courses-copilot')); ?></button>' +
+                                            '<button id="mpcc-create-course" class="button button-primary" disabled><?php echo esc_js(__('Create Course', 'memberpress-courses-copilot')); ?></button>' +
+                                        '</div>' +
                                     '</div>' +
                                 '</div>' +
                             '</div>' +
@@ -173,7 +177,7 @@ class CourseIntegrationService extends BaseService
                     success: function(response) {
                         if (response.success) {
                             $('#mpcc-ai-interface-container').html(response.data.html);
-                            $('#mpcc-preview-pane').show(); // Show the preview pane
+                            $('#mpcc-preview-pane').addClass('active').show(); // Show the preview pane
                         } else {
                             $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
                         }

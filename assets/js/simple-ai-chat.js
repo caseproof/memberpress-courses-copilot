@@ -495,6 +495,30 @@ jQuery(document).ready(function($) {
     // Initialize on load
     initializeChat();
     
+    // Handle Create Course button click (if not already handled by courses-integration.js)
+    $(document).on('click', '#mpcc-create-course:not(.mpcc-handled)', function(e) {
+        e.preventDefault();
+        $(this).addClass('mpcc-handled');
+        if (window.mpccCurrentCourse) {
+            window.mpccCreateCourse(window.mpccCurrentCourse);
+        } else {
+            alert('No course data available. Please complete the course creation process first.');
+        }
+    });
+    
+    // Handle Save Draft button click
+    $(document).on('click', '#mpcc-save-draft:not(.mpcc-handled)', function(e) {
+        e.preventDefault();
+        $(this).addClass('mpcc-handled');
+        if (window.mpccCurrentCourse) {
+            // For now, just save the conversation
+            saveConversation();
+            alert('Course draft saved to your conversation history.');
+        } else {
+            alert('No course data to save.');
+        }
+    });
+    
     // Enable/disable send button based on input
     $('#mpcc-chat-input').on('input keyup', function() {
         const hasText = $(this).val().trim().length > 0;
@@ -662,6 +686,28 @@ jQuery(document).ready(function($) {
             }
         });
     });
+    
+    // Handle Create Course button click
+    jQuery(document).on('click', '#mpcc-create-course', function(e) {
+        e.preventDefault();
+        console.log('Create course button clicked');
+        if (window.mpccCurrentCourse) {
+            window.mpccCreateCourse(window.mpccCurrentCourse);
+        } else {
+            alert('No course data available. Please complete the conversation with the AI assistant first.');
+        }
+    });
+    
+    // Handle Save Draft button click
+    jQuery(document).on('click', '#mpcc-save-draft', function(e) {
+        e.preventDefault();
+        console.log('Save draft button clicked');
+        // Trigger save conversation
+        if (typeof window.saveConversation === 'function') {
+            window.saveConversation();
+            alert('Draft saved successfully!');
+        }
+    });
 });
 
 // Keep existing global functions for compatibility
@@ -679,9 +725,144 @@ window.mpccHandleAction = window.mpccHandleAction || function(action) {
     }
 };
 
+window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
+    console.log('Creating course:', courseData);
+    
+    // Show loading state
+    const $createButton = jQuery('#mpcc-create-course');
+    const originalText = $createButton.text();
+    $createButton.prop('disabled', true).text('Creating...');
+    
+    // Send AJAX request to create the course
+    jQuery.ajax({
+        url: ajaxurl,
+        type: 'POST',
+        data: {
+            action: 'mpcc_create_course_with_ai',
+            nonce: jQuery('#mpcc-ajax-nonce').val() || mpccAISettings?.nonce || '',
+            course_data: courseData
+        },
+        success: function(response) {
+            if (response.success) {
+                // Show success message
+                alert('Course created successfully! Redirecting to edit page...');
+                
+                // Redirect to the edit page
+                if (response.data.edit_url) {
+                    window.location.href = response.data.edit_url;
+                }
+            } else {
+                // Show error message
+                alert('Failed to create course: ' + (response.data.message || response.data || 'Unknown error'));
+                jQuery('#mpcc-create-course').prop('disabled', false).text(originalText);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('Failed to create course: ' + error);
+            $createButton.prop('disabled', false).text(originalText);
+        }
+    });
+};
+
 window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
     console.log('Update preview:', courseData);
-    // Implementation depends on preview pane structure
+    
+    // Check if we're in the modal with preview pane
+    const $previewPane = jQuery('#mpcc-preview-pane');
+    const $previewContent = jQuery('#mpcc-preview-content');
+    
+    if ($previewContent.length === 0) {
+        console.warn('Preview content container not found');
+        return;
+    }
+    
+    // Make sure preview pane is visible
+    if ($previewPane.length > 0) {
+        $previewPane.addClass('active').show();
+    }
+    
+    // Clear placeholder if it exists
+    $previewContent.find('p[style*="text-align: center"]').remove();
+    
+    // Build the preview HTML
+    let previewHtml = '<div class="mpcc-course-preview">';
+    
+    // Course title and description
+    if (courseData.title) {
+        previewHtml += '<h3 class="mpcc-course-title" style="margin: 0 0 10px 0; color: #1a73e8;">' + 
+                       jQuery('<div>').text(courseData.title).html() + '</h3>';
+    }
+    
+    if (courseData.description) {
+        previewHtml += '<p class="mpcc-course-description" style="color: #666; margin-bottom: 20px;">' + 
+                       jQuery('<div>').text(courseData.description).html() + '</p>';
+    }
+    
+    // Course sections and lessons
+    if (courseData.sections && courseData.sections.length > 0) {
+        previewHtml += '<div class="mpcc-sections" style="margin-top: 20px;">';
+        previewHtml += '<h4 style="margin: 0 0 15px 0; color: #333;">Course Structure</h4>';
+        
+        courseData.sections.forEach(function(section, sectionIndex) {
+            previewHtml += '<div class="mpcc-section" style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e0e0e0; border-radius: 4px;">';
+            previewHtml += '<h5 style="margin: 0 0 10px 0; color: #1a73e8; font-size: 16px;">' + 
+                          'Section ' + (sectionIndex + 1) + ': ' + jQuery('<div>').text(section.title).html() + '</h5>';
+            
+            if (section.description) {
+                previewHtml += '<p style="color: #666; margin: 0 0 10px 0; font-size: 14px;">' + 
+                              jQuery('<div>').text(section.description).html() + '</p>';
+            }
+            
+            if (section.lessons && section.lessons.length > 0) {
+                previewHtml += '<ul style="margin: 10px 0 0 0; padding-left: 20px;">';
+                section.lessons.forEach(function(lesson, lessonIndex) {
+                    previewHtml += '<li style="margin-bottom: 8px; color: #333;">';
+                    previewHtml += '<strong>Lesson ' + (sectionIndex + 1) + '.' + (lessonIndex + 1) + ':</strong> ';
+                    previewHtml += jQuery('<div>').text(lesson.title).html();
+                    if (lesson.duration) {
+                        previewHtml += ' <span style="color: #666; font-size: 12px;">(' + lesson.duration + ' min)</span>';
+                    }
+                    previewHtml += '</li>';
+                });
+                previewHtml += '</ul>';
+            }
+            
+            previewHtml += '</div>';
+        });
+        
+        previewHtml += '</div>';
+    }
+    
+    // Course settings/metadata
+    if (courseData.categories || courseData.tags) {
+        previewHtml += '<div class="mpcc-metadata" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">';
+        
+        if (courseData.categories && courseData.categories.length > 0) {
+            previewHtml += '<p style="margin: 0 0 10px 0;"><strong>Categories:</strong> ' + 
+                          courseData.categories.map(cat => jQuery('<div>').text(cat).html()).join(', ') + '</p>';
+        }
+        
+        if (courseData.tags && courseData.tags.length > 0) {
+            previewHtml += '<p style="margin: 0;"><strong>Tags:</strong> ' + 
+                          courseData.tags.map(tag => jQuery('<div>').text(tag).html()).join(', ') + '</p>';
+        }
+        
+        previewHtml += '</div>';
+    }
+    
+    previewHtml += '</div>';
+    
+    // Update the preview content
+    $previewContent.html(previewHtml);
+    
+    // Ensure the preview pane is visible
+    jQuery('#mpcc-preview-pane').show();
+    
+    // Enable the create course button if we have enough data
+    if (courseData.title && courseData.sections && courseData.sections.length > 0) {
+        jQuery('#mpcc-create-course').prop('disabled', false);
+        jQuery('#mpcc-save-draft').prop('disabled', false);
+    }
 };
 
 // Add CSS for typing animation
