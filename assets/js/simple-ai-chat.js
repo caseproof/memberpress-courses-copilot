@@ -19,6 +19,7 @@ jQuery(document).ready(function($) {
     const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
     const SESSION_STORAGE_KEY = 'mpcc_current_session_id';
     const DEBOUNCE_DELAY = 1000;
+    const CONNECTION_CHECK_INTERVAL = 30000; // 30 seconds
     
     // State management
     let currentSessionId = null;
@@ -27,6 +28,8 @@ jQuery(document).ready(function($) {
     let isDirty = false;
     let saveDebounceTimer = null;
     let isProcessingMessage = false;
+    let connectionStatus = 'connecting';
+    let connectionCheckTimer = null;
     
     // Initialize conversation state only if not already initialized
     if (!window.mpccConversationHistory) {
@@ -37,6 +40,68 @@ jQuery(document).ready(function($) {
             current_step: 'initial', 
             collected_data: {} 
         };
+    }
+    
+    /**
+     * Connection monitoring
+     */
+    function startConnectionMonitoring() {
+        updateConnectionStatus('connecting');
+        
+        // Initial connection test
+        testConnection();
+        
+        // Monitor connection periodically
+        connectionCheckTimer = setInterval(testConnection, CONNECTION_CHECK_INTERVAL);
+    }
+    
+    function testConnection() {
+        // Use the correct localized object name
+        const ajaxUrl = window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php');
+        const nonce = window.mpccAISettings ? window.mpccAISettings.nonce : '';
+        
+        $.ajax({
+            url: ajaxUrl,
+            type: 'POST',
+            data: {
+                action: 'mpcc_ping',
+                nonce: nonce
+            },
+            timeout: 10000,
+            success: function() {
+                updateConnectionStatus('connected');
+            },
+            error: function() {
+                updateConnectionStatus('disconnected');
+            }
+        });
+    }
+    
+    function updateConnectionStatus(status) {
+        connectionStatus = status;
+        
+        // Update UI if status element exists
+        const $statusElement = $('#mpcc-connection-status');
+        if ($statusElement.length) {
+            $statusElement.removeClass('connected disconnected error connecting')
+                         .addClass(status);
+            
+            const statusTexts = {
+                connected: 'Connected',
+                disconnected: 'Disconnected',
+                error: 'Connection Error',
+                connecting: 'Connecting...'
+            };
+            
+            $statusElement.find('.mpcc-status-text').text(statusTexts[status] || status);
+        }
+        
+        // Show notification for connection issues
+        if (status === 'disconnected') {
+            showNotification('Connection lost. Please check your internet connection.', 'error');
+        } else if (status === 'connected' && connectionStatus === 'disconnected') {
+            showNotification('Connection restored.', 'success');
+        }
     }
     
     /**
@@ -95,6 +160,9 @@ jQuery(document).ready(function($) {
         // Set up auto-save
         startAutoSave();
         
+        // Set up connection monitoring
+        startConnectionMonitoring();
+        
         // Set up beforeunload warning
         $(window).on('beforeunload', function() {
             if (isDirty) {
@@ -119,11 +187,11 @@ jQuery(document).ready(function($) {
         }
         
         $.ajax({
-            url: ajaxurl,
+            url: window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php'),
             type: 'POST',
             data: {
                 action: 'mpcc_create_conversation',
-                nonce: $('#mpcc-ajax-nonce').val() || mpccAISettings?.nonce || '',
+                nonce: $('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
                 context: 'course_creation',
                 title: 'Course Creation - ' + new Date().toLocaleString()
             },
@@ -158,11 +226,11 @@ jQuery(document).ready(function($) {
         `);
         
         $.ajax({
-            url: ajaxurl,
+            url: window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php'),
             type: 'POST',
             data: {
                 action: 'mpcc_load_conversation',
-                nonce: $('#mpcc-ajax-nonce').val() || mpccAISettings?.nonce || '',
+                nonce: $('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
                 session_id: sessionId
             },
             success: function(response) {
@@ -249,14 +317,14 @@ jQuery(document).ready(function($) {
         
         const saveData = {
             action: 'mpcc_save_conversation',
-            nonce: $('#mpcc-ajax-nonce').val() || mpccAISettings?.nonce || '',
+            nonce: $('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
             session_id: currentSessionId,
             conversation_history: window.mpccConversationHistory,
             conversation_state: window.mpccConversationState
         };
         
         $.ajax({
-            url: ajaxurl,
+            url: window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php'),
             type: 'POST',
             data: saveData,
             async: !synchronous,
@@ -393,20 +461,7 @@ jQuery(document).ready(function($) {
             </div>
         `);
         
-        // Re-bind quick start button handlers
-        $('.mpcc-quick-start').off('click').on('click', function(e) {
-            e.preventDefault();
-            var message = $(this).data('message');
-            if (message) {
-                $('#mpcc-chat-input').val(message);
-                $('#mpcc-send-message').trigger('click');
-                
-                // Ensure input is cleared after triggering send
-                setTimeout(function() {
-                    $('#mpcc-chat-input').val('');
-                }, 100);
-            }
-        });
+        // Quick start buttons are handled by event delegation below
     }
     
     /**
@@ -554,54 +609,14 @@ jQuery(document).ready(function($) {
      * Initialize UI components
      */
     function initializeUIComponents() {
-        // Add session management button
-        if (!$('#mpcc-session-manager-btn').length) {
-            const sessionControls = `
-                <div class="mpcc-session-controls">
-                    <button id="mpcc-session-manager-btn" class="button button-small">
-                        <span class="dashicons dashicons-list-view"></span> Previous Conversations
-                    </button>
-                    <button id="mpcc-new-conversation-btn" class="button button-small">
-                        <span class="dashicons dashicons-plus"></span> New Conversation
-                    </button>
-                </div>
-                <div id="mpcc-session-list" style="display: none;"></div>
-            `;
-            $('#mpcc-chat-input-container').after(sessionControls);
-            
-            // Add class to indicate session controls are present
-            $('#mpcc-ai-interface-container').addClass('has-session-controls');
-            
-            // Bind events
-            $('#mpcc-session-manager-btn').on('click', function() {
-                $('#mpcc-session-list').toggle();
-                if ($('#mpcc-session-list').is(':visible')) {
-                    showSessionManager();
-                }
-            });
-            
-            $('#mpcc-new-conversation-btn').on('click', function() {
-                if (isDirty) {
-                    if (!confirm('You have unsaved changes. Create a new conversation anyway?')) {
-                        return;
-                    }
-                }
-                sessionStorage.removeItem(SESSION_STORAGE_KEY);
-                window.mpccConversationHistory = [];
-                window.mpccConversationState = { current_step: 'initial', collected_data: {} };
-                
-                // Clear the current course data
-                window.mpccCurrentCourse = null;
-                
-                // Clear the preview pane
-                const $previewContent = jQuery('#mpcc-preview-content');
-                if ($previewContent.length > 0) {
-                    $previewContent.html('<p style="color: #666; text-align: center; padding: 40px;">Course preview will appear here as you build it...</p>');
-                }
-                
-                createNewConversation();
-            });
-        }
+        console.log('Initializing UI components...');
+        console.log('Session buttons exist:', $('#mpcc-session-manager-btn').length > 0);
+        
+        // Session control handlers are handled by event delegation
+        // Just add the class to indicate controls are present
+        
+        // Add class to indicate session controls are present
+        $('#mpcc-ai-interface-container').addClass('has-session-controls');
     }
     
     /**
@@ -612,11 +627,11 @@ jQuery(document).ready(function($) {
         $('#mpcc-session-list').html('<div class="spinner is-active" style="float: none;"></div>');
         
         $.ajax({
-            url: ajaxurl,
+            url: window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php'),
             type: 'POST',
             data: {
                 action: 'mpcc_list_conversations',
-                nonce: $('#mpcc-ajax-nonce').val() || mpccAISettings?.nonce || ''
+                nonce: $('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : '')
             },
             success: function(response) {
                 console.log('Session list response:', response);
@@ -671,6 +686,25 @@ jQuery(document).ready(function($) {
     // Initialize on load
     initializeChat();
     
+    // Ensure UI components are initialized even if timing is off
+    setTimeout(function() {
+        if (!$('#mpcc-session-manager-btn').length) {
+            console.log('Session controls not found after initialization, trying again...');
+            initializeUIComponents();
+        }
+    }, 1000);
+    
+    // Expose functions globally for debugging and external calls
+    window.initializeUIComponents = initializeUIComponents;
+    window.createNewConversation = createNewConversation;
+    window.showSessionManager = showSessionManager;
+    
+    // Expose state for other scripts
+    Object.defineProperty(window, 'isDirty', {
+        get: function() { return isDirty; },
+        set: function(value) { isDirty = value; }
+    });
+    
     // REMOVED: Duplicate handler - handled in line 828 below
     
     // Handle Save Draft button click
@@ -686,22 +720,22 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // Enable/disable send button based on input
-    $('#mpcc-chat-input').on('input keyup', function() {
+    // Enable/disable send button based on input with delegation
+    $(document).on('input keyup', '#mpcc-chat-input', function() {
         const hasText = $(this).val().trim().length > 0;
         $('#mpcc-send-message').prop('disabled', !hasText);
     });
     
-    // Handle Enter key
-    $('#mpcc-chat-input').on('keydown', function(e) {
+    // Handle Enter key with delegation
+    $(document).on('keydown', '#mpcc-chat-input', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             $('#mpcc-send-message').click();
         }
     });
     
-    // Handle send button click
-    $('#mpcc-send-message').off('click').on('click', function() {
+    // Handle send button click with delegation
+    $(document).off('click', '#mpcc-send-message').on('click', '#mpcc-send-message', function() {
         const message = $('#mpcc-chat-input').val().trim();
         if (!message) return;
         
@@ -745,11 +779,11 @@ jQuery(document).ready(function($) {
         
         // Make AJAX request
         $.ajax({
-            url: ajaxurl,
+            url: window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php'),
             type: 'POST',
             data: {
                 action: 'mpcc_ai_chat',
-                nonce: $('#mpcc-ajax-nonce').val() || mpccAISettings?.nonce || '',
+                nonce: $('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
                 message: message,
                 context: 'course_creation',
                 conversation_history: window.mpccConversationHistory,
@@ -865,7 +899,61 @@ jQuery(document).ready(function($) {
         });
     });
     
-    // REMOVED: This handler is managed by courses-integration.js to avoid duplicates
+    // Session management buttons
+    $(document).off('click.mpcc-session').on('click.mpcc-session', '#mpcc-session-manager-btn', function(e) {
+        e.preventDefault();
+        console.log('Session manager clicked');
+        $('#mpcc-session-list').toggle();
+        if ($('#mpcc-session-list').is(':visible') && window.showSessionManager) {
+            window.showSessionManager();
+        }
+    });
+    
+    $(document).on('click.mpcc-session', '#mpcc-new-conversation-btn', function(e) {
+        e.preventDefault();
+        console.log('New conversation clicked');
+        
+        // Check if there are unsaved changes
+        if (window.isDirty && !confirm('You have unsaved changes. Create a new conversation anyway?')) {
+            return;
+        }
+        
+        // Clear session data
+        sessionStorage.removeItem('mpcc_current_session_id');
+        window.mpccConversationHistory = [];
+        window.mpccConversationState = { current_step: 'initial', collected_data: {} };
+        window.mpccCurrentCourse = null;
+        
+        // Clear the preview pane if it exists
+        const $previewContent = $('#mpcc-preview-content');
+        if ($previewContent.length > 0) {
+            $previewContent.html('<p style="color: #666; text-align: center; padding: 40px;">Course preview will appear here as you build it...</p>');
+        }
+        
+        // Call createNewConversation if available
+        if (window.createNewConversation) {
+            window.createNewConversation();
+        } else {
+            // Fallback: just reload the page
+            location.reload();
+        }
+    });
+    
+    // Quick start buttons
+    $(document).on('click.mpcc-quickstart', '.mpcc-quick-start', function(e) {
+        e.preventDefault();
+        const message = $(this).data('message') || $(this).data('prompt');
+        console.log('Quick start clicked:', message);
+        if (message) {
+            $('#mpcc-chat-input').val(message);
+            $('#mpcc-send-message').trigger('click');
+            
+            // Clear input after a short delay
+            setTimeout(function() {
+                $('#mpcc-chat-input').val('').focus();
+            }, 100);
+        }
+    });
     
     // Handle Save Draft button click
     jQuery(document).on('click', '#mpcc-save-draft', function(e) {
@@ -915,11 +1003,11 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
     
     // Send AJAX request to create the course
     jQuery.ajax({
-        url: ajaxurl,
+        url: window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php'),
         type: 'POST',
         data: {
             action: 'mpcc_create_course_with_ai',
-            nonce: jQuery('#mpcc-ajax-nonce').val() || mpccAISettings?.nonce || '',
+            nonce: jQuery('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
             course_data: courseData
         },
         success: function(response) {
