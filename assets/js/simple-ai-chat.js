@@ -461,7 +461,7 @@ jQuery(document).ready(function($) {
             </div>
         `);
         
-        // Quick start buttons are handled by mpcc-init.js
+        // Quick start buttons are handled by event delegation below
     }
     
     /**
@@ -612,7 +612,7 @@ jQuery(document).ready(function($) {
         console.log('Initializing UI components...');
         console.log('Session buttons exist:', $('#mpcc-session-manager-btn').length > 0);
         
-        // Session control handlers are now in mpcc-init.js to avoid duplication
+        // Session control handlers are handled by event delegation
         // Just add the class to indicate controls are present
         
         // Add class to indicate session controls are present
@@ -899,7 +899,61 @@ jQuery(document).ready(function($) {
         });
     });
     
-    // REMOVED: This handler is managed by courses-integration.js to avoid duplicates
+    // Session management buttons
+    $(document).off('click.mpcc-session').on('click.mpcc-session', '#mpcc-session-manager-btn', function(e) {
+        e.preventDefault();
+        console.log('Session manager clicked');
+        $('#mpcc-session-list').toggle();
+        if ($('#mpcc-session-list').is(':visible') && window.showSessionManager) {
+            window.showSessionManager();
+        }
+    });
+    
+    $(document).on('click.mpcc-session', '#mpcc-new-conversation-btn', function(e) {
+        e.preventDefault();
+        console.log('New conversation clicked');
+        
+        // Check if there are unsaved changes
+        if (window.isDirty && !confirm('You have unsaved changes. Create a new conversation anyway?')) {
+            return;
+        }
+        
+        // Clear session data
+        sessionStorage.removeItem('mpcc_current_session_id');
+        window.mpccConversationHistory = [];
+        window.mpccConversationState = { current_step: 'initial', collected_data: {} };
+        window.mpccCurrentCourse = null;
+        
+        // Clear the preview pane if it exists
+        const $previewContent = $('#mpcc-preview-content');
+        if ($previewContent.length > 0) {
+            $previewContent.html('<p style="color: #666; text-align: center; padding: 40px;">Course preview will appear here as you build it...</p>');
+        }
+        
+        // Call createNewConversation if available
+        if (window.createNewConversation) {
+            window.createNewConversation();
+        } else {
+            // Fallback: just reload the page
+            location.reload();
+        }
+    });
+    
+    // Quick start buttons
+    $(document).on('click.mpcc-quickstart', '.mpcc-quick-start', function(e) {
+        e.preventDefault();
+        const message = $(this).data('message') || $(this).data('prompt');
+        console.log('Quick start clicked:', message);
+        if (message) {
+            $('#mpcc-chat-input').val(message);
+            $('#mpcc-send-message').trigger('click');
+            
+            // Clear input after a short delay
+            setTimeout(function() {
+                $('#mpcc-chat-input').val('').focus();
+            }, 100);
+        }
+    });
     
     // Handle Save Draft button click
     jQuery(document).on('click', '#mpcc-save-draft', function(e) {

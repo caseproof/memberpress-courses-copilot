@@ -102,7 +102,7 @@ jQuery(document).ready(function($) {
     // Auto-focus input
     $('#mpcc-chat-input').focus();
     
-    // Quick start buttons are handled by mpcc-init.js to avoid duplication
+    // Quick start buttons are handled by simple-ai-chat.js via event delegation
 });
 </script>
 

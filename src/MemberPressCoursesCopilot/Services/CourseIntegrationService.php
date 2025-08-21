@@ -380,19 +380,24 @@ class CourseIntegrationService extends BaseService
         }
         
         // Enqueue initialization script first
-        wp_enqueue_script(
-            'mpcc-init',
-            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/mpcc-init.js',
-            ['jquery'],
-            MEMBERPRESS_COURSES_COPILOT_VERSION,
-            true
-        );
+        // Removed mpcc-init.js - functionality moved to simple-ai-chat.js for simplicity
+        
+        // Enqueue debug helper (only in development)
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            wp_enqueue_script(
+                'mpcc-debug',
+                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/mpcc-debug.js',
+                ['jquery'],
+                MEMBERPRESS_COURSES_COPILOT_VERSION,
+                true
+            );
+        }
         
         // Enqueue AI interface JavaScript
         wp_enqueue_script(
             'mpcc-courses-integration',
             MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/courses-integration.js',
-            ['jquery', 'mpcc-init'],
+            ['jquery'],
             MEMBERPRESS_COURSES_COPILOT_VERSION,
             true
         );
@@ -403,7 +408,7 @@ class CourseIntegrationService extends BaseService
         wp_enqueue_script(
             'mpcc-simple-ai-chat',
             MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/simple-ai-chat.js',
-            ['jquery', 'mpcc-init'],
+            ['jquery'],
             MEMBERPRESS_COURSES_COPILOT_VERSION,
             true
         );
