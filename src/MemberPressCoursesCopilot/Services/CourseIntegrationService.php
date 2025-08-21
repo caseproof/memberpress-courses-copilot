@@ -332,6 +332,9 @@ class CourseIntegrationService extends BaseService
         // Check if we're on the course generator page
         $is_generator_page = isset($_GET['page']) && $_GET['page'] === 'mpcc-course-generator';
         
+        // Explicitly enqueue dashicons
+        wp_enqueue_style('dashicons');
+        
         // Enqueue AI interface CSS
         wp_enqueue_style(
             'mpcc-courses-integration',
