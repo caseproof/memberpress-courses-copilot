@@ -217,6 +217,15 @@ jQuery(document).ready(function($) {
      * Load existing conversation
      */
     function loadConversation(sessionId) {
+        // Clear previous session data first
+        window.mpccCurrentCourse = null;
+        
+        // Clear the preview pane
+        const $previewContent = $('#mpcc-preview-content');
+        if ($previewContent.length > 0) {
+            $previewContent.html('<p style="color: #666; text-align: center; padding: 40px;">Course preview will appear here as you build it...</p>');
+        }
+        
         // Show loading indicator
         $('#mpcc-chat-messages').html(`
             <div class="mpcc-loading" style="text-align: center; padding: 20px;">
