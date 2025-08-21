@@ -75,6 +75,13 @@ jQuery(document).ready(function($) {
      * Create new conversation session
      */
     function createNewConversation() {
+        // Clear any existing course data and preview
+        window.mpccCurrentCourse = null;
+        const $previewContent = jQuery('#mpcc-preview-content');
+        if ($previewContent.length > 0) {
+            $previewContent.html('<p style="color: #666; text-align: center; padding: 40px;">Course preview will appear here as you build it...</p>');
+        }
+        
         $.ajax({
             url: ajaxurl,
             type: 'POST',
@@ -398,11 +405,61 @@ jQuery(document).ready(function($) {
     }
     
     /**
+     * Format text message to HTML with proper structure
+     */
+    function formatMessageToHTML(message) {
+        // Escape HTML to prevent XSS
+        let formatted = $('<div>').text(message).html();
+        
+        // Convert numbered lists (e.g., "1. Item" or "1) Item")
+        formatted = formatted.replace(/^(\d+)[\.\)]\s+(.+)$/gm, '<li value="$1">$2</li>');
+        
+        // Wrap consecutive list items in <ol> tags
+        formatted = formatted.replace(/(<li.*?<\/li>\n?)+/g, function(match) {
+            return '<ol>' + match + '</ol>';
+        });
+        
+        // Convert bullet points (-, *, •) to unordered lists
+        formatted = formatted.replace(/^[-*•]\s+(.+)$/gm, '<li>$1</li>');
+        
+        // Wrap consecutive unordered list items
+        formatted = formatted.replace(/(<li>.*?<\/li>\n?)+/g, function(match) {
+            // Only wrap if not already in an ordered list
+            if (!match.includes('value=')) {
+                return '<ul>' + match + '</ul>';
+            }
+            return match;
+        });
+        
+        // Convert double line breaks to paragraphs
+        const paragraphs = formatted.split(/\n\n+/);
+        formatted = paragraphs.map(para => {
+            para = para.trim();
+            // Don't wrap lists or empty strings in paragraphs
+            if (para && !para.startsWith('<ul>') && !para.startsWith('<ol>')) {
+                return '<p>' + para + '</p>';
+            }
+            return para;
+        }).join('');
+        
+        // Convert single line breaks to <br> within paragraphs
+        formatted = formatted.replace(/\n/g, '<br>');
+        
+        // Clean up any double-wrapped lists
+        formatted = formatted.replace(/<p>(<[uo]l>.*?<\/[uo]l>)<\/p>/g, '$1');
+        
+        return formatted;
+    }
+    
+    /**
      * Add assistant message to chat
      */
     function addAssistantMessage(message, save = true) {
         // Remove welcome message if it exists
         $('.mpcc-welcome-message').remove();
+        
+        // Format the message for better readability
+        const formattedMessage = formatMessageToHTML(message);
         
         const aiHtml = `
             <div class="mpcc-message mpcc-message-assistant">
@@ -410,7 +467,7 @@ jQuery(document).ready(function($) {
                     <span class="dashicons dashicons-superhero-alt"></span>
                 </div>
                 <div class="mpcc-message-content">
-                    ${message}
+                    ${formattedMessage}
                 </div>
                 <div class="mpcc-message-meta">
                     <span class="mpcc-message-time">${new Date().toLocaleTimeString()}</span>
@@ -471,6 +528,16 @@ jQuery(document).ready(function($) {
                 sessionStorage.removeItem(SESSION_STORAGE_KEY);
                 window.mpccConversationHistory = [];
                 window.mpccConversationState = { current_step: 'initial', collected_data: {} };
+                
+                // Clear the current course data
+                window.mpccCurrentCourse = null;
+                
+                // Clear the preview pane
+                const $previewContent = jQuery('#mpcc-preview-content');
+                if ($previewContent.length > 0) {
+                    $previewContent.html('<p style="color: #666; text-align: center; padding: 40px;">Course preview will appear here as you build it...</p>');
+                }
+                
                 createNewConversation();
             });
         }
