@@ -379,29 +379,31 @@ class CourseIntegrationService extends BaseService
             );
         }
         
-        // Enqueue AI interface JavaScript
+        // Enqueue initialization script first
         wp_enqueue_script(
-            'mpcc-courses-integration',
-            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/courses-integration.js',
+            'mpcc-init',
+            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/mpcc-init.js',
             ['jquery'],
             MEMBERPRESS_COURSES_COPILOT_VERSION,
             true
         );
         
-        // Enqueue AI Copilot JavaScript
+        // Enqueue AI interface JavaScript
         wp_enqueue_script(
-            'mpcc-ai-copilot',
-            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/ai-copilot.js',
-            ['jquery'],
+            'mpcc-courses-integration',
+            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/courses-integration.js',
+            ['jquery', 'mpcc-init'],
             MEMBERPRESS_COURSES_COPILOT_VERSION,
             true
         );
+        
+        // AI Copilot JavaScript removed - functionality merged into simple-ai-chat.js
         
         // Enqueue enhanced AI chat with persistence
         wp_enqueue_script(
             'mpcc-simple-ai-chat',
             MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/simple-ai-chat.js',
-            ['jquery'],
+            ['jquery', 'mpcc-init'],
             MEMBERPRESS_COURSES_COPILOT_VERSION,
             true
         );
@@ -437,11 +439,7 @@ class CourseIntegrationService extends BaseService
             ]
         ]);
         
-        // Localize AI copilot script
-        wp_localize_script('mpcc-ai-copilot', 'mpccAISettings', [
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('mpcc_courses_integration')
-        ]);
+        // Localization moved to simple-ai-chat.js
         
         // Localize simple AI chat script
         wp_localize_script('mpcc-simple-ai-chat', 'mpccAISettings', [

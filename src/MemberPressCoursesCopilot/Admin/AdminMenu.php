@@ -175,14 +175,7 @@ class AdminMenu {
                 true
             );
             
-            // Enqueue AI Copilot JavaScript
-            wp_enqueue_script(
-                'mpcc-ai-copilot',
-                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/ai-copilot.js',
-                ['jquery'],
-                MEMBERPRESS_COURSES_COPILOT_VERSION,
-                true
-            );
+            // AI Copilot JavaScript removed - functionality merged into simple-ai-chat.js
 
             // Localize script
             wp_localize_script('mpcc-course-generator', 'mpccCoursesIntegration', [
@@ -199,11 +192,7 @@ class AdminMenu {
                 'templates' => $this->getCourseTemplates(),
             ]);
             
-            // Also localize the AI copilot script
-            wp_localize_script('mpcc-ai-copilot', 'mpccAISettings', [
-                'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('mpcc_courses_integration')
-            ]);
+            // Localization moved to simple-ai-chat.js
         }
     }
 

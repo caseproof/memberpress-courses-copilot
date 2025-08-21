@@ -25,6 +25,12 @@ The MemberPress Courses Copilot has successfully implemented a functional MVP th
 - **✅ NEW: Course preview persistence in saved conversations**
 - **✅ NEW: Enhanced UI with proper message formatting and avatars**
 - **✅ NEW: Conversation management buttons properly positioned**
+- **✅ NEW: Fixed dashicon alignment issues for chat avatars**
+- **✅ NEW: Fixed course creation redirect issue (no more blocking alerts)**
+- **✅ NEW: Fixed chat interface vertical height to use full space**
+- **✅ NEW: Fixed AI response formatting for initial messages**
+- **✅ NEW: Fixed excessive line breaks in AI responses**
+- **✅ NEW: Fixed input field clearing after quick start buttons**
 
 ### 🔴 Critical Issues Requiring Immediate Attention
 1. ~~**Security**: Hardcoded API key in LLMService.php must be removed~~ ✅ COMPLETED via Auth Gateway
@@ -51,7 +57,15 @@ The MemberPress Courses Copilot has successfully implemented a functional MVP th
 - [x] Move inline CSS to dedicated stylesheets ✅ 100% DONE
 - [x] Move inline JavaScript to separate files ✅ 90% DONE
 
-*Note: CourseIntegrationService still 1258 lines, needs further splitting*
+*Note: CourseIntegrationService still 1279 lines, needs splitting into smaller services*
+
+**Refactoring Priorities Identified:**
+1. **JavaScript Consolidation**: Merge ai-copilot.js functionality into simple-ai-chat.js to eliminate duplicate event handlers
+2. **Service Splitting**: Break CourseIntegrationService into CourseAjaxService (AJAX handlers) and CourseAssetService (CSS/JS)
+3. **Extract Utilities**: Create shared modules for notifications, AJAX helpers, and message formatting
+4. **Remove YAGNI Violations**: Strip unused features (voice recording, drag-drop, themes) from ai-copilot.js
+5. **Fix Event Handler Conflicts**: Consolidate multiple handlers for same actions (send button, quick start)
+6. **Inline Code Removal**: Extract remaining inline styles/scripts from PHP files
 
 #### Day 5: State Persistence ✅ COMPLETE
 - [x] Implement conversation state persistence in database ✅
@@ -67,6 +81,13 @@ The MemberPress Courses Copilot has successfully implemented a functional MVP th
 - **✅ Course Preview Persistence**: Fixed preview not loading from saved conversations by ensuring course data is properly stored in conversation state
 - **✅ UI/UX Improvements**: Enhanced message formatting with avatars, fixed chat height issues, improved button placement
 
+#### UI/UX Bug Fixes (August 21, 2025)
+- **✅ Dashicon Alignment**: Fixed vertical alignment issues in chat interface
+- **✅ Course Creation Flow**: Removed blocking alerts, consolidated event handlers, improved redirect handling
+- **✅ Chat Interface Layout**: Fixed vertical space usage, maintained session control visibility
+- **✅ Message Formatting**: Fixed initial AI response formatting and excessive line breaks
+- **✅ Input Field Behavior**: Fixed clearing after quick start button usage
+
 #### Enhanced Features
 - **✅ Session Management**: Added session limits (5 per user), caching (15-min TTL), and multi-device sync
 - **✅ Comprehensive Logging**: Added detailed logging throughout for better debugging
@@ -76,10 +97,11 @@ The MemberPress Courses Copilot has successfully implemented a functional MVP th
 
 #### Day 6-7: User Experience Improvements
 - [ ] Add loading states for AI responses
-- [ ] Implement proper error messages for users
+- [x] Implement proper error messages for users ✅ PARTIALLY DONE (removed blocking alerts)
 - [ ] Add retry mechanism for failed AI calls
 - [ ] Create help tooltips for interface elements
 - [ ] Add keyboard shortcuts for common actions
+- [x] UI polish items ✅ DONE (chat layout, formatting, input behavior)
 
 #### Day 8-9: Testing & Documentation
 - [ ] Create comprehensive test suite for core functionality
@@ -301,18 +323,34 @@ namespace MemberPressCoursesCopilot\Services;
 - State persistence with auto-save
 - MemberPress curriculum creation fix
 - Course preview persistence
-- UI/UX improvements
+- UI/UX improvements (dashicons, layout, formatting)
+- Critical bug fixes (redirect issues, input clearing, line breaks)
 
 ### 🔄 In Progress
-- Code refactoring (40% - needs CourseAjaxService and CourseAssetService)
-- User experience improvements
+- Code refactoring (40% - needs JavaScript consolidation and service splitting)
+- Remaining user experience improvements
 - Testing & documentation
+
+### 🚨 Technical Debt Requiring Immediate Attention
+- **Duplicate JavaScript**: ai-copilot.js and simple-ai-chat.js have overlapping functionality
+- **Event Handler Conflicts**: Multiple handlers for same buttons causing issues
+- **Service Size**: CourseIntegrationService at 1279 lines violates SRP
+- **YAGNI Violations**: Unused features in ai-copilot.js (voice, drag-drop, themes)
 
 ## Next Immediate Actions
 
-1. **Today**: Complete remaining code refactoring (split CourseIntegrationService)
-2. **This Week**: Implement UX improvements (loading states, error messages)
-3. **Next Week**: Complete testing suite and performance optimization
+1. **Today**: Complete JavaScript consolidation and service splitting:
+   - Merge ai-copilot.js into simple-ai-chat.js
+   - Create CourseAjaxService and CourseAssetService
+   - Remove duplicate event handlers
+2. **This Week**: 
+   - Extract shared utilities (notifications, AJAX, formatting)
+   - Implement remaining UX improvements (loading states, retry mechanism, tooltips)
+   - Document the notification system that replaced blocking alerts
+3. **Next Week**: 
+   - Complete testing suite development
+   - Performance optimization
+   - Remove unused features and legacy code
 4. **Following Week**: Begin template system development (Phase 5)
 
 This plan provides a clear roadmap for transforming the MVP into a production-ready, feature-rich course creation platform that will position MemberPress as the leader in AI-powered WordPress course creation.

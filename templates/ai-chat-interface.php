@@ -67,6 +67,19 @@ $post_id = $post_id ?? 0;
             </small>
         </div>
     </div>
+    
+    <!-- Session Management Controls -->
+    <div class="mpcc-session-controls" style="display: flex; gap: 10px; padding: 10px; justify-content: center; border-top: 1px solid #e8eaed; background-color: #f8f9fa;">
+        <button id="mpcc-session-manager-btn" class="button button-small" style="display: inline-flex; align-items: center; gap: 5px;">
+            <span class="dashicons dashicons-list-view" style="font-size: 16px; width: 16px; height: 16px;"></span>
+            <?php esc_html_e('Previous Conversations', 'memberpress-courses-copilot'); ?>
+        </button>
+        <button id="mpcc-new-conversation-btn" class="button button-small" style="display: inline-flex; align-items: center; gap: 5px;">
+            <span class="dashicons dashicons-plus" style="font-size: 16px; width: 16px; height: 16px;"></span>
+            <?php esc_html_e('New Conversation', 'memberpress-courses-copilot'); ?>
+        </button>
+    </div>
+    <div id="mpcc-session-list" style="display: none; padding: 10px; background-color: #f0f0f1; border-top: 1px solid #ddd;"></div>
 </div>
 
 <script type="text/javascript">
@@ -83,53 +96,13 @@ window.addEventListener('error', function(e) {
 jQuery(document).ready(function($) {
     console.log('AI Chat Interface template loaded');
     
-    // Check if the enhanced chat script is loaded
-    if (typeof window.initializeChat === 'undefined') {
-        console.log('Enhanced chat script not loaded, loading dynamically...');
-        
-        // Reset initialization flag before loading
-        window.mpccChatInitialized = false;
-        
-        // Load the enhanced chat script dynamically
-        var script = document.createElement('script');
-        script.src = '<?php echo MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL; ?>assets/js/simple-ai-chat.js?ver=<?php echo MEMBERPRESS_COURSES_COPILOT_VERSION; ?>';
-        script.onload = function() {
-            console.log('Enhanced chat script loaded successfully');
-            // The script will auto-initialize when loaded
-        };
-        script.onerror = function() {
-            console.error('Failed to load enhanced chat script');
-        };
-        document.head.appendChild(script);
-    } else {
-        console.log('Enhanced chat script already loaded');
-        // Don't reinitialize to avoid duplicates
-    }
+    // Trigger initialization event to let scripts know the interface is ready
+    $(document).trigger('mpcc:interface-loaded');
     
     // Auto-focus input
     $('#mpcc-chat-input').focus();
     
-    // Handle quick start button clicks (prevent duplicate bindings)
-    $('.mpcc-quick-start').off('click').on('click', function(e) {
-        e.preventDefault();
-        console.log('Quick start button clicked');
-        var message = $(this).data('message');
-        if (message) {
-            $('#mpcc-chat-input').val(message);
-            $('#mpcc-send-message').trigger('click');
-            
-            // Ensure input is cleared after triggering send
-            setTimeout(function() {
-                $('#mpcc-chat-input').val('');
-            }, 100);
-            
-            // Prevent further clicks for 2 seconds
-            $('.mpcc-quick-start').prop('disabled', true);
-            setTimeout(function() {
-                $('.mpcc-quick-start').prop('disabled', false);
-            }, 2000);
-        }
-    });
+    // Quick start buttons are handled by mpcc-init.js to avoid duplication
 });
 </script>
 
