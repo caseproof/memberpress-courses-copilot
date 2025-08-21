@@ -910,16 +910,22 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
         },
         success: function(response) {
             if (response.success) {
+                console.log('Course creation successful, response:', response);
+                
                 // Show success message
                 if (typeof window.showNotification === 'function') {
                     window.showNotification('Course created successfully! Redirecting...', 'success');
                 }
                 
                 // Redirect to the edit page with a small delay
-                if (response.data.edit_url) {
+                if (response.data && response.data.edit_url) {
+                    console.log('Redirecting to:', response.data.edit_url);
                     setTimeout(function() {
                         window.location.href = response.data.edit_url;
-                    }, 1000);
+                    }, 1500);
+                } else {
+                    console.error('No edit_url in response:', response);
+                    alert('Course created but redirect URL not found. Please check the courses list.');
                 }
             } else {
                 // Show error message
