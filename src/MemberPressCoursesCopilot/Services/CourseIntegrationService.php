@@ -811,9 +811,24 @@ class CourseIntegrationService extends BaseService
         
         $course_data = $_POST['course_data'] ?? [];
         
+        // Log the raw POST data to debug
+        $this->logger->info('Raw course_data received', [
+            'raw_data' => json_encode($_POST['course_data'] ?? 'empty'),
+            'is_array' => is_array($course_data),
+            'is_empty' => empty($course_data),
+            'course_data_type' => gettype($course_data)
+        ]);
+        
+        // Check if course data is nested under 'course_structure' key
+        if (isset($course_data['course_structure']) && is_array($course_data['course_structure'])) {
+            $this->logger->info('Found nested course_structure, extracting it');
+            $course_data = $course_data['course_structure'];
+        }
+        
         if (empty($course_data)) {
             $this->logger->warning('Course creation failed: no course data provided', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
+                'post_keys' => array_keys($_POST)
             ]);
             wp_send_json_error('No course data provided');
             return;
@@ -824,7 +839,8 @@ class CourseIntegrationService extends BaseService
                 'user_id' => get_current_user_id(),
                 'course_title' => $course_data['title'] ?? 'Unknown',
                 'sections_count' => count($course_data['sections'] ?? []),
-                'course_data_keys' => array_keys($course_data)
+                'course_data_keys' => array_keys($course_data),
+                'first_section' => isset($course_data['sections'][0]) ? json_encode($course_data['sections'][0]) : 'no sections'
             ]);
             
             // Initialize the Course Generator Service

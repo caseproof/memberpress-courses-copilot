@@ -427,8 +427,10 @@
 
                 // Update course preview with animations
                 if (data.course_data) {
+                    console.log('MPCC Debug: Received course_data from AI:', data.course_data);
                     this.updateCoursePreview(data.course_data, true);
                     this.currentCourse = data.course_data;
+                    console.log('MPCC Debug: Set currentCourse to:', this.currentCourse);
                 }
                 
                 // Trigger preview panel update if flagged
@@ -438,9 +440,18 @@
                 
                 // Update conversation state
                 if (data.conversation_state) {
+                    console.log('MPCC Debug: Conversation state update:', data.conversation_state);
                     this.currentStep = data.conversation_state.current_step;
                     if (data.conversation_state.collected_data) {
-                        this.currentCourse = {...this.currentCourse, ...data.conversation_state.collected_data};
+                        // Check if course structure is nested in collected_data
+                        if (data.conversation_state.collected_data.course_structure) {
+                            console.log('MPCC Debug: Found course_structure in collected_data:', data.conversation_state.collected_data.course_structure);
+                            this.currentCourse = data.conversation_state.collected_data.course_structure;
+                        } else {
+                            console.log('MPCC Debug: Merging collected_data into currentCourse');
+                            this.currentCourse = {...this.currentCourse, ...data.conversation_state.collected_data};
+                        }
+                        console.log('MPCC Debug: Final currentCourse after state update:', this.currentCourse);
                     }
                 }
 
@@ -1260,6 +1271,9 @@
                 this.showNotification('No course data available', 'error');
                 return;
             }
+            
+            console.log('MPCC Debug: Creating course with data:', this.currentCourse);
+            console.log('MPCC Debug: Course sections:', this.currentCourse.sections);
             
             this.showNotification('Creating your course...', 'info');
             
