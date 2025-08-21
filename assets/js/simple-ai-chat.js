@@ -136,15 +136,30 @@ jQuery(document).ready(function($) {
                     
                     // Check if we have course data in the conversation state and rebuild preview
                     console.log('Checking for course data in loaded conversation:', window.mpccConversationState);
-                    if (window.mpccConversationState && window.mpccConversationState.collected_data && 
-                        window.mpccConversationState.collected_data.course_structure) {
-                        console.log('Found course data, updating preview:', window.mpccConversationState.collected_data.course_structure);
-                        window.mpccCurrentCourse = window.mpccConversationState.collected_data.course_structure;
-                        if (typeof window.mpccUpdatePreview === 'function') {
-                            window.mpccUpdatePreview(window.mpccCurrentCourse);
+                    console.log('Collected data keys:', window.mpccConversationState.collected_data ? Object.keys(window.mpccConversationState.collected_data) : 'No collected data');
+                    
+                    if (window.mpccConversationState && window.mpccConversationState.collected_data) {
+                        // Check for course_structure key first (new format)
+                        if (window.mpccConversationState.collected_data.course_structure) {
+                            console.log('Found course data (new format), updating preview:', window.mpccConversationState.collected_data.course_structure);
+                            window.mpccCurrentCourse = window.mpccConversationState.collected_data.course_structure;
+                            if (typeof window.mpccUpdatePreview === 'function') {
+                                window.mpccUpdatePreview(window.mpccCurrentCourse);
+                            }
+                        } 
+                        // Fallback: Check if collected_data itself contains course data (old format)
+                        else if (window.mpccConversationState.collected_data.title && window.mpccConversationState.collected_data.sections) {
+                            console.log('Found course data (old format), updating preview:', window.mpccConversationState.collected_data);
+                            window.mpccCurrentCourse = window.mpccConversationState.collected_data;
+                            if (typeof window.mpccUpdatePreview === 'function') {
+                                window.mpccUpdatePreview(window.mpccCurrentCourse);
+                            }
+                        } else {
+                            console.log('No course data found in conversation state');
+                            console.log('Full conversation state:', JSON.stringify(window.mpccConversationState, null, 2));
                         }
                     } else {
-                        console.log('No course data found in conversation state');
+                        console.log('No collected_data in conversation state');
                     }
                     
                     // Update last save time

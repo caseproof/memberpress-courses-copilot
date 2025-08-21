@@ -679,6 +679,7 @@ class CourseIntegrationService extends BaseService
                 'context' => $context,
                 'current_step' => $current_step,
                 'collected_data_keys' => array_keys($collected_data),
+                'has_course_structure' => isset($collected_data['course_structure']),
                 'prompt_length' => strlen($full_prompt)
             ]);
             
@@ -729,7 +730,8 @@ class CourseIntegrationService extends BaseService
             
             // Update conversation state
             if ($course_data) {
-                $collected_data = array_merge($collected_data, $course_data);
+                // Store course data under 'course_structure' key to match JavaScript expectations
+                $collected_data['course_structure'] = $course_data;
             }
             
             // Determine next step
@@ -1162,7 +1164,9 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $this->logger->info('Loaded conversation', [
                 'session_id' => $sessionId,
                 'user_id' => get_current_user_id(),
-                'messages_count' => count($messages)
+                'messages_count' => count($messages),
+                'has_course_structure' => isset($session->getContext()['course_structure']),
+                'context_keys' => array_keys($session->getContext())
             ]);
             
             wp_send_json_success([
