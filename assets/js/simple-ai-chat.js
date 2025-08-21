@@ -476,7 +476,7 @@ jQuery(document).ready(function($) {
         const aiHtml = `
             <div class="mpcc-message mpcc-message-assistant">
                 <div class="mpcc-message-avatar">
-                    <span class="dashicons dashicons-superhero-alt"></span>
+                    <span class="dashicons dashicons-format-chat"></span>
                 </div>
                 <div class="mpcc-message-content">
                     ${formattedMessage}
@@ -755,7 +755,7 @@ jQuery(document).ready(function($) {
                     const aiHtml = `
                         <div class="mpcc-message mpcc-message-assistant">
                             <div class="mpcc-message-avatar">
-                                <span class="dashicons dashicons-superhero-alt"></span>
+                                <span class="dashicons dashicons-format-chat"></span>
                             </div>
                             <div class="mpcc-message-content">
                                 ${response.data.message}

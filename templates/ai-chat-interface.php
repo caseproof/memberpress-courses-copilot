@@ -56,7 +56,7 @@ $post_id = $post_id ?? 0;
                 style="flex: 1; padding: 12px 16px; border: 2px solid #e8eaed; border-radius: 24px; resize: none; font-family: inherit; font-size: 14px; line-height: 1.4; outline: none;"
             ></textarea>
             <button type="button" id="mpcc-send-message" class="button button-primary" style="padding: 12px 20px; border-radius: 20px; display: flex; align-items: center; gap: 6px;">
-                <span class="dashicons dashicons-paperplane" style="font-size: 16px; width: 16px; height: 16px;"></span>
+                <span class="dashicons dashicons-arrow-right-alt" style="font-size: 16px; width: 16px; height: 16px;"></span>
                 <?php esc_html_e('Send', 'memberpress-courses-copilot'); ?>
             </button>
         </div>
