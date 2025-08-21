@@ -92,6 +92,15 @@ class ConversationSession
     }
 
     /**
+     * Clear all messages from the conversation
+     */
+    public function clearMessages(): void
+    {
+        $this->messages = [];
+        $this->markAsModified();
+    }
+
+    /**
      * Get recent messages
      */
     public function getRecentMessages(int $count = 10): array
@@ -177,7 +186,7 @@ class ConversationSession
     /**
      * Set conversation context data
      */
-    public function setContext(string $key, mixed $value = null): void
+    public function setContext(string|array $key, mixed $value = null): void
     {
         if (is_array($key) && $value === null) {
             // Setting entire context array
@@ -379,6 +388,15 @@ class ConversationSession
     public function setMetadata(string $key, mixed $value): void
     {
         $this->metadata[$key] = $value;
+        $this->markAsModified();
+    }
+
+    /**
+     * Set entire metadata array
+     */
+    public function setMetadataArray(array $metadata): void
+    {
+        $this->metadata = $metadata;
         $this->markAsModified();
     }
 

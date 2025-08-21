@@ -434,8 +434,8 @@
   display: flex;
   gap: var(--mpcc-spacing-md);
   margin-bottom: var(--mpcc-spacing-xl);
-  opacity: 0;
-  animation: messageSlideIn var(--mpcc-transition-base) ease-out forwards;
+  opacity: 1; /* Changed from 0 to 1 - messages should be visible immediately */
+  /* Removed animation that was causing visibility issues */
 }
 
 .mpcc-message:last-child {

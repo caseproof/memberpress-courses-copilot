@@ -8,6 +8,13 @@
  * - Unsaved changes warnings
  */
 jQuery(document).ready(function($) {
+    // Prevent multiple initializations
+    if (window.mpccChatInitialized) {
+        console.log('Chat already initialized, skipping...');
+        return;
+    }
+    window.mpccChatInitialized = true;
+    
     // Configuration
     const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
     const SESSION_STORAGE_KEY = 'mpcc_current_session_id';
@@ -19,26 +26,26 @@ jQuery(document).ready(function($) {
     let lastSaveTime = 0;
     let isDirty = false;
     let saveDebounceTimer = null;
+    let isProcessingMessage = false;
     
-    // Initialize conversation state
-    window.mpccConversationHistory = window.mpccConversationHistory || [];
-    window.mpccConversationState = window.mpccConversationState || { 
-        current_step: 'initial', 
-        collected_data: {} 
-    };
+    // Initialize conversation state only if not already initialized
+    if (!window.mpccConversationHistory) {
+        window.mpccConversationHistory = [];
+    }
+    if (!window.mpccConversationState) {
+        window.mpccConversationState = { 
+            current_step: 'initial', 
+            collected_data: {} 
+        };
+    }
     
     /**
      * Initialize chat interface with persistence
      */
     function initializeChat() {
-        // Check for existing session
-        const storedSessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        
-        if (storedSessionId) {
-            loadConversation(storedSessionId);
-        } else {
-            createNewConversation();
-        }
+        // Always start with a new conversation
+        // Previous conversations can be loaded via the "Previous Conversations" button
+        createNewConversation();
         
         // Set up auto-save
         startAutoSave();
@@ -256,19 +263,25 @@ jQuery(document).ready(function($) {
      * Rebuild chat interface from history
      */
     function rebuildChatInterface() {
-        $('#mpcc-chat-messages').empty();
-        
-        // Add messages from history
-        window.mpccConversationHistory.forEach(function(message) {
-            if (message.role === 'user') {
-                addUserMessage(message.content, false);
-            } else if (message.role === 'assistant') {
-                addAssistantMessage(message.content, false);
-            }
-        });
-        
-        // Scroll to bottom
-        scrollToBottom();
+        // Only clear and rebuild if we have messages to display
+        if (window.mpccConversationHistory && window.mpccConversationHistory.length > 0) {
+            $('#mpcc-chat-messages').empty();
+            
+            // Add messages from history
+            window.mpccConversationHistory.forEach(function(message) {
+                if (message.role === 'user') {
+                    addUserMessage(message.content, false);
+                } else if (message.role === 'assistant') {
+                    addAssistantMessage(message.content, false);
+                }
+            });
+            
+            // Scroll to bottom
+            scrollToBottom();
+        } else {
+            // If no messages, ensure welcome message is visible
+            showWelcomeMessage();
+        }
     }
     
     /**
@@ -276,14 +289,39 @@ jQuery(document).ready(function($) {
      */
     function showWelcomeMessage() {
         $('#mpcc-chat-messages').html(`
-            <div class="mpcc-welcome-message" style="padding: 20px; text-align: center; color: #666;">
-                <div style="font-size: 48px; margin-bottom: 15px;">🤖</div>
-                <h3 style="margin: 0 0 10px 0;">AI Course Assistant</h3>
-                <p style="margin: 0;">
-                    Hi! I'm here to help you create an amazing course. What kind of course would you like to build?
+            <div class="mpcc-welcome-message" style="text-align: center; padding: 20px; color: #666;">
+                <div style="font-size: 32px; margin-bottom: 15px;">🤖</div>
+                <h3 style="margin: 0 0 10px 0; color: #1a73e8;">AI Course Assistant</h3>
+                <p style="margin: 0; line-height: 1.5;">
+                    Hi! I'm here to help you create an amazing course. What kind of course would you like to build today?
                 </p>
+                
+                <div style="margin-top: 20px;">
+                    <p style="font-size: 14px; color: #888; margin-bottom: 10px;">Quick starters:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+                        <button type="button" class="button button-small mpcc-quick-start" data-message="Help me create a programming course for beginners">
+                            Programming Course
+                        </button>
+                        <button type="button" class="button button-small mpcc-quick-start" data-message="I want to create a business skills course">
+                            Business Skills
+                        </button>
+                        <button type="button" class="button button-small mpcc-quick-start" data-message="Help me design a creative arts course">
+                            Creative Arts
+                        </button>
+                    </div>
+                </div>
             </div>
         `);
+        
+        // Re-bind quick start button handlers
+        $('.mpcc-quick-start').off('click').on('click', function(e) {
+            e.preventDefault();
+            var message = $(this).data('message');
+            if (message) {
+                $('#mpcc-chat-input').val(message);
+                $('#mpcc-send-message').trigger('click');
+            }
+        });
     }
     
     /**
@@ -323,6 +361,9 @@ jQuery(document).ready(function($) {
      * Add assistant message to chat
      */
     function addAssistantMessage(message, save = true) {
+        // Remove welcome message if it exists
+        $('.mpcc-welcome-message').remove();
+        
         const aiHtml = `
             <div class="mpcc-message mpcc-message--assistant" style="margin-bottom: 15px;">
                 <div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 70%;">
@@ -334,6 +375,7 @@ jQuery(document).ready(function($) {
             </div>
         `;
         $('#mpcc-chat-messages').append(aiHtml);
+        scrollToBottom();
         
         if (save) {
             markDirty();
@@ -468,9 +510,16 @@ jQuery(document).ready(function($) {
     });
     
     // Handle send button click
-    $('#mpcc-send-message').on('click', function() {
+    $('#mpcc-send-message').off('click').on('click', function() {
         const message = $('#mpcc-chat-input').val().trim();
         if (!message) return;
+        
+        // Prevent duplicate processing
+        if (isProcessingMessage) {
+            console.log('Already processing a message, ignoring duplicate');
+            return;
+        }
+        isProcessingMessage = true;
         
         // Disable button to prevent double-click
         $(this).prop('disabled', true);
@@ -517,7 +566,9 @@ jQuery(document).ready(function($) {
                 session_id: currentSessionId
             },
             success: function(response) {
+                // Remove typing indicator
                 $('#mpcc-typing').remove();
+                console.log('Typing indicator removed');
                 
                 if (response.success) {
                     // Add AI response to conversation history
@@ -533,7 +584,41 @@ jQuery(document).ready(function($) {
                     }
                     
                     // Add AI response
-                    addAssistantMessage(response.data.message);
+                    console.log('AI Response received:', response.data.message);
+                    
+                    // Force add the message directly to ensure it's visible
+                    const $container = $('#mpcc-chat-messages');
+                    console.log('Container found:', $container.length, 'Container ID:', $container.attr('id'));
+                    console.log('Container visible:', $container.is(':visible'), 'Height:', $container.height());
+                    
+                    // Ensure container is visible
+                    if (!$container.is(':visible')) {
+                        console.warn('Chat container is hidden! Making it visible...');
+                        $container.show();
+                    }
+                    
+                    // Remove welcome message
+                    $('.mpcc-welcome-message').remove();
+                    
+                    // Add the assistant message HTML directly
+                    const aiHtml = `
+                        <div class="mpcc-message mpcc-message--assistant" style="margin-bottom: 15px;">
+                            <div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 70%;">
+                                ${response.data.message}
+                            </div>
+                            <div class="mpcc-message-time" style="font-size: 11px; color: #999; margin-top: 5px;">
+                                ${new Date().toLocaleTimeString()}
+                            </div>
+                        </div>
+                    `;
+                    $container.append(aiHtml);
+                    console.log('Message HTML added directly');
+                    
+                    // Force scroll
+                    $container.scrollTop($container[0].scrollHeight);
+                    
+                    // Mark as dirty for auto-save
+                    markDirty();
                     
                     // Show action buttons if available
                     if (response.data.actions && response.data.actions.length > 0) {
@@ -563,15 +648,17 @@ jQuery(document).ready(function($) {
                     showError(response.data || 'Something went wrong');
                 }
                 
-                // Re-enable send button
+                // Re-enable send button and reset processing flag
                 $('#mpcc-send-message').prop('disabled', false);
+                isProcessingMessage = false;
             },
             error: function(xhr, status, error) {
                 $('#mpcc-typing').remove();
                 showError('Failed to connect to AI service. Please try again.');
                 
-                // Re-enable send button
+                // Re-enable send button and reset processing flag
                 $('#mpcc-send-message').prop('disabled', false);
+                isProcessingMessage = false;
             }
         });
     });

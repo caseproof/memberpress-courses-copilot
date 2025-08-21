@@ -576,7 +576,7 @@ class SessionFeaturesService extends BaseService
         }
         
         if (isset($clientData['context'])) {
-            $session->setContext($clientData['context']);
+            $session->setContext($clientData['context'], null);
         }
         
         if (isset($clientData['progress'])) {

@@ -1071,6 +1071,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $conversationState = $_POST['conversation_state'] ?? [];
             
             // Clear existing messages and add new ones
+            $session->clearMessages();
             foreach ($conversationHistory as $message) {
                 $session->addMessage(
                     $message['role'],
@@ -1081,7 +1082,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             
             // Update state
             $session->setCurrentState($conversationState['current_step'] ?? 'initial');
-            $session->setContext($conversationState['collected_data'] ?? []);
+            $session->setContext($conversationState['collected_data'] ?? [], null);
             
             // Save to database
             $saved = $conversationManager->saveSession($session);

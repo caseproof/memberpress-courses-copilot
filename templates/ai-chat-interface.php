@@ -87,6 +87,9 @@ jQuery(document).ready(function($) {
     if (typeof window.initializeChat === 'undefined') {
         console.log('Enhanced chat script not loaded, loading dynamically...');
         
+        // Reset initialization flag before loading
+        window.mpccChatInitialized = false;
+        
         // Load the enhanced chat script dynamically
         var script = document.createElement('script');
         script.src = '<?php echo MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL; ?>assets/js/simple-ai-chat.js?ver=<?php echo MEMBERPRESS_COURSES_COPILOT_VERSION; ?>';
@@ -100,6 +103,7 @@ jQuery(document).ready(function($) {
         document.head.appendChild(script);
     } else {
         console.log('Enhanced chat script already loaded');
+        // Don't reinitialize to avoid duplicates
     }
     
     // Auto-focus input
@@ -148,4 +152,5 @@ jQuery(document).ready(function($) {
     color: #9aa0a6 !important;
     cursor: not-allowed !important;
 }
+
 </style>

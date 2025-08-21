@@ -92,7 +92,8 @@ class ConversationManager extends BaseService
         $session = new ConversationSession($sessionId, $userId, $sessionData['context'] ?? 'course_creation');
         $session->setDatabaseId($conversationId);
         $session->setCurrentState($sessionData['state'] ?? 'initial');
-        $session->setContext($sessionData['initial_data'] ?? []);
+        // Pass array as first parameter with null as second to set entire context
+        $session->setContext($sessionData['initial_data'] ?? [], null);
         
         // Add to active sessions and cache
         $this->activeSessions[$sessionId] = $session;
@@ -185,7 +186,7 @@ class ConversationManager extends BaseService
         
         // Restore session state
         $session->setCurrentState($sessionData['current_state']);
-        $session->setContext($sessionData['context_data']);
+        $session->setContext($sessionData['context_data'], null);
         $session->setStateHistory($sessionData['state_history']);
         $session->setProgress($sessionData['progress']);
         
@@ -527,11 +528,11 @@ class ConversationManager extends BaseService
         $session->setDatabaseId($record->id);
         $session->setTitle($record->title);
         $session->setCurrentState($stepData['current_state'] ?? 'initial');
-        $session->setContext($stepData['context'] ?? []);
+        $session->setContext($stepData['context'] ?? [], null);
         $session->setStateHistory($stepData['state_history'] ?? []);
         $session->setProgress($stepData['progress'] ?? 0.0);
         $session->setConfidenceScore($stepData['confidence_score'] ?? 0.0);
-        $session->setMetadata($metadata);
+        $session->setMetadataArray($metadata);
         $session->setTotalTokens($record->total_tokens ?? 0);
         $session->setTotalCost($record->total_cost ?? 0.0);
         $session->setCreatedAt(strtotime($record->created_at));
