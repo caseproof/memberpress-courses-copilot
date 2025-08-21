@@ -43,9 +43,18 @@ jQuery(document).ready(function($) {
      * Initialize chat interface with persistence
      */
     function initializeChat() {
-        // Always start with a new conversation
-        // Previous conversations can be loaded via the "Previous Conversations" button
-        createNewConversation();
+        // Check for existing session in sessionStorage
+        const existingSessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        
+        if (existingSessionId) {
+            console.log('Found existing session:', existingSessionId);
+            // Try to load the existing conversation
+            loadConversation(existingSessionId);
+        } else {
+            console.log('No existing session found, creating new conversation');
+            // Create a new conversation if no session exists
+            createNewConversation();
+        }
         
         // Set up auto-save
         startAutoSave();
@@ -437,6 +446,7 @@ jQuery(document).ready(function($) {
      * Show session management UI
      */
     function showSessionManager() {
+        console.log('Showing session manager...');
         $('#mpcc-session-list').html('<div class="spinner is-active" style="float: none;"></div>');
         
         $.ajax({
@@ -447,7 +457,9 @@ jQuery(document).ready(function($) {
                 nonce: $('#mpcc-ajax-nonce').val() || mpccAISettings?.nonce || ''
             },
             success: function(response) {
-                if (response.success && response.data.sessions.length > 0) {
+                console.log('Session list response:', response);
+                
+                if (response.success && response.data && response.data.sessions && response.data.sessions.length > 0) {
                     let sessionListHtml = '<div style="padding: 15px; background: #f5f5f5; border-radius: 4px;"><h4>Recent Conversations</h4><ul style="list-style: none; padding: 0;">';
                     
                     response.data.sessions.forEach(function(session) {
@@ -459,7 +471,7 @@ jQuery(document).ready(function($) {
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div>
                                         <strong>${$('<div>').text(session.title).html()}</strong><br>
-                                        <small>Created: ${date} | Progress: ${session.progress}%</small>
+                                        <small>Created: ${date} | Progress: ${session.progress || 0}%</small>
                                     </div>
                                     ${!isActive ? `<button class="button button-small mpcc-load-session" data-session-id="${session.session_id}">Load</button>` : '<span style="color: #0073aa; font-weight: bold;">Active</span>'}
                                 </div>
@@ -483,11 +495,13 @@ jQuery(document).ready(function($) {
                         $('#mpcc-session-list').hide();
                     });
                 } else {
+                    console.log('No sessions found or invalid response structure');
                     $('#mpcc-session-list').html('<div style="padding: 15px; text-align: center; color: #666;">No previous conversations found</div>');
                 }
             },
-            error: function() {
-                $('#mpcc-session-list').html('<div style="padding: 15px; color: #d63638;">Failed to load conversations</div>');
+            error: function(xhr, status, error) {
+                console.error('Failed to load conversations:', error, xhr.responseText);
+                $('#mpcc-session-list').html('<div style="padding: 15px; color: #d63638;">Failed to load conversations. Please check the console for details.</div>');
             }
         });
     }
