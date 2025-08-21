@@ -116,7 +116,8 @@
   display: flex;
   gap: var(--mpcc-spacing-lg);
   margin-top: var(--mpcc-spacing-lg);
-  min-height: 600px;
+  min-height: 700px;
+  height: calc(100vh - 200px);
   position: relative;
   transition: var(--mpcc-transition-base);
 }
@@ -418,6 +419,8 @@
   background: var(--mpcc-bg-chat);
   scrollbar-width: thin;
   scrollbar-color: var(--mpcc-border-secondary) transparent;
+  min-height: 400px;
+  max-height: calc(100vh - 350px);
 }
 
 .mpcc-chat-messages::-webkit-scrollbar {
@@ -1685,6 +1688,46 @@
     --mpcc-border-secondary: #cccccc;
     --mpcc-text-muted: #aaaaaa;
   }
+}
+
+/* Conversation Management Buttons */
+.mpcc-session-controls {
+  display: flex;
+  gap: var(--mpcc-spacing-md);
+  justify-content: center;
+  padding: var(--mpcc-spacing-lg) 0;
+  background: var(--mpcc-bg-secondary);
+  border-top: 1px solid var(--mpcc-border-secondary);
+}
+
+.mpcc-session-controls button {
+  padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-lg);
+  background: var(--mpcc-bg-primary);
+  border: 1px solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-md);
+  color: var(--mpcc-text-primary);
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-sm);
+}
+
+.mpcc-session-controls button:hover {
+  background: var(--mpcc-primary);
+  color: var(--mpcc-text-inverse);
+  border-color: var(--mpcc-primary);
+  transform: translateY(-1px);
+}
+
+#mpcc-session-list {
+  background: var(--mpcc-bg-primary);
+  border: 1px solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-md);
+  margin: var(--mpcc-spacing-md);
+  padding: var(--mpcc-spacing-lg);
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 /* Print styles */
