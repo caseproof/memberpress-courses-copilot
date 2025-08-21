@@ -113,42 +113,17 @@
         handleCreateCourse(e) {
             e.preventDefault();
             
-            // Get the current course data from the AI copilot
-            if (window.mpccCopilot && window.mpccCopilot.currentCourse) {
-                const courseData = window.mpccCopilot.currentCourse;
-                
-                // Show loading state
-                this.showLoading('Creating your course...');
-                
-                // Send AJAX request to create the course
-                $.ajax({
-                    url: mpccCoursesIntegration.ajaxUrl,
-                    type: 'POST',
-                    data: {
-                        action: 'mpcc_create_course_with_ai',
-                        nonce: mpccCoursesIntegration.nonce,
-                        course_data: courseData
-                    },
-                    success: (response) => {
-                        if (response.success) {
-                            this.hideLoading();
-                            this.showSuccess(response.data.message);
-                            
-                            // Redirect to edit course page after a short delay
-                            setTimeout(() => {
-                                window.location.href = response.data.edit_url;
-                            }, 2000);
-                        } else {
-                            this.hideLoading();
-                            this.showError(response.data.message || 'Failed to create course');
-                        }
-                    },
-                    error: (xhr, status, error) => {
-                        this.hideLoading();
-                        this.showError('An error occurred while creating the course');
-                        console.error('Course creation error:', error);
-                    }
-                });
+            // Use the unified course creation function
+            const courseData = window.mpccCurrentCourse || (window.mpccCopilot && window.mpccCopilot.currentCourse);
+            
+            if (courseData) {
+                // Call the global course creation function
+                if (typeof window.mpccCreateCourse === 'function') {
+                    window.mpccCreateCourse(courseData);
+                } else {
+                    console.error('mpccCreateCourse function not found');
+                    this.showError('Course creation function not available. Please refresh the page.');
+                }
             } else {
                 this.showError('No course data available. Please complete the course creation process first.');
             }

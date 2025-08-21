@@ -40,6 +40,42 @@ jQuery(document).ready(function($) {
     }
     
     /**
+     * Show non-blocking notification
+     */
+    window.showNotification = function(message, type = 'info') {
+        // Remove any existing notifications
+        jQuery('.mpcc-notification').remove();
+        
+        // Create notification element
+        const notification = jQuery('<div class="mpcc-notification mpcc-notification-' + type + '">' +
+            '<div class="mpcc-notification-content">' +
+                '<span class="mpcc-notification-icon dashicons dashicons-' + 
+                (type === 'success' ? 'yes-alt' : type === 'error' ? 'dismiss' : 'info-outline') + 
+                '"></span>' +
+                '<span class="mpcc-notification-text">' + message + '</span>' +
+            '</div>' +
+        '</div>');
+        
+        // Add to page
+        jQuery('body').append(notification);
+        
+        // Animate in
+        setTimeout(function() {
+            notification.addClass('mpcc-notification-show');
+        }, 10);
+        
+        // Auto-hide after 5 seconds (except for info during processing)
+        if (type !== 'info' || !message.includes('Creating')) {
+            setTimeout(function() {
+                notification.removeClass('mpcc-notification-show');
+                setTimeout(function() {
+                    notification.remove();
+                }, 300);
+            }, 5000);
+        }
+    }
+    
+    /**
      * Initialize chat interface with persistence
      */
     function initializeChat() {
@@ -622,16 +658,7 @@ jQuery(document).ready(function($) {
     // Initialize on load
     initializeChat();
     
-    // Handle Create Course button click (if not already handled by courses-integration.js)
-    $(document).on('click', '#mpcc-create-course:not(.mpcc-handled)', function(e) {
-        e.preventDefault();
-        $(this).addClass('mpcc-handled');
-        if (window.mpccCurrentCourse) {
-            window.mpccCreateCourse(window.mpccCurrentCourse);
-        } else {
-            alert('No course data available. Please complete the course creation process first.');
-        }
-    });
+    // REMOVED: Duplicate handler - handled in line 828 below
     
     // Handle Save Draft button click
     $(document).on('click', '#mpcc-save-draft:not(.mpcc-handled)', function(e) {
@@ -824,16 +851,7 @@ jQuery(document).ready(function($) {
         });
     });
     
-    // Handle Create Course button click
-    jQuery(document).on('click', '#mpcc-create-course', function(e) {
-        e.preventDefault();
-        console.log('Create course button clicked');
-        if (window.mpccCurrentCourse) {
-            window.mpccCreateCourse(window.mpccCurrentCourse);
-        } else {
-            alert('No course data available. Please complete the conversation with the AI assistant first.');
-        }
-    });
+    // REMOVED: This handler is managed by courses-integration.js to avoid duplicates
     
     // Handle Save Draft button click
     jQuery(document).on('click', '#mpcc-save-draft', function(e) {
@@ -865,10 +883,21 @@ window.mpccHandleAction = window.mpccHandleAction || function(action) {
 window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
     console.log('Creating course:', courseData);
     
-    // Show loading state
+    // Prevent multiple submissions
     const $createButton = jQuery('#mpcc-create-course');
+    if ($createButton.prop('disabled')) {
+        console.log('Course creation already in progress');
+        return;
+    }
+    
+    // Show loading state
     const originalText = $createButton.text();
     $createButton.prop('disabled', true).text('Creating...');
+    
+    // Show non-blocking notification - use the function if available, otherwise fallback
+    if (typeof showNotification === 'function') {
+        showNotification('Creating your course...', 'info');
+    }
     
     // Send AJAX request to create the course
     jQuery.ajax({
@@ -881,21 +910,39 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
         },
         success: function(response) {
             if (response.success) {
-                // Show success message
-                alert('Course created successfully! Redirecting to edit page...');
+                console.log('Course creation successful, response:', response);
                 
-                // Redirect to the edit page
-                if (response.data.edit_url) {
-                    window.location.href = response.data.edit_url;
+                // Show success message
+                if (typeof window.showNotification === 'function') {
+                    window.showNotification('Course created successfully! Redirecting...', 'success');
+                }
+                
+                // Redirect to the edit page with a small delay
+                if (response.data && response.data.edit_url) {
+                    console.log('Redirecting to:', response.data.edit_url);
+                    setTimeout(function() {
+                        window.location.href = response.data.edit_url;
+                    }, 1500);
+                } else {
+                    console.error('No edit_url in response:', response);
+                    alert('Course created but redirect URL not found. Please check the courses list.');
                 }
             } else {
                 // Show error message
-                alert('Failed to create course: ' + (response.data.message || response.data || 'Unknown error'));
+                if (typeof window.showNotification === 'function') {
+                    window.showNotification('Failed to create course: ' + (response.data.message || response.data || 'Unknown error'), 'error');
+                } else {
+                    alert('Failed to create course: ' + (response.data.message || response.data || 'Unknown error'));
+                }
                 jQuery('#mpcc-create-course').prop('disabled', false).text(originalText);
             }
         },
         error: function(xhr, status, error) {
-            alert('Failed to create course: ' + error);
+            if (typeof window.showNotification === 'function') {
+                window.showNotification('Failed to create course: ' + error, 'error');
+            } else {
+                alert('Failed to create course: ' + error);
+            }
             $createButton.prop('disabled', false).text(originalText);
         }
     });

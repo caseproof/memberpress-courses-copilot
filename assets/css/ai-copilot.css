@@ -1203,15 +1203,20 @@
 
 .mpcc-notification {
   position: fixed;
-  top: var(--mpcc-spacing-lg);
+  top: 32px;
   right: var(--mpcc-spacing-lg);
-  z-index: var(--mpcc-z-notification);
+  z-index: 100000;
   background: var(--mpcc-bg-primary);
   border: 1px solid var(--mpcc-border-secondary);
   border-radius: var(--mpcc-radius-lg);
   box-shadow: var(--mpcc-shadow-xl);
   max-width: 400px;
-  animation: slideInRight var(--mpcc-transition-base) ease-out;
+  transform: translateX(120%);
+  transition: transform var(--mpcc-transition-base) ease-out;
+}
+
+.mpcc-notification-show {
+  transform: translateX(0);
 }
 
 .mpcc-notification-success {
