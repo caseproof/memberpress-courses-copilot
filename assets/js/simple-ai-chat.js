@@ -547,7 +547,7 @@ jQuery(document).ready(function($) {
         // Add session management button
         if (!$('#mpcc-session-manager-btn').length) {
             const sessionControls = `
-                <div class="mpcc-session-controls" style="margin-bottom: 10px;">
+                <div class="mpcc-session-controls">
                     <button id="mpcc-session-manager-btn" class="button button-small">
                         <span class="dashicons dashicons-list-view"></span> Previous Conversations
                     </button>
@@ -558,6 +558,9 @@ jQuery(document).ready(function($) {
                 <div id="mpcc-session-list" style="display: none;"></div>
             `;
             $('#mpcc-chat-input-container').after(sessionControls);
+            
+            // Add class to indicate session controls are present
+            $('#mpcc-ai-interface-container').addClass('has-session-controls');
             
             // Bind events
             $('#mpcc-session-manager-btn').on('click', function() {
