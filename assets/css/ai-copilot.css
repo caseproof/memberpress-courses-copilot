@@ -336,6 +336,22 @@
   line-height: 1.5;
 }
 
+/* Ensure proper flex layout for AI interface in modal */
+#mpcc-ai-interface-container {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Ensure the parent div of the AI interface uses full height */
+#mpcc-ai-chat-interface {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
 /* Template Selection */
 .mpcc-templates-section {
   padding: var(--mpcc-spacing-xl);
@@ -444,8 +460,54 @@
   background: var(--mpcc-bg-chat);
   scrollbar-width: thin;
   scrollbar-color: var(--mpcc-border-secondary) transparent;
-  min-height: 400px;
-  max-height: calc(100vh - 350px);
+  min-height: 0;
+  border: 1px solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-md);
+  /* Remove max-height constraint to allow full height usage */
+}
+
+/* Ensure chat messages uses full available height when in modal */
+#mpcc-ai-interface-container .mpcc-chat-messages {
+  height: 0; /* Force flex to calculate height */
+  flex: 1 1 auto;
+}
+
+/* Ensure the AI interface uses full height in modal */
+#mpcc-ai-interface-container {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+#mpcc-ai-interface-container .mpcc-ai-interface {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Override inline styles on chat messages when in modal */
+#mpcc-ai-interface-container .mpcc-chat-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 0; /* Force flexbox to calculate height */
+  margin-bottom: 0;
+}
+
+/* Ensure chat interface fills available space properly */
+#mpcc-ai-interface-container .mpcc-chat-interface {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 0; /* Force flexbox to calculate height */
+}
+
+/* Session controls and input should not grow */
+#mpcc-ai-interface-container .mpcc-session-controls,
+#mpcc-ai-interface-container .mpcc-chat-input-container {
+  flex: 0 0 auto;
 }
 
 .mpcc-chat-messages::-webkit-scrollbar {
@@ -698,6 +760,11 @@
   background: var(--mpcc-bg-secondary);
   border-top: 1px solid var(--mpcc-border-secondary);
   flex-shrink: 0;
+}
+
+/* Compact input container in modal to maximize message area */
+#mpcc-ai-interface-container .mpcc-chat-input-container {
+  padding: var(--mpcc-spacing-lg) var(--mpcc-spacing-xl);
 }
 
 .mpcc-chat-input-wrapper {
@@ -1734,9 +1801,46 @@
   display: flex;
   gap: var(--mpcc-spacing-md);
   justify-content: center;
-  padding: var(--mpcc-spacing-lg) 0;
+  padding: var(--mpcc-spacing-lg);
   background: var(--mpcc-bg-secondary);
   border-top: 1px solid var(--mpcc-border-secondary);
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Ensure session controls are always visible */
+.mpcc-session-controls {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Fix chat messages to use full available height in modal */
+#mpcc-ai-interface-container {
+  height: 100% !important;
+  overflow: visible !important;
+}
+
+#mpcc-ai-interface-container .mpcc-ai-interface {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+}
+
+#mpcc-ai-interface-container .mpcc-chat-messages {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: none !important;
+}
+
+#mpcc-ai-interface-container .mpcc-chat-input-container {
+  flex-shrink: 0 !important;
+}
+
+#mpcc-ai-interface-container .mpcc-session-controls {
+  flex-shrink: 0 !important;
 }
 
 .mpcc-session-controls button {
@@ -1777,6 +1881,30 @@
   padding: var(--mpcc-spacing-lg);
   max-height: 300px;
   overflow-y: auto;
+}
+
+/* Fix layout when session controls are placed after input container */
+.mpcc-ai-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Ensure chat messages fills available space */
+.mpcc-ai-interface > .mpcc-chat-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Input container should not grow */
+.mpcc-ai-interface > .mpcc-chat-input-container {
+  flex: 0 0 auto;
+}
+
+/* Session controls should not grow */
+.mpcc-ai-interface > .mpcc-session-controls {
+  flex: 0 0 auto;
 }
 
 /* Print styles */

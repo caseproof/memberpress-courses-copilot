@@ -129,8 +129,8 @@ class CourseIntegrationService extends BaseService
                                 '<h2 style="margin: 0; color: white;"><?php echo esc_js(__('Create Course with AI Assistant', 'memberpress-courses-copilot')); ?></h2>' +
                                 '<span id="mpcc-close-modal" style="cursor: pointer; font-size: 24px; font-weight: bold; color: white;">&times;</span>' +
                             '</div>' +
-                            '<div style="display: flex; flex: 1; overflow: hidden; height: calc(100% - 71px);">' +
-                                '<div id="mpcc-ai-interface-container" style="flex: 1; min-height: 0; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow: hidden;">' +
+                            '<div style="display: flex; flex: 1; height: calc(100% - 71px);">' +
+                                '<div id="mpcc-ai-interface-container" style="flex: 1; min-height: 0; border-right: 1px solid #ddd; display: flex; flex-direction: column;">' +
                                     '<div style="display: flex; justify-content: center; align-items: center; flex: 1; color: #666;">' +
                                         '<div style="text-align: center;">' +
                                             '<div class="spinner is-active" style="float: none; margin: 0 auto 20px;"></div>' +

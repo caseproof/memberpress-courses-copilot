@@ -14,8 +14,8 @@ $post_id = $post_id ?? 0;
 ?>
 
 <input type="hidden" id="mpcc-ajax-nonce" value="<?php echo wp_create_nonce('mpcc_courses_integration'); ?>" />
-<div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>" style="height: 100%; display: flex; flex-direction: column;">
-    <div id="mpcc-chat-messages" class="mpcc-chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; background: #f8f9fa; border-radius: 8px;">
+<div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>">
+    <div id="mpcc-chat-messages" class="mpcc-chat-messages">
         <!-- Welcome message will be replaced by conversation history if a session exists -->
         <div class="mpcc-welcome-message" style="text-align: center; padding: 20px; color: #666;">
             <div style="font-size: 32px; margin-bottom: 15px;">🤖</div>
