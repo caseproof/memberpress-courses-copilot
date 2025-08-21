@@ -118,6 +118,11 @@ jQuery(document).ready(function($) {
             $('#mpcc-chat-input').val(message);
             $('#mpcc-send-message').trigger('click');
             
+            // Ensure input is cleared after triggering send
+            setTimeout(function() {
+                $('#mpcc-chat-input').val('');
+            }, 100);
+            
             // Prevent further clicks for 2 seconds
             $('.mpcc-quick-start').prop('disabled', true);
             setTimeout(function() {
