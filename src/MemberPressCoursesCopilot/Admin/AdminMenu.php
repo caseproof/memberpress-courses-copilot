@@ -160,7 +160,7 @@ class AdminMenu {
             wp_enqueue_style(
                 'mpcc-ai-copilot',
                 MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/ai-copilot.css',
-                [],
+                ['dashicons'],
                 MEMBERPRESS_COURSES_COPILOT_VERSION
             );
             
