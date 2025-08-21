@@ -135,6 +135,8 @@
   flex-direction: column;
   box-shadow: var(--mpcc-shadow-md);
   transition: var(--mpcc-transition-base);
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ==========================================================================
@@ -406,6 +408,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  height: 100%;
 }
 
 .mpcc-chat-messages {
@@ -657,6 +660,7 @@
   padding: var(--mpcc-spacing-xl);
   background: var(--mpcc-bg-secondary);
   border-top: 1px solid var(--mpcc-border-secondary);
+  flex-shrink: 0;
 }
 
 .mpcc-chat-input-wrapper {
