@@ -99,6 +99,14 @@ final class Plugin
         $course_integration_service = new \MemberPressCoursesCopilot\Services\CourseIntegrationService();
         $course_integration_service->init();
         
+        // Initialize the AJAX service for handling AJAX endpoints
+        $course_ajax_service = new \MemberPressCoursesCopilot\Services\CourseAjaxService();
+        $course_ajax_service->init();
+        
+        // Initialize the asset service for CSS/JS management
+        $course_asset_service = new \MemberPressCoursesCopilot\Services\CourseAssetService();
+        $course_asset_service->init();
+        
         /**
          * Fires after plugin components are initialized
          *
