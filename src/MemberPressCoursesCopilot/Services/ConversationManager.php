@@ -67,7 +67,7 @@ class ConversationManager extends BaseService
             'session_id' => $sessionId,
             'state' => 'active',
             'context' => $sessionData['context'] ?? 'course_creation',
-            'title' => $sessionData['title'] ?? 'New Course Creation Session',
+            'title' => $sessionData['title'] ?? 'New Course (Draft)',
             'messages' => json_encode([]),
             'metadata' => json_encode($sessionData['initial_data'] ?? []),
             'step_data' => json_encode([

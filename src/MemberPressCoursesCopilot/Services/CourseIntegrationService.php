@@ -538,7 +538,7 @@ class CourseIntegrationService extends BaseService
             // Fallback basic interface
             ?>
             <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>" style="height: 100%; display: flex; flex-direction: column;">
-                <div class="mpcc-chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; border: none; padding: 20px; background: white;">
+                <div id="mpcc-chat-messages" class="mpcc-chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; border: none; padding: 20px; background: white;">
                     <div class="mpcc-welcome-message" style="padding: 20px; text-align: center; color: #666;">
                         <div style="font-size: 48px; margin-bottom: 15px;">🤖</div>
                         <h3 style="margin: 0 0 10px 0;"><?php esc_html_e('AI Course Assistant', 'memberpress-courses-copilot'); ?></h3>
@@ -587,21 +587,21 @@ class CourseIntegrationService extends BaseService
                     if (message) {
                         // Add user message to chat
                         var userMessage = '<div style="margin-bottom: 15px; text-align: right;"><div style="display: inline-block; background: #0073aa; color: white; padding: 10px 15px; border-radius: 18px; max-width: 70%;">' + message + '</div></div>';
-                        $('.mpcc-chat-messages').append(userMessage);
-                        $('.mpcc-chat-messages').scrollTop($('.mpcc-chat-messages')[0].scrollHeight);
+                        $('#mpcc-chat-messages').append(userMessage);
+                        $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
                         $('#mpcc-chat-input').val('');
                         
                         // Show typing indicator
                         var typingIndicator = '<div id="mpcc-typing" style="margin-bottom: 15px;"><div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px;"><span style="animation: pulse 1.5s infinite;">AI is typing...</span></div></div>';
-                        $('.mpcc-chat-messages').append(typingIndicator);
-                        $('.mpcc-chat-messages').scrollTop($('.mpcc-chat-messages')[0].scrollHeight);
+                        $('#mpcc-chat-messages').append(typingIndicator);
+                        $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
                         
                         // TODO: Implement actual AI communication
                         setTimeout(function() {
                             $('#mpcc-typing').remove();
                             var aiResponse = '<div style="margin-bottom: 15px;"><div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 70%;">I\'m still learning! This will be connected to the AI service soon.</div></div>';
-                            $('.mpcc-chat-messages').append(aiResponse);
-                            $('.mpcc-chat-messages').scrollTop($('.mpcc-chat-messages')[0].scrollHeight);
+                            $('#mpcc-chat-messages').append(aiResponse);
+                            $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
                         }, 2000);
                     }
                 });
@@ -650,6 +650,27 @@ class CourseIntegrationService extends BaseService
         $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         $conversation_history = $_POST['conversation_history'] ?? [];
         $conversation_state = $_POST['conversation_state'] ?? [];
+        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        
+        // Load session if provided
+        $session = null;
+        $conversationManager = null;
+        if (!empty($sessionId)) {
+            try {
+                $conversationManager = new ConversationManager();
+                $session = $conversationManager->loadSession($sessionId);
+                if ($session && $session->getUserId() === get_current_user_id()) {
+                    // Update session state from conversation state
+                    $currentStep = $conversation_state['current_step'] ?? 'initial';
+                    $session->setCurrentState($currentStep);
+                }
+            } catch (\Exception $e) {
+                $this->logger->warning('Failed to load session in AI chat', [
+                    'session_id' => $sessionId,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
         
         if (empty($message)) {
             $this->logger->warning('AI chat request failed: empty message', [
@@ -768,6 +789,22 @@ class CourseIntegrationService extends BaseService
                     ['action' => 'create_course', 'label' => 'Create Course', 'type' => 'primary'],
                     ['action' => 'modify', 'label' => 'Modify Details', 'type' => 'secondary']
                 ];
+            }
+            
+            // Update session state and progress if we have a session
+            if ($session && $conversationManager) {
+                $session->setCurrentState($next_step);
+                $session->setContext($collected_data, null);
+                
+                // Save the session to persist progress
+                try {
+                    $conversationManager->saveSession($session);
+                } catch (\Exception $e) {
+                    $this->logger->warning('Failed to save session after AI chat', [
+                        'session_id' => $sessionId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
             
             $this->logger->info('AI chat request completed successfully', [
@@ -896,6 +933,32 @@ class CourseIntegrationService extends BaseService
                     'course_title' => $course_data['title'] ?? 'Unknown',
                     'sections_count' => count($course_data['sections'] ?? [])
                 ]);
+                
+                // Update session title if we have a session ID
+                if (isset($_POST['session_id']) && !empty($_POST['session_id'])) {
+                    try {
+                        $sessionId = sanitize_text_field($_POST['session_id']);
+                        $conversationManager = new ConversationManager();
+                        $session = $conversationManager->loadSession($sessionId);
+                        
+                        if ($session && $session->getUserId() === get_current_user_id()) {
+                            $courseTitle = $course_data['title'] ?? 'Unknown Course';
+                            $session->setTitle('Course: ' . $courseTitle);
+                            $conversationManager->saveSession($session);
+                            
+                            $this->logger->info('Updated session title after course creation', [
+                                'session_id' => $sessionId,
+                                'course_title' => $courseTitle
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        // Log but don't fail the course creation
+                        $this->logger->warning('Failed to update session title after course creation', [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+                
                 wp_send_json_success([
                     'message' => 'Course created successfully!',
                     'course_id' => $result['course_id'],
@@ -1057,7 +1120,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $session = $conversationManager->createSession([
                 'user_id' => get_current_user_id(),
                 'context' => sanitize_text_field($_POST['context'] ?? 'course_creation'),
-                'title' => sanitize_text_field($_POST['title'] ?? 'New Course Creation'),
+                'title' => sanitize_text_field($_POST['title'] ?? 'New Course (Draft)'),
                 'state' => 'initial',
                 'initial_data' => []
             ]);
@@ -1132,6 +1195,25 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $session->setCurrentState($conversationState['current_step'] ?? 'initial');
             $session->setContext($conversationState['collected_data'] ?? [], null);
             
+            // Update session title if course data is available
+            $collectedData = $conversationState['collected_data'] ?? [];
+            if (isset($collectedData['course_structure']['title'])) {
+                $courseTitle = $collectedData['course_structure']['title'];
+                $session->setTitle('Course: ' . $courseTitle);
+                $this->logger->info('Updated session title with course name', [
+                    'session_id' => $sessionId,
+                    'course_title' => $courseTitle
+                ]);
+            } elseif (isset($collectedData['title']) && isset($collectedData['sections'])) {
+                // Fallback for old format
+                $courseTitle = $collectedData['title'];
+                $session->setTitle('Course: ' . $courseTitle);
+                $this->logger->info('Updated session title with course name (old format)', [
+                    'session_id' => $sessionId,
+                    'course_title' => $courseTitle
+                ]);
+            }
+            
             // Save to database
             $saved = $conversationManager->saveSession($session);
             
@@ -1191,7 +1273,14 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             
             // Format messages for frontend
             $messages = [];
-            foreach ($session->getMessages() as $message) {
+            $allMessages = $session->getMessages();
+            
+            $this->logger->info('Processing messages from session', [
+                'total_messages' => count($allMessages),
+                'raw_messages' => json_encode($allMessages)
+            ]);
+            
+            foreach ($allMessages as $message) {
                 if ($message['type'] !== 'system') {
                     $messages[] = [
                         'role' => $message['type'],

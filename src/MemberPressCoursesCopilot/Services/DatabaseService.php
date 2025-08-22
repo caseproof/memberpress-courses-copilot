@@ -521,7 +521,7 @@ class DatabaseService extends BaseService
         
         $results = $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE user_id = %d ORDER BY updated_at DESC LIMIT %d OFFSET %d",
+                "SELECT * FROM {$table_name} WHERE user_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d",
                 $user_id,
                 $limit,
                 $offset

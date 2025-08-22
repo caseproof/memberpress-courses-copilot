@@ -7,6 +7,10 @@
  * - Multi-session management
  * - Unsaved changes warnings
  */
+
+// Global configuration constant for session storage key
+const MPCC_SESSION_STORAGE_KEY = 'mpcc_current_session_id';
+
 jQuery(document).ready(function($) {
     // Prevent multiple initializations
     if (window.mpccChatInitialized) {
@@ -17,7 +21,7 @@ jQuery(document).ready(function($) {
     
     // Configuration
     const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
-    const SESSION_STORAGE_KEY = 'mpcc_current_session_id';
+    const SESSION_STORAGE_KEY = MPCC_SESSION_STORAGE_KEY; // Use global constant
     const DEBOUNCE_DELAY = 1000;
     const CONNECTION_CHECK_INTERVAL = 30000; // 30 seconds
     
@@ -169,6 +173,10 @@ jQuery(document).ready(function($) {
                 saveConversation(true); // Synchronous save
                 return 'You have unsaved changes. Are you sure you want to leave?';
             }
+            // Always ensure session ID is in storage before leaving
+            if (currentSessionId) {
+                sessionStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
+            }
         });
         
         // Initialize UI components
@@ -193,7 +201,7 @@ jQuery(document).ready(function($) {
                 action: 'mpcc_create_conversation',
                 nonce: $('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
                 context: 'course_creation',
-                title: 'Course Creation - ' + new Date().toLocaleString()
+                title: 'New Course (Draft)'
             },
             success: function(response) {
                 if (response.success) {
@@ -217,14 +225,7 @@ jQuery(document).ready(function($) {
      * Load existing conversation
      */
     function loadConversation(sessionId) {
-        // Clear previous session data first
-        window.mpccCurrentCourse = null;
-        
-        // Clear the preview pane
-        const $previewContent = $('#mpcc-preview-content');
-        if ($previewContent.length > 0) {
-            $previewContent.html('<p style="color: #666; text-align: center; padding: 40px;">Course preview will appear here as you build it...</p>');
-        }
+        console.log('loadConversation called with sessionId:', sessionId);
         
         // Show loading indicator
         $('#mpcc-chat-messages').html(`
@@ -245,41 +246,105 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 if (response.success) {
                     currentSessionId = response.data.session_id;
+                    // Ensure session ID is stored for page refreshes
+                    sessionStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
+                    
+                    console.log('Response data:', response.data);
+                    console.log('Conversation history from server:', response.data.conversation_history);
+                    
                     window.mpccConversationHistory = response.data.conversation_history || [];
                     window.mpccConversationState = response.data.conversation_state || { 
                         current_step: 'initial', 
                         collected_data: {} 
                     };
                     
+                    console.log('Stored conversation history:', window.mpccConversationHistory);
+                    console.log('History length:', window.mpccConversationHistory.length);
+                    console.log('Before rebuildChatInterface - Container exists:', $('#mpcc-chat-messages').length > 0);
+                    console.log('Container HTML:', $('#mpcc-chat-messages').html());
+                    
                     // Rebuild chat UI
                     rebuildChatInterface();
+                    
+                    // Also set up a delayed rebuild in case the interface isn't ready yet
+                    setTimeout(function() {
+                        if ($('#mpcc-chat-messages').length > 0 && window.mpccConversationHistory && window.mpccConversationHistory.length > 0) {
+                            const currentContent = $('#mpcc-chat-messages').html();
+                            // Only rebuild if the chat is still showing welcome message
+                            if (currentContent.includes('mpcc-welcome-message')) {
+                                console.log('Chat still showing welcome message after delay, rebuilding...');
+                                rebuildChatInterface();
+                            }
+                        }
+                    }, 1000);
                     
                     // Check if we have course data in the conversation state and rebuild preview
                     console.log('Checking for course data in loaded conversation:', window.mpccConversationState);
                     console.log('Collected data keys:', window.mpccConversationState.collected_data ? Object.keys(window.mpccConversationState.collected_data) : 'No collected data');
+                    
+                    let foundCourseData = false;
                     
                     if (window.mpccConversationState && window.mpccConversationState.collected_data) {
                         // Check for course_structure key first (new format)
                         if (window.mpccConversationState.collected_data.course_structure) {
                             console.log('Found course data (new format), updating preview:', window.mpccConversationState.collected_data.course_structure);
                             window.mpccCurrentCourse = window.mpccConversationState.collected_data.course_structure;
-                            if (typeof window.mpccUpdatePreview === 'function') {
-                                window.mpccUpdatePreview(window.mpccCurrentCourse);
+                            foundCourseData = true;
+                            
+                            // Try to update preview, with retry if container not ready
+                            function tryUpdatePreview(retries = 0) {
+                                if (jQuery('#mpcc-preview-content').length > 0) {
+                                    if (typeof window.mpccUpdatePreview === 'function') {
+                                        window.mpccUpdatePreview(window.mpccCurrentCourse);
+                                    }
+                                } else if (retries < 10) {
+                                    console.log('Preview container not ready, retrying in 500ms...');
+                                    setTimeout(function() {
+                                        tryUpdatePreview(retries + 1);
+                                    }, 500);
+                                } else {
+                                    console.warn('Preview container not found after 10 retries');
+                                }
                             }
+                            tryUpdatePreview();
                         } 
                         // Fallback: Check if collected_data itself contains course data (old format)
                         else if (window.mpccConversationState.collected_data.title && window.mpccConversationState.collected_data.sections) {
                             console.log('Found course data (old format), updating preview:', window.mpccConversationState.collected_data);
                             window.mpccCurrentCourse = window.mpccConversationState.collected_data;
-                            if (typeof window.mpccUpdatePreview === 'function') {
-                                window.mpccUpdatePreview(window.mpccCurrentCourse);
+                            foundCourseData = true;
+                            
+                            // Try to update preview, with retry if container not ready
+                            function tryUpdatePreview(retries = 0) {
+                                if (jQuery('#mpcc-preview-content').length > 0) {
+                                    if (typeof window.mpccUpdatePreview === 'function') {
+                                        window.mpccUpdatePreview(window.mpccCurrentCourse);
+                                    }
+                                } else if (retries < 10) {
+                                    console.log('Preview container not ready, retrying in 500ms...');
+                                    setTimeout(function() {
+                                        tryUpdatePreview(retries + 1);
+                                    }, 500);
+                                } else {
+                                    console.warn('Preview container not found after 10 retries');
+                                }
                             }
+                            tryUpdatePreview();
                         } else {
                             console.log('No course data found in conversation state');
                             console.log('Full conversation state:', JSON.stringify(window.mpccConversationState, null, 2));
                         }
                     } else {
                         console.log('No collected_data in conversation state');
+                    }
+                    
+                    // Only clear the preview if no course data was found
+                    if (!foundCourseData) {
+                        window.mpccCurrentCourse = null;
+                        const $previewContent = $('#mpcc-preview-content');
+                        if ($previewContent.length > 0) {
+                            $previewContent.html('<p style="color: #666; text-align: center; padding: 40px;">Course preview will appear here as you build it...</p>');
+                        }
                     }
                     
                     // Update last save time
@@ -290,7 +355,7 @@ jQuery(document).ready(function($) {
                     console.log('Loaded conversation session:', currentSessionId);
                 } else {
                     // Session not found, create new one
-                    console.warn('Session not found, creating new one');
+                    console.warn('Session not found, creating new one. Response:', response);
                     sessionStorage.removeItem(SESSION_STORAGE_KEY);
                     createNewConversation();
                 }
@@ -420,18 +485,43 @@ jQuery(document).ready(function($) {
      * Rebuild chat interface from history
      */
     function rebuildChatInterface() {
+        console.log('rebuildChatInterface called');
+        console.log('Conversation history:', window.mpccConversationHistory);
+        console.log('History length:', window.mpccConversationHistory ? window.mpccConversationHistory.length : 0);
+        
+        // Check if the container exists
+        const $container = $('#mpcc-chat-messages');
+        if (!$container.length) {
+            console.log('Chat messages container not found, skipping rebuild');
+            return;
+        }
+        
         // Only clear and rebuild if we have messages to display
         if (window.mpccConversationHistory && window.mpccConversationHistory.length > 0) {
-            $('#mpcc-chat-messages').empty();
+            console.log('Clearing and rebuilding chat messages');
+            $container.empty();
             
             // Add messages from history
-            window.mpccConversationHistory.forEach(function(message) {
+            window.mpccConversationHistory.forEach(function(message, index) {
+                console.log('Processing message', index, ':', message);
                 if (message.role === 'user') {
                     addUserMessage(message.content, false);
                 } else if (message.role === 'assistant') {
                     addAssistantMessage(message.content, false);
                 }
             });
+            
+            // If we're in ready_to_create state and have course data, show the action buttons
+            if (window.mpccConversationState && window.mpccConversationState.current_step === 'ready_to_create' && window.mpccCurrentCourse) {
+                console.log('Adding action buttons for ready_to_create state');
+                const actionsHtml = `
+                    <div class="mpcc-actions" style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+                        <button id="mpcc-create-course" class="button button-primary" onclick="window.mpccCreateCourse(window.mpccCurrentCourse)">Create Course</button>
+                        <button id="mpcc-save-draft" class="button button-secondary">Save Draft</button>
+                    </div>
+                `;
+                $container.append(actionsHtml);
+            }
             
             // Scroll to bottom
             scrollToBottom();
@@ -489,6 +579,10 @@ jQuery(document).ready(function($) {
      * Add user message to chat
      */
     function addUserMessage(message, save = true) {
+        console.log('addUserMessage called with:', message, 'save:', save);
+        const $container = $('#mpcc-chat-messages');
+        console.log('Chat container found:', $container.length > 0, 'Container visible:', $container.is(':visible'));
+        
         const userHtml = `
             <div class="mpcc-message mpcc-message-user">
                 <div class="mpcc-message-avatar">
@@ -502,7 +596,8 @@ jQuery(document).ready(function($) {
                 </div>
             </div>
         `;
-        $('#mpcc-chat-messages').append(userHtml);
+        $container.append(userHtml);
+        console.log('User message HTML appended');
         
         if (save) {
             markDirty();
@@ -577,6 +672,10 @@ jQuery(document).ready(function($) {
      * Add assistant message to chat
      */
     function addAssistantMessage(message, save = true) {
+        console.log('addAssistantMessage called with:', message, 'save:', save);
+        const $container = $('#mpcc-chat-messages');
+        console.log('Chat container found:', $container.length > 0, 'Container visible:', $container.is(':visible'));
+        
         // Remove welcome message if it exists
         $('.mpcc-welcome-message').remove();
         
@@ -596,7 +695,8 @@ jQuery(document).ready(function($) {
                 </div>
             </div>
         `;
-        $('#mpcc-chat-messages').append(aiHtml);
+        $container.append(aiHtml);
+        console.log('Assistant message HTML appended');
         scrollToBottom();
         
         if (save) {
@@ -649,15 +749,25 @@ jQuery(document).ready(function($) {
                     let sessionListHtml = '<div style="padding: 15px; background: #f5f5f5; border-radius: 4px;"><h4>Recent Conversations</h4><ul style="list-style: none; padding: 0;">';
                     
                     response.data.sessions.forEach(function(session) {
-                        const date = new Date(session.created_at * 1000).toLocaleDateString();
+                        const date = new Date(session.created_at * 1000);
+                        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         const isActive = session.session_id === currentSessionId;
+                        
+                        // Extract course name from title if it exists
+                        let displayTitle = session.title;
+                        if (displayTitle.startsWith('Course: ')) {
+                            displayTitle = displayTitle.substring(8); // Remove "Course: " prefix for cleaner display
+                        } else if (displayTitle.includes('Course Creation')) {
+                            displayTitle = 'New Course (In Progress)';
+                        }
                         
                         sessionListHtml += `
                             <li style="margin-bottom: 10px; padding: 10px; background: white; border-radius: 4px; ${isActive ? 'border: 2px solid #0073aa;' : 'border: 1px solid #ddd;'}">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <strong>${$('<div>').text(session.title).html()}</strong><br>
-                                        <small>Created: ${date} | Progress: ${session.progress || 0}%</small>
+                                    <div style="flex: 1; margin-right: 10px;">
+                                        <strong style="display: block; margin-bottom: 4px;">${$('<div>').text(displayTitle).html()}</strong>
+                                        <small style="color: #666;">Created: ${dateStr}</small>
+                                        ${session.progress > 0 ? `<small style="color: #666;"> | Progress: ${Math.round(session.progress)}%</small>` : ''}
                                     </div>
                                     ${!isActive ? `<button class="button button-small mpcc-load-session" data-session-id="${session.session_id}">Load</button>` : '<span style="color: #0073aa; font-weight: bold;">Active</span>'}
                                 </div>
@@ -695,6 +805,25 @@ jQuery(document).ready(function($) {
     // Initialize on load
     initializeChat();
     
+    // Listen for interface loaded event to update preview if needed
+    $(document).on('mpcc:interface-loaded', function() {
+        console.log('Interface loaded event received');
+        
+        // Rebuild chat interface now that the container exists
+        if (window.mpccConversationHistory && window.mpccConversationHistory.length > 0) {
+            console.log('Rebuilding chat interface after interface load');
+            rebuildChatInterface();
+        }
+        
+        // If we have course data but preview wasn't updated yet, try again
+        if (window.mpccCurrentCourse && $('#mpcc-preview-content').length > 0) {
+            console.log('Updating preview after interface load');
+            if (typeof window.mpccUpdatePreview === 'function') {
+                window.mpccUpdatePreview(window.mpccCurrentCourse);
+            }
+        }
+    });
+    
     // Ensure UI components are initialized even if timing is off
     setTimeout(function() {
         if (!$('#mpcc-session-manager-btn').length) {
@@ -707,11 +836,17 @@ jQuery(document).ready(function($) {
     window.initializeUIComponents = initializeUIComponents;
     window.createNewConversation = createNewConversation;
     window.showSessionManager = showSessionManager;
+    window.saveConversation = saveConversation;
     
     // Expose state for other scripts
     Object.defineProperty(window, 'isDirty', {
         get: function() { return isDirty; },
         set: function(value) { isDirty = value; }
+    });
+    
+    // Expose current session ID
+    Object.defineProperty(window, 'currentSessionId', {
+        get: function() { return currentSessionId; }
     });
     
     // REMOVED: Duplicate handler - handled in line 828 below
@@ -928,7 +1063,7 @@ jQuery(document).ready(function($) {
         }
         
         // Clear session data
-        sessionStorage.removeItem('mpcc_current_session_id');
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
         window.mpccConversationHistory = [];
         window.mpccConversationState = { current_step: 'initial', collected_data: {} };
         window.mpccCurrentCourse = null;
@@ -1017,7 +1152,8 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
         data: {
             action: 'mpcc_create_course_with_ai',
             nonce: jQuery('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
-            course_data: courseData
+            course_data: courseData,
+            session_id: sessionStorage.getItem(MPCC_SESSION_STORAGE_KEY) || ''
         },
         success: function(response) {
             if (response.success) {

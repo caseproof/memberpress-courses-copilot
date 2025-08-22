@@ -132,6 +132,9 @@ class ConversationSession
         if ($state !== $this->currentState) {
             $this->currentState = $state;
             $this->markAsModified();
+            
+            // Auto-update progress based on state
+            $this->updateProgressFromState($state);
         }
     }
 
@@ -695,5 +698,32 @@ class ConversationSession
     public function getCheckpoints(): array
     {
         return $this->getMetadata('checkpoints') ?: [];
+    }
+    
+    /**
+     * Update progress based on current state
+     */
+    private function updateProgressFromState(string $state): void
+    {
+        // Define progress percentages for each state
+        $stateProgress = [
+            'initial' => 0,
+            'welcome' => 0,
+            'template_selection' => 10,
+            'requirements_gathering' => 20,
+            'structure_generation' => 35,
+            'structure_review' => 45,
+            'content_generation' => 60,
+            'content_review' => 75,
+            'final_review' => 90,
+            'wordpress_creation' => 95,
+            'completed' => 100,
+            'complete' => 100
+        ];
+        
+        // Update progress if state is recognized
+        if (isset($stateProgress[$state])) {
+            $this->updateProgress($stateProgress[$state]);
+        }
     }
 }
