@@ -24,6 +24,8 @@ jQuery(document).ready(function($) {
     const SESSION_STORAGE_KEY = MPCC_SESSION_STORAGE_KEY; // Use global constant
     const DEBOUNCE_DELAY = 1000;
     const CONNECTION_CHECK_INTERVAL = 30000; // 30 seconds
+    const MAX_RETRY_ATTEMPTS = 3;
+    const RETRY_DELAY = 2000; // 2 seconds
     
     // State management
     let currentSessionId = null;
@@ -34,6 +36,8 @@ jQuery(document).ready(function($) {
     let isProcessingMessage = false;
     let connectionStatus = 'connecting';
     let connectionCheckTimer = null;
+    let currentRetryAttempt = 0;
+    let retryTimer = null;
     
     // Initialize conversation state only if not already initialized
     if (!window.mpccConversationHistory) {
@@ -907,24 +911,62 @@ jQuery(document).ready(function($) {
         // Clear input
         $('#mpcc-chat-input').val('').focus();
         
-        // Show typing indicator
+        // Show enhanced typing indicator with animated dots
+        showTypingIndicator();
+        
+        // Send the message with retry mechanism
+        sendMessageWithRetry(message, 0);
+    });
+    
+    /**
+     * Show enhanced typing indicator with animated dots
+     */
+    function showTypingIndicator() {
         const typingHtml = `
-            <div id="mpcc-typing" style="margin-bottom: 15px;">
-                <div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px;">
-                    <span class="mpcc-typing-dots">
-                        <span>.</span><span>.</span><span>.</span>
-                    </span>
-                    <span style="margin-left: 5px;">AI is thinking...</span>
+            <div id="mpcc-typing" class="mpcc-message mpcc-message-assistant" style="margin-bottom: 15px;">
+                <div class="mpcc-message-avatar">
+                    <span class="dashicons dashicons-format-chat mpcc-pulse"></span>
+                </div>
+                <div class="mpcc-message-content">
+                    <div class="mpcc-typing-indicator">
+                        <span class="mpcc-typing-dots">
+                            <span class="mpcc-dot"></span>
+                            <span class="mpcc-dot"></span>
+                            <span class="mpcc-dot"></span>
+                        </span>
+                        <span class="mpcc-typing-text">AI is thinking...</span>
+                    </div>
                 </div>
             </div>
         `;
         $('#mpcc-chat-messages').append(typingHtml);
         scrollToBottom();
+    }
+    
+    /**
+     * Update typing indicator with retry information
+     */
+    function updateTypingIndicator(attempt) {
+        const $typingText = $('#mpcc-typing .mpcc-typing-text');
+        if (attempt === 0) {
+            $typingText.text('AI is thinking...');
+        } else {
+            $typingText.text(`Retrying... (attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS})`);
+        }
+    }
+    
+    /**
+     * Send message with retry mechanism
+     */
+    function sendMessageWithRetry(message, attempt) {
+        updateTypingIndicator(attempt);
         
-        // Make AJAX request
+        
+        // Make AJAX request with timeout
         $.ajax({
             url: window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php'),
             type: 'POST',
+            timeout: 30000, // 30 second timeout
             data: {
                 action: 'mpcc_ai_chat',
                 nonce: $('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
@@ -1033,15 +1075,32 @@ jQuery(document).ready(function($) {
                 isProcessingMessage = false;
             },
             error: function(xhr, status, error) {
+                console.error('AJAX error:', {xhr, status, error, attempt});
+                
+                // Check if we should retry
+                if (attempt < MAX_RETRY_ATTEMPTS - 1 && status !== 'abort') {
+                    console.log(`Retrying request (attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS})`);
+                    
+                    // Wait before retrying
+                    retryTimer = setTimeout(() => {
+                        sendMessageWithRetry(message, attempt + 1);
+                    }, RETRY_DELAY);
+                    
+                    return;
+                }
+                
+                // Remove typing indicator and show retry option
                 $('#mpcc-typing').remove();
-                showError('Failed to connect to AI service. Please try again.');
+                
+                const errorMessage = getErrorMessage(xhr, status, error);
+                showRetryableError(errorMessage, message);
                 
                 // Re-enable send button and reset processing flag
                 $('#mpcc-send-message').prop('disabled', false);
                 isProcessingMessage = false;
             }
         });
-    });
+    }
     
     // Session management buttons
     $(document).off('click.mpcc-session').on('click.mpcc-session', '#mpcc-session-manager-btn', function(e) {
