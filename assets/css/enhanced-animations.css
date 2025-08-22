@@ -1,0 +1,218 @@
+/* Enhanced Typing Indicator */
+.mpcc-typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+    font-style: italic;
+}
+
+.mpcc-typing-dots {
+    display: flex;
+    gap: 2px;
+}
+
+.mpcc-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #1a73e8;
+    border-radius: 50%;
+    animation: mpcc-dot-bounce 1.4s infinite both;
+}
+
+.mpcc-dot:nth-child(1) { animation-delay: -0.32s; }
+.mpcc-dot:nth-child(2) { animation-delay: -0.16s; }
+.mpcc-dot:nth-child(3) { animation-delay: 0s; }
+
+@keyframes mpcc-dot-bounce {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+/* Pulse animation for AI avatar */
+.mpcc-pulse {
+    animation: mpcc-pulse 2s infinite;
+}
+
+@keyframes mpcc-pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Retry button styles */
+.mpcc-retry-message {
+    transition: background-color 0.2s ease;
+}
+
+.mpcc-retry-message:hover {
+    background-color: #f0f0f1 !important;
+}
+
+/* Error message improvements */
+.mpcc-retryable-error {
+    animation: mpcc-slide-in 0.3s ease;
+}
+
+@keyframes mpcc-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading state for send button */
+#mpcc-send-message:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#mpcc-send-message.mpcc-loading {
+    position: relative;
+}
+
+#mpcc-send-message.mpcc-loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: auto;
+    border: 2px solid transparent;
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: mpcc-spin 1s linear infinite;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes mpcc-spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Connection status indicator */
+.mpcc-connection-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.mpcc-connection-status.connected {
+    background: #d4edda;
+    color: #155724;
+}
+
+.mpcc-connection-status.disconnected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.mpcc-connection-status.connecting {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.mpcc-connection-status.error {
+    background: #f5c6cb;
+    color: #721c24;
+}
+
+/* Progress indicator for save status */
+.mpcc-save-indicator {
+    font-size: 11px;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+/* Improved message styling */
+.mpcc-message {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    align-items: flex-start;
+}
+
+.mpcc-message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mpcc-message-user .mpcc-message-avatar {
+    background: #0073aa;
+    color: white;
+}
+
+.mpcc-message-assistant .mpcc-message-avatar {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.mpcc-message-content {
+    flex: 1;
+    padding: 10px 15px;
+    border-radius: 18px;
+    max-width: 70%;
+    word-wrap: break-word;
+}
+
+.mpcc-message-user .mpcc-message-content {
+    background: #0073aa;
+    color: white;
+    margin-left: auto;
+    text-align: right;
+}
+
+.mpcc-message-assistant .mpcc-message-content {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.mpcc-message-meta {
+    font-size: 11px;
+    color: #999;
+    margin-top: 5px;
+    opacity: 0.7;
+}
+
+/* Improved action buttons */
+.mpcc-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.mpcc-actions .button {
+    transition: transform 0.2s ease;
+}
+
+.mpcc-actions .button:hover {
+    transform: translateY(-1px);
+}
