@@ -295,6 +295,10 @@ jQuery(document).ready(function($) {
                             window.mpccCurrentCourse = window.mpccConversationState.collected_data.course_structure;
                             foundCourseData = true;
                             
+                            // Enable buttons since we have course data
+                            jQuery('#mpcc-create-course').prop('disabled', false);
+                            jQuery('#mpcc-save-draft').prop('disabled', false);
+                            
                             // Try to update preview, with retry if container not ready
                             function tryUpdatePreview(retries = 0) {
                                 if (jQuery('#mpcc-preview-content').length > 0) {
@@ -317,6 +321,10 @@ jQuery(document).ready(function($) {
                             console.log('Found course data (old format), updating preview:', window.mpccConversationState.collected_data);
                             window.mpccCurrentCourse = window.mpccConversationState.collected_data;
                             foundCourseData = true;
+                            
+                            // Enable buttons since we have course data
+                            jQuery('#mpcc-create-course').prop('disabled', false);
+                            jQuery('#mpcc-save-draft').prop('disabled', false);
                             
                             // Try to update preview, with retry if container not ready
                             function tryUpdatePreview(retries = 0) {
@@ -1306,9 +1314,13 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
             if (section.lessons && section.lessons.length > 0) {
                 previewHtml += '<ul style="margin: 10px 0 0 0; padding-left: 20px;">';
                 section.lessons.forEach(function(lesson, lessonIndex) {
-                    previewHtml += '<li style="margin-bottom: 8px; color: #333;">';
+                    const sectionId = 'section_' + (sectionIndex + 1);
+                    const lessonId = 'lesson_' + (sectionIndex + 1) + '_' + (lessonIndex + 1);
+                    const lessonTitle = jQuery('<div>').text(lesson.title).html();
+                    const sectionTitle = jQuery('<div>').text(section.title).html();
+                    previewHtml += '<li class="mpcc-lesson-item" data-section-id="' + sectionId + '" data-lesson-id="' + lessonId + '" data-lesson-title="' + lessonTitle + '" data-section-title="' + sectionTitle + '" style="margin-bottom: 8px; color: #333; cursor: pointer; padding: 5px; border-radius: 3px; transition: background-color 0.2s;">';
                     previewHtml += '<strong>Lesson ' + (sectionIndex + 1) + '.' + (lessonIndex + 1) + ':</strong> ';
-                    previewHtml += jQuery('<div>').text(lesson.title).html();
+                    previewHtml += lessonTitle;
                     if (lesson.duration) {
                         previewHtml += ' <span style="color: #666; font-size: 12px;">(' + lesson.duration + ' min)</span>';
                     }

@@ -70,6 +70,7 @@ class DatabaseService extends BaseService
             $this->createCoursePatternsTable();
             $this->createUsageAnalyticsTable();
             $this->createQualityMetricsTable();
+            $this->createLessonDraftsTable();
             
             // Update database version
             $this->updateOption('mpcc_db_version', self::DB_VERSION);
@@ -296,6 +297,20 @@ class DatabaseService extends BaseService
     }
 
     /**
+     * Create lesson drafts table for course preview editing
+     *
+     * @return void
+     * @throws \Exception
+     */
+    private function createLessonDraftsTable(): void
+    {
+        $draftTable = new \MemberPressCoursesCopilot\Database\LessonDraftTable();
+        $draftTable->create();
+        
+        $this->log('Lesson drafts table created successfully');
+    }
+
+    /**
      * Drop all plugin tables (for uninstall)
      *
      * @return bool
@@ -308,7 +323,8 @@ class DatabaseService extends BaseService
                 'usage_analytics', 
                 'course_patterns',
                 'templates',
-                'conversations'
+                'conversations',
+                'lesson_drafts'
             ];
 
             foreach ($tables as $table) {

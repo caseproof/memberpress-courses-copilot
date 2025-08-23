@@ -74,7 +74,14 @@ class AjaxController extends BaseController
         'mpcc_ping',
         'mpcc_generate_response',
         'mpcc_get_suggestions',
-        'mpcc_get_learning_path'
+        'mpcc_get_learning_path',
+        // Lesson draft editing actions
+        'mpcc_save_lesson_content',
+        'mpcc_load_lesson_content',
+        'mpcc_generate_lesson_content',
+        'mpcc_reorder_course_items',
+        'mpcc_delete_course_item',
+        'mpcc_load_all_drafts'
     ];
 
     /**
@@ -213,6 +220,13 @@ class AjaxController extends BaseController
             'generate_response' => $this->handleGenerateResponse(),
             'get_suggestions' => $this->handleGetSuggestions(),
             'get_learning_path' => $this->handleGetLearningPath(),
+            // Lesson draft editing actions
+            'save_lesson_content' => $this->handleSaveLessonContent(),
+            'load_lesson_content' => $this->handleLoadLessonContent(),
+            'generate_lesson_content' => $this->handleGenerateLessonContent(),
+            'reorder_course_items' => $this->handleReorderCourseItems(),
+            'delete_course_item' => $this->handleDeleteCourseItem(),
+            'load_all_drafts' => $this->handleLoadAllDrafts(),
             default => throw new \Exception("Unknown action: {$action}")
         };
     }
@@ -414,9 +428,34 @@ class AjaxController extends BaseController
             $this->applyCourseOptions($generatedCourse, $courseOptions);
         }
 
+        // Apply drafted lesson content before creating the course
+        $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+        $courseStructure = $generatedCourse->toArray();
+        $courseStructure = $draftService->mapDraftsToStructure($sessionId, $courseStructure);
+        
+        // Update the generated course with drafted content
+        if (isset($courseStructure['sections']) && is_array($courseStructure['sections'])) {
+            foreach ($courseStructure['sections'] as $sectionIndex => $sectionData) {
+                $section = $generatedCourse->getSection($sectionIndex);
+                if ($section && isset($sectionData['lessons']) && is_array($sectionData['lessons'])) {
+                    foreach ($sectionData['lessons'] as $lessonIndex => $lessonData) {
+                        if (isset($lessonData['content']) && !empty($lessonData['content'])) {
+                            $lesson = $section->getLesson($lessonIndex);
+                            if ($lesson) {
+                                $lesson->setContent($lessonData['content']);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Create the WordPress course
         $this->restoreConversationContext($conversationState);
         $courseId = $this->courseGenerator->createWordPressCourse($generatedCourse);
+        
+        // Clean up drafts after successful course creation
+        $draftService->deleteSessionDrafts($sessionId);
 
         // Update session with course creation info
         $conversationState['created_course_id'] = $courseId;
@@ -2200,5 +2239,213 @@ class AjaxController extends BaseController
         }, $numbers);
 
         return array_sum($squaredDiffs) / count($numbers);
+    }
+
+    /**
+     * Handle save lesson content
+     * 
+     * @return array Response data
+     */
+    private function handleSaveLessonContent(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $sectionId = $this->sanitizeInput($_POST['section_id'] ?? '');
+        $lessonId = $this->sanitizeInput($_POST['lesson_id'] ?? '');
+        $content = wp_kses_post($_POST['content'] ?? '');
+        
+        if (empty($sessionId) || empty($sectionId) || empty($lessonId)) {
+            throw new \Exception('Session ID, section ID, and lesson ID are required');
+        }
+        
+        // Create draft service and save
+        $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+        $saved = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content);
+        
+        if (!$saved) {
+            throw new \Exception('Failed to save lesson content');
+        }
+        
+        $this->logger->info('Lesson content saved', [
+            'session_id' => $sessionId,
+            'lesson_id' => $lessonId
+        ]);
+        
+        return [
+            'success' => true,
+            'message' => 'Content saved successfully'
+        ];
+    }
+    
+    /**
+     * Handle load lesson content
+     * 
+     * @return array Response data
+     */
+    private function handleLoadLessonContent(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $sectionId = $this->sanitizeInput($_POST['section_id'] ?? '');
+        $lessonId = $this->sanitizeInput($_POST['lesson_id'] ?? '');
+        
+        if (empty($sessionId) || empty($sectionId) || empty($lessonId)) {
+            throw new \Exception('Session ID, section ID, and lesson ID are required');
+        }
+        
+        // Load draft content
+        $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+        $draft = $draftService->getDraft($sessionId, $sectionId, $lessonId);
+        
+        return [
+            'success' => true,
+            'content' => $draft ? $draft->content : '',
+            'has_content' => !empty($draft)
+        ];
+    }
+    
+    /**
+     * Handle generate lesson content
+     * 
+     * @return array Response data
+     */
+    private function handleGenerateLessonContent(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $sectionId = $this->sanitizeInput($_POST['section_id'] ?? '');
+        $lessonId = $this->sanitizeInput($_POST['lesson_id'] ?? '');
+        $lessonTitle = $this->sanitizeInput($_POST['lesson_title'] ?? '');
+        $sectionTitle = $this->sanitizeInput($_POST['section_title'] ?? '');
+        $courseTitle = $this->sanitizeInput($_POST['course_title'] ?? '');
+        
+        if (empty($lessonTitle)) {
+            throw new \Exception('Lesson title is required');
+        }
+        
+        // Generate content using LLM service
+        $llmService = new \MemberPressCoursesCopilot\Services\LLMService();
+        $content = $llmService->generateLessonContent(
+            $sectionTitle,
+            1, // Default lesson number
+            [
+                'lesson_title' => $lessonTitle,
+                'course_title' => $courseTitle,
+                'difficulty_level' => 'beginner',
+                'target_audience' => 'general learners'
+            ]
+        );
+        
+        // Save the generated content
+        if (!empty($sessionId) && !empty($sectionId) && !empty($lessonId)) {
+            $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+            $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content);
+        }
+        
+        $this->logger->info('Lesson content generated', [
+            'lesson_title' => $lessonTitle,
+            'content_length' => strlen($content)
+        ]);
+        
+        return [
+            'success' => true,
+            'content' => $content
+        ];
+    }
+    
+    /**
+     * Handle reorder course items
+     * 
+     * @return array Response data
+     */
+    private function handleReorderCourseItems(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $sectionId = $this->sanitizeInput($_POST['section_id'] ?? '');
+        $lessonOrders = $_POST['lesson_orders'] ?? [];
+        
+        if (empty($sessionId) || empty($sectionId) || empty($lessonOrders)) {
+            throw new \Exception('Session ID, section ID, and lesson orders are required');
+        }
+        
+        // Update order in database
+        $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+        $updated = $draftService->updateOrder($sessionId, $sectionId, $lessonOrders);
+        
+        if (!$updated) {
+            throw new \Exception('Failed to update lesson order');
+        }
+        
+        $this->logger->info('Lesson order updated', [
+            'session_id' => $sessionId,
+            'section_id' => $sectionId
+        ]);
+        
+        return [
+            'success' => true,
+            'message' => 'Order updated successfully'
+        ];
+    }
+    
+    /**
+     * Handle delete course item
+     * 
+     * @return array Response data
+     */
+    private function handleDeleteCourseItem(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $sectionId = $this->sanitizeInput($_POST['section_id'] ?? '');
+        $lessonId = $this->sanitizeInput($_POST['lesson_id'] ?? '');
+        
+        if (empty($sessionId) || empty($sectionId) || empty($lessonId)) {
+            throw new \Exception('Session ID, section ID, and lesson ID are required');
+        }
+        
+        // Delete draft
+        $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+        $deleted = $draftService->deleteDraft($sessionId, $sectionId, $lessonId);
+        
+        if (!$deleted) {
+            throw new \Exception('Failed to delete lesson');
+        }
+        
+        $this->logger->info('Lesson deleted', [
+            'session_id' => $sessionId,
+            'lesson_id' => $lessonId
+        ]);
+        
+        return [
+            'success' => true,
+            'message' => 'Lesson deleted successfully'
+        ];
+    }
+    
+    /**
+     * Handle load all drafts
+     * 
+     * @return array Response data
+     */
+    private function handleLoadAllDrafts(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        
+        if (empty($sessionId)) {
+            throw new \Exception('Session ID is required');
+        }
+        
+        // Load all drafts for session
+        $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+        $drafts = $draftService->getSessionDrafts($sessionId);
+        
+        // Convert to associative array for easy access
+        $draftsMap = [];
+        foreach ($drafts as $draft) {
+            $key = $draft->section_id . '::' . $draft->lesson_id;
+            $draftsMap[$key] = $draft->content;
+        }
+        
+        return [
+            'success' => true,
+            'drafts' => $draftsMap,
+            'count' => count($drafts)
+        ];
     }
 }
