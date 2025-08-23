@@ -421,12 +421,22 @@
     // Initialize when DOM is ready
     $(document).ready(() => {
         console.log('CoursePreviewEditor: DOM ready, checking for preview content...');
-        // Only initialize on course generator page
+        
+        // Try immediate initialization
         if ($('#mpcc-preview-content').length > 0) {
-            console.log('CoursePreviewEditor: Initializing editor...');
+            console.log('CoursePreviewEditor: Initializing editor immediately...');
             window.mpccPreviewEditor = new CoursePreviewEditor();
         } else {
-            console.log('CoursePreviewEditor: No preview content found, skipping initialization');
+            console.log('CoursePreviewEditor: No preview content found on ready, will wait for interface load');
+        }
+    });
+    
+    // Also listen for the interface load event
+    $(document).on('mpcc:interface-loaded', () => {
+        console.log('CoursePreviewEditor: Interface loaded event received');
+        if (!window.mpccPreviewEditor && $('#mpcc-preview-content').length > 0) {
+            console.log('CoursePreviewEditor: Initializing editor after interface load...');
+            window.mpccPreviewEditor = new CoursePreviewEditor();
         }
     });
 

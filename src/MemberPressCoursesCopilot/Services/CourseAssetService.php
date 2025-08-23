@@ -40,8 +40,9 @@ class CourseAssetService extends BaseService
             return;
         }
         
-        // Check if we're on the course generator page
-        $is_generator_page = isset($_GET['page']) && $_GET['page'] === 'mpcc-course-generator';
+        // Check if we're on the course generator page OR the courses list page (where AI interface loads)
+        $is_generator_page = (isset($_GET['page']) && $_GET['page'] === 'mpcc-course-generator') || 
+                           (isset($_GET['post_type']) && $_GET['post_type'] === 'mpcs-course' && !isset($_GET['post']));
         
         // Explicitly enqueue dashicons
         wp_enqueue_style('dashicons');
