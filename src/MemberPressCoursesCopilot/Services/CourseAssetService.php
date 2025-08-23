@@ -83,18 +83,11 @@ class CourseAssetService extends BaseService
         
         // Enqueue course preview CSS if on generator page
         if ($is_generator_page) {
-            wp_enqueue_style(
-                'mpcc-course-preview',
-                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/course-preview.css',
-                [],
-                MEMBERPRESS_COURSES_COPILOT_VERSION
-            );
-            
             // Enqueue course preview editor CSS
             wp_enqueue_style(
                 'mpcc-course-preview-editor',
                 MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/course-preview-editor.css',
-                ['mpcc-course-preview'],
+                [],
                 MEMBERPRESS_COURSES_COPILOT_VERSION
             );
         }
@@ -135,22 +128,6 @@ class CourseAssetService extends BaseService
         
         // Enqueue additional scripts for generator page
         if ($is_generator_page) {
-            wp_enqueue_script(
-                'mpcc-course-preview',
-                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/course-preview.js',
-                ['jquery'],
-                MEMBERPRESS_COURSES_COPILOT_VERSION,
-                true
-            );
-            
-            wp_enqueue_script(
-                'mpcc-preview-integration',
-                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/preview-integration.js',
-                ['jquery', 'mpcc-course-preview'],
-                MEMBERPRESS_COURSES_COPILOT_VERSION,
-                true
-            );
-            
             // Enqueue course preview editor JavaScript
             wp_enqueue_script(
                 'mpcc-course-preview-editor',

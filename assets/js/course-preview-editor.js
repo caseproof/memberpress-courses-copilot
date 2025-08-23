@@ -201,11 +201,11 @@
             this.updateSaveIndicator('saving');
             
             $.ajax({
-                url: mpccCoursesIntegration.ajaxUrl,
+                url: window.mpccCoursesIntegration?.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php',
                 type: 'POST',
                 data: {
                     action: 'mpcc_save_lesson_content',
-                    nonce: mpccCoursesIntegration.nonce,
+                    nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
                     session_id: this.sessionId,
                     section_id: sectionId,
                     lesson_id: lessonId,
@@ -273,8 +273,8 @@
             }
             
             const $lesson = this.currentEditingLesson.element;
-            const lessonTitle = $lesson.find('.mpcc-lesson-title').text();
-            const sectionTitle = $lesson.closest('.mpcc-section').find('.mpcc-section-title').first().text();
+            const lessonTitle = $lesson.data('lesson-title') || $lesson.text().replace(/Lesson \d+\.\d+:/, '').trim();
+            const sectionTitle = $lesson.data('section-title') || '';
             
             // Show loading state
             const $generateBtn = $('.mpcc-editor-generate');
@@ -282,11 +282,11 @@
             $generateBtn.prop('disabled', true).html('<span class="spinner is-active"></span> Generating...');
             
             $.ajax({
-                url: mpccCoursesIntegration.ajaxUrl,
+                url: window.mpccCoursesIntegration?.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php',
                 type: 'POST',
                 data: {
                     action: 'mpcc_generate_lesson_content',
-                    nonce: mpccCoursesIntegration.nonce,
+                    nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
                     session_id: this.sessionId,
                     section_id: this.currentEditingLesson.sectionId,
                     lesson_id: this.currentEditingLesson.lessonId,
@@ -318,11 +318,11 @@
             }
             
             $.ajax({
-                url: mpccCoursesIntegration.ajaxUrl,
+                url: window.mpccCoursesIntegration?.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php',
                 type: 'POST',
                 data: {
                     action: 'mpcc_load_all_drafts',
-                    nonce: mpccCoursesIntegration.nonce,
+                    nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
                     session_id: this.sessionId
                 },
                 success: (response) => {
