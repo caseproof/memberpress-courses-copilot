@@ -8,9 +8,15 @@
 
 (function($) {
     'use strict';
+    
+    if (typeof $ === 'undefined') {
+        console.error('CoursePreviewEditor: jQuery is not loaded!');
+        return;
+    }
 
     class CoursePreviewEditor {
         constructor() {
+            console.log('CoursePreviewEditor: Constructor called');
             this.currentEditingLesson = null;
             this.unsavedChanges = {};
             this.autoSaveTimer = null;
@@ -32,8 +38,10 @@
         }
 
         bindEvents() {
+            console.log('CoursePreviewEditor: Binding events...');
             // Handle lesson click for editing
             $(document).on('click', '.mpcc-lesson-item', this.handleLessonClick.bind(this));
+            console.log('CoursePreviewEditor: Found', $('.mpcc-lesson-item').length, 'lesson items on init');
             
             // Handle save button
             $(document).on('click', '.mpcc-editor-save', this.saveCurrentEdit.bind(this));
@@ -52,6 +60,7 @@
         }
 
         handleLessonClick(e) {
+            console.log('CoursePreviewEditor: Lesson clicked!', e.currentTarget);
             e.preventDefault();
             e.stopPropagation();
             
@@ -406,11 +415,18 @@
         }
     }
 
+    // Expose the class globally
+    window.CoursePreviewEditor = CoursePreviewEditor;
+
     // Initialize when DOM is ready
     $(document).ready(() => {
+        console.log('CoursePreviewEditor: DOM ready, checking for preview content...');
         // Only initialize on course generator page
         if ($('#mpcc-preview-content').length > 0) {
+            console.log('CoursePreviewEditor: Initializing editor...');
             window.mpccPreviewEditor = new CoursePreviewEditor();
+        } else {
+            console.log('CoursePreviewEditor: No preview content found, skipping initialization');
         }
     });
 

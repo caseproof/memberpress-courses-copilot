@@ -7,13 +7,15 @@
  */
 
 /* Lesson Item - Clickable State */
-.mpcc-lesson-item {
+.mpcc-lesson-item,
+li.mpcc-lesson-item {
     position: relative;
     transition: all 0.3s ease;
     cursor: pointer !important;
 }
 
-.mpcc-lesson-item:hover {
+.mpcc-lesson-item:hover,
+li.mpcc-lesson-item:hover {
     background-color: rgba(26, 115, 232, 0.1) !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }

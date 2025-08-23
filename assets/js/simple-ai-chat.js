@@ -1357,6 +1357,19 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
     // Update the preview content
     $previewContent.html(previewHtml);
     
+    // Reinitialize the course preview editor if it exists
+    if (window.mpccPreviewEditor) {
+        console.log('Reinitializing preview editor after content update...');
+        // Re-bind events for new content
+        window.mpccPreviewEditor.bindEvents();
+        // Reload drafts for the new content
+        window.mpccPreviewEditor.loadDrafts();
+    } else if (window.CoursePreviewEditor) {
+        // Initialize editor if class exists but instance doesn't
+        console.log('Initializing preview editor for first time...');
+        window.mpccPreviewEditor = new window.CoursePreviewEditor();
+    }
+    
     // Ensure the preview pane is visible
     jQuery('#mpcc-preview-pane').show();
     
