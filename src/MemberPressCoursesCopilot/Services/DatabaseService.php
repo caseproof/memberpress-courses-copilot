@@ -41,6 +41,7 @@ class DatabaseService extends BaseService
      */
     public function __construct()
     {
+        parent::__construct();
         global $wpdb;
         $this->wpdb = $wpdb;
         $this->table_prefix = $wpdb->prefix . 'mpcc_';

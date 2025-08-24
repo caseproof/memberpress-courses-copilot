@@ -212,6 +212,9 @@ jQuery(document).ready(function($) {
                     currentSessionId = response.data.session_id;
                     sessionStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
                     console.log('Created new conversation session:', currentSessionId);
+                    
+                    // Trigger event for other components
+                    $(document).trigger('mpcc:session-changed', { sessionId: currentSessionId });
                     showWelcomeMessage();
                 } else {
                     console.error('Failed to create conversation:', response.data);
@@ -252,6 +255,9 @@ jQuery(document).ready(function($) {
                     currentSessionId = response.data.session_id;
                     // Ensure session ID is stored for page refreshes
                     sessionStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
+                    
+                    // Trigger event for other components
+                    $(document).trigger('mpcc:session-changed', { sessionId: currentSessionId });
                     
                     console.log('Response data:', response.data);
                     console.log('Conversation history from server:', response.data.conversation_history);

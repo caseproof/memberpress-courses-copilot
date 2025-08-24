@@ -36,6 +36,11 @@ class CourseAssetService extends BaseService
      */
     public function enqueueIntegrationAssets(string $hook_suffix): void
     {
+        // Don't load modal assets on standalone page
+        if (isset($_GET['page']) && $_GET['page'] === 'mpcc-course-editor') {
+            return;
+        }
+        
         if (!$this->isCoursesAdminPage()) {
             return;
         }

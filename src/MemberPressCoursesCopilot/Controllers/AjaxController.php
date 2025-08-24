@@ -9,7 +9,6 @@ use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\LLMService;
 use MemberPressCoursesCopilot\Models\CourseTemplate;
 use MemberPressCoursesCopilot\Models\GeneratedCourse;
-use MemberPressCoursesCopilot\Utilities\Logger;
 
 /**
  * AJAX Controller
@@ -37,12 +36,6 @@ class AjaxController extends BaseController
      */
     private LLMService $llmService;
 
-    /**
-     * Logger instance
-     * 
-     * @var Logger
-     */
-    private Logger $logger;
 
     /**
      * Registered AJAX actions
@@ -81,7 +74,8 @@ class AjaxController extends BaseController
         'mpcc_generate_lesson_content',
         'mpcc_reorder_course_items',
         'mpcc_delete_course_item',
-        'mpcc_load_all_drafts'
+        'mpcc_load_all_drafts',
+        'mpcc_save_conversation'
     ];
 
     /**
@@ -89,16 +83,13 @@ class AjaxController extends BaseController
      * 
      * @param CourseGeneratorService $courseGenerator Course generator service
      * @param LLMService $llmService LLM service
-     * @param Logger $logger Logger instance
      */
     public function __construct(
         CourseGeneratorService $courseGenerator,
-        LLMService $llmService,
-        Logger $logger
+        LLMService $llmService
     ) {
         $this->courseGenerator = $courseGenerator;
         $this->llmService = $llmService;
-        $this->logger = $logger;
     }
 
     /**
@@ -147,11 +138,8 @@ class AjaxController extends BaseController
             $action = $_POST['action'] ?? '';
             $action = str_replace('mpcc_', '', $action);
 
-            $this->logger->debug('AJAX request received', [
-                'action' => $action,
-                'user_id' => get_current_user_id(),
-                'session_id' => $_POST['session_id'] ?? null
-            ]);
+            // Log for debugging
+            error_log('MPCC AJAX request received: ' . $action);
 
             // Route to appropriate handler
             $response = $this->routeAjaxAction($action);
@@ -159,12 +147,7 @@ class AjaxController extends BaseController
             $this->sendSuccessResponse($response);
 
         } catch (\Exception $e) {
-            $this->logger->error('AJAX request failed', [
-                'action' => $_POST['action'] ?? 'unknown',
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
+            error_log('MPCC AJAX request failed: ' . $e->getMessage());
             $this->sendErrorResponse($e->getMessage());
         }
     }
@@ -176,15 +159,61 @@ class AjaxController extends BaseController
      */
     public function handleUnauthorizedRequest(): void
     {
-        $this->logger->warning('Unauthorized AJAX request', [
-            'action' => $_POST['action'] ?? 'unknown',
-            'ip' => $this->getClientIp(),
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
-        ]);
-
+        error_log('MPCC: Unauthorized AJAX request - ' . ($_POST['action'] ?? 'unknown'));
         $this->sendErrorResponse('You must be logged in to perform this action.', 401);
     }
 
+    /**
+     * Verify AJAX nonce
+     * 
+     * @throws \Exception If nonce verification fails
+     */
+    private function verifyAjaxNonce(): void
+    {
+        $nonce = $_POST['nonce'] ?? '';
+        
+        // Check both nonce types that might be used
+        if (!wp_verify_nonce($nonce, 'mpcc_editor_nonce') && 
+            !wp_verify_nonce($nonce, 'mpcc_ajax_nonce') &&
+            !wp_verify_nonce($nonce, 'mpcc_nonce')) {
+            throw new \Exception('Security check failed');
+        }
+    }
+    
+    /**
+     * Check AJAX permissions
+     * 
+     * @throws \Exception If user doesn't have permissions
+     */
+    private function checkAjaxPermissions(): void
+    {
+        if (!current_user_can('edit_posts')) {
+            throw new \Exception('You do not have permission to perform this action');
+        }
+    }
+    
+    /**
+     * Send success response
+     * 
+     * @param array $data Response data
+     */
+    private function sendSuccessResponse(array $data): void
+    {
+        wp_send_json_success($data);
+    }
+    
+    /**
+     * Send error response
+     * 
+     * @param string $message Error message
+     * @param int $code HTTP status code
+     */
+    private function sendErrorResponse(string $message, int $code = 400): void
+    {
+        status_header($code);
+        wp_send_json_error($message);
+    }
+    
     /**
      * Route AJAX action to appropriate handler
      * 
@@ -227,6 +256,7 @@ class AjaxController extends BaseController
             'reorder_course_items' => $this->handleReorderCourseItems(),
             'delete_course_item' => $this->handleDeleteCourseItem(),
             'load_all_drafts' => $this->handleLoadAllDrafts(),
+            'save_conversation' => $this->handleSaveConversation(),
             default => throw new \Exception("Unknown action: {$action}")
         };
     }
@@ -873,7 +903,8 @@ class AjaxController extends BaseController
     {
         $nonce = $_POST['nonce'] ?? $_POST['_wpnonce'] ?? '';
         
-        if (!wp_verify_nonce($nonce, 'mpcc_ajax_nonce')) {
+        // Try both possible nonce names for backward compatibility
+        if (!wp_verify_nonce($nonce, 'mpcc_ajax_nonce') && !wp_verify_nonce($nonce, 'mpcc_courses_integration')) {
             throw new \Exception('Security check failed');
         }
     }
@@ -2257,6 +2288,14 @@ class AjaxController extends BaseController
             throw new \Exception('Session ID, section ID, and lesson ID are required');
         }
         
+        // Validate session exists
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            $this->logger->warning('Invalid session for save lesson content', ['session_id' => $sessionId]);
+            // Don't throw exception, just create the session if it doesn't exist
+            // This allows drafts to work even if the main session is missing
+        }
+        
         // Create draft service and save
         $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
         $saved = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content);
@@ -2320,34 +2359,51 @@ class AjaxController extends BaseController
             throw new \Exception('Lesson title is required');
         }
         
-        // Generate content using LLM service
-        $llmService = new \MemberPressCoursesCopilot\Services\LLMService();
-        $content = $llmService->generateLessonContent(
-            $sectionTitle,
-            1, // Default lesson number
-            [
+        try {
+            // Generate content using LLM service
+            $llmService = new \MemberPressCoursesCopilot\Services\LLMService();
+            $content = $llmService->generateLessonContent(
+                $sectionTitle,
+                1, // Default lesson number
+                [
+                    'lesson_title' => $lessonTitle,
+                    'course_title' => $courseTitle,
+                    'difficulty_level' => 'beginner',
+                    'target_audience' => 'general learners'
+                ]
+            );
+            
+            // Ensure content is not empty
+            if (empty($content)) {
+                throw new \Exception('Generated content is empty');
+            }
+            
+            // Save the generated content
+            if (!empty($sessionId) && !empty($sectionId) && !empty($lessonId)) {
+                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content);
+            }
+            
+            $this->logger->info('Lesson content generated', [
                 'lesson_title' => $lessonTitle,
-                'course_title' => $courseTitle,
-                'difficulty_level' => 'beginner',
-                'target_audience' => 'general learners'
-            ]
-        );
-        
-        // Save the generated content
-        if (!empty($sessionId) && !empty($sectionId) && !empty($lessonId)) {
-            $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
-            $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content);
+                'content_length' => strlen($content),
+                'first_100_chars' => substr($content, 0, 100)
+            ]);
+            
+            return [
+                'success' => true,
+                'content' => $content,
+                'content_length' => strlen($content)
+            ];
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to generate lesson content', [
+                'error' => $e->getMessage(),
+                'lesson_title' => $lessonTitle
+            ]);
+            
+            throw new \Exception('Failed to generate content: ' . $e->getMessage());
         }
-        
-        $this->logger->info('Lesson content generated', [
-            'lesson_title' => $lessonTitle,
-            'content_length' => strlen($content)
-        ]);
-        
-        return [
-            'success' => true,
-            'content' => $content
-        ];
     }
     
     /**
@@ -2431,6 +2487,14 @@ class AjaxController extends BaseController
             throw new \Exception('Session ID is required');
         }
         
+        // Validate session exists
+        $conversationState = $this->getSessionData($sessionId);
+        if (!$conversationState) {
+            $this->logger->warning('Invalid session for load all drafts', ['session_id' => $sessionId]);
+            // Don't throw exception, allow loading drafts even if main session is missing
+            // This supports draft persistence across sessions
+        }
+        
         // Load all drafts for session
         $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
         $drafts = $draftService->getSessionDrafts($sessionId);
@@ -2446,6 +2510,54 @@ class AjaxController extends BaseController
             'success' => true,
             'drafts' => $draftsMap,
             'count' => count($drafts)
+        ];
+    }
+    
+    /**
+     * Handle save conversation
+     * 
+     * @return array Response data
+     */
+    private function handleSaveConversation(): array
+    {
+        $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
+        $conversationHistory = $_POST['conversation_history'] ?? [];
+        $conversationState = $_POST['conversation_state'] ?? [];
+        
+        if (empty($sessionId)) {
+            throw new \Exception('Session ID is required');
+        }
+        
+        // Create or update session data
+        $sessionData = [
+            'session_id' => $sessionId,
+            'user_id' => get_current_user_id(),
+            'created_at' => current_time('timestamp'),
+            'updated_at' => current_time('timestamp'),
+            'conversation_history' => $conversationHistory,
+            'conversation_state' => $conversationState,
+            'status' => 'active'
+        ];
+        
+        // Check if session already exists
+        $existingSession = $this->getSessionData($sessionId);
+        if ($existingSession) {
+            // Update existing session, preserving created_at
+            $sessionData['created_at'] = $existingSession['created_at'] ?? current_time('timestamp');
+        }
+        
+        // Save session data
+        $this->saveSessionData($sessionId, $sessionData);
+        
+        $this->logger->info('Conversation saved', [
+            'session_id' => $sessionId,
+            'history_count' => count($conversationHistory)
+        ]);
+        
+        return [
+            'success' => true,
+            'session_id' => $sessionId,
+            'message' => 'Conversation saved successfully'
         ];
     }
 }

@@ -1,0 +1,666 @@
+/**
+ * MemberPress Courses Copilot - Course Editor Page JavaScript
+ */
+
+(function($) {
+    'use strict';
+
+    // Course Editor Manager
+    const CourseEditor = {
+        sessionId: '',
+        currentLessonId: null,
+        courseStructure: {},
+        conversationHistory: [],
+        
+        init: function() {
+            this.sessionId = mpccEditorSettings.sessionId;
+            this.bindEvents();
+            this.initializeChat();
+            this.loadExistingSession();
+        },
+        
+        bindEvents: function() {
+            // Chat events
+            $('#mpcc-send-message').on('click', this.sendMessage.bind(this));
+            $('#mpcc-chat-input').on('keypress', function(e) {
+                if (e.which === 13 && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            }.bind(this));
+            
+            // Quick starters
+            $('#mpcc-new-session').on('click', this.newSession.bind(this));
+            $('#mpcc-session-history').on('click', this.showSessionHistory.bind(this));
+            
+            // Previous conversations button in header
+            $('#mpcc-previous-conversations').on('click', this.toggleSessionDropdown.bind(this));
+            
+            // Quick starter suggestion buttons
+            $(document).on('click', '.mpcc-quick-starter-btn', this.handleQuickStarter.bind(this));
+            
+            // Close dropdown when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.mpcc-sessions-dropdown, #mpcc-previous-conversations, #mpcc-session-history').length) {
+                    $('.mpcc-sessions-dropdown').removeClass('active');
+                }
+            });
+            
+            // Course actions
+            $('#mpcc-preview-course').on('click', this.previewCourse.bind(this));
+            $('#mpcc-create-course').on('click', this.createCourse.bind(this));
+            
+            // Lesson editor events - use event delegation for dynamic content
+            $(document).on('click', '.mpcc-lesson-item', this.handleLessonClick.bind(this));
+            $('#mpcc-generate-lesson-content').on('click', this.generateLessonContent.bind(this));
+            $('#mpcc-save-lesson').on('click', this.saveLesson.bind(this));
+            $('#mpcc-cancel-lesson, #mpcc-close-lesson').on('click', this.closeLessonEditor.bind(this));
+            
+            // Auto-save on textarea change
+            let saveTimeout;
+            $('#mpcc-lesson-textarea').on('input', function() {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(this.autoSaveLesson.bind(this), 2000);
+            }.bind(this));
+        },
+        
+        initializeChat: function() {
+            this.addMessage('assistant', 'Welcome to the AI Course Creator! I\'m here to help you build amazing courses. What kind of course would you like to create today?');
+        },
+        
+        loadExistingSession: function() {
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_load_session',
+                    nonce: mpccEditorSettings.nonce,
+                    session_id: this.sessionId
+                },
+                success: (response) => {
+                    if (response.success && response.data) {
+                        // Restore conversation history
+                        if (response.data.conversation_history) {
+                            this.conversationHistory = response.data.conversation_history;
+                            this.rebuildChatHistory();
+                        }
+                        
+                        // Restore course structure
+                        if (response.data.conversation_state?.course_data) {
+                            this.courseStructure = response.data.conversation_state.course_data;
+                            this.renderCourseStructure();
+                        }
+                    }
+                },
+                error: () => {
+                    console.log('No existing session found');
+                }
+            });
+        },
+        
+        rebuildChatHistory: function() {
+            $('#mpcc-chat-messages').empty();
+            this.conversationHistory.forEach(msg => {
+                this.addMessage(msg.role, msg.content, false);
+            });
+        },
+        
+        sendMessage: function() {
+            const input = $('#mpcc-chat-input');
+            const message = input.val().trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            this.addMessage('user', message);
+            input.val('').focus();
+            
+            // Send to AI
+            this.sendToAI(message);
+        },
+        
+        addMessage: function(role, content, addToHistory = true) {
+            const messagesContainer = $('#mpcc-chat-messages');
+            const messageHtml = `
+                <div class="mpcc-chat-message ${role}">
+                    <div class="message-content">${this.escapeHtml(content)}</div>
+                </div>
+            `;
+            
+            messagesContainer.append(messageHtml);
+            messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+            
+            // Add to conversation history
+            if (addToHistory) {
+                this.conversationHistory.push({ role, content });
+            }
+            
+            // Hide quick starters after first message
+            if (this.conversationHistory.length > 1) {
+                $('#mpcc-quick-starter-suggestions').addClass('hidden');
+            }
+        },
+        
+        handleQuickStarter: function(e) {
+            const button = $(e.currentTarget);
+            const prompt = button.data('prompt');
+            
+            if (prompt) {
+                $('#mpcc-chat-input').val(prompt);
+                this.sendMessage();
+            }
+        },
+        
+        sendToAI: function(message) {
+            const button = $('#mpcc-send-message');
+            button.prop('disabled', true).text('Thinking...');
+            
+            // Show typing indicator
+            const typingId = 'typing-' + Date.now();
+            const typingHtml = `
+                <div class="mpcc-chat-message assistant" id="${typingId}">
+                    <div class="message-content">
+                        <span class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </span>
+                    </div>
+                </div>
+            `;
+            $('#mpcc-chat-messages').append(typingHtml);
+            this.scrollToBottom();
+            
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_chat_message',
+                    nonce: mpccEditorSettings.nonce,
+                    session_id: this.sessionId,
+                    message: message,
+                    conversation_history: JSON.stringify(this.conversationHistory),
+                    course_structure: JSON.stringify(this.courseStructure)
+                },
+                success: (response) => {
+                    $('#' + typingId).remove();
+                    
+                    if (response.success) {
+                        this.addMessage('assistant', response.data.message);
+                        
+                        if (response.data.course_structure) {
+                            // Handle course structure that might be in JSON string format
+                            let courseData = response.data.course_structure;
+                            console.log('Received course structure:', courseData);
+                            console.log('Type of course structure:', typeof courseData);
+                            
+                            if (typeof courseData === 'string') {
+                                try {
+                                    // Extract JSON from markdown code block if present
+                                    const jsonMatch = courseData.match(/```json\s*([\s\S]*?)```/);
+                                    if (jsonMatch) {
+                                        courseData = JSON.parse(jsonMatch[1]);
+                                    } else {
+                                        courseData = JSON.parse(courseData);
+                                    }
+                                } catch (e) {
+                                    console.error('Failed to parse course structure:', e);
+                                    return;
+                                }
+                            }
+                            
+                            console.log('Parsed course structure:', courseData);
+                            this.courseStructure = courseData;
+                            this.renderCourseStructure();
+                            $('#mpcc-create-course').prop('disabled', false);
+                        }
+                        
+                        // Auto-save conversation
+                        this.saveConversation();
+                    } else {
+                        this.showError(response.data || 'An error occurred');
+                    }
+                },
+                error: () => {
+                    $('#' + typingId).remove();
+                    this.showError('Failed to communicate with the AI. Please try again.');
+                },
+                complete: () => {
+                    button.prop('disabled', false).html('<span class="dashicons dashicons-arrow-right-alt"></span> Send');
+                }
+            });
+        },
+        
+        renderCourseStructure: function() {
+            const container = $('#mpcc-course-structure');
+            container.empty();
+            
+            if (!this.courseStructure.title) {
+                container.html($('.mpcc-empty-state').first().clone());
+                return;
+            }
+            
+            // Course header
+            const headerHtml = `
+                <div class="mpcc-course-header">
+                    <h2>${this.escapeHtml(this.courseStructure.title)}</h2>
+                    <p>${this.escapeHtml(this.courseStructure.description || '')}</p>
+                </div>
+            `;
+            container.append(headerHtml);
+            
+            // Sections and lessons
+            if (this.courseStructure.sections) {
+                this.courseStructure.sections.forEach((section, sectionIndex) => {
+                    const sectionHtml = this.renderSection(section, sectionIndex);
+                    container.append(sectionHtml);
+                });
+            }
+        },
+        
+        renderSection: function(section, sectionIndex) {
+            const sectionId = `section-${sectionIndex}`;
+            const lessonsHtml = section.lessons.map((lesson, lessonIndex) => 
+                this.renderLesson(lesson, sectionIndex, lessonIndex)
+            ).join('');
+            
+            return `
+                <div class="mpcc-section" id="${sectionId}" data-section-index="${sectionIndex}">
+                    <div class="mpcc-section-header">
+                        <h3 class="mpcc-section-title">${this.escapeHtml(section.title)}</h3>
+                        <div class="mpcc-section-actions">
+                            <button type="button" class="button-link" title="Edit section">
+                                <span class="dashicons dashicons-edit"></span>
+                            </button>
+                            <button type="button" class="button-link" title="Delete section">
+                                <span class="dashicons dashicons-trash"></span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mpcc-lessons">
+                        ${lessonsHtml}
+                    </div>
+                </div>
+            `;
+        },
+        
+        renderLesson: function(lesson, sectionIndex, lessonIndex) {
+            const lessonId = `${sectionIndex}-${lessonIndex}`;
+            const hasDraft = lesson.draft_content ? 'has-draft' : '';
+            
+            return `
+                <div class="mpcc-lesson-item ${hasDraft}" 
+                     data-lesson-id="${lessonId}"
+                     data-section-index="${sectionIndex}"
+                     data-lesson-index="${lessonIndex}">
+                    <div class="mpcc-lesson-info">
+                        <div class="mpcc-lesson-title">${this.escapeHtml(lesson.title)}</div>
+                        <div class="mpcc-lesson-meta">${lesson.duration || 'Duration not set'}</div>
+                    </div>
+                    <button type="button" class="button-link">
+                        <span class="dashicons dashicons-edit"></span>
+                    </button>
+                </div>
+            `;
+        },
+        
+        handleLessonClick: function(e) {
+            e.preventDefault();
+            const $target = $(e.currentTarget);
+            const lessonId = $target.data('lesson-id');
+            
+            if (lessonId) {
+                this.editLesson(lessonId);
+            }
+        },
+        
+        editLesson: function(lessonId) {
+            const [sectionIndex, lessonIndex] = lessonId.split('-').map(Number);
+            const lesson = this.courseStructure.sections[sectionIndex].lessons[lessonIndex];
+            
+            this.currentLessonId = lessonId;
+            
+            // Update UI
+            $('.mpcc-lesson-item').removeClass('editing');
+            $(`.mpcc-lesson-item[data-lesson-id="${lessonId}"]`).addClass('editing');
+            
+            // Show editor
+            $('#mpcc-lesson-title').text(lesson.title);
+            $('#mpcc-lesson-textarea').val(lesson.draft_content || lesson.content || '');
+            $('#mpcc-lesson-editor').fadeIn();
+            
+            // Update save indicator
+            $('.mpcc-save-indicator').text('');
+            
+            // Load saved content if available
+            this.loadLessonContent(lessonId);
+        },
+        
+        loadLessonContent: function(lessonId) {
+            const [sectionIndex, lessonIndex] = lessonId.split('-').map(Number);
+            const lesson = this.courseStructure.sections[sectionIndex].lessons[lessonIndex];
+            
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_load_lesson_content',
+                    nonce: mpccEditorSettings.nonce,
+                    session_id: this.sessionId,
+                    lesson_id: lessonId,
+                    lesson_title: lesson.title
+                },
+                success: (response) => {
+                    if (response.success && response.data.content) {
+                        $('#mpcc-lesson-textarea').val(response.data.content);
+                    }
+                }
+            });
+        },
+        
+        generateLessonContent: function() {
+            if (!this.currentLessonId) return;
+            
+            const [sectionIndex, lessonIndex] = this.currentLessonId.split('-').map(Number);
+            const lesson = this.courseStructure.sections[sectionIndex].lessons[lessonIndex];
+            const button = $('#mpcc-generate-lesson-content');
+            
+            button.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Generating...');
+            
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_generate_lesson_content',
+                    nonce: mpccEditorSettings.nonce,
+                    session_id: this.sessionId,
+                    lesson_id: this.currentLessonId,
+                    lesson_title: lesson.title,
+                    course_context: JSON.stringify({
+                        title: this.courseStructure.title,
+                        description: this.courseStructure.description
+                    })
+                },
+                success: (response) => {
+                    if (response.success) {
+                        $('#mpcc-lesson-textarea').val(response.data.content);
+                        this.autoSaveLesson();
+                    } else {
+                        this.showError(response.data || 'Failed to generate content');
+                    }
+                },
+                error: () => {
+                    this.showError('Failed to generate content. Please try again.');
+                },
+                complete: () => {
+                    button.prop('disabled', false).html('<span class="dashicons dashicons-welcome-write-blog"></span> Generate with AI');
+                }
+            });
+        },
+        
+        saveLesson: function() {
+            if (!this.currentLessonId) return;
+            
+            const content = $('#mpcc-lesson-textarea').val();
+            const [sectionIndex, lessonIndex] = this.currentLessonId.split('-').map(Number);
+            
+            // Update local structure
+            this.courseStructure.sections[sectionIndex].lessons[lessonIndex].draft_content = content;
+            
+            // Save to server
+            this.saveLessonToServer(content, () => {
+                this.closeLessonEditor();
+                this.renderCourseStructure();
+            });
+        },
+        
+        autoSaveLesson: function() {
+            if (!this.currentLessonId) return;
+            
+            const content = $('#mpcc-lesson-textarea').val();
+            this.saveLessonToServer(content);
+        },
+        
+        saveLessonToServer: function(content, callback) {
+            const [sectionIndex, lessonIndex] = this.currentLessonId.split('-').map(Number);
+            const lesson = this.courseStructure.sections[sectionIndex].lessons[lessonIndex];
+            
+            $('.mpcc-save-indicator').text('Saving...').removeClass('saved error').addClass('saving');
+            
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_save_lesson_content',
+                    nonce: mpccEditorSettings.nonce,
+                    session_id: this.sessionId,
+                    lesson_id: this.currentLessonId,
+                    lesson_title: lesson.title,
+                    content: content
+                },
+                success: (response) => {
+                    if (response.success) {
+                        $('.mpcc-save-indicator').text('Saved').removeClass('saving error').addClass('saved');
+                        
+                        // Update local structure
+                        lesson.draft_content = content;
+                        
+                        // Update UI to show draft indicator
+                        $(`.mpcc-lesson-item[data-lesson-id="${this.currentLessonId}"]`).addClass('has-draft');
+                        
+                        if (callback) callback();
+                    } else {
+                        $('.mpcc-save-indicator').text('Error saving').removeClass('saving saved').addClass('error');
+                    }
+                },
+                error: () => {
+                    $('.mpcc-save-indicator').text('Error saving').removeClass('saving saved').addClass('error');
+                }
+            });
+        },
+        
+        closeLessonEditor: function() {
+            $('#mpcc-lesson-editor').fadeOut();
+            $('.mpcc-lesson-item').removeClass('editing');
+            this.currentLessonId = null;
+        },
+        
+        saveConversation: function() {
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_save_conversation',
+                    nonce: mpccEditorSettings.nonce,
+                    session_id: this.sessionId,
+                    conversation_history: JSON.stringify(this.conversationHistory),
+                    conversation_state: JSON.stringify({
+                        course_structure: this.courseStructure
+                    })
+                }
+            });
+        },
+        
+        previewCourse: function() {
+            console.log('Preview course:', this.courseStructure);
+            // TODO: Implement course preview in a modal or new tab
+            alert('Course preview functionality coming soon!');
+        },
+        
+        createCourse: function() {
+            if (!this.courseStructure.title) {
+                this.showError('Please generate a course structure first.');
+                return;
+            }
+            
+            const button = $('#mpcc-create-course');
+            button.prop('disabled', true).text('Creating...');
+            
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_create_course',
+                    nonce: mpccEditorSettings.nonce,
+                    session_id: this.sessionId,
+                    course_data: JSON.stringify(this.courseStructure)
+                },
+                success: (response) => {
+                    if (response.success) {
+                        // Redirect to the created course
+                        window.location.href = response.data.edit_url;
+                    } else {
+                        this.showError(response.data || 'Failed to create course');
+                    }
+                },
+                error: () => {
+                    this.showError('Failed to create course. Please try again.');
+                },
+                complete: () => {
+                    button.prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> Create Course');
+                }
+            });
+        },
+        
+        newSession: function() {
+            if (confirm('Start a new session? Current progress will be saved.')) {
+                // Generate new session ID
+                const newSessionId = 'mpcc_session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                // Save current session first
+                this.saveConversation();
+                
+                // Redirect to new session
+                window.location.href = window.location.pathname + '?page=mpcc-course-editor&session=' + newSessionId;
+            }
+        },
+        
+        showSessionHistory: function() {
+            this.toggleSessionDropdown();
+        },
+        
+        toggleSessionDropdown: function() {
+            const dropdown = $('.mpcc-sessions-dropdown');
+            
+            if (dropdown.length === 0) {
+                // Create dropdown if it doesn't exist
+                this.createSessionDropdown();
+            } else {
+                dropdown.toggleClass('active');
+                if (dropdown.hasClass('active')) {
+                    this.loadSessionList();
+                }
+            }
+        },
+        
+        createSessionDropdown: function() {
+            const dropdown = $(`
+                <div class="mpcc-sessions-dropdown">
+                    <div class="mpcc-sessions-header">
+                        <h3>Previous Conversations</h3>
+                    </div>
+                    <div class="mpcc-sessions-list">
+                        <div class="mpcc-sessions-loading">
+                            <span class="dashicons dashicons-update spin"></span>
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+            `);
+            
+            $('.mpcc-editor-header').append(dropdown);
+            dropdown.addClass('active');
+            this.loadSessionList();
+        },
+        
+        loadSessionList: function() {
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_get_sessions',
+                    nonce: mpccEditorSettings.nonce
+                },
+                success: (response) => {
+                    if (response.success && response.data) {
+                        this.renderSessionList(response.data);
+                    } else {
+                        this.renderEmptySessionList();
+                    }
+                },
+                error: () => {
+                    this.renderEmptySessionList();
+                }
+            });
+        },
+        
+        renderSessionList: function(sessions) {
+            const listContainer = $('.mpcc-sessions-list');
+            
+            if (sessions.length === 0) {
+                this.renderEmptySessionList();
+                return;
+            }
+            
+            let html = '';
+            sessions.forEach(session => {
+                const date = new Date(session.last_updated);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                html += `
+                    <div class="mpcc-session-item" data-session-id="${session.id}">
+                        <div class="mpcc-session-title">${session.title || 'Untitled Course'}</div>
+                        <div class="mpcc-session-meta">${dateStr}</div>
+                    </div>
+                `;
+            });
+            
+            listContainer.html(html);
+            
+            // Bind click events
+            $('.mpcc-session-item').on('click', function() {
+                const sessionId = $(this).data('session-id');
+                if (confirm('Load this session? Current progress will be saved.')) {
+                    CourseEditor.saveConversation();
+                    window.location.href = window.location.pathname + '?page=mpcc-course-editor&session=' + sessionId;
+                }
+            });
+        },
+        
+        renderEmptySessionList: function() {
+            $('.mpcc-sessions-list').html(`
+                <div class="mpcc-sessions-empty">
+                    <p>No previous conversations found</p>
+                </div>
+            `);
+        },
+        
+        scrollToBottom: function() {
+            const container = $('#mpcc-chat-messages');
+            container.scrollTop(container[0].scrollHeight);
+        },
+        
+        showError: function(message) {
+            // You could implement a nicer notification system here
+            alert(message);
+        },
+        
+        escapeHtml: function(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    };
+    
+    // Initialize when document is ready
+    $(document).ready(function() {
+        if ($('#mpcc-editor-container').length) {
+            window.CourseEditor = CourseEditor;
+            CourseEditor.init();
+        }
+    });
+    
+})(jQuery);

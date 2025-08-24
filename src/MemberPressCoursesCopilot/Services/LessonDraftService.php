@@ -4,12 +4,29 @@ namespace MemberPressCoursesCopilot\Services;
 use MemberPressCoursesCopilot\Database\LessonDraftTable;
 
 class LessonDraftService {
-    private $logger;
     private $table;
     
     public function __construct() {
-        $this->logger = new Logger();
         $this->table = new LessonDraftTable();
+        
+        // Ensure table exists (temporary fix)
+        $this->ensureTableExists();
+    }
+    
+    /**
+     * Ensure the lesson drafts table exists
+     */
+    private function ensureTableExists() {
+        global $wpdb;
+        $table_name = $this->table->getTableName();
+        
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name;
+        
+        if (!$table_exists) {
+            $this->table->create();
+            error_log('MPCC: Created missing lesson drafts table');
+        }
     }
     
     /**
@@ -57,19 +74,11 @@ class LessonDraftService {
         }
         
         if ($result === false) {
-            $this->logger->error('Failed to save lesson draft', [
-                'session_id' => $session_id,
-                'lesson_id' => $lesson_id,
-                'error' => $wpdb->last_error
-            ]);
+            error_log('MPCC: Failed to save lesson draft - Session: ' . $session_id . ', Lesson: ' . $lesson_id . ', Error: ' . $wpdb->last_error);
             return false;
         }
         
-        $this->logger->info('Lesson draft saved', [
-            'session_id' => $session_id,
-            'lesson_id' => $lesson_id,
-            'content_length' => strlen($content)
-        ]);
+        error_log('MPCC: Lesson draft saved - Session: ' . $session_id . ', Lesson: ' . $lesson_id . ', Content length: ' . strlen($content));
         
         return true;
     }
@@ -131,18 +140,11 @@ class LessonDraftService {
         );
         
         if ($result === false) {
-            $this->logger->error('Failed to delete lesson draft', [
-                'session_id' => $session_id,
-                'lesson_id' => $lesson_id,
-                'error' => $wpdb->last_error
-            ]);
+            error_log('MPCC: Failed to delete lesson draft - Session: ' . $session_id . ', Lesson: ' . $lesson_id . ', Error: ' . $wpdb->last_error);
             return false;
         }
         
-        $this->logger->info('Lesson draft deleted', [
-            'session_id' => $session_id,
-            'lesson_id' => $lesson_id
-        ]);
+        error_log('MPCC: Lesson draft deleted - Session: ' . $session_id . ', Lesson: ' . $lesson_id);
         
         return true;
     }
@@ -162,17 +164,11 @@ class LessonDraftService {
         );
         
         if ($result === false) {
-            $this->logger->error('Failed to delete session drafts', [
-                'session_id' => $session_id,
-                'error' => $wpdb->last_error
-            ]);
+            error_log('MPCC: Failed to delete session drafts - Session: ' . $session_id . ', Error: ' . $wpdb->last_error);
             return false;
         }
         
-        $this->logger->info('Session drafts deleted', [
-            'session_id' => $session_id,
-            'count' => $result
-        ]);
+        error_log('MPCC: Session drafts deleted - Session: ' . $session_id . ', Count: ' . $result);
         
         return $result;
     }
@@ -201,10 +197,7 @@ class LessonDraftService {
             
             if ($result === false) {
                 $success = false;
-                $this->logger->error('Failed to update lesson order', [
-                    'lesson_id' => $lesson_id,
-                    'error' => $wpdb->last_error
-                ]);
+                error_log('MPCC: Failed to update lesson order - Lesson: ' . $lesson_id . ', Error: ' . $wpdb->last_error);
             }
         }
         
@@ -239,10 +232,7 @@ class LessonDraftService {
                         
                         if (isset($draft_map[$key])) {
                             $lesson['content'] = $draft_map[$key];
-                            $this->logger->info('Applied draft content to lesson', [
-                                'section' => $section['title'],
-                                'lesson' => $lesson['title']
-                            ]);
+                            error_log('MPCC: Applied draft content to lesson - Section: ' . $section['title'] . ', Lesson: ' . $lesson['title']);
                         }
                     }
                 }

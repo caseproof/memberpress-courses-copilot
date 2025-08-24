@@ -995,7 +995,6 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         try {
             // Initialize lesson draft service
             $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
-            $draftService->init();
             
             // Save draft
             $draftId = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex);
@@ -1063,7 +1062,6 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         try {
             // Initialize lesson draft service
             $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
-            $draftService->init();
             
             // Load specific lesson or all session drafts
             if (!empty($sectionId) && !empty($lessonId)) {
@@ -1184,7 +1182,6 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             // Save generated content as draft if session ID provided
             if (!empty($sessionId) && !empty($_POST['section_id']) && !empty($_POST['lesson_id'])) {
                 $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
-                $draftService->init();
                 
                 $sectionId = sanitize_text_field($_POST['section_id']);
                 $lessonId = sanitize_text_field($_POST['lesson_id']);
@@ -1258,7 +1255,6 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 }
                 
                 $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
-                $draftService->init();
                 
                 // Validate lesson order array
                 $lessonOrder = array_map('sanitize_text_field', $reorderData);
@@ -1381,7 +1377,6 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 
                 // Delete lesson draft
                 $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
-                $draftService->init();
                 
                 $success = $draftService->deleteDraft($sessionId, $sectionId, $lessonId);
                 
@@ -1430,7 +1425,6 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 
                 // Delete all lessons in the section
                 $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
-                $draftService->init();
                 
                 $deletedCount = $draftService->deleteSectionDrafts($sessionId, $sectionId);
                 

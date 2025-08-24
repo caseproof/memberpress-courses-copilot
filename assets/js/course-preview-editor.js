@@ -33,30 +33,61 @@
             // Initialize event handlers
             this.bindEvents();
             
+            // Listen for session changes
+            this.listenForSessionChanges();
+            
             // Load any existing drafts
             this.loadDrafts();
+        }
+        
+        listenForSessionChanges() {
+            // Listen for custom event when session changes
+            $(document).on('mpcc:session-changed', (e, data) => {
+                console.log('CoursePreviewEditor: Session changed to:', data.sessionId);
+                this.sessionId = data.sessionId;
+                sessionStorage.setItem('mpcc_current_session_id', data.sessionId);
+                
+                // Reload drafts for new session
+                this.loadDrafts();
+            });
+            
+            // Also check periodically for session changes
+            setInterval(() => {
+                const currentSessionId = sessionStorage.getItem('mpcc_current_session_id');
+                if (currentSessionId && currentSessionId !== this.sessionId) {
+                    console.log('CoursePreviewEditor: Detected session change:', currentSessionId);
+                    this.sessionId = currentSessionId;
+                    this.loadDrafts();
+                }
+            }, 2000);
         }
 
         bindEvents() {
             console.log('CoursePreviewEditor: Binding events...');
+            
+            // Unbind any existing event handlers first to prevent duplicates
+            $(document).off('click.mpccEditor');
+            $(document).off('input.mpccEditor');
+            $(window).off('beforeunload.mpccEditor');
+            
             // Handle lesson click for editing
-            $(document).on('click', '.mpcc-lesson-item', this.handleLessonClick.bind(this));
+            $(document).on('click.mpccEditor', '.mpcc-lesson-item', this.handleLessonClick.bind(this));
             console.log('CoursePreviewEditor: Found', $('.mpcc-lesson-item').length, 'lesson items on init');
             
             // Handle save button
-            $(document).on('click', '.mpcc-editor-save', this.saveCurrentEdit.bind(this));
+            $(document).on('click.mpccEditor', '.mpcc-editor-save', this.saveCurrentEdit.bind(this));
             
             // Handle cancel button
-            $(document).on('click', '.mpcc-editor-cancel', this.cancelCurrentEdit.bind(this));
+            $(document).on('click.mpccEditor', '.mpcc-editor-cancel', this.cancelCurrentEdit.bind(this));
             
             // Handle generate with AI button
-            $(document).on('click', '.mpcc-editor-generate', this.generateContent.bind(this));
+            $(document).on('click.mpccEditor', '.mpcc-editor-generate', this.generateContent.bind(this));
             
             // Handle auto-save on input
-            $(document).on('input', '.mpcc-editor-textarea', this.handleContentChange.bind(this));
+            $(document).on('input.mpccEditor', '.mpcc-editor-textarea', this.handleContentChange.bind(this));
             
             // Handle lesson switching with unsaved changes
-            $(window).on('beforeunload', this.handleBeforeUnload.bind(this));
+            $(window).on('beforeunload.mpccEditor', this.handleBeforeUnload.bind(this));
         }
 
         handleLessonClick(e) {
@@ -206,7 +237,7 @@
                 data: {
                     action: 'mpcc_save_lesson_content',
                     nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
-                    session_id: this.sessionId,
+                    session_id: sessionStorage.getItem('mpcc_current_session_id') || this.sessionId,
                     section_id: sectionId,
                     lesson_id: lessonId,
                     content: content
@@ -269,12 +300,26 @@
 
         generateContent() {
             if (!this.currentEditingLesson) {
+                console.error('No lesson currently being edited');
+                this.showNotification('Error: No lesson selected for editing', 'error');
                 return;
             }
             
+            console.log('Generating content for:', this.currentEditingLesson);
+            
             const $lesson = this.currentEditingLesson.element;
-            const lessonTitle = $lesson.data('lesson-title') || $lesson.text().replace(/Lesson \d+\.\d+:/, '').trim();
-            const sectionTitle = $lesson.data('section-title') || '';
+            const lessonTitle = this.currentEditingLesson.lessonTitle || $lesson.data('lesson-title') || $lesson.text().replace(/Lesson \d+\.\d+:/, '').trim();
+            const sectionTitle = this.currentEditingLesson.sectionTitle || $lesson.data('section-title') || '';
+            
+            // Verify textarea exists before making request
+            const $textarea = $lesson.find('.mpcc-editor-textarea');
+            if (!$textarea.length) {
+                console.error('Textarea not found before generation');
+                this.showNotification('Error: Editor not found', 'error');
+                return;
+            }
+            
+            console.log('Found textarea, proceeding with generation');
             
             // Show loading state
             const $generateBtn = $('.mpcc-editor-generate');
@@ -287,7 +332,7 @@
                 data: {
                     action: 'mpcc_generate_lesson_content',
                     nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
-                    session_id: this.sessionId,
+                    session_id: sessionStorage.getItem('mpcc_current_session_id') || this.sessionId,
                     section_id: this.currentEditingLesson.sectionId,
                     lesson_id: this.currentEditingLesson.lessonId,
                     lesson_title: lessonTitle,
@@ -295,12 +340,73 @@
                     course_title: window.mpccCurrentCourse ? window.mpccCurrentCourse.title : ''
                 },
                 success: (response) => {
-                    if (response.success && response.data.content) {
-                        // Update textarea with generated content
-                        $('.mpcc-editor-textarea').val(response.data.content).trigger('input');
-                        this.showNotification('Content generated successfully!', 'success');
+                    console.log('Generate content response:', response);
+                    
+                    if (response.success && response.data && response.data.content) {
+                        // Find the textarea in the current lesson element
+                        const $lessonElement = $(`.mpcc-lesson-item[data-section-id="${this.currentEditingLesson.sectionId}"][data-lesson-id="${this.currentEditingLesson.lessonId}"]`);
+                        const $textarea = $lessonElement.find('.mpcc-editor-textarea');
+                        
+                        console.log('Lesson element found:', $lessonElement.length);
+                        console.log('Textarea element found:', $textarea.length);
+                        console.log('Content to set:', response.data.content);
+                        
+                        // Try multiple methods to find and update the textarea
+                        let updated = false;
+                        
+                        // Method 1: Find in lesson element
+                        if ($textarea.length) {
+                            $textarea.val(response.data.content);
+                            $textarea[0].value = response.data.content;
+                            $textarea.trigger('input').trigger('change');
+                            updated = true;
+                            console.log('Method 1 successful - Textarea value:', $textarea.val());
+                        }
+                        
+                        // Method 2: Use current editing lesson element
+                        if (!updated && this.currentEditingLesson && this.currentEditingLesson.element) {
+                            const $editorTextarea = this.currentEditingLesson.element.find('.mpcc-editor-textarea');
+                            if ($editorTextarea.length) {
+                                $editorTextarea.val(response.data.content);
+                                $editorTextarea[0].value = response.data.content;
+                                $editorTextarea.trigger('input').trigger('change');
+                                updated = true;
+                                console.log('Method 2 successful - Textarea value:', $editorTextarea.val());
+                            }
+                        }
+                        
+                        // Method 3: Global selector as last resort
+                        if (!updated) {
+                            const $globalTextarea = $('.mpcc-editor-textarea');
+                            if ($globalTextarea.length) {
+                                $globalTextarea.val(response.data.content);
+                                if ($globalTextarea[0]) {
+                                    $globalTextarea[0].value = response.data.content;
+                                }
+                                $globalTextarea.trigger('input').trigger('change');
+                                updated = true;
+                                console.log('Method 3 successful - Textarea value:', $globalTextarea.val());
+                            }
+                        }
+                        
+                        if (updated) {
+                            // Focus the textarea to ensure it's active
+                            $('.mpcc-editor-textarea').focus();
+                            this.showNotification('Content generated successfully!', 'success');
+                            
+                            // Mark as having unsaved changes
+                            if (this.currentEditingLesson) {
+                                const key = `${this.currentEditingLesson.sectionId}_${this.currentEditingLesson.lessonId}`;
+                                this.unsavedChanges[key] = response.data.content;
+                                this.updateSaveIndicator('unsaved');
+                            }
+                        } else {
+                            console.error('Failed to update textarea with generated content');
+                            this.showNotification('Error: Could not update editor with generated content', 'error');
+                        }
                     } else {
-                        this.showNotification('Failed to generate content: ' + (response.data || 'Unknown error'), 'error');
+                        console.error('Invalid response structure:', response);
+                        this.showNotification('Failed to generate content: ' + (response.data?.message || 'Unknown error'), 'error');
                     }
                     $generateBtn.prop('disabled', false).html(originalText);
                 },
@@ -313,9 +419,15 @@
         }
 
         loadDrafts() {
+            // Always get the latest session ID
+            this.sessionId = sessionStorage.getItem('mpcc_current_session_id');
+            
             if (!this.sessionId) {
+                console.log('CoursePreviewEditor: No session ID available for loading drafts');
                 return;
             }
+            
+            console.log('CoursePreviewEditor: Loading drafts for session:', this.sessionId);
             
             $.ajax({
                 url: window.mpccCoursesIntegration?.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php',
@@ -323,22 +435,26 @@
                 data: {
                     action: 'mpcc_load_all_drafts',
                     nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
-                    session_id: this.sessionId
+                    session_id: this.sessionId || sessionStorage.getItem('mpcc_current_session_id')
                 },
                 success: (response) => {
                     if (response.success && response.data.drafts) {
                         // Store drafts in memory
-                        response.data.drafts.forEach(draft => {
-                            const key = `${draft.section_id}_${draft.lesson_id}`;
-                            this.unsavedChanges[key] = draft.content;
+                        // The drafts object has keys in format "section_id::lesson_id"
+                        Object.entries(response.data.drafts).forEach(([key, content]) => {
+                            const [sectionId, lessonId] = key.split('::');
+                            const storageKey = `${sectionId}_${lessonId}`;
+                            this.unsavedChanges[storageKey] = content;
                             
                             // Update lesson elements with draft indicator
-                            const $lesson = $(`.mpcc-lesson-item[data-section-id="${draft.section_id}"][data-lesson-id="${draft.lesson_id}"]`);
+                            const $lesson = $(`.mpcc-lesson-item[data-section-id="${sectionId}"][data-lesson-id="${lessonId}"]`);
                             if ($lesson.length) {
                                 $lesson.addClass('has-draft');
-                                $lesson.data('content', draft.content);
+                                $lesson.data('content', content);
                             }
                         });
+                        
+                        console.log('CoursePreviewEditor: Loaded', response.data.count, 'drafts');
                     }
                 },
                 error: (xhr, status, error) => {
@@ -422,11 +538,11 @@
     $(document).ready(() => {
         console.log('CoursePreviewEditor: DOM ready, checking for preview content...');
         
-        // Try immediate initialization
-        if ($('#mpcc-preview-content').length > 0) {
+        // Try immediate initialization only if not already initialized
+        if (!window.mpccPreviewEditor && $('#mpcc-preview-content').length > 0) {
             console.log('CoursePreviewEditor: Initializing editor immediately...');
             window.mpccPreviewEditor = new CoursePreviewEditor();
-        } else {
+        } else if (!window.mpccPreviewEditor) {
             console.log('CoursePreviewEditor: No preview content found on ready, will wait for interface load');
         }
     });
@@ -434,9 +550,12 @@
     // Also listen for the interface load event
     $(document).on('mpcc:interface-loaded', () => {
         console.log('CoursePreviewEditor: Interface loaded event received');
+        // Only initialize if not already initialized
         if (!window.mpccPreviewEditor && $('#mpcc-preview-content').length > 0) {
             console.log('CoursePreviewEditor: Initializing editor after interface load...');
             window.mpccPreviewEditor = new CoursePreviewEditor();
+        } else if (window.mpccPreviewEditor) {
+            console.log('CoursePreviewEditor: Already initialized, skipping...');
         }
     });
 
