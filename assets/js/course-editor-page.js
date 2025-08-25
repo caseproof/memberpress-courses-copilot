@@ -677,9 +677,12 @@
                         // Update button state
                         button.html('<span class="dashicons dashicons-yes-alt"></span> Course Created').prop('disabled', true);
                         
-                        mpccToast.success('Course created successfully! Click "View Course" to see it.');
+                        mpccToast.success('Course created successfully! Redirecting...');
                         
-                        // Don't redirect automatically, let user click the link
+                        // Redirect to the created course after short delay
+                        setTimeout(() => {
+                            window.location.href = response.data.edit_url;
+                        }, 2000);
                     } else {
                         mpccToast.error(response.data || 'Failed to create course');
                     }
