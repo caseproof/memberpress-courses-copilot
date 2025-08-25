@@ -1047,7 +1047,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
         $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
         $lessonId = sanitize_text_field($_POST['lesson_id'] ?? '');
-        $content = wp_kses_post($_POST['content'] ?? '');
+        $content = sanitize_textarea_field($_POST['content'] ?? '');
         $orderIndex = isset($_POST['order_index']) ? (int) $_POST['order_index'] : 0;
         
         if (empty($sessionId) || empty($sectionId) || empty($lessonId)) {
@@ -1596,8 +1596,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $prompt .= "2. Explains concepts with examples\n";
         $prompt .= "3. Includes practical applications\n";
         $prompt .= "4. Summarizes key points\n";
-        $prompt .= "5. Uses appropriate HTML formatting (h2, h3, p, ul, ol, etc.)\n\n";
-        $prompt .= "Format the content in HTML suitable for display in a learning management system.";
+        $prompt .= "5. Uses clear formatting with proper headings, paragraphs, and lists\n\n";
+        $prompt .= "Format the content as clean, readable plain text with proper spacing and structure. ";
+        $prompt .= "Use line breaks between sections, bullet points for lists, and clear headings. ";
+        $prompt .= "Do NOT use HTML tags or markdown - just plain, well-formatted text.";
         
         return $prompt;
     }
