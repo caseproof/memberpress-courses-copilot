@@ -247,6 +247,10 @@ class CourseEditorPage
                         <div class="mpcc-preview-header">
                             <h2><?php echo esc_html__('Course Preview', 'memberpress-courses-copilot'); ?></h2>
                             <div class="mpcc-preview-actions">
+                                <button type="button" id="mpcc-view-course" style="display: none;">
+                                    <span class="dashicons dashicons-external"></span>
+                                    <?php echo esc_html__('View Course', 'memberpress-courses-copilot'); ?>
+                                </button>
                                 <button type="button" id="mpcc-create-course" disabled>
                                     <span class="dashicons dashicons-yes"></span>
                                     <?php echo esc_html__('Create Course', 'memberpress-courses-copilot'); ?>

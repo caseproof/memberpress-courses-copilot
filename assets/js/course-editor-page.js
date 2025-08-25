@@ -145,6 +145,9 @@
                         } else {
                             console.log('No course structure found in session data');
                         }
+                        
+                        // Update view course button based on published status
+                        this.updateViewCourseButton();
                     }
                 },
                 error: (xhr) => {
@@ -329,18 +332,9 @@
             const publishedBadge = this.publishedCourseId ? 
                 '<span class="mpcc-published-badge"><span class="dashicons dashicons-yes-alt"></span> Published</span>' : '';
             
-            // Add view course link if URL is available
-            const viewCourseLink = this.publishedCourseUrl ? 
-                `<a href="${this.publishedCourseUrl}" class="mpcc-view-course-link" target="_blank">
-                    <span class="dashicons dashicons-external"></span> View Course
-                </a>` : '';
-            
             const headerHtml = `
                 <div class="mpcc-course-header">
-                    <div class="mpcc-course-title-row">
-                        <h2>${this.escapeHtml(this.courseStructure.title)} ${publishedBadge}</h2>
-                        ${viewCourseLink}
-                    </div>
+                    <h2>${this.escapeHtml(this.courseStructure.title)} ${publishedBadge}</h2>
                     <p>${this.escapeHtml(this.courseStructure.description || '')}</p>
                 </div>
             `;
@@ -360,6 +354,9 @@
             } else {
                 $('#mpcc-create-course').prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> Create Course');
             }
+            
+            // Update view course button visibility and functionality
+            this.updateViewCourseButton();
             
         },
         
@@ -1023,6 +1020,23 @@
         
         showError: function(message) {
             mpccToast.error(message);
+        },
+        
+        updateViewCourseButton: function() {
+            const $viewBtn = $('#mpcc-view-course');
+            
+            if (this.publishedCourseId && this.publishedCourseUrl) {
+                // Show and setup View Course button
+                $viewBtn
+                    .show()
+                    .off('click')
+                    .on('click', () => {
+                        window.open(this.publishedCourseUrl, '_blank');
+                    });
+            } else {
+                // Hide View Course button
+                $viewBtn.hide();
+            }
         },
         
         
