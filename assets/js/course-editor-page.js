@@ -13,6 +13,7 @@
         conversationHistory: [],
         isSaving: false,
         publishedCourseId: null,
+        publishedCourseId: null,
         
         init: function() {
             this.sessionId = mpccEditorSettings.sessionId;
@@ -149,6 +150,7 @@
                     // Initialize empty session data
                     this.conversationHistory = [];
                     this.courseStructure = {};
+                    this.publishedCourseId = null;
                     // Don't save empty sessions - wait until there's actual content
                 }
             });
@@ -316,6 +318,7 @@
             
             if (!this.courseStructure.title) {
                 container.html($('.mpcc-empty-state').first().clone());
+                $('#mpcc-create-course').prop('disabled', true);
                 return;
             }
             
@@ -337,6 +340,13 @@
                     const sectionHtml = this.renderSection(section, sectionIndex);
                     container.append(sectionHtml);
                 });
+            }
+            
+            // Update create button state based on published status
+            if (this.publishedCourseId) {
+                $('#mpcc-create-course').prop('disabled', true).html('<span class="dashicons dashicons-yes-alt"></span> Course Created');
+            } else {
+                $('#mpcc-create-course').prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> Create Course');
             }
         },
         
@@ -922,13 +932,6 @@
         displayCourseStructure: function(courseStructure) {
             this.courseStructure = courseStructure;
             this.renderCourseStructure();
-            
-            // Enable/disable create button based on published status
-            if (this.publishedCourseId) {
-                $('#mpcc-create-course').prop('disabled', true).html('<span class="dashicons dashicons-yes-alt"></span> Course Created');
-            } else {
-                $('#mpcc-create-course').prop('disabled', false);
-            }
             
             // Update session title if available
             if (courseStructure.title) {
