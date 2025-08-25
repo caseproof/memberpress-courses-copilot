@@ -207,10 +207,20 @@ class SimpleAjaxController
             // Check if conversation has meaningful content
             $hasCourseStructure = isset($conversationState['course_structure']['title']) && 
                                 !empty($conversationState['course_structure']['title']);
-            $hasMessages = is_array($conversationHistory) && count($conversationHistory) > 0;
+            
+            // Check for user messages (not just welcome message)
+            $hasUserMessages = false;
+            if (is_array($conversationHistory)) {
+                foreach ($conversationHistory as $msg) {
+                    if (isset($msg['role']) && $msg['role'] === 'user') {
+                        $hasUserMessages = true;
+                        break;
+                    }
+                }
+            }
             
             // Don't save empty conversations
-            if (!$hasCourseStructure && !$hasMessages) {
+            if (!$hasCourseStructure && !$hasUserMessages) {
                 wp_send_json_success(['saved' => false, 'message' => 'No content to save']);
                 return;
             }

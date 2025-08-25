@@ -104,10 +104,16 @@ class SessionService
                 continue;
             }
             
-            // Check if session has meaningful content
-            $hasMessages = isset($data['conversation_history']) && 
-                         is_array($data['conversation_history']) && 
-                         count($data['conversation_history']) > 0;
+            // Check if session has meaningful content (user messages, not just welcome)
+            $hasUserMessages = false;
+            if (isset($data['conversation_history']) && is_array($data['conversation_history'])) {
+                foreach ($data['conversation_history'] as $msg) {
+                    if (isset($msg['role']) && $msg['role'] === 'user') {
+                        $hasUserMessages = true;
+                        break;
+                    }
+                }
+            }
                          
             $hasCourseStructure = (isset($data['conversation_state']['course_structure']['title']) && 
                                  !empty($data['conversation_state']['course_structure']['title'])) ||
@@ -118,7 +124,7 @@ class SessionService
                                  $data['title'] !== 'Untitled Course');
             
             // Delete if empty
-            if (!$hasMessages && !$hasCourseStructure) {
+            if (!$hasUserMessages && !$hasCourseStructure) {
                 delete_option($result->option_name);
                 $deleted++;
             }
@@ -188,17 +194,23 @@ class SessionService
                 continue;
             }
             
-            // Skip empty sessions (no messages and no course structure)
-            $hasMessages = isset($data['conversation_history']) && 
-                         is_array($data['conversation_history']) && 
-                         count($data['conversation_history']) > 0;
+            // Skip empty sessions (no user messages and no course structure)
+            $hasUserMessages = false;
+            if (isset($data['conversation_history']) && is_array($data['conversation_history'])) {
+                foreach ($data['conversation_history'] as $msg) {
+                    if (isset($msg['role']) && $msg['role'] === 'user') {
+                        $hasUserMessages = true;
+                        break;
+                    }
+                }
+            }
                          
             $hasCourseStructure = (isset($data['conversation_state']['course_structure']['title']) && 
                                  !empty($data['conversation_state']['course_structure']['title'])) ||
                                 (isset($data['conversation_state']['course_data']['title']) && 
                                  !empty($data['conversation_state']['course_data']['title']));
             
-            if (!$hasMessages && !$hasCourseStructure) {
+            if (!$hasUserMessages && !$hasCourseStructure) {
                 continue; // Skip empty sessions
             }
             

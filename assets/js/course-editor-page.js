@@ -98,7 +98,8 @@
         },
         
         initializeChat: function() {
-            this.addMessage('assistant', 'Welcome to the AI Course Creator! I\'m here to help you build amazing courses. What kind of course would you like to create today?');
+            // Don't add to conversation history yet - this is just UI
+            this.addMessage('assistant', 'Welcome to the AI Course Creator! I\'m here to help you build amazing courses. What kind of course would you like to create today?', false);
         },
         
         loadExistingSession: function() {
@@ -780,9 +781,14 @@
                 const sessionTitle = $item.find('.mpcc-session-title').text();
                 
                 if (confirm('Load this session? Current progress will be saved.')) {
-                    // Save current conversation first if there's content to save
-                    if (this.sessionId && this.sessionId !== 'pending' && (this.conversationHistory.length > 0 || this.courseStructure.title)) {
-                        this.saveConversation();
+                    // Only save if we have actual user-generated content
+                    if (this.sessionId && this.sessionId !== 'pending') {
+                        const hasUserMessages = this.conversationHistory.filter(msg => msg.role === 'user').length > 0;
+                        const hasCourseStructure = this.courseStructure && this.courseStructure.title;
+                        
+                        if (hasUserMessages || hasCourseStructure) {
+                            this.saveConversation();
+                        }
                     }
                     
                     // Close the modal before redirecting
