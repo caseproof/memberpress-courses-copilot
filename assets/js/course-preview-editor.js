@@ -157,7 +157,7 @@
                             <span class="mpcc-save-indicator"></span>
                         </div>
                     </div>
-                    <textarea class="mpcc-editor-textarea" rows="10" placeholder="Enter lesson content...">${this.escapeHtml(content)}</textarea>
+                    <textarea class="mpcc-editor-textarea" rows="10" placeholder="Enter lesson content...">${content}</textarea>
                     <div class="mpcc-editor-actions">
                         <button type="button" class="button button-primary button-small mpcc-editor-save">Save</button>
                         <button type="button" class="button button-small mpcc-editor-cancel">Cancel</button>

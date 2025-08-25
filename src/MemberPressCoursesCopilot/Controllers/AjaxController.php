@@ -2270,7 +2270,7 @@ class AjaxController extends BaseController
         $sessionId = $this->sanitizeInput($_POST['session_id'] ?? '');
         $sectionId = $this->sanitizeInput($_POST['section_id'] ?? '');
         $lessonId = $this->sanitizeInput($_POST['lesson_id'] ?? '');
-        $content = wp_kses_post($_POST['content'] ?? '');
+        $content = sanitize_textarea_field($_POST['content'] ?? '');
         
         if (empty($sessionId) || empty($sectionId) || empty($lessonId)) {
             throw new \Exception('Session ID, section ID, and lesson ID are required');

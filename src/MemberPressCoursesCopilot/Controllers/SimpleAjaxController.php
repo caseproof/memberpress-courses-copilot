@@ -334,7 +334,7 @@ class SimpleAjaxController
             $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
             $lessonId = sanitize_text_field($_POST['lesson_id'] ?? '');
             $lessonTitle = sanitize_text_field($_POST['lesson_title'] ?? '');
-            $content = wp_kses_post($_POST['content'] ?? '');
+            $content = sanitize_textarea_field($_POST['content'] ?? '');
             
             if (empty($lessonId) || empty($sessionId)) {
                 throw new \Exception('Lesson ID and Session ID are required');
