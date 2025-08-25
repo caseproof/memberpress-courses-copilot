@@ -145,6 +145,12 @@ class CourseEditorPage
             wp_die(__('You do not have sufficient permissions to access this page.', 'memberpress-courses-copilot'));
         }
         
+        // Auto-cleanup expired sessions on page load (runs occasionally)
+        if (rand(1, 10) === 1) { // 10% chance to run cleanup
+            $sessionService = new \MemberPressCoursesCopilot\Services\SessionService();
+            $sessionService->cleanupExpiredSessions();
+        }
+        
         // Log that we're rendering the page
         error_log('MPCC: Rendering course editor page');
         
