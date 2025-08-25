@@ -73,7 +73,12 @@ class SessionService
      */
     public function deleteSession(string $sessionId): bool
     {
-        $optionName = self::OPTION_PREFIX . $sessionId;
+        // If session ID already includes the prefix, use it as is
+        if (strpos($sessionId, self::OPTION_PREFIX) === 0) {
+            $optionName = $sessionId;
+        } else {
+            $optionName = self::OPTION_PREFIX . $sessionId;
+        }
         return delete_option($optionName);
     }
     

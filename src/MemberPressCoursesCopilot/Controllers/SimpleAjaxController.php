@@ -33,6 +33,7 @@ class SimpleAjaxController
         add_action('wp_ajax_mpcc_create_course', [$this, 'handleCreateCourse']);
         add_action('wp_ajax_mpcc_get_sessions', [$this, 'handleGetSessions']);
         add_action('wp_ajax_mpcc_update_session_title', [$this, 'handleUpdateSessionTitle']);
+        add_action('wp_ajax_mpcc_delete_session', [$this, 'handleDeleteSession']);
         
         // Override CourseAjaxService handlers with higher priority
         add_action('wp_ajax_mpcc_save_conversation', [$this, 'handleSaveConversation'], 5);
@@ -291,7 +292,7 @@ class SimpleAjaxController
                 throw new \Exception($result['error'] ?? 'Failed to create course');
             }
             
-            // Update session title after successful course creation
+            // Update session with course creation info
             if (!empty($courseData['title'])) {
                 $sessionTitle = 'Course: ' . $courseData['title'];
                 
@@ -299,6 +300,7 @@ class SimpleAjaxController
                 $sessionData = $this->sessionService->getSession($sessionId);
                 $sessionData['title'] = $sessionTitle;
                 $sessionData['last_updated'] = current_time('mysql');
+                $sessionData['published_course_id'] = $result['course_id']; // Store the created course ID
                 $this->sessionService->saveSession($sessionId, $sessionData);
                 
                 // Also update ConversationManager session if it exists
@@ -565,6 +567,45 @@ Format the content with clear headings and sections.";
             $this->sessionService->saveSession($sessionId, $sessionData);
             
             wp_send_json_success(['updated' => true, 'title' => $title]);
+            
+        } catch (\Exception $e) {
+            wp_send_json_error($e->getMessage());
+        }
+    }
+    
+    /**
+     * Handle delete session
+     */
+    public function handleDeleteSession(): void
+    {
+        try {
+            // Verify nonce
+            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+                throw new \Exception('Security check failed');
+            }
+            
+            $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+            
+            if (empty($sessionId)) {
+                throw new \Exception('Session ID is required');
+            }
+            
+            // Delete the session
+            $deleted = $this->sessionService->deleteSession($sessionId);
+            
+            if ($deleted) {
+                // Also try to delete lesson drafts for this session
+                $this->lessonDraftService->deleteSessionDrafts($sessionId);
+                
+                $this->logger->info('Session deleted', [
+                    'session_id' => $sessionId,
+                    'user_id' => get_current_user_id()
+                ]);
+                
+                wp_send_json_success(['deleted' => true]);
+            } else {
+                throw new \Exception('Failed to delete session');
+            }
             
         } catch (\Exception $e) {
             wp_send_json_error($e->getMessage());
