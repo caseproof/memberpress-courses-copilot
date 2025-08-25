@@ -15,6 +15,14 @@
         
         init: function() {
             this.sessionId = mpccEditorSettings.sessionId;
+            
+            // Store session ID in sessionStorage if available
+            if (this.sessionId) {
+                sessionStorage.setItem('mpcc_current_session_id', this.sessionId);
+                // Trigger event to notify other components
+                $(document).trigger('mpcc:session-changed', { sessionId: this.sessionId });
+            }
+            
             this.bindEvents();
             this.initializeChat();
             this.loadExistingSession();
@@ -758,6 +766,12 @@
                     if (response.success && response.data) {
                         // Update current session
                         this.sessionId = sessionId;
+                        
+                        // Store session ID in sessionStorage for other components
+                        sessionStorage.setItem('mpcc_current_session_id', sessionId);
+                        
+                        // Trigger event to notify other components (like CoursePreviewEditor) that session changed
+                        $(document).trigger('mpcc:session-changed', { sessionId: sessionId });
                         
                         // Clear and populate chat
                         const $messages = $('#mpcc-chat-messages');

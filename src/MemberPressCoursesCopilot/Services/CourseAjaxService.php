@@ -556,6 +556,35 @@ class CourseAjaxService extends BaseService
                 return;
             }
             
+            // Apply saved draft content if we have a session ID
+            if (isset($_POST['session_id']) && !empty($_POST['session_id'])) {
+                $sessionId = sanitize_text_field($_POST['session_id']);
+                $this->logger->info('Applying lesson drafts to course structure', [
+                    'session_id' => $sessionId,
+                    'course_title' => $course_data['title'] ?? 'Unknown'
+                ]);
+                
+                // Initialize lesson draft service and map drafts to course structure
+                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                $course_data = $draftService->mapDraftsToStructure($sessionId, $course_data);
+                
+                $this->logger->info('Drafts mapped to course structure', [
+                    'session_id' => $sessionId,
+                    'sections_with_content' => array_map(function($section) {
+                        return [
+                            'title' => $section['title'] ?? 'Untitled',
+                            'lessons_with_content' => array_map(function($lesson) {
+                                return [
+                                    'title' => $lesson['title'] ?? 'Untitled',
+                                    'has_content' => !empty($lesson['content']),
+                                    'content_length' => isset($lesson['content']) ? strlen($lesson['content']) : 0
+                                ];
+                            }, $section['lessons'] ?? [])
+                        ];
+                    }, $course_data['sections'] ?? [])
+                ]);
+            }
+            
             // Generate the course
             $result = $generator->generateCourse($course_data);
             
@@ -612,6 +641,22 @@ class CourseAjaxService extends BaseService
                     } catch (\Exception $e) {
                         // Log but don't fail the course creation
                         $this->logger->warning('Failed to update session title after course creation', [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                    
+                    // Clean up lesson drafts after successful course creation
+                    try {
+                        $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                        $deletedCount = $draftService->deleteSessionDrafts($sessionId);
+                        $this->logger->info('Cleaned up lesson drafts after course creation', [
+                            'session_id' => $sessionId,
+                            'drafts_deleted' => $deletedCount
+                        ]);
+                    } catch (\Exception $e) {
+                        // Log but don't fail the course creation
+                        $this->logger->warning('Failed to clean up lesson drafts after course creation', [
+                            'session_id' => $sessionId,
                             'error' => $e->getMessage()
                         ]);
                     }
