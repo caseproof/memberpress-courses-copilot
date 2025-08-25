@@ -33,6 +33,7 @@ class SimpleAjaxController
         add_action('wp_ajax_mpcc_create_course', [$this, 'handleCreateCourse']);
         add_action('wp_ajax_mpcc_get_sessions', [$this, 'handleGetSessions']);
         add_action('wp_ajax_mpcc_update_session_title', [$this, 'handleUpdateSessionTitle']);
+        add_action('wp_ajax_mpcc_delete_session', [$this, 'handleDeleteSession']);
         
         // Override CourseAjaxService handlers with higher priority
         add_action('wp_ajax_mpcc_save_conversation', [$this, 'handleSaveConversation'], 5);
@@ -81,18 +82,29 @@ class SimpleAjaxController
             
             // Clean the message by removing JSON block if course structure was found
             $displayMessage = $content;
-            if ($extractedStructure && $extractedStructure !== $courseStructure) {
-                // Remove the JSON block from the display message
+            
+            // Always try to remove JSON blocks from display (even if extraction failed)
+            if (preg_match('/```json\s*[\s\S]*?\s*```/s', $content)) {
                 $displayMessage = preg_replace('/```json\s*[\s\S]*?\s*```/s', '', $content);
                 $displayMessage = trim($displayMessage);
-                
-                // If the message is now empty, provide a friendly response
+            }
+            
+            // Also remove raw JSON that might not be wrapped in code blocks
+            if (preg_match('/^\s*\{[\s\S]*\}\s*$/s', $content)) {
+                $displayMessage = '';
+            }
+            
+            // If we found a course structure, provide a friendly response
+            if ($extractedStructure && $extractedStructure !== $courseStructure) {
                 if (empty($displayMessage)) {
                     $displayMessage = "I've created a course structure for \"" . $extractedStructure['title'] . "\". " .
                                     "This course includes " . count($extractedStructure['sections']) . " sections " .
                                     "covering all the essential topics. You can preview the course structure on the right, " .
                                     "edit individual lessons, or create the course when you're ready.";
                 }
+            } elseif (empty($displayMessage) && preg_match('/\{[\s\S]*\}/s', $content)) {
+                // If we have JSON but failed to extract it, provide a generic response
+                $displayMessage = "I've generated a course structure for you. You can preview it on the right side of the screen and make any adjustments needed.";
             }
             
             // Update session title when course structure is generated
@@ -204,6 +216,27 @@ class SimpleAjaxController
                 throw new \Exception('Session ID is required');
             }
             
+            // Check if conversation has meaningful content
+            $hasCourseStructure = isset($conversationState['course_structure']['title']) && 
+                                !empty($conversationState['course_structure']['title']);
+            
+            // Check for user messages (not just welcome message)
+            $hasUserMessages = false;
+            if (is_array($conversationHistory)) {
+                foreach ($conversationHistory as $msg) {
+                    if (isset($msg['role']) && $msg['role'] === 'user') {
+                        $hasUserMessages = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Don't save empty conversations
+            if (!$hasCourseStructure && !$hasUserMessages) {
+                wp_send_json_success(['saved' => false, 'message' => 'No content to save']);
+                return;
+            }
+            
             // Get existing session data to preserve title
             $existingData = $this->sessionService->getSession($sessionId);
             
@@ -270,7 +303,7 @@ class SimpleAjaxController
                 throw new \Exception($result['error'] ?? 'Failed to create course');
             }
             
-            // Update session title after successful course creation
+            // Update session with course creation info
             if (!empty($courseData['title'])) {
                 $sessionTitle = 'Course: ' . $courseData['title'];
                 
@@ -278,6 +311,8 @@ class SimpleAjaxController
                 $sessionData = $this->sessionService->getSession($sessionId);
                 $sessionData['title'] = $sessionTitle;
                 $sessionData['last_updated'] = current_time('mysql');
+                $sessionData['published_course_id'] = $result['course_id']; // Store the created course ID
+                $sessionData['published_course_url'] = $result['edit_url']; // Store the course edit URL
                 $this->sessionService->saveSession($sessionId, $sessionData);
                 
                 // Also update ConversationManager session if it exists
@@ -496,7 +531,7 @@ Format the content with clear headings and sections.";
      */
     private function extractCourseStructure(string $response, array $currentStructure): ?array
     {
-        // Look for JSON in the response
+        // First, look for JSON in code blocks
         if (preg_match('/```json\s*([\s\S]*?)\s*```/s', $response, $matches)) {
             try {
                 $structure = json_decode($matches[1], true);
@@ -504,7 +539,20 @@ Format the content with clear headings and sections.";
                     return $structure;
                 }
             } catch (\Exception $e) {
-                // Invalid JSON, ignore
+                $this->logger->debug('Failed to parse JSON from code block', ['error' => $e->getMessage()]);
+            }
+        }
+        
+        // If no code block, try to find raw JSON in the response
+        if (preg_match('/(\{[\s\S]*\})/s', $response, $matches)) {
+            try {
+                $structure = json_decode($matches[1], true);
+                if (is_array($structure) && isset($structure['title'])) {
+                    $this->logger->debug('Extracted raw JSON course structure');
+                    return $structure;
+                }
+            } catch (\Exception $e) {
+                $this->logger->debug('Failed to parse raw JSON', ['error' => $e->getMessage()]);
             }
         }
         
@@ -544,6 +592,45 @@ Format the content with clear headings and sections.";
             $this->sessionService->saveSession($sessionId, $sessionData);
             
             wp_send_json_success(['updated' => true, 'title' => $title]);
+            
+        } catch (\Exception $e) {
+            wp_send_json_error($e->getMessage());
+        }
+    }
+    
+    /**
+     * Handle delete session
+     */
+    public function handleDeleteSession(): void
+    {
+        try {
+            // Verify nonce
+            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+                throw new \Exception('Security check failed');
+            }
+            
+            $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+            
+            if (empty($sessionId)) {
+                throw new \Exception('Session ID is required');
+            }
+            
+            // Delete the session
+            $deleted = $this->sessionService->deleteSession($sessionId);
+            
+            if ($deleted) {
+                // Also try to delete lesson drafts for this session
+                $this->lessonDraftService->deleteSessionDrafts($sessionId);
+                
+                $this->logger->info('Session deleted', [
+                    'session_id' => $sessionId,
+                    'user_id' => get_current_user_id()
+                ]);
+                
+                wp_send_json_success(['deleted' => true]);
+            } else {
+                throw new \Exception('Failed to delete session');
+            }
             
         } catch (\Exception $e) {
             wp_send_json_error($e->getMessage());

@@ -73,8 +73,69 @@ class SessionService
      */
     public function deleteSession(string $sessionId): bool
     {
-        $optionName = self::OPTION_PREFIX . $sessionId;
+        // If session ID already includes the prefix, use it as is
+        if (strpos($sessionId, self::OPTION_PREFIX) === 0) {
+            $optionName = $sessionId;
+        } else {
+            $optionName = self::OPTION_PREFIX . $sessionId;
+        }
         return delete_option($optionName);
+    }
+    
+    /**
+     * Clean up empty sessions (no messages, no course structure)
+     * 
+     * @return int Number of sessions deleted
+     */
+    public function cleanupEmptySessions(): int
+    {
+        global $wpdb;
+        
+        $deleted = 0;
+        $prefix = self::OPTION_PREFIX;
+        
+        // Get all session options
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+                $wpdb->esc_like($prefix) . '%'
+            )
+        );
+        
+        foreach ($results as $result) {
+            $data = maybe_unserialize($result->option_value);
+            
+            if (!is_array($data)) {
+                continue;
+            }
+            
+            // Check if session has meaningful content (user messages, not just welcome)
+            $hasUserMessages = false;
+            if (isset($data['conversation_history']) && is_array($data['conversation_history'])) {
+                foreach ($data['conversation_history'] as $msg) {
+                    if (isset($msg['role']) && $msg['role'] === 'user') {
+                        $hasUserMessages = true;
+                        break;
+                    }
+                }
+            }
+                         
+            $hasCourseStructure = (isset($data['conversation_state']['course_structure']['title']) && 
+                                 !empty($data['conversation_state']['course_structure']['title'])) ||
+                                (isset($data['conversation_state']['course_data']['title']) && 
+                                 !empty($data['conversation_state']['course_data']['title'])) ||
+                                (isset($data['title']) && 
+                                 !empty($data['title']) && 
+                                 $data['title'] !== 'Untitled Course');
+            
+            // Delete if empty
+            if (!$hasUserMessages && !$hasCourseStructure) {
+                delete_option($result->option_name);
+                $deleted++;
+            }
+        }
+        
+        return $deleted;
     }
     
     /**
@@ -136,6 +197,26 @@ class SessionService
             // Skip expired sessions
             if (!is_array($data) || (isset($data['expires']) && $data['expires'] < time())) {
                 continue;
+            }
+            
+            // Skip empty sessions (no user messages and no course structure)
+            $hasUserMessages = false;
+            if (isset($data['conversation_history']) && is_array($data['conversation_history'])) {
+                foreach ($data['conversation_history'] as $msg) {
+                    if (isset($msg['role']) && $msg['role'] === 'user') {
+                        $hasUserMessages = true;
+                        break;
+                    }
+                }
+            }
+                         
+            $hasCourseStructure = (isset($data['conversation_state']['course_structure']['title']) && 
+                                 !empty($data['conversation_state']['course_structure']['title'])) ||
+                                (isset($data['conversation_state']['course_data']['title']) && 
+                                 !empty($data['conversation_state']['course_data']['title']));
+            
+            if (!$hasUserMessages && !$hasCourseStructure) {
+                continue; // Skip empty sessions
             }
             
             // Keep the full session ID including prefix

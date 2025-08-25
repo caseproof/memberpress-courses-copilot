@@ -128,8 +128,9 @@ class CourseEditorPage
         $sessionId = $_GET['session'] ?? '';
         
         if (empty($sessionId)) {
-            // Generate new session ID
-            $sessionId = 'mpcc_session_' . uniqid() . '_' . time() . '_' . wp_generate_password(8, false);
+            // Don't create a session ID yet - let JavaScript handle it
+            // This prevents creating empty sessions when loading previous conversations
+            return '';
         }
         
         return sanitize_text_field($sessionId);
@@ -145,10 +146,21 @@ class CourseEditorPage
             wp_die(__('You do not have sufficient permissions to access this page.', 'memberpress-courses-copilot'));
         }
         
+        // Auto-cleanup expired sessions on page load (runs occasionally)
+        if (rand(1, 10) === 1) { // 10% chance to run cleanup
+            $sessionService = new \MemberPressCoursesCopilot\Services\SessionService();
+            $sessionService->cleanupExpiredSessions();
+        }
+        
         // Log that we're rendering the page
         error_log('MPCC: Rendering course editor page');
         
         $sessionId = $this->getOrCreateSessionId();
+        
+        // If no session ID, we'll let JavaScript create one when needed
+        if (empty($sessionId)) {
+            $sessionId = 'pending';
+        }
         $courseId = isset($_GET['course_id']) ? (int) $_GET['course_id'] : 0;
         
         ?>
@@ -235,9 +247,9 @@ class CourseEditorPage
                         <div class="mpcc-preview-header">
                             <h2><?php echo esc_html__('Course Preview', 'memberpress-courses-copilot'); ?></h2>
                             <div class="mpcc-preview-actions">
-                                <button type="button" id="mpcc-preview-course">
-                                    <span class="dashicons dashicons-visibility"></span>
-                                    <?php echo esc_html__('Preview', 'memberpress-courses-copilot'); ?>
+                                <button type="button" id="mpcc-view-course" style="display: none;">
+                                    <span class="dashicons dashicons-external"></span>
+                                    <?php echo esc_html__('View Course', 'memberpress-courses-copilot'); ?>
                                 </button>
                                 <button type="button" id="mpcc-create-course" disabled>
                                     <span class="dashicons dashicons-yes"></span>
@@ -296,6 +308,7 @@ class CourseEditorPage
                     </div>
                 </div>
             </div>
+            
         </div>
         <?php
     }

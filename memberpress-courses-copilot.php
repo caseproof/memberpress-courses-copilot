@@ -108,7 +108,7 @@ if (defined('WP_DEBUG') && WP_DEBUG && file_exists(__DIR__ . '/debug-test.php'))
     require_once __DIR__ . '/debug-test.php';
 }
 
-// Add admin menu for debug
+// Add admin menu for debug and cleanup
 add_action('admin_menu', function() {
     if (current_user_can('manage_options')) {
         add_submenu_page(
@@ -121,6 +121,40 @@ add_action('admin_menu', function() {
                 require_once __DIR__ . '/debug-draft-table.php';
             }
         );
+    }
+});
+
+// Add admin action to cleanup empty sessions
+add_action('admin_post_mpcc_cleanup_empty_sessions', function() {
+    if (!current_user_can('manage_options')) {
+        wp_die('Unauthorized');
+    }
+    
+    // Verify nonce
+    if (!wp_verify_nonce($_REQUEST['_wpnonce'], 'mpcc_cleanup_sessions')) {
+        wp_die('Security check failed');
+    }
+    
+    $sessionService = new \MemberPressCoursesCopilot\Services\SessionService();
+    $deleted = $sessionService->cleanupEmptySessions();
+    
+    wp_redirect(add_query_arg([
+        'page' => 'mpcc-course-editor',
+        'cleanup' => 'success',
+        'deleted' => $deleted
+    ], admin_url('admin.php')));
+    exit;
+});
+
+// Show cleanup notice
+add_action('admin_notices', function() {
+    if (isset($_GET['cleanup']) && $_GET['cleanup'] === 'success') {
+        $deleted = intval($_GET['deleted'] ?? 0);
+        ?>
+        <div class="notice notice-success is-dismissible">
+            <p><?php echo sprintf(__('Successfully cleaned up %d empty session(s).', 'memberpress-courses-copilot'), $deleted); ?></p>
+        </div>
+        <?php
     }
 });
 

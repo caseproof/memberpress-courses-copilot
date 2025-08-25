@@ -393,6 +393,31 @@
     font-size: 20px;
     font-weight: 600;
     color: #1d2327;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Published Badge */
+.mpcc-published-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: #00a32a;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mpcc-published-badge .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-top: -1px;
 }
 
 .mpcc-preview-actions {
@@ -428,6 +453,63 @@
 #mpcc-create-course:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Course header styles */
+.mpcc-course-header {
+    margin-bottom: 24px;
+}
+
+.mpcc-course-header h2 {
+    margin: 0 0 12px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #1d2327;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mpcc-course-header p {
+    margin: 0;
+    color: #646970;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.mpcc-course-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+/* View Course Link */
+.mpcc-view-course-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid #2271b1;
+    color: #2271b1;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.mpcc-view-course-link:hover {
+    background: #2271b1;
+    color: #fff;
+    text-decoration: none;
+}
+
+.mpcc-view-course-link .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
 }
 
 /* Course Sections */
@@ -781,6 +863,9 @@
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .mpcc-session-item:hover {
@@ -790,6 +875,11 @@
 
 .mpcc-session-item:last-child {
     border-bottom: none;
+}
+
+.mpcc-session-info {
+    flex: 1;
+    min-width: 0;
 }
 
 .mpcc-session-title {
@@ -802,6 +892,38 @@
 .mpcc-session-meta {
     font-size: 14px;
     color: #646970;
+}
+
+.mpcc-session-delete {
+    background: none;
+    border: none;
+    color: #646970;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    opacity: 0;
+    margin-left: 8px;
+}
+
+.mpcc-session-item:hover .mpcc-session-delete {
+    opacity: 1;
+}
+
+.mpcc-session-delete:hover {
+    background: #fee;
+    color: #d63638;
+}
+
+.mpcc-session-delete:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.mpcc-session-delete .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
 }
 
 .mpcc-sessions-empty {
