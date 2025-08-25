@@ -1050,7 +1050,18 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $content = sanitize_textarea_field($_POST['content'] ?? '');
         $orderIndex = isset($_POST['order_index']) ? (int) $_POST['order_index'] : 0;
         
-        if (empty($sessionId) || empty($sectionId) || empty($lessonId)) {
+        $this->logger->info('Save lesson content request', [
+            'session_id' => $sessionId,
+            'section_id' => $sectionId,
+            'lesson_id' => $lessonId,
+            'content_length' => strlen($content),
+            'has_session' => !empty($sessionId),
+            'has_section' => !empty($sectionId),
+            'has_lesson' => !empty($lessonId),
+            'post_keys' => array_keys($_POST)
+        ]);
+        
+        if (empty($sessionId) || $sectionId === '' || $lessonId === '') {
             wp_send_json_error('Missing required parameters');
             return;
         }
@@ -1060,18 +1071,17 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
             
             // Save draft
-            $draftId = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex);
+            $result = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex);
             
-            if ($draftId !== false) {
+            if ($result !== false) {
                 $this->logger->info('Lesson content saved', [
                     'session_id' => $sessionId,
                     'section_id' => $sectionId,
-                    'lesson_id' => $lessonId,
-                    'draft_id' => $draftId
+                    'lesson_id' => $lessonId
                 ]);
                 
                 wp_send_json_success([
-                    'draft_id' => $draftId,
+                    'saved' => true,
                     'saved_at' => current_time('c'),
                     'message' => 'Lesson content saved successfully'
                 ]);
@@ -1130,7 +1140,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
             
             // Load specific lesson or all session drafts
-            if (!empty($sectionId) && !empty($lessonId)) {
+            if ($sectionId !== '' && $lessonId !== '') {
                 // Load specific lesson
                 $draft = $draftService->getDraft($sessionId, $sectionId, $lessonId);
                 

@@ -108,6 +108,22 @@ if (defined('WP_DEBUG') && WP_DEBUG && file_exists(__DIR__ . '/debug-test.php'))
     require_once __DIR__ . '/debug-test.php';
 }
 
+// Add admin menu for debug
+add_action('admin_menu', function() {
+    if (current_user_can('manage_options')) {
+        add_submenu_page(
+            'tools.php',
+            'MPCC Draft Table Debug',
+            'MPCC Draft Debug',
+            'manage_options',
+            'mpcc-draft-debug',
+            function() {
+                require_once __DIR__ . '/debug-draft-table.php';
+            }
+        );
+    }
+});
+
 
 /**
  * Plugin activation hook

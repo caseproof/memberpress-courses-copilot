@@ -11,6 +11,7 @@
         currentLessonId: null,
         courseStructure: {},
         conversationHistory: [],
+        isSaving: false,
         
         init: function() {
             this.sessionId = mpccEditorSettings.sessionId;
@@ -374,12 +375,13 @@
                     action: 'mpcc_load_lesson_content',
                     nonce: mpccEditorSettings.nonce,
                     session_id: this.sessionId,
-                    lesson_id: lessonId,
+                    section_id: String(sectionIndex),
+                    lesson_id: String(lessonIndex),
                     lesson_title: lesson.title
                 },
                 success: (response) => {
-                    if (response.success && response.data.content) {
-                        $('#mpcc-lesson-textarea').val(response.data.content);
+                    if (response.success && response.data.draft && response.data.draft.content) {
+                        $('#mpcc-lesson-textarea').val(response.data.draft.content);
                     }
                 }
             });
@@ -401,7 +403,8 @@
                     action: 'mpcc_generate_lesson_content',
                     nonce: mpccEditorSettings.nonce,
                     session_id: this.sessionId,
-                    lesson_id: this.currentLessonId,
+                    section_id: String(sectionIndex),
+                    lesson_id: String(lessonIndex),
                     lesson_title: lesson.title,
                     course_context: JSON.stringify({
                         title: this.courseStructure.title,
@@ -449,22 +452,43 @@
         },
         
         saveLessonToServer: function(content, callback) {
+            if (!this.currentLessonId) {
+                console.error('No current lesson ID');
+                return;
+            }
+            
+            if (this.isSaving) {
+                console.log('Save already in progress, skipping');
+                return;
+            }
+            
             const [sectionIndex, lessonIndex] = this.currentLessonId.split('-').map(Number);
+            
+            if (isNaN(sectionIndex) || isNaN(lessonIndex)) {
+                console.error('Invalid lesson indices:', {sectionIndex, lessonIndex});
+                mpccToast.error('Invalid lesson selection');
+                return;
+            }
+            
             const lesson = this.courseStructure.sections[sectionIndex].lessons[lessonIndex];
             
+            this.isSaving = true;
             $('.mpcc-save-indicator').text('Saving...').removeClass('saved error').addClass('saving');
+            
+            const saveData = {
+                action: 'mpcc_save_lesson_content',
+                nonce: mpccEditorSettings.nonce,
+                session_id: this.sessionId,
+                section_id: String(sectionIndex),
+                lesson_id: String(lessonIndex),
+                lesson_title: lesson.title,
+                content: content
+            };
             
             $.ajax({
                 url: mpccEditorSettings.ajaxUrl,
                 type: 'POST',
-                data: {
-                    action: 'mpcc_save_lesson_content',
-                    nonce: mpccEditorSettings.nonce,
-                    session_id: this.sessionId,
-                    lesson_id: this.currentLessonId,
-                    lesson_title: lesson.title,
-                    content: content
-                },
+                data: saveData,
                 success: (response) => {
                     if (response.success) {
                         $('.mpcc-save-indicator').text('Saved').removeClass('saving error').addClass('saved');
@@ -478,10 +502,16 @@
                         if (callback) callback();
                     } else {
                         $('.mpcc-save-indicator').text('Error saving').removeClass('saving saved').addClass('error');
+                        mpccToast.error(response.data || 'Failed to save');
                     }
                 },
-                error: () => {
+                error: (xhr, status, error) => {
+                    console.error('Save lesson AJAX error:', {status, error, response: xhr.responseText});
                     $('.mpcc-save-indicator').text('Error saving').removeClass('saving saved').addClass('error');
+                    mpccToast.error('Failed to save: ' + error);
+                },
+                complete: () => {
+                    this.isSaving = false;
                 }
             });
         },
