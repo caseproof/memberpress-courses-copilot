@@ -262,4 +262,42 @@ class LessonDraftService {
         
         return $course_structure;
     }
+    
+    /**
+     * Copy all lesson drafts from one session to another
+     */
+    public function copySessionDrafts($sourceSessionId, $targetSessionId) {
+        global $wpdb;
+        
+        $table_name = $this->table->getTableName();
+        
+        // Get all drafts from the source session
+        $sourceDrafts = $this->getSessionDrafts($sourceSessionId);
+        
+        if (empty($sourceDrafts)) {
+            error_log('MPCC: No drafts found to copy from session: ' . $sourceSessionId);
+            return 0;
+        }
+        
+        $copiedCount = 0;
+        
+        // Copy each draft to the target session
+        foreach ($sourceDrafts as $draft) {
+            $result = $this->saveDraft(
+                $targetSessionId,
+                $draft->section_id,
+                $draft->lesson_id,
+                $draft->content,
+                $draft->order_index
+            );
+            
+            if ($result) {
+                $copiedCount++;
+            }
+        }
+        
+        error_log('MPCC: Copied ' . $copiedCount . ' lesson drafts from session ' . $sourceSessionId . ' to session ' . $targetSessionId);
+        
+        return $copiedCount;
+    }
 }
