@@ -188,6 +188,20 @@ class SessionService
                 continue;
             }
             
+            // Skip empty sessions (no messages and no course structure)
+            $hasMessages = isset($data['conversation_history']) && 
+                         is_array($data['conversation_history']) && 
+                         count($data['conversation_history']) > 0;
+                         
+            $hasCourseStructure = (isset($data['conversation_state']['course_structure']['title']) && 
+                                 !empty($data['conversation_state']['course_structure']['title'])) ||
+                                (isset($data['conversation_state']['course_data']['title']) && 
+                                 !empty($data['conversation_state']['course_data']['title']));
+            
+            if (!$hasMessages && !$hasCourseStructure) {
+                continue; // Skip empty sessions
+            }
+            
             // Keep the full session ID including prefix
             $sessionId = $result->option_name;
             

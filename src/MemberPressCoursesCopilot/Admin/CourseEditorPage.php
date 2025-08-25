@@ -128,8 +128,9 @@ class CourseEditorPage
         $sessionId = $_GET['session'] ?? '';
         
         if (empty($sessionId)) {
-            // Generate new session ID
-            $sessionId = 'mpcc_session_' . uniqid() . '_' . time() . '_' . wp_generate_password(8, false);
+            // Don't create a session ID yet - let JavaScript handle it
+            // This prevents creating empty sessions when loading previous conversations
+            return '';
         }
         
         return sanitize_text_field($sessionId);
@@ -155,6 +156,11 @@ class CourseEditorPage
         error_log('MPCC: Rendering course editor page');
         
         $sessionId = $this->getOrCreateSessionId();
+        
+        // If no session ID, we'll let JavaScript create one when needed
+        if (empty($sessionId)) {
+            $sessionId = 'pending';
+        }
         $courseId = isset($_GET['course_id']) ? (int) $_GET['course_id'] : 0;
         
         ?>

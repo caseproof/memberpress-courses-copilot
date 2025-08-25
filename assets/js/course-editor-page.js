@@ -16,8 +16,23 @@
         init: function() {
             this.sessionId = mpccEditorSettings.sessionId;
             
+            // Handle 'pending' session ID - create a new one only if needed
+            if (this.sessionId === 'pending' || !this.sessionId) {
+                // Check URL for session parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlSessionId = urlParams.get('session');
+                
+                if (urlSessionId) {
+                    // Use session from URL
+                    this.sessionId = urlSessionId;
+                } else {
+                    // Generate new session ID only when user starts interacting
+                    this.sessionId = null; // Will be created on first message
+                }
+            }
+            
             // Store session ID in sessionStorage if available
-            if (this.sessionId) {
+            if (this.sessionId && this.sessionId !== 'pending') {
                 sessionStorage.setItem('mpcc_current_session_id', this.sessionId);
                 // Trigger event to notify other components
                 $(document).trigger('mpcc:session-changed', { sessionId: this.sessionId });
@@ -25,7 +40,9 @@
             
             this.bindEvents();
             this.initializeChat();
-            this.loadExistingSession();
+            if (this.sessionId && this.sessionId !== 'pending') {
+                this.loadExistingSession();
+            }
         },
         
         bindEvents: function() {
@@ -143,6 +160,13 @@
             
             if (!message) return;
             
+            // Create session ID if we don't have one yet
+            if (!this.sessionId || this.sessionId === 'pending') {
+                this.sessionId = 'mpcc_session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('mpcc_current_session_id', this.sessionId);
+                $(document).trigger('mpcc:session-changed', { sessionId: this.sessionId });
+            }
+            
             // Add user message
             this.addMessage('user', message);
             input.val('').focus();
@@ -178,6 +202,13 @@
             const prompt = button.data('prompt');
             
             if (prompt) {
+                // Create session ID if we don't have one yet
+                if (!this.sessionId || this.sessionId === 'pending') {
+                    this.sessionId = 'mpcc_session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    sessionStorage.setItem('mpcc_current_session_id', this.sessionId);
+                    $(document).trigger('mpcc:session-changed', { sessionId: this.sessionId });
+                }
+                
                 $('#mpcc-chat-input').val(prompt);
                 this.sendMessage();
             }
@@ -530,12 +561,19 @@
         },
         
         saveConversation: function() {
-            // Don't save empty conversations
-            const hasContent = this.conversationHistory.length > 0 || 
-                             (this.courseStructure && this.courseStructure.title);
+            // Don't save if we don't have a real session ID
+            if (!this.sessionId || this.sessionId === 'pending') {
+                console.log('Skipping save - no session ID');
+                return;
+            }
             
-            if (!hasContent) {
-                console.log('Skipping save - no content to save');
+            // Don't save empty conversations
+            // Only count as having content if there's more than just the welcome message
+            const hasUserMessages = this.conversationHistory.filter(msg => msg.role === 'user').length > 0;
+            const hasCourseStructure = this.courseStructure && this.courseStructure.title;
+            
+            if (!hasUserMessages && !hasCourseStructure) {
+                console.log('Skipping save - no meaningful content to save');
                 return;
             }
             
@@ -619,16 +657,19 @@
         
         newSession: function() {
             if (confirm('Start a new session? Current progress will be saved.')) {
-                // Generate new session ID
-                const newSessionId = 'mpcc_session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                
-                // Save current session first if there's content to save
-                if (this.conversationHistory.length > 0 || (this.courseStructure && this.courseStructure.title)) {
-                    this.saveConversation();
+                // Save current session first if there's meaningful content and we have a real session ID
+                if (this.sessionId && this.sessionId !== 'pending') {
+                    const hasUserMessages = this.conversationHistory.filter(msg => msg.role === 'user').length > 0;
+                    const hasCourseStructure = this.courseStructure && this.courseStructure.title;
+                    
+                    if (hasUserMessages || hasCourseStructure) {
+                        this.saveConversation();
+                    }
                 }
                 
-                // Redirect to new session
-                window.location.href = window.location.pathname + '?page=mpcc-course-editor&session=' + newSessionId;
+                // Just redirect to the base page without session parameter
+                // This will let the page create a new session when needed
+                window.location.href = window.location.pathname + '?page=mpcc-course-editor';
             }
         },
         
@@ -740,15 +781,15 @@
                 
                 if (confirm('Load this session? Current progress will be saved.')) {
                     // Save current conversation first if there's content to save
-                    if (this.sessionId && (this.conversationHistory.length > 0 || this.courseStructure.title)) {
+                    if (this.sessionId && this.sessionId !== 'pending' && (this.conversationHistory.length > 0 || this.courseStructure.title)) {
                         this.saveConversation();
                     }
                     
-                    // Load the selected session via AJAX
-                    this.loadConversation(sessionId, sessionTitle);
-                    
-                    // Close the modal
+                    // Close the modal before redirecting
                     this.closeSessionModal();
+                    
+                    // Redirect to the selected session to ensure proper URL
+                    window.location.href = window.location.pathname + '?page=mpcc-course-editor&session=' + sessionId;
                 }
             });
         },
