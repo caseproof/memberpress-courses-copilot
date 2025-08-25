@@ -79,7 +79,19 @@ $post_id = $post_id ?? 0;
             <?php esc_html_e('New Conversation', 'memberpress-courses-copilot'); ?>
         </button>
     </div>
-    <div id="mpcc-session-list" style="display: none; padding: 10px; background-color: #f0f0f1; border-top: 1px solid #ddd;"></div>
+</div>
+
+<!-- Modal for Previous Conversations -->
+<div id="mpcc-modal-overlay" class="mpcc-modal-overlay">
+    <div class="mpcc-modal-container">
+        <div class="mpcc-modal-header">
+            <h3 class="mpcc-modal-title"><?php esc_html_e('Previous Conversations', 'memberpress-courses-copilot'); ?></h3>
+            <button type="button" class="mpcc-modal-close" aria-label="<?php esc_attr_e('Close', 'memberpress-courses-copilot'); ?>">
+                <span class="dashicons dashicons-no-alt"></span>
+            </button>
+        </div>
+        <div id="mpcc-session-list"></div>
+    </div>
 </div>
 
 <script type="text/javascript">

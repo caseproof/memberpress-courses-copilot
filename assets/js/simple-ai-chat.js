@@ -386,6 +386,9 @@ jQuery(document).ready(function($) {
         });
     }
     
+    // Make loadConversation available globally for click handlers
+    window.mpccLoadConversation = loadConversation;
+    
     /**
      * Save conversation to database
      */
@@ -805,8 +808,15 @@ jQuery(document).ready(function($) {
                         }
                         const sessionId = $(this).data('session-id');
                         sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
-                        loadConversation(sessionId);
-                        $('#mpcc-session-list').hide();
+                        // Use the global function or the local one if available
+                        if (typeof loadConversation === 'function') {
+                            loadConversation(sessionId);
+                        } else if (typeof window.mpccLoadConversation === 'function') {
+                            window.mpccLoadConversation(sessionId);
+                        } else {
+                            console.error('loadConversation function not found');
+                        }
+                        $('#mpcc-modal-overlay').removeClass('mpcc-modal-open');
                     });
                 } else {
                     console.log('No sessions found or invalid response structure');
@@ -1120,9 +1130,33 @@ jQuery(document).ready(function($) {
     $(document).off('click.mpcc-session').on('click.mpcc-session', '#mpcc-session-manager-btn', function(e) {
         e.preventDefault();
         console.log('Session manager clicked');
-        $('#mpcc-session-list').toggle();
-        if ($('#mpcc-session-list').is(':visible') && window.showSessionManager) {
+        
+        // Open the modal
+        $('#mpcc-modal-overlay').addClass('mpcc-modal-open');
+        
+        // Load the session list
+        if (window.showSessionManager) {
             window.showSessionManager();
+        }
+    });
+    
+    // Close modal when clicking the close button
+    $(document).on('click', '.mpcc-modal-close', function(e) {
+        e.preventDefault();
+        $('#mpcc-modal-overlay').removeClass('mpcc-modal-open');
+    });
+    
+    // Close modal when clicking outside the modal container
+    $(document).on('click', '#mpcc-modal-overlay', function(e) {
+        if (e.target === this) {
+            $(this).removeClass('mpcc-modal-open');
+        }
+    });
+    
+    // Close modal on ESC key
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape' && $('#mpcc-modal-overlay').hasClass('mpcc-modal-open')) {
+            $('#mpcc-modal-overlay').removeClass('mpcc-modal-open');
         }
     });
     

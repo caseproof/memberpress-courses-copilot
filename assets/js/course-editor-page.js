@@ -39,10 +39,17 @@
             // Quick starter suggestion buttons
             $(document).on('click', '.mpcc-quick-starter-btn', this.handleQuickStarter.bind(this));
             
-            // Close dropdown when clicking outside
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('.mpcc-sessions-dropdown, #mpcc-previous-conversations, #mpcc-session-history').length) {
-                    $('.mpcc-sessions-dropdown').removeClass('active');
+            // Close modal when clicking outside
+            $(document).on('click', '.mpcc-sessions-modal-overlay', function(e) {
+                if ($(e.target).hasClass('mpcc-sessions-modal-overlay')) {
+                    mpccEditor.closeSessionModal();
+                }
+            });
+            
+            // Close modal with ESC key
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && $('.mpcc-sessions-modal-overlay').hasClass('active')) {
+                    mpccEditor.closeSessionModal();
                 }
             });
             
@@ -211,6 +218,11 @@
                             this.courseStructure = courseData;
                             this.renderCourseStructure();
                             $('#mpcc-create-course').prop('disabled', false);
+                            
+                            // Update session title with course name
+                            if (courseData.title) {
+                                this.updateSessionTitle('Course: ' + courseData.title);
+                            }
                         }
                         
                         // Auto-save conversation
@@ -538,37 +550,55 @@
         },
         
         toggleSessionDropdown: function() {
-            const dropdown = $('.mpcc-sessions-dropdown');
+            const modalOverlay = $('.mpcc-sessions-modal-overlay');
             
-            if (dropdown.length === 0) {
-                // Create dropdown if it doesn't exist
-                this.createSessionDropdown();
-            } else {
-                dropdown.toggleClass('active');
-                if (dropdown.hasClass('active')) {
-                    this.loadSessionList();
-                }
+            if (modalOverlay.length === 0) {
+                // Create modal if it doesn't exist
+                this.createSessionModal();
             }
+            
+            this.openSessionModal();
+            this.loadSessionList();
         },
         
-        createSessionDropdown: function() {
-            const dropdown = $(`
-                <div class="mpcc-sessions-dropdown">
-                    <div class="mpcc-sessions-header">
-                        <h3>Previous Conversations</h3>
-                    </div>
-                    <div class="mpcc-sessions-list">
-                        <div class="mpcc-sessions-loading">
-                            <span class="dashicons dashicons-update spin"></span>
-                            Loading...
+        openSessionModal: function() {
+            const modalOverlay = $('.mpcc-sessions-modal-overlay');
+            modalOverlay.addClass('active');
+            $('body').css('overflow', 'hidden');
+        },
+        
+        closeSessionModal: function() {
+            const modalOverlay = $('.mpcc-sessions-modal-overlay');
+            modalOverlay.removeClass('active');
+            $('body').css('overflow', '');
+        },
+        
+        createSessionModal: function() {
+            const modal = $(`
+                <div class="mpcc-sessions-modal-overlay">
+                    <div class="mpcc-sessions-modal">
+                        <div class="mpcc-sessions-modal-header">
+                            <h3>Previous Conversations</h3>
+                            <button type="button" class="mpcc-sessions-modal-close" aria-label="Close">
+                                <span class="dashicons dashicons-no-alt"></span>
+                            </button>
+                        </div>
+                        <div class="mpcc-sessions-list">
+                            <div class="mpcc-sessions-loading">
+                                <span class="dashicons dashicons-update spin"></span>
+                                Loading...
+                            </div>
                         </div>
                     </div>
                 </div>
             `);
             
-            $('.mpcc-editor-header').append(dropdown);
-            dropdown.addClass('active');
-            this.loadSessionList();
+            $('body').append(modal);
+            
+            // Bind close button
+            modal.find('.mpcc-sessions-modal-close').on('click', () => {
+                this.closeSessionModal();
+            });
         },
         
         loadSessionList: function() {
@@ -616,11 +646,20 @@
             listContainer.html(html);
             
             // Bind click events
-            $('.mpcc-session-item').on('click', function() {
-                const sessionId = $(this).data('session-id');
+            $('.mpcc-session-item').on('click', (e) => {
+                const $item = $(e.currentTarget);
+                const sessionId = $item.data('session-id');
+                const sessionTitle = $item.find('.mpcc-session-title').text();
+                
                 if (confirm('Load this session? Current progress will be saved.')) {
-                    CourseEditor.saveConversation();
-                    window.location.href = window.location.pathname + '?page=mpcc-course-editor&session=' + sessionId;
+                    // Save current conversation first
+                    this.saveConversation();
+                    
+                    // Load the selected session via AJAX
+                    this.loadConversation(sessionId, sessionTitle);
+                    
+                    // Close the modal
+                    this.closeSessionModal();
                 }
             });
         },
@@ -633,9 +672,85 @@
             `);
         },
         
+        loadConversation: function(sessionId, sessionTitle) {
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_load_session',
+                    session_id: sessionId,
+                    nonce: mpccEditorSettings.nonce
+                },
+                success: (response) => {
+                    if (response.success && response.data) {
+                        // Update current session
+                        this.currentSessionId = sessionId;
+                        
+                        // Clear and populate chat
+                        const $messages = $('#mpcc-chat-messages');
+                        $messages.empty();
+                        
+                        // Handle conversation history
+                        const conversationHistory = response.data.conversation_history || response.data.messages || [];
+                        if (conversationHistory.length > 0) {
+                            conversationHistory.forEach(msg => {
+                                this.appendMessage(msg.role === 'user' ? 'user' : 'assistant', msg.content);
+                            });
+                        }
+                        
+                        // Update course structure if exists
+                        const courseStructure = response.data.course_structure || 
+                                              (response.data.conversation_state && response.data.conversation_state.course_structure);
+                        if (courseStructure) {
+                            this.displayCourseStructure(courseStructure);
+                        }
+                        
+                        // Scroll to bottom
+                        this.scrollToBottom();
+                    } else {
+                        alert('Failed to load conversation');
+                    }
+                },
+                error: () => {
+                    alert('Failed to load conversation. Please try again.');
+                }
+            });
+        },
+        
         scrollToBottom: function() {
             const container = $('#mpcc-chat-messages');
             container.scrollTop(container[0].scrollHeight);
+        },
+        
+        displayCourseStructure: function(courseStructure) {
+            this.courseStructure = courseStructure;
+            this.renderCourseStructure();
+            $('#mpcc-create-course').prop('disabled', false);
+            
+            // Update session title if available
+            if (courseStructure.title) {
+                this.updateSessionTitle('Course: ' + courseStructure.title);
+            }
+        },
+        
+        updateSessionTitle: function(title) {
+            // Update the session title in memory
+            if (this.currentSessionId) {
+                // Save the updated title to the server
+                $.ajax({
+                    url: mpccEditorSettings.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'mpcc_update_session_title',
+                        session_id: this.currentSessionId,
+                        title: title,
+                        nonce: mpccEditorSettings.nonce
+                    },
+                    success: (response) => {
+                        console.log('Session title updated:', title);
+                    }
+                });
+            }
         },
         
         showError: function(message) {

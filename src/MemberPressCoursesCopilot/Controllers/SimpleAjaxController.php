@@ -31,6 +31,7 @@ class SimpleAjaxController
         add_action('wp_ajax_mpcc_load_session', [$this, 'handleLoadSession']);
         add_action('wp_ajax_mpcc_create_course', [$this, 'handleCreateCourse']);
         add_action('wp_ajax_mpcc_get_sessions', [$this, 'handleGetSessions']);
+        add_action('wp_ajax_mpcc_update_session_title', [$this, 'handleUpdateSessionTitle']);
         // Note: mpcc_save_conversation is handled by CourseAjaxService
         // Note: mpcc_save_lesson_content, mpcc_load_lesson_content, mpcc_generate_lesson_content are handled by CourseAjaxService
     }
@@ -392,5 +393,40 @@ Format the content with clear headings and sections.";
         
         // Return current structure if no new structure found
         return !empty($currentStructure) ? $currentStructure : null;
+    }
+    
+    /**
+     * Handle update session title
+     */
+    public function handleUpdateSessionTitle(): void
+    {
+        try {
+            // Verify nonce
+            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+                throw new \Exception('Security check failed');
+            }
+            
+            $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+            $title = sanitize_text_field($_POST['title'] ?? '');
+            
+            if (empty($sessionId) || empty($title)) {
+                throw new \Exception('Session ID and title are required');
+            }
+            
+            // Get current session data
+            $sessionData = $this->sessionService->getSession($sessionId);
+            
+            // Update the title
+            $sessionData['title'] = $title;
+            $sessionData['last_updated'] = current_time('mysql');
+            
+            // Save the updated session
+            $this->sessionService->saveSession($sessionId, $sessionData);
+            
+            wp_send_json_success(['updated' => true, 'title' => $title]);
+            
+        } catch (\Exception $e) {
+            wp_send_json_error($e->getMessage());
+        }
     }
 }
