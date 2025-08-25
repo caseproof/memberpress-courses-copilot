@@ -13,6 +13,7 @@
         conversationHistory: [],
         isSaving: false,
         publishedCourseId: null,
+        publishedCourseUrl: null,
         publishedCourseId: null,
         
         init: function() {
@@ -125,6 +126,7 @@
                         // Check if course has been published
                         if (response.data.published_course_id) {
                             this.publishedCourseId = response.data.published_course_id;
+                            this.publishedCourseUrl = response.data.published_course_url || null;
                         }
                         
                         // Restore course structure - check multiple possible locations
@@ -151,6 +153,7 @@
                     this.conversationHistory = [];
                     this.courseStructure = {};
                     this.publishedCourseId = null;
+                    this.publishedCourseUrl = null;
                     // Don't save empty sessions - wait until there's actual content
                 }
             });
@@ -326,9 +329,18 @@
             const publishedBadge = this.publishedCourseId ? 
                 '<span class="mpcc-published-badge"><span class="dashicons dashicons-yes-alt"></span> Published</span>' : '';
             
+            // Add view course link if URL is available
+            const viewCourseLink = this.publishedCourseUrl ? 
+                `<a href="${this.publishedCourseUrl}" class="mpcc-view-course-link" target="_blank">
+                    <span class="dashicons dashicons-external"></span> View Course
+                </a>` : '';
+            
             const headerHtml = `
                 <div class="mpcc-course-header">
-                    <h2>${this.escapeHtml(this.courseStructure.title)} ${publishedBadge}</h2>
+                    <div class="mpcc-course-title-row">
+                        <h2>${this.escapeHtml(this.courseStructure.title)} ${publishedBadge}</h2>
+                        ${viewCourseLink}
+                    </div>
                     <p>${this.escapeHtml(this.courseStructure.description || '')}</p>
                 </div>
             `;
@@ -663,21 +675,19 @@
                 },
                 success: (response) => {
                     if (response.success) {
-                        // Store the published course ID
+                        // Store the published course ID and URL
                         this.publishedCourseId = response.data.course_id;
+                        this.publishedCourseUrl = response.data.edit_url;
                         
-                        // Update the UI to show published badge
+                        // Update the UI to show published badge and link
                         this.renderCourseStructure();
                         
                         // Update button state
                         button.html('<span class="dashicons dashicons-yes-alt"></span> Course Created').prop('disabled', true);
                         
-                        mpccToast.success('Course created successfully! Redirecting...');
+                        mpccToast.success('Course created successfully! Click "View Course" to see it.');
                         
-                        // Redirect to the created course after short delay
-                        setTimeout(() => {
-                            window.location.href = response.data.edit_url;
-                        }, 2000);
+                        // Don't redirect automatically, let user click the link
                     } else {
                         mpccToast.error(response.data || 'Failed to create course');
                     }
@@ -903,6 +913,7 @@
                         // Check if course has been published
                         if (response.data.published_course_id) {
                             this.publishedCourseId = response.data.published_course_id;
+                            this.publishedCourseUrl = response.data.published_course_url || null;
                         }
                         
                         // Update course structure if exists

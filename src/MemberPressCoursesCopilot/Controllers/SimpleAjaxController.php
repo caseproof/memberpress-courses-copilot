@@ -301,6 +301,7 @@ class SimpleAjaxController
                 $sessionData['title'] = $sessionTitle;
                 $sessionData['last_updated'] = current_time('mysql');
                 $sessionData['published_course_id'] = $result['course_id']; // Store the created course ID
+                $sessionData['published_course_url'] = $result['edit_url']; // Store the course edit URL
                 $this->sessionService->saveSession($sessionId, $sessionData);
                 
                 // Also update ConversationManager session if it exists
