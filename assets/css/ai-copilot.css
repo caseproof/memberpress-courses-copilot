@@ -1873,14 +1873,138 @@
   height: 18px;
 }
 
-#mpcc-session-list {
+/* Modal overlay for previous conversations */
+.mpcc-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  display: flex;
+}
+
+.mpcc-modal-overlay.mpcc-modal-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.mpcc-modal-overlay .mpcc-modal-container {
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.mpcc-modal-overlay.mpcc-modal-open .mpcc-modal-container {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+
+/* Modal container */
+.mpcc-modal-container {
   background: var(--mpcc-bg-primary);
-  border: 1px solid var(--mpcc-border-secondary);
-  border-radius: var(--mpcc-radius-md);
-  margin: var(--mpcc-spacing-md);
+  border-radius: var(--mpcc-radius-lg);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Modal header */
+.mpcc-modal-header {
   padding: var(--mpcc-spacing-lg);
-  max-height: 300px;
+  border-bottom: 1px solid var(--mpcc-border-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mpcc-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--mpcc-text-primary);
+  margin: 0;
+}
+
+.mpcc-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--mpcc-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--mpcc-radius-sm);
+  transition: all 0.2s ease;
+}
+
+.mpcc-modal-close:hover {
+  background: var(--mpcc-bg-secondary);
+  color: var(--mpcc-text-primary);
+}
+
+/* Modal body - the session list */
+#mpcc-session-list {
+  flex: 1;
   overflow-y: auto;
+  padding: var(--mpcc-spacing-lg);
+}
+
+/* Session list styling within modal */
+#mpcc-session-list .mpcc-session-item {
+  margin-bottom: var(--mpcc-spacing-md);
+  padding: var(--mpcc-spacing-md);
+  background: var(--mpcc-bg-secondary);
+  border: 1px solid var(--mpcc-border-primary);
+  border-radius: var(--mpcc-radius-md);
+  transition: all 0.2s ease;
+}
+
+#mpcc-session-list .mpcc-session-item:hover {
+  background: var(--mpcc-bg-tertiary);
+  border-color: var(--mpcc-border-secondary);
+}
+
+#mpcc-session-list .mpcc-session-item.active {
+  border: 2px solid var(--mpcc-primary);
+  background: var(--mpcc-bg-highlight);
+}
+
+/* Mobile responsive adjustments for modal */
+@media (max-width: 600px) {
+  .mpcc-modal-overlay {
+    padding: 0;
+  }
+  
+  .mpcc-modal-container {
+    max-width: 100%;
+    max-height: 100vh;
+    height: 100%;
+    border-radius: 0;
+  }
+  
+  .mpcc-modal-header {
+    padding: var(--mpcc-spacing-md);
+  }
+  
+  #mpcc-session-list {
+    padding: var(--mpcc-spacing-md);
+  }
 }
 
 /* Fix layout when session controls are placed after input container */

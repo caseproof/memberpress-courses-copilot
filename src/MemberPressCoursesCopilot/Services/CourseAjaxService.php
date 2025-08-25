@@ -8,6 +8,7 @@ use MemberPressCoursesCopilot\Services\BaseService;
 use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\LLMService;
+use MemberPressCoursesCopilot\Services\SessionService;
 
 /**
  * Course AJAX Service
@@ -46,6 +47,14 @@ class CourseAjaxService extends BaseService
         add_action('wp_ajax_mpcc_load_conversation', [$this, 'loadConversation']);
         add_action('wp_ajax_mpcc_create_conversation', [$this, 'createConversation']);
         add_action('wp_ajax_mpcc_list_conversations', [$this, 'listConversations']);
+        
+        // Course preview editing endpoints
+        add_action('wp_ajax_mpcc_save_lesson_content', [$this, 'saveLessonContent']);
+        add_action('wp_ajax_mpcc_load_lesson_content', [$this, 'loadLessonContent']);
+        add_action('wp_ajax_mpcc_load_all_drafts', [$this, 'loadLessonContent']); // Same handler, loads all drafts for session
+        add_action('wp_ajax_mpcc_generate_lesson_content', [$this, 'generateLessonContent']);
+        add_action('wp_ajax_mpcc_reorder_course_items', [$this, 'reorderCourseItems']);
+        add_action('wp_ajax_mpcc_delete_course_item', [$this, 'deleteCourseItem']);
     }
 
     /**
@@ -467,19 +476,48 @@ class CourseAjaxService extends BaseService
         
         $course_data = $_POST['course_data'] ?? [];
         
+        // If course_data is a JSON string, decode it
+        if (is_string($course_data)) {
+            $decoded = json_decode($course_data, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $course_data = $decoded;
+                $this->logger->info('Decoded JSON course_data', [
+                    'decoded_keys' => array_keys($course_data),
+                    'has_title' => isset($course_data['title']),
+                    'title_value' => $course_data['title'] ?? 'not set'
+                ]);
+            }
+        }
+        
         // Log the raw POST data to debug
         $this->logger->info('Raw course_data received', [
             'raw_data' => json_encode($_POST['course_data'] ?? 'empty'),
             'is_array' => is_array($course_data),
             'is_empty' => empty($course_data),
-            'course_data_type' => gettype($course_data)
+            'course_data_type' => gettype($course_data),
+            'course_data_keys' => is_array($course_data) ? array_keys($course_data) : 'not an array',
+            'has_title_at_root' => isset($course_data['title']),
+            'title_at_root' => $course_data['title'] ?? 'no title at root',
+            'full_structure' => json_encode($course_data)
         ]);
         
         // Check if course data is nested under 'course_structure' key
         if (isset($course_data['course_structure']) && is_array($course_data['course_structure'])) {
-            $this->logger->info('Found nested course_structure, extracting it');
+            $this->logger->info('Found nested course_structure, extracting it', [
+                'nested_structure_keys' => array_keys($course_data['course_structure']),
+                'nested_has_title' => isset($course_data['course_structure']['title']),
+                'nested_title' => $course_data['course_structure']['title'] ?? 'no title in nested'
+            ]);
             $course_data = $course_data['course_structure'];
         }
+        
+        // Log final course data structure after any extraction
+        $this->logger->info('Final course_data structure', [
+            'has_title' => isset($course_data['title']),
+            'title' => $course_data['title'] ?? 'NO TITLE FOUND',
+            'keys' => is_array($course_data) ? array_keys($course_data) : 'not an array',
+            'sections_count' => isset($course_data['sections']) ? count($course_data['sections']) : 0
+        ]);
         
         if (empty($course_data)) {
             $this->logger->warning('Course creation failed: no course data provided', [
@@ -538,6 +576,13 @@ class CourseAjaxService extends BaseService
                         
                         if ($session && $session->getUserId() === get_current_user_id()) {
                             $courseTitle = $course_data['title'] ?? 'Unknown Course';
+                            $this->logger->info('Attempting to update session title', [
+                                'session_id' => $sessionId,
+                                'course_title' => $courseTitle,
+                                'course_data_has_title' => isset($course_data['title']),
+                                'course_data_keys' => array_keys($course_data)
+                            ]);
+                            
                             $session->setTitle('Course: ' . $courseTitle);
                             $conversationManager->saveSession($session);
                             
@@ -545,6 +590,24 @@ class CourseAjaxService extends BaseService
                                 'session_id' => $sessionId,
                                 'course_title' => $courseTitle
                             ]);
+                            
+                            // Also update the WordPress options-based session used by the UI
+                            $sessionService = new SessionService();
+                            $optionsSession = $sessionService->getSession($sessionId);
+                            if ($optionsSession) {
+                                // Update the title in the conversation state
+                                if (isset($optionsSession['conversation_state']['course_data'])) {
+                                    $optionsSession['conversation_state']['course_data']['title'] = $courseTitle;
+                                }
+                                $optionsSession['title'] = 'Course: ' . $courseTitle;
+                                $optionsSession['last_updated'] = current_time('mysql');
+                                $sessionService->saveSession($sessionId, $optionsSession);
+                                
+                                $this->logger->info('Updated WordPress options session title', [
+                                    'session_id' => $sessionId,
+                                    'course_title' => $courseTitle
+                                ]);
+                            }
                         }
                     } catch (\Exception $e) {
                         // Log but don't fail the course creation
@@ -729,9 +792,13 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function saveConversation(): void
     {
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        // Verify nonce - check multiple possible nonce names
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
+            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
             $this->logger->warning('Save conversation failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
+                'nonce_value' => $nonce
             ]);
             wp_send_json_error('Security check failed');
             return;
@@ -947,5 +1014,591 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             ]);
             wp_send_json_error('Failed to list conversations');
         }
+    }
+
+    /**
+     * Save lesson content to draft
+     *
+     * @return void
+     */
+    public function saveLessonContent(): void
+    {
+        // Verify nonce - check multiple possible nonce names
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
+            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
+            $this->logger->warning('Save lesson content failed: invalid nonce', [
+                'user_id' => get_current_user_id(),
+                'nonce_value' => $nonce
+            ]);
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        // Check user capabilities
+        if (!current_user_can('edit_posts')) {
+            $this->logger->warning('Save lesson content failed: insufficient permissions', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
+        $lessonId = sanitize_text_field($_POST['lesson_id'] ?? '');
+        $content = wp_kses_post($_POST['content'] ?? '');
+        $orderIndex = isset($_POST['order_index']) ? (int) $_POST['order_index'] : 0;
+        
+        if (empty($sessionId) || empty($sectionId) || empty($lessonId)) {
+            wp_send_json_error('Missing required parameters');
+            return;
+        }
+        
+        try {
+            // Initialize lesson draft service
+            $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+            
+            // Save draft
+            $draftId = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex);
+            
+            if ($draftId !== false) {
+                $this->logger->info('Lesson content saved', [
+                    'session_id' => $sessionId,
+                    'section_id' => $sectionId,
+                    'lesson_id' => $lessonId,
+                    'draft_id' => $draftId
+                ]);
+                
+                wp_send_json_success([
+                    'draft_id' => $draftId,
+                    'saved_at' => current_time('c'),
+                    'message' => 'Lesson content saved successfully'
+                ]);
+            } else {
+                throw new \Exception('Failed to save lesson content');
+            }
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to save lesson content', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage()
+            ]);
+            wp_send_json_error('Failed to save lesson content: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Load lesson content from draft
+     *
+     * @return void
+     */
+    public function loadLessonContent(): void
+    {
+        // Verify nonce - check multiple possible nonce names
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
+            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
+            $this->logger->warning('Load lesson content failed: invalid nonce', [
+                'user_id' => get_current_user_id(),
+                'nonce_value' => $nonce
+            ]);
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        // Check user capabilities
+        if (!current_user_can('edit_posts')) {
+            $this->logger->warning('Load lesson content failed: insufficient permissions', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
+        $lessonId = sanitize_text_field($_POST['lesson_id'] ?? '');
+        
+        if (empty($sessionId)) {
+            wp_send_json_error('Session ID is required');
+            return;
+        }
+        
+        try {
+            // Initialize lesson draft service
+            $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+            
+            // Load specific lesson or all session drafts
+            if (!empty($sectionId) && !empty($lessonId)) {
+                // Load specific lesson
+                $draft = $draftService->getDraft($sessionId, $sectionId, $lessonId);
+                
+                if ($draft) {
+                    wp_send_json_success([
+                        'draft' => [
+                            'content' => $draft->content,
+                            'order_index' => $draft->order_index,
+                            'updated_at' => $draft->updated_at
+                        ]
+                    ]);
+                } else {
+                    wp_send_json_success([
+                        'draft' => null,
+                        'message' => 'No draft found'
+                    ]);
+                }
+            } else {
+                // Load all drafts for session
+                $drafts = $draftService->getSessionDrafts($sessionId);
+                
+                // Group drafts by section
+                $groupedDrafts = [];
+                foreach ($drafts as $draft) {
+                    if (!isset($groupedDrafts[$draft->section_id])) {
+                        $groupedDrafts[$draft->section_id] = [];
+                    }
+                    $groupedDrafts[$draft->section_id][$draft->lesson_id] = [
+                        'content' => $draft->content,
+                        'order_index' => $draft->order_index,
+                        'updated_at' => $draft->updated_at
+                    ];
+                }
+                
+                $this->logger->info('Loaded session drafts', [
+                    'session_id' => $sessionId,
+                    'drafts_count' => count($drafts)
+                ]);
+                
+                wp_send_json_success([
+                    'drafts' => $groupedDrafts
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to load lesson content', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage()
+            ]);
+            wp_send_json_error('Failed to load lesson content: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate lesson content using AI
+     *
+     * @return void
+     */
+    public function generateLessonContent(): void
+    {
+        // Debug logging
+        $this->logger->info('CourseAjaxService::generateLessonContent called', [
+            'nonce' => $_POST['nonce'] ?? 'not set',
+            'action' => $_POST['action'] ?? 'not set',
+            'user_id' => get_current_user_id()
+        ]);
+        
+        // Verify nonce - check multiple possible nonce names
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
+            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
+            $this->logger->warning('Generate lesson content failed: invalid nonce', [
+                'user_id' => get_current_user_id(),
+                'nonce_value' => $nonce,
+                'expected' => 'mpcc_courses_integration or mpcc_editor_nonce'
+            ]);
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        // Check user capabilities
+        if (!current_user_can('edit_posts')) {
+            $this->logger->warning('Generate lesson content failed: insufficient permissions', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        $sectionTitle = sanitize_text_field($_POST['section_title'] ?? '');
+        $lessonTitle = sanitize_text_field($_POST['lesson_title'] ?? '');
+        $courseTitle = sanitize_text_field($_POST['course_title'] ?? '');
+        $context = $_POST['context'] ?? [];
+        
+        if (empty($lessonTitle)) {
+            wp_send_json_error('Lesson title is required');
+            return;
+        }
+        
+        try {
+            // Use LLMService for content generation
+            $llm_service = new LLMService();
+            
+            // Build prompt for lesson content generation
+            $prompt = $this->buildLessonContentPrompt($courseTitle, $sectionTitle, $lessonTitle, $context);
+            
+            $this->logger->debug('Generating lesson content', [
+                'session_id' => $sessionId,
+                'lesson_title' => $lessonTitle,
+                'prompt_length' => strlen($prompt)
+            ]);
+            
+            // Generate content
+            $response = $llm_service->generateContent($prompt, 'lesson_content', [
+                'temperature' => 0.7,
+                'max_tokens' => 3000
+            ]);
+            
+            if ($response['error']) {
+                throw new \Exception($response['message'] ?? 'Unknown error');
+            }
+            
+            $generatedContent = $response['content'];
+            
+            // Save generated content as draft if session ID provided
+            if (!empty($sessionId) && !empty($_POST['section_id']) && !empty($_POST['lesson_id'])) {
+                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                
+                $sectionId = sanitize_text_field($_POST['section_id']);
+                $lessonId = sanitize_text_field($_POST['lesson_id']);
+                $orderIndex = isset($_POST['order_index']) ? (int) $_POST['order_index'] : 0;
+                
+                $draftId = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $generatedContent, $orderIndex);
+            }
+            
+            $this->logger->info('Lesson content generated', [
+                'session_id' => $sessionId,
+                'lesson_title' => $lessonTitle,
+                'content_length' => strlen($generatedContent)
+            ]);
+            
+            wp_send_json_success([
+                'content' => $generatedContent,
+                'generated_at' => current_time('c'),
+                'message' => 'Lesson content generated successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to generate lesson content', [
+                'lesson_title' => $lessonTitle,
+                'error' => $e->getMessage()
+            ]);
+            wp_send_json_error('Failed to generate lesson content: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reorder course items (sections or lessons)
+     *
+     * @return void
+     */
+    public function reorderCourseItems(): void
+    {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            $this->logger->warning('Reorder course items failed: invalid nonce', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        // Check user capabilities
+        if (!current_user_can('edit_posts')) {
+            $this->logger->warning('Reorder course items failed: insufficient permissions', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        $itemType = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'
+        $reorderData = $_POST['reorder_data'] ?? [];
+        
+        if (empty($sessionId) || empty($itemType) || empty($reorderData)) {
+            wp_send_json_error('Missing required parameters');
+            return;
+        }
+        
+        try {
+            if ($itemType === 'lesson') {
+                // Reorder lessons within a section
+                $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
+                if (empty($sectionId)) {
+                    wp_send_json_error('Section ID is required for lesson reordering');
+                    return;
+                }
+                
+                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                
+                // Validate lesson order array
+                $lessonOrder = array_map('sanitize_text_field', $reorderData);
+                
+                $success = $draftService->updateLessonOrder($sessionId, $sectionId, $lessonOrder);
+                
+                if ($success) {
+                    $this->logger->info('Lessons reordered', [
+                        'session_id' => $sessionId,
+                        'section_id' => $sectionId,
+                        'lesson_count' => count($lessonOrder)
+                    ]);
+                    
+                    wp_send_json_success([
+                        'message' => 'Lessons reordered successfully',
+                        'updated_at' => current_time('c')
+                    ]);
+                } else {
+                    throw new \Exception('Failed to update lesson order');
+                }
+            } else if ($itemType === 'section') {
+                // Handle section reordering
+                // This would update the course structure in the conversation state
+                $conversationManager = new ConversationManager();
+                $session = $conversationManager->loadSession($sessionId);
+                
+                if (!$session || $session->getUserId() !== get_current_user_id()) {
+                    wp_send_json_error('Session not found or access denied');
+                    return;
+                }
+                
+                // Get current context
+                $context = $session->getContext();
+                
+                // Update section order in course structure
+                if (isset($context['course_structure']) && isset($context['course_structure']['sections'])) {
+                    $sections = $context['course_structure']['sections'];
+                    $newSections = [];
+                    
+                    // Reorder sections based on provided order
+                    foreach ($reorderData as $sectionIndex) {
+                        $index = (int) $sectionIndex;
+                        if (isset($sections[$index])) {
+                            $newSections[] = $sections[$index];
+                        }
+                    }
+                    
+                    $context['course_structure']['sections'] = $newSections;
+                    $session->setContext($context, null);
+                    
+                    $conversationManager->saveSession($session);
+                    
+                    $this->logger->info('Sections reordered', [
+                        'session_id' => $sessionId,
+                        'section_count' => count($newSections)
+                    ]);
+                    
+                    wp_send_json_success([
+                        'message' => 'Sections reordered successfully',
+                        'updated_at' => current_time('c')
+                    ]);
+                } else {
+                    throw new \Exception('No course structure found in session');
+                }
+            } else {
+                wp_send_json_error('Invalid item type');
+            }
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to reorder course items', [
+                'session_id' => $sessionId,
+                'item_type' => $itemType,
+                'error' => $e->getMessage()
+            ]);
+            wp_send_json_error('Failed to reorder items: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete course item (section or lesson)
+     *
+     * @return void
+     */
+    public function deleteCourseItem(): void
+    {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+            $this->logger->warning('Delete course item failed: invalid nonce', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Security check failed');
+            return;
+        }
+        
+        // Check user capabilities
+        if (!current_user_can('edit_posts')) {
+            $this->logger->warning('Delete course item failed: insufficient permissions', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        $itemType = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'
+        $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
+        $lessonId = sanitize_text_field($_POST['lesson_id'] ?? '');
+        
+        if (empty($sessionId) || empty($itemType)) {
+            wp_send_json_error('Missing required parameters');
+            return;
+        }
+        
+        try {
+            if ($itemType === 'lesson') {
+                if (empty($sectionId) || empty($lessonId)) {
+                    wp_send_json_error('Section ID and Lesson ID are required');
+                    return;
+                }
+                
+                // Delete lesson draft
+                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                
+                $success = $draftService->deleteDraft($sessionId, $sectionId, $lessonId);
+                
+                if ($success) {
+                    // Also update the course structure in conversation state
+                    $conversationManager = new ConversationManager();
+                    $session = $conversationManager->loadSession($sessionId);
+                    
+                    if ($session && $session->getUserId() === get_current_user_id()) {
+                        $context = $session->getContext();
+                        
+                        // Remove lesson from course structure
+                        if (isset($context['course_structure']['sections'])) {
+                            foreach ($context['course_structure']['sections'] as &$section) {
+                                if (isset($section['lessons'])) {
+                                    $section['lessons'] = array_filter($section['lessons'], function($lesson) use ($lessonId) {
+                                        return ($lesson['id'] ?? '') !== $lessonId;
+                                    });
+                                    $section['lessons'] = array_values($section['lessons']); // Re-index
+                                }
+                            }
+                            
+                            $session->setContext($context, null);
+                            $conversationManager->saveSession($session);
+                        }
+                    }
+                    
+                    $this->logger->info('Lesson deleted', [
+                        'session_id' => $sessionId,
+                        'section_id' => $sectionId,
+                        'lesson_id' => $lessonId
+                    ]);
+                    
+                    wp_send_json_success([
+                        'message' => 'Lesson deleted successfully',
+                        'deleted_at' => current_time('c')
+                    ]);
+                } else {
+                    throw new \Exception('Failed to delete lesson');
+                }
+            } else if ($itemType === 'section') {
+                if (empty($sectionId)) {
+                    wp_send_json_error('Section ID is required');
+                    return;
+                }
+                
+                // Delete all lessons in the section
+                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                
+                $deletedCount = $draftService->deleteSectionDrafts($sessionId, $sectionId);
+                
+                // Update course structure in conversation state
+                $conversationManager = new ConversationManager();
+                $session = $conversationManager->loadSession($sessionId);
+                
+                if ($session && $session->getUserId() === get_current_user_id()) {
+                    $context = $session->getContext();
+                    
+                    // Remove section from course structure
+                    if (isset($context['course_structure']['sections'])) {
+                        $context['course_structure']['sections'] = array_filter(
+                            $context['course_structure']['sections'],
+                            function($section) use ($sectionId) {
+                                return ($section['id'] ?? '') !== $sectionId;
+                            }
+                        );
+                        $context['course_structure']['sections'] = array_values($context['course_structure']['sections']); // Re-index
+                        
+                        $session->setContext($context, null);
+                        $conversationManager->saveSession($session);
+                    }
+                }
+                
+                $this->logger->info('Section deleted', [
+                    'session_id' => $sessionId,
+                    'section_id' => $sectionId,
+                    'lessons_deleted' => $deletedCount
+                ]);
+                
+                wp_send_json_success([
+                    'message' => 'Section deleted successfully',
+                    'lessons_deleted' => $deletedCount,
+                    'deleted_at' => current_time('c')
+                ]);
+            } else {
+                wp_send_json_error('Invalid item type');
+            }
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to delete course item', [
+                'session_id' => $sessionId,
+                'item_type' => $itemType,
+                'error' => $e->getMessage()
+            ]);
+            wp_send_json_error('Failed to delete item: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Build prompt for lesson content generation
+     *
+     * @param string $courseTitle Course title
+     * @param string $sectionTitle Section title
+     * @param string $lessonTitle Lesson title
+     * @param array $context Additional context
+     * @return string
+     */
+    private function buildLessonContentPrompt(string $courseTitle, string $sectionTitle, string $lessonTitle, array $context): string
+    {
+        $prompt = "Generate comprehensive lesson content for an online course.\n\n";
+        
+        if (!empty($courseTitle)) {
+            $prompt .= "Course: {$courseTitle}\n";
+        }
+        
+        if (!empty($sectionTitle)) {
+            $prompt .= "Section: {$sectionTitle}\n";
+        }
+        
+        $prompt .= "Lesson: {$lessonTitle}\n\n";
+        
+        if (!empty($context['course_description'])) {
+            $prompt .= "Course Description: {$context['course_description']}\n\n";
+        }
+        
+        if (!empty($context['target_audience'])) {
+            $prompt .= "Target Audience: {$context['target_audience']}\n\n";
+        }
+        
+        if (!empty($context['learning_objectives'])) {
+            $prompt .= "Learning Objectives:\n";
+            foreach ($context['learning_objectives'] as $objective) {
+                $prompt .= "- {$objective}\n";
+            }
+            $prompt .= "\n";
+        }
+        
+        $prompt .= "Please generate engaging and educational lesson content that:\n";
+        $prompt .= "1. Introduces the topic clearly\n";
+        $prompt .= "2. Explains concepts with examples\n";
+        $prompt .= "3. Includes practical applications\n";
+        $prompt .= "4. Summarizes key points\n";
+        $prompt .= "5. Uses appropriate HTML formatting (h2, h3, p, ul, ol, etc.)\n\n";
+        $prompt .= "Format the content in HTML suitable for display in a learning management system.";
+        
+        return $prompt;
     }
 }

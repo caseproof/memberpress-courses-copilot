@@ -224,6 +224,79 @@ class LLMService extends BaseService
     }
     
     /**
+     * Generate lesson content with streaming support
+     */
+    public function generateLessonContentStream(string $sectionTitle, int $lessonNumber, array $requirements, callable $onChunk = null): string
+    {
+        $courseTitle = $requirements['course_title'] ?? 'Course';
+        $lessonTitle = $requirements['lesson_title'] ?? "Lesson {$lessonNumber}";
+        $difficulty = $requirements['difficulty_level'] ?? 'intermediate';
+        $audience = $requirements['target_audience'] ?? 'general learners';
+        
+        $prompt = $this->buildLessonContentPrompt([
+            'course_title' => $courseTitle,
+            'section_title' => $sectionTitle,
+            'lesson_number' => $lessonNumber,
+            'lesson_title' => $lessonTitle,
+            'difficulty' => $difficulty,
+            'audience' => $audience,
+            'course_context' => $requirements['course_context'] ?? '',
+            'prerequisites' => $requirements['prerequisites'] ?? [],
+            'learning_objectives' => $requirements['learning_objectives'] ?? []
+        ]);
+        
+        // If streaming callback is provided, use streaming endpoint
+        if ($onChunk !== null) {
+            return $this->streamContent($prompt, 'lesson_content', $onChunk, [
+                'temperature' => 0.7,
+                'max_tokens' => 6000
+            ]);
+        }
+        
+        // Otherwise use regular generation
+        return $this->generateLessonContent($sectionTitle, $lessonNumber, $requirements);
+    }
+    
+    /**
+     * Stream content generation with callback
+     */
+    private function streamContent(string $prompt, string $contentType, callable $onChunk, array $options = []): string
+    {
+        $provider = $this->getProviderForContentType($contentType);
+        $model = $this->getModelForProvider($provider, $contentType);
+        
+        $payload = [
+            'model' => $model,
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt]
+            ],
+            'temperature' => $options['temperature'] ?? 0.7,
+            'max_tokens' => $options['max_tokens'] ?? 2000,
+            'stream' => true
+        ];
+        
+        // For now, return a placeholder as streaming requires special handling
+        // In production, this would use server-sent events or WebSockets
+        $this->logger->info('Streaming content generation requested', [
+            'content_type' => $contentType,
+            'model' => $model
+        ]);
+        
+        // Simulate streaming by calling the callback with chunks
+        $fullContent = $this->generateContent($prompt, $contentType, $options);
+        
+        if (!$fullContent['error']) {
+            $chunks = str_split($fullContent['content'], 100);
+            foreach ($chunks as $chunk) {
+                $onChunk($chunk);
+                usleep(50000); // 50ms delay to simulate streaming
+            }
+        }
+        
+        return $fullContent['error'] ? '' : $fullContent['content'];
+    }
+    
+    /**
      * Generate lesson content
      */
     public function generateLessonContent(string $sectionTitle, int $lessonNumber, array $requirements): string
@@ -232,8 +305,22 @@ class LLMService extends BaseService
         $lessonTitle = $requirements['lesson_title'] ?? "Lesson {$lessonNumber}";
         $difficulty = $requirements['difficulty_level'] ?? 'intermediate';
         $audience = $requirements['target_audience'] ?? 'general learners';
+        $courseContext = $requirements['course_context'] ?? '';
+        $prerequisites = $requirements['prerequisites'] ?? [];
+        $learningObjectives = $requirements['learning_objectives'] ?? [];
         
-        $prompt = "Generate comprehensive lesson content for:\n\nCourse: {$courseTitle}\nSection: {$sectionTitle}\nLesson {$lessonNumber}: {$lessonTitle}\nDifficulty: {$difficulty}\nAudience: {$audience}\n\nCreate engaging, educational content that includes:\n1. Learning objectives for this lesson\n2. Key concepts and explanations\n3. Practical examples or case studies\n4. Step-by-step instructions where applicable\n5. Summary of key takeaways\n\nMake the content engaging, clear, and appropriate for the difficulty level. Include practical applications and real-world examples.";
+        // Build a comprehensive prompt for educational content
+        $prompt = $this->buildLessonContentPrompt([
+            'course_title' => $courseTitle,
+            'section_title' => $sectionTitle,
+            'lesson_number' => $lessonNumber,
+            'lesson_title' => $lessonTitle,
+            'difficulty' => $difficulty,
+            'audience' => $audience,
+            'course_context' => $courseContext,
+            'prerequisites' => $prerequisites,
+            'learning_objectives' => $learningObjectives
+        ]);
         
         $response = $this->generateContent($prompt, 'lesson_content', [
             'temperature' => 0.7,
@@ -251,7 +338,20 @@ class LLMService extends BaseService
             throw new \Exception('Failed to generate lesson content: ' . $response['message']);
         }
         
-        return trim($response['content']);
+        // Process and format the content
+        $content = $this->formatLessonContent($response['content'], $requirements);
+        
+        // Log successful generation
+        $this->logger->info('Lesson content generated successfully', [
+            'section_title' => $sectionTitle,
+            'lesson_number' => $lessonNumber,
+            'lesson_title' => $lessonTitle,
+            'content_length' => strlen($content),
+            'model_used' => $response['model'] ?? 'unknown',
+            'tokens_used' => $response['usage']['total_tokens'] ?? 0
+        ]);
+        
+        return $content;
     }
     
     /**
@@ -319,6 +419,265 @@ class LLMService extends BaseService
         }
         
         return null;
+    }
+    
+    /**
+     * Build a comprehensive prompt for lesson content generation
+     */
+    private function buildLessonContentPrompt(array $params): string
+    {
+        $prompt = "You are an expert educational content creator. Generate comprehensive, engaging lesson content with the following specifications:\n\n";
+        
+        // Course context
+        $prompt .= "COURSE INFORMATION:\n";
+        $prompt .= "- Course Title: {$params['course_title']}\n";
+        $prompt .= "- Section: {$params['section_title']}\n";
+        $prompt .= "- Lesson {$params['lesson_number']}: {$params['lesson_title']}\n";
+        
+        if (!empty($params['course_context'])) {
+            $prompt .= "- Course Context: {$params['course_context']}\n";
+        }
+        
+        $prompt .= "\nTARGET AUDIENCE:\n";
+        $prompt .= "- Audience: {$params['audience']}\n";
+        $prompt .= "- Difficulty Level: {$params['difficulty']}\n";
+        
+        if (!empty($params['prerequisites'])) {
+            $prompt .= "- Prerequisites: " . implode(', ', $params['prerequisites']) . "\n";
+        }
+        
+        if (!empty($params['learning_objectives'])) {
+            $prompt .= "\nSPECIFIC LEARNING OBJECTIVES:\n";
+            foreach ($params['learning_objectives'] as $objective) {
+                $prompt .= "- {$objective}\n";
+            }
+        }
+        
+        $prompt .= "\nCONTENT REQUIREMENTS:\n";
+        $prompt .= "Create educational content (200-500 words) that includes:\n\n";
+        
+        $prompt .= "1. **Introduction** (2-3 sentences)\n";
+        $prompt .= "   - Hook the learner's attention\n";
+        $prompt .= "   - Explain why this lesson matters\n";
+        $prompt .= "   - Preview what they'll learn\n\n";
+        
+        $prompt .= "2. **Learning Objectives** (3-5 bullet points)\n";
+        $prompt .= "   - Clear, measurable outcomes\n";
+        $prompt .= "   - Use action verbs (understand, apply, create, analyze)\n\n";
+        
+        $prompt .= "3. **Core Content** (main body)\n";
+        $prompt .= "   - Break down complex concepts into digestible parts\n";
+        $prompt .= "   - Use clear headings and subheadings\n";
+        $prompt .= "   - Include relevant examples\n";
+        $prompt .= "   - Add practical applications\n\n";
+        
+        $prompt .= "4. **Examples & Applications**\n";
+        $prompt .= "   - Real-world scenarios\n";
+        $prompt .= "   - Industry-relevant examples\n";
+        $prompt .= "   - Step-by-step walkthroughs when applicable\n\n";
+        
+        $prompt .= "5. **Key Takeaways** (3-5 bullet points)\n";
+        $prompt .= "   - Summarize main concepts\n";
+        $prompt .= "   - Reinforce learning objectives\n\n";
+        
+        $prompt .= "6. **Practice Activity** (optional)\n";
+        $prompt .= "   - Simple exercise to apply the concepts\n";
+        $prompt .= "   - Self-check questions\n\n";
+        
+        $prompt .= "WRITING GUIDELINES:\n";
+        $prompt .= "- Use clear, conversational language appropriate for the {$params['difficulty']} level\n";
+        $prompt .= "- Include practical examples and analogies\n";
+        $prompt .= "- Maintain an encouraging, supportive tone\n";
+        $prompt .= "- Format with proper Markdown (headings, lists, emphasis)\n";
+        $prompt .= "- Ensure content flows logically from simple to complex\n";
+        $prompt .= "- Make it engaging and interactive where possible\n";
+        
+        return $prompt;
+    }
+    
+    /**
+     * Generate quiz questions for a lesson
+     */
+    public function generateLessonQuiz(string $lessonTitle, string $lessonContent, array $options = []): array
+    {
+        $numQuestions = $options['num_questions'] ?? 5;
+        $questionTypes = $options['question_types'] ?? ['multiple_choice', 'true_false'];
+        $difficulty = $options['difficulty'] ?? 'intermediate';
+        
+        $prompt = "Based on the following lesson content, generate {$numQuestions} quiz questions.\n\n";
+        $prompt .= "Lesson Title: {$lessonTitle}\n\n";
+        $prompt .= "Lesson Content:\n{$lessonContent}\n\n";
+        $prompt .= "Requirements:\n";
+        $prompt .= "- Question types: " . implode(', ', $questionTypes) . "\n";
+        $prompt .= "- Difficulty: {$difficulty}\n";
+        $prompt .= "- Test understanding of key concepts\n";
+        $prompt .= "- Include explanations for correct answers\n\n";
+        $prompt .= "Format as JSON array with structure:\n";
+        $prompt .= '{"questions": [{"type": "multiple_choice", "question": "...", "options": ["A", "B", "C", "D"], "correct": 0, "explanation": "..."}]}';
+        
+        $response = $this->generateContent($prompt, 'quiz_questions', [
+            'temperature' => 0.3,
+            'max_tokens' => 2000
+        ]);
+        
+        if ($response['error']) {
+            $this->logger->error('Failed to generate quiz questions', [
+                'error' => $response['message'],
+                'lesson_title' => $lessonTitle
+            ]);
+            return [];
+        }
+        
+        $quiz = json_decode($response['content'], true);
+        return $quiz['questions'] ?? [];
+    }
+    
+    /**
+     * Generate practice exercises for a lesson
+     */
+    public function generatePracticeExercises(string $lessonTitle, array $learningObjectives, array $options = []): string
+    {
+        $numExercises = $options['num_exercises'] ?? 3;
+        $exerciseType = $options['exercise_type'] ?? 'hands-on';
+        $difficulty = $options['difficulty'] ?? 'intermediate';
+        
+        $prompt = "Create {$numExercises} practice exercises for the lesson: {$lessonTitle}\n\n";
+        $prompt .= "Learning Objectives:\n";
+        foreach ($learningObjectives as $objective) {
+            $prompt .= "- {$objective}\n";
+        }
+        $prompt .= "\nExercise Requirements:\n";
+        $prompt .= "- Type: {$exerciseType} exercises\n";
+        $prompt .= "- Difficulty: {$difficulty}\n";
+        $prompt .= "- Include clear instructions\n";
+        $prompt .= "- Provide example solutions or hints\n";
+        $prompt .= "- Make exercises progressively challenging\n";
+        $prompt .= "- Include real-world applications where possible\n";
+        
+        $response = $this->generateContent($prompt, 'interactive_exercises', [
+            'temperature' => 0.7,
+            'max_tokens' => 3000
+        ]);
+        
+        if ($response['error']) {
+            $this->logger->error('Failed to generate practice exercises', [
+                'error' => $response['message'],
+                'lesson_title' => $lessonTitle
+            ]);
+            throw new \Exception('Failed to generate practice exercises: ' . $response['message']);
+        }
+        
+        return $this->formatExercises($response['content']);
+    }
+    
+    /**
+     * Generate a lesson summary
+     */
+    public function generateLessonSummary(string $lessonContent, array $options = []): string
+    {
+        $summaryLength = $options['length'] ?? 'medium'; // short, medium, long
+        $includeKeyPoints = $options['include_key_points'] ?? true;
+        $includeNextSteps = $options['include_next_steps'] ?? true;
+        
+        $prompt = "Create a {$summaryLength} summary of the following lesson content:\n\n";
+        $prompt .= $lessonContent . "\n\n";
+        $prompt .= "Summary requirements:\n";
+        
+        if ($includeKeyPoints) {
+            $prompt .= "- Include 3-5 key takeaways as bullet points\n";
+        }
+        
+        if ($includeNextSteps) {
+            $prompt .= "- Suggest next steps for learners\n";
+        }
+        
+        $prompt .= "- Use clear, concise language\n";
+        $prompt .= "- Reinforce main concepts\n";
+        $prompt .= "- Maintain an encouraging tone\n";
+        
+        $response = $this->generateContent($prompt, 'content_analysis', [
+            'temperature' => 0.5,
+            'max_tokens' => 1000
+        ]);
+        
+        if ($response['error']) {
+            $this->logger->error('Failed to generate lesson summary', [
+                'error' => $response['message']
+            ]);
+            return "Unable to generate summary.";
+        }
+        
+        return trim($response['content']);
+    }
+    
+    /**
+     * Format practice exercises for display
+     */
+    private function formatExercises(string $content): string
+    {
+        // Ensure exercises are properly formatted with markdown
+        $content = trim($content);
+        
+        // Add exercise header if not present
+        if (!str_starts_with($content, '#')) {
+            $content = "## Practice Exercises\n\n" . $content;
+        }
+        
+        // Ensure proper numbering for exercises
+        $content = preg_replace('/Exercise (\d+):/i', '### Exercise $1:', $content);
+        
+        return $content;
+    }
+    
+    /**
+     * Format lesson content for proper display
+     */
+    private function formatLessonContent(string $content, array $requirements): string
+    {
+        // Ensure proper markdown formatting
+        $content = trim($content);
+        
+        // Add lesson metadata header if not present
+        if (!str_starts_with($content, '#')) {
+            $lessonTitle = $requirements['lesson_title'] ?? 'Lesson';
+            $content = "# {$lessonTitle}\n\n" . $content;
+        }
+        
+        // Ensure proper spacing between sections
+        $content = preg_replace('/\n{3,}/', "\n\n", $content);
+        
+        // Add navigation hints if this is part of a course
+        if (!empty($requirements['add_navigation'])) {
+            $navigation = "\n\n---\n\n";
+            
+            if (!empty($requirements['previous_lesson'])) {
+                $navigation .= "← Previous: {$requirements['previous_lesson']} | ";
+            }
+            
+            $navigation .= "**Current: {$requirements['lesson_title']}**";
+            
+            if (!empty($requirements['next_lesson'])) {
+                $navigation .= " | Next: {$requirements['next_lesson']} →";
+            }
+            
+            $content .= $navigation;
+        }
+        
+        // Validate content length
+        $wordCount = str_word_count(strip_tags($content));
+        if ($wordCount < 200) {
+            $this->logger->warning('Generated lesson content is too short', [
+                'word_count' => $wordCount,
+                'lesson_title' => $requirements['lesson_title'] ?? 'Unknown'
+            ]);
+        } elseif ($wordCount > 500) {
+            $this->logger->info('Generated lesson content exceeds target length', [
+                'word_count' => $wordCount,
+                'lesson_title' => $requirements['lesson_title'] ?? 'Unknown'
+            ]);
+        }
+        
+        return $content;
     }
     
 }

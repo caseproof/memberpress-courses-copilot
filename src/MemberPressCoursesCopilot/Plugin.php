@@ -73,7 +73,7 @@ final class Plugin
     {
         // Hook into WordPress initialization
         add_action('init', [$this, 'initializeComponents']);
-        add_action('admin_init', [$this, 'initializeAdmin']);
+        add_action('admin_menu', [$this, 'initializeAdmin']); // Changed from admin_init to admin_menu
         add_action('wp_enqueue_scripts', [$this, 'enqueueScripts']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminScripts']);
         
@@ -94,6 +94,10 @@ final class Plugin
         // Initialize LLM service as global
         global $mpcc_llm_service;
         $mpcc_llm_service = new \MemberPressCoursesCopilot\Services\LLMService();
+        
+        // Initialize the Simple AJAX controller for handling all AJAX requests
+        $simple_ajax_controller = new \MemberPressCoursesCopilot\Controllers\SimpleAjaxController();
+        $simple_ajax_controller->init();
         
         // Initialize the course integration service for MemberPress Courses UI integration
         $course_integration_service = new \MemberPressCoursesCopilot\Services\CourseIntegrationService();
@@ -133,12 +137,17 @@ final class Plugin
         $admin_menu = new \MemberPressCoursesCopilot\Admin\AdminMenu($settings_page);
         $admin_menu->init();
         
+        // Initialize standalone Course Editor page
+        $course_editor_page = new \MemberPressCoursesCopilot\Admin\CourseEditorPage();
+        $course_editor_page->init();
+        $course_editor_page->addMenuPage(); // Register the menu page
+        
         /**
          * Fires after admin components are initialized
          *
          * @since 1.0.0
          */
-        do_action('memberpress_courses_copilot_admin_initialized', $admin_menu, $settings_page);
+        do_action('memberpress_courses_copilot_admin_initialized', $admin_menu, $settings_page, $course_editor_page);
     }
 
     /**

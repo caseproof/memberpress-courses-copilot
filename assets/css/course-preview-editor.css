@@ -1,0 +1,294 @@
+/**
+ * MemberPress Courses Copilot - Course Preview Editor Styles
+ * Styles for inline editing capabilities in the course preview interface
+ *
+ * @package MemberPressCoursesCopilot
+ * @version 1.0.0
+ */
+
+/* Lesson Item - Clickable State */
+.mpcc-lesson-item,
+li.mpcc-lesson-item {
+    position: relative;
+    transition: all 0.3s ease;
+    cursor: pointer !important;
+}
+
+.mpcc-lesson-item:hover,
+li.mpcc-lesson-item:hover {
+    background-color: rgba(26, 115, 232, 0.1) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mpcc-lesson-item:hover::after {
+    content: "Click to edit";
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    font-size: 11px;
+    color: #1a73e8;
+    background: #fff;
+    padding: 2px 8px;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+}
+
+/* Lesson Content - Editable State */
+.mpcc-lesson-content {
+    position: relative;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.mpcc-lesson-content:hover:not(.editing) {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mpcc-lesson-content:hover:not(.editing)::after {
+    content: "Click to edit";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 12px;
+    color: #666;
+    background: #fff;
+    padding: 2px 8px;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mpcc-lesson-content.editing {
+    background-color: #f0f8ff;
+    border: 2px solid #0073aa;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+/* Inline Editor */
+.mpcc-inline-editor {
+    margin-top: 15px;
+}
+
+.mpcc-editor-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.mpcc-generate-ai-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.mpcc-generate-ai-content .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.mpcc-editor-status {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #666;
+}
+
+.mpcc-save-indicator {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.mpcc-save-indicator .spinner {
+    float: none;
+    margin: 0;
+}
+
+.mpcc-save-indicator .dashicons {
+    color: #46b450;
+}
+
+/* Content Editor */
+.mpcc-editor-content {
+    margin-bottom: 15px;
+}
+
+.mpcc-content-editor {
+    width: 100%;
+    min-height: 200px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+}
+
+.mpcc-content-editor:focus {
+    outline: none;
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+}
+
+/* Editor Actions */
+.mpcc-editor-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+}
+
+.mpcc-editor-actions .button {
+    margin: 0;
+}
+
+/* Notifications */
+.mpcc-notification {
+    position: fixed;
+    top: 50px;
+    right: 20px;
+    max-width: 400px;
+    padding: 15px 20px;
+    background: #fff;
+    border-left: 4px solid #0073aa;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    animation: slideIn 0.3s ease-out;
+}
+
+.mpcc-notification-error {
+    border-left-color: #dc3232;
+}
+
+.mpcc-notification-success {
+    border-left-color: #46b450;
+}
+
+.mpcc-notification p {
+    margin: 0;
+    font-size: 14px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Loading States */
+.mpcc-content-loading {
+    position: relative;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.mpcc-content-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Hover Controls */
+.mpcc-lesson-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: none;
+    gap: 5px;
+}
+
+.mpcc-lesson-content:hover .mpcc-lesson-controls {
+    display: flex;
+}
+
+.mpcc-lesson-controls button {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.mpcc-lesson-controls button:hover {
+    background: #f1f1f1;
+    border-color: #999;
+}
+
+.mpcc-lesson-controls .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .mpcc-editor-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .mpcc-notification {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .mpcc-lesson-content:hover:not(.editing)::after {
+        display: none;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .mpcc-lesson-content:hover:not(.editing) {
+        background-color: #2a2a2a;
+    }
+    
+    .mpcc-lesson-content.editing {
+        background-color: #1a3a52;
+        border-color: #4a90e2;
+    }
+    
+    .mpcc-content-editor {
+        background-color: #2a2a2a;
+        color: #fff;
+        border-color: #444;
+    }
+    
+    .mpcc-content-editor:focus {
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 1px #4a90e2;
+    }
+    
+    .mpcc-notification {
+        background-color: #2a2a2a;
+        color: #fff;
+    }
+}

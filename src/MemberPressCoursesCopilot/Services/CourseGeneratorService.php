@@ -162,31 +162,56 @@ class CourseGeneratorService
      */
     private function createSection(array $sectionData, int $courseId, int $order): int
     {
-        // Sections in MemberPress Courses are stored in a custom table, not as posts
-        $section = new Section();
-        $section->title = $sectionData['title'] ?? 'Section ' . $order;
-        $section->description = $sectionData['description'] ?? '';
-        $section->course_id = $courseId;
-        $section->section_order = $order;
-        $section->created_at = current_time('mysql');
-        $section->uuid = wp_generate_uuid4(); // Generate a UUID for the section
-        
-        $this->logger->debug('Creating section object', [
-            'title' => $section->title,
-            'description' => $section->description,
-            'course_id' => $section->course_id,
-            'section_order' => $section->section_order,
-            'uuid' => $section->uuid
+        // Log available Section classes for debugging
+        $this->logger->debug('Checking for Section class availability', [
+            'memberpress\courses\models\Section' => class_exists('\memberpress\courses\models\Section'),
+            'Section (imported)' => class_exists('Section'),
+            'defined_classes_count' => count(get_declared_classes())
         ]);
         
-        $sectionId = $section->store();
-        
-        if (is_wp_error($sectionId)) {
-            $this->logger->error('Failed to create section: ' . $sectionId->get_error_message());
+        // Sections in MemberPress Courses are stored in a custom table, not as posts
+        try {
+            $section = new Section();
+            $section->title = $sectionData['title'] ?? 'Section ' . $order;
+            $section->description = $sectionData['description'] ?? '';
+            $section->course_id = $courseId;
+            $section->section_order = $order;
+            $section->created_at = current_time('mysql');
+            $section->uuid = wp_generate_uuid4(); // Generate a UUID for the section
+            
+            $this->logger->debug('Creating section object', [
+                'title' => $section->title,
+                'description' => $section->description,
+                'course_id' => $section->course_id,
+                'section_order' => $section->section_order,
+                'uuid' => $section->uuid
+            ]);
+            
+            $sectionId = $section->store();
+            
+            $this->logger->info('Section store result', [
+                'section_id' => $sectionId,
+                'is_wp_error' => is_wp_error($sectionId),
+                'section_data' => (array) $section
+            ]);
+            
+            if (is_wp_error($sectionId)) {
+                $this->logger->error('Failed to create section: ' . $sectionId->get_error_message());
+                return 0;
+            }
+            
+            if (!$sectionId) {
+                $this->logger->error('Section store returned empty ID');
+                return 0;
+            }
+            
+            return $sectionId;
+        } catch (\Exception $e) {
+            $this->logger->error('Exception creating section: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return 0;
         }
-        
-        return $sectionId;
     }
     
     /**
@@ -199,8 +224,6 @@ class CourseGeneratorService
             'post_content' => $lessonData['content'] ?? '',
             'post_status' => 'publish',
             'post_type' => 'mpcs-lesson',
-            'post_parent' => $courseId, // Parent should be the course, not the section
-            'menu_order' => $order,
             'post_author' => get_current_user_id()
         ];
         
@@ -211,13 +234,15 @@ class CourseGeneratorService
             return 0;
         }
         
-        // Initialize Lesson model
-        $lesson = new Lesson($lessonId);
-        $lesson->section_id = $sectionId; // Section ID is stored as metadata
-        $lesson->lesson_order = $order;
+        // Set the section ID and lesson order as post meta
+        update_post_meta($lessonId, '_mpcs_lesson_section_id', $sectionId);
+        update_post_meta($lessonId, '_mpcs_lesson_lesson_order', $order);
         
-        // Store the lesson to save metadata
-        $lesson->store();
+        $this->logger->info('Lesson created and metadata set', [
+            'lesson_id' => $lessonId,
+            'section_id' => $sectionId,
+            'lesson_order' => $order
+        ]);
         
         return $lessonId;
     }

@@ -103,6 +103,12 @@ function memberpress_courses_copilot_init(): void {
 }
 add_action( 'plugins_loaded', 'memberpress_courses_copilot_init', 20 );
 
+// Debug helper (remove in production)
+if (defined('WP_DEBUG') && WP_DEBUG && file_exists(__DIR__ . '/debug-test.php')) {
+    require_once __DIR__ . '/debug-test.php';
+}
+
+
 /**
  * Plugin activation hook
  *

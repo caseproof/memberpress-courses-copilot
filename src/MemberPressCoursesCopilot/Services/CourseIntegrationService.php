@@ -104,79 +104,6 @@ class CourseIntegrationService extends BaseService
         
         ?>
         <script type="text/javascript">
-        // Define global function that uses jQuery properly
-        window.mpccOpenAIInterface = function() {
-            jQuery(document).ready(function($) {
-                // Create modal for AI course creation with dual pane layout
-                var modalHtml = '<div id="mpcc-ai-modal" style="display: none; position: fixed; z-index: 100000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">' +
-                    '<div style="background-color: #fefefe; margin: 2% auto; padding: 0; border: none; border-radius: 8px; width: 95%; max-width: 1600px; height: 92%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">' +
-                        '<div style="display: flex; flex-direction: column; height: 100%;">' +
-                            '<div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #ddd; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px 8px 0 0;">' +
-                                '<h2 style="margin: 0; color: white;"><?php echo esc_js(__('Create Course with AI Assistant', 'memberpress-courses-copilot')); ?></h2>' +
-                                '<span id="mpcc-close-modal" style="cursor: pointer; font-size: 24px; font-weight: bold; color: white;">&times;</span>' +
-                            '</div>' +
-                            '<div style="display: flex; flex: 1; height: calc(100% - 71px);">' +
-                                '<div id="mpcc-ai-interface-container" style="flex: 1; min-height: 0; border-right: 1px solid #ddd; display: flex; flex-direction: column;">' +
-                                    '<div style="display: flex; justify-content: center; align-items: center; flex: 1; color: #666;">' +
-                                        '<div style="text-align: center;">' +
-                                            '<div class="spinner is-active" style="float: none; margin: 0 auto 20px;"></div>' +
-                                            '<p><?php echo esc_js(__('Loading AI Assistant...', 'memberpress-courses-copilot')); ?></p>' +
-                                        '</div>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<div id="mpcc-preview-pane" style="flex: 1; min-height: 0; background: #f8f9fa; display: none; flex-direction: column;">' +
-                                    '<div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">' +
-                                        '<div style="padding: 20px; flex: 1;">' +
-                                            '<h3 style="margin: 0 0 20px 0; color: #333;"><?php echo esc_js(__('Course Preview', 'memberpress-courses-copilot')); ?></h3>' +
-                                            '<div id="mpcc-preview-content">' +
-                                                '<p style="color: #666; text-align: center; padding: 40px;"><?php echo esc_js(__('Course preview will appear here as you build it...', 'memberpress-courses-copilot')); ?></p>' +
-                                            '</div>' +
-                                        '</div>' +
-                                        '<div style="padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; justify-content: flex-end; background: #f8f9fa;">' +
-                                            '<button id="mpcc-save-draft" class="button" disabled><?php echo esc_js(__('Save Draft', 'memberpress-courses-copilot')); ?></button>' +
-                                            '<button id="mpcc-create-course" class="button button-primary" disabled><?php echo esc_js(__('Create Course', 'memberpress-courses-copilot')); ?></button>' +
-                                        '</div>' +
-                                    '</div>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-                
-                $('body').append(modalHtml);
-                $('#mpcc-ai-modal').show();
-                
-                // Close modal events
-                $('#mpcc-close-modal, #mpcc-ai-modal').on('click', function(e) {
-                    if (e.target === this) {
-                        $('#mpcc-ai-modal').remove();
-                    }
-                });
-                
-                // Load AI interface via AJAX
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: {
-                        action: 'mpcc_load_ai_interface',
-                        nonce: '<?php echo wp_create_nonce('mpcc_ai_interface'); ?>',
-                        context: 'course_creation'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            $('#mpcc-ai-interface-container').html(response.data.html);
-                            $('#mpcc-preview-pane').addClass('active').css('display', 'flex'); // Show the preview pane with flex display
-                        } else {
-                            $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
-                        }
-                    },
-                    error: function() {
-                        $('#mpcc-ai-interface-container').html('<div style="padding: 20px; text-align: center; color: #d63638;"><p><?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?></p></div>');
-                    }
-                });
-            });
-        };
-        
         jQuery(document).ready(function($) {
             // Add "Create with AI" button next to "Add New Course"
             var createWithAIButton = '<a href="#" id="mpcc-create-with-ai" class="page-title-action" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; text-shadow: none;">' + 
@@ -186,10 +113,11 @@ class CourseIntegrationService extends BaseService
             
             $('.wrap .wp-header-end').before(createWithAIButton);
             
-            // Handle click event
+            // Handle click event - redirect to standalone page
             $('#mpcc-create-with-ai').on('click', function(e) {
                 e.preventDefault();
-                window.mpccOpenAIInterface();
+                // Redirect to standalone AI Course Editor page
+                window.location.href = '<?php echo admin_url('admin.php?page=mpcc-course-editor&action=new'); ?>';
             });
         });
         </script>

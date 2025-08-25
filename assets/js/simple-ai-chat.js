@@ -212,6 +212,9 @@ jQuery(document).ready(function($) {
                     currentSessionId = response.data.session_id;
                     sessionStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
                     console.log('Created new conversation session:', currentSessionId);
+                    
+                    // Trigger event for other components
+                    $(document).trigger('mpcc:session-changed', { sessionId: currentSessionId });
                     showWelcomeMessage();
                 } else {
                     console.error('Failed to create conversation:', response.data);
@@ -252,6 +255,9 @@ jQuery(document).ready(function($) {
                     currentSessionId = response.data.session_id;
                     // Ensure session ID is stored for page refreshes
                     sessionStorage.setItem(SESSION_STORAGE_KEY, currentSessionId);
+                    
+                    // Trigger event for other components
+                    $(document).trigger('mpcc:session-changed', { sessionId: currentSessionId });
                     
                     console.log('Response data:', response.data);
                     console.log('Conversation history from server:', response.data.conversation_history);
@@ -295,6 +301,10 @@ jQuery(document).ready(function($) {
                             window.mpccCurrentCourse = window.mpccConversationState.collected_data.course_structure;
                             foundCourseData = true;
                             
+                            // Enable buttons since we have course data
+                            jQuery('#mpcc-create-course').prop('disabled', false);
+                            jQuery('#mpcc-save-draft').prop('disabled', false);
+                            
                             // Try to update preview, with retry if container not ready
                             function tryUpdatePreview(retries = 0) {
                                 if (jQuery('#mpcc-preview-content').length > 0) {
@@ -317,6 +327,10 @@ jQuery(document).ready(function($) {
                             console.log('Found course data (old format), updating preview:', window.mpccConversationState.collected_data);
                             window.mpccCurrentCourse = window.mpccConversationState.collected_data;
                             foundCourseData = true;
+                            
+                            // Enable buttons since we have course data
+                            jQuery('#mpcc-create-course').prop('disabled', false);
+                            jQuery('#mpcc-save-draft').prop('disabled', false);
                             
                             // Try to update preview, with retry if container not ready
                             function tryUpdatePreview(retries = 0) {
@@ -371,6 +385,9 @@ jQuery(document).ready(function($) {
             }
         });
     }
+    
+    // Make loadConversation available globally for click handlers
+    window.mpccLoadConversation = loadConversation;
     
     /**
      * Save conversation to database
@@ -791,8 +808,15 @@ jQuery(document).ready(function($) {
                         }
                         const sessionId = $(this).data('session-id');
                         sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
-                        loadConversation(sessionId);
-                        $('#mpcc-session-list').hide();
+                        // Use the global function or the local one if available
+                        if (typeof loadConversation === 'function') {
+                            loadConversation(sessionId);
+                        } else if (typeof window.mpccLoadConversation === 'function') {
+                            window.mpccLoadConversation(sessionId);
+                        } else {
+                            console.error('loadConversation function not found');
+                        }
+                        $('#mpcc-modal-overlay').removeClass('mpcc-modal-open');
                     });
                 } else {
                     console.log('No sessions found or invalid response structure');
@@ -1052,6 +1076,10 @@ jQuery(document).ready(function($) {
                     
                     // Update course preview if data available
                     if (response.data.course_data) {
+                        console.log('Received course_data from server:', response.data.course_data);
+                        console.log('Course data has title:', response.data.course_data.title);
+                        console.log('Course data keys:', Object.keys(response.data.course_data));
+                        
                         window.mpccCurrentCourse = response.data.course_data;
                         
                         // Store course data in conversation state for persistence
@@ -1106,9 +1134,33 @@ jQuery(document).ready(function($) {
     $(document).off('click.mpcc-session').on('click.mpcc-session', '#mpcc-session-manager-btn', function(e) {
         e.preventDefault();
         console.log('Session manager clicked');
-        $('#mpcc-session-list').toggle();
-        if ($('#mpcc-session-list').is(':visible') && window.showSessionManager) {
+        
+        // Open the modal
+        $('#mpcc-modal-overlay').addClass('mpcc-modal-open');
+        
+        // Load the session list
+        if (window.showSessionManager) {
             window.showSessionManager();
+        }
+    });
+    
+    // Close modal when clicking the close button
+    $(document).on('click', '.mpcc-modal-close', function(e) {
+        e.preventDefault();
+        $('#mpcc-modal-overlay').removeClass('mpcc-modal-open');
+    });
+    
+    // Close modal when clicking outside the modal container
+    $(document).on('click', '#mpcc-modal-overlay', function(e) {
+        if (e.target === this) {
+            $(this).removeClass('mpcc-modal-open');
+        }
+    });
+    
+    // Close modal on ESC key
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape' && $('#mpcc-modal-overlay').hasClass('mpcc-modal-open')) {
+            $('#mpcc-modal-overlay').removeClass('mpcc-modal-open');
         }
     });
     
@@ -1187,6 +1239,9 @@ window.mpccHandleAction = window.mpccHandleAction || function(action) {
 
 window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
     console.log('Creating course:', courseData);
+    console.log('Course data type:', typeof courseData);
+    console.log('Course data keys:', courseData ? Object.keys(courseData) : 'null/undefined');
+    console.log('Course title:', courseData ? courseData.title : 'no title');
     
     // Prevent multiple submissions
     const $createButton = jQuery('#mpcc-create-course');
@@ -1211,7 +1266,7 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
         data: {
             action: 'mpcc_create_course_with_ai',
             nonce: jQuery('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
-            course_data: courseData,
+            course_data: JSON.stringify(courseData),
             session_id: sessionStorage.getItem(MPCC_SESSION_STORAGE_KEY) || ''
         },
         success: function(response) {
@@ -1221,6 +1276,32 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
                 // Show success message
                 if (typeof window.showNotification === 'function') {
                     window.showNotification('Course created successfully! Redirecting...', 'success');
+                }
+                
+                // Update session title if we have it
+                if (courseData && courseData.title) {
+                    const sessionId = sessionStorage.getItem(MPCC_SESSION_STORAGE_KEY);
+                    if (sessionId) {
+                        // Update via AJAX to ensure it persists
+                        jQuery.ajax({
+                            url: window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php'),
+                            type: 'POST',
+                            data: {
+                                action: 'mpcc_update_session_title',
+                                session_id: sessionId,
+                                title: 'Course: ' + courseData.title,
+                                nonce: jQuery('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : '')
+                            },
+                            success: function() {
+                                console.log('Session title updated successfully');
+                                
+                                // If the session modal is open, refresh it
+                                if (jQuery('#mpcc-modal-overlay').hasClass('mpcc-modal-open')) {
+                                    window.showSessionManager();
+                                }
+                            }
+                        });
+                    }
                 }
                 
                 // Redirect to the edit page with a small delay
@@ -1306,9 +1387,13 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
             if (section.lessons && section.lessons.length > 0) {
                 previewHtml += '<ul style="margin: 10px 0 0 0; padding-left: 20px;">';
                 section.lessons.forEach(function(lesson, lessonIndex) {
-                    previewHtml += '<li style="margin-bottom: 8px; color: #333;">';
+                    const sectionId = 'section_' + (sectionIndex + 1);
+                    const lessonId = 'lesson_' + (sectionIndex + 1) + '_' + (lessonIndex + 1);
+                    const lessonTitle = jQuery('<div>').text(lesson.title).html();
+                    const sectionTitle = jQuery('<div>').text(section.title).html();
+                    previewHtml += '<li class="mpcc-lesson-item" data-section-id="' + sectionId + '" data-lesson-id="' + lessonId + '" data-lesson-title="' + lessonTitle + '" data-section-title="' + sectionTitle + '" style="margin-bottom: 8px; color: #333; cursor: pointer; padding: 5px; border-radius: 3px; transition: background-color 0.2s;">';
                     previewHtml += '<strong>Lesson ' + (sectionIndex + 1) + '.' + (lessonIndex + 1) + ':</strong> ';
-                    previewHtml += jQuery('<div>').text(lesson.title).html();
+                    previewHtml += lessonTitle;
                     if (lesson.duration) {
                         previewHtml += ' <span style="color: #666; font-size: 12px;">(' + lesson.duration + ' min)</span>';
                     }
@@ -1344,6 +1429,19 @@ window.mpccUpdatePreview = window.mpccUpdatePreview || function(courseData) {
     
     // Update the preview content
     $previewContent.html(previewHtml);
+    
+    // Reinitialize the course preview editor if it exists
+    if (window.mpccPreviewEditor) {
+        console.log('Reinitializing preview editor after content update...');
+        // Re-bind events for new content
+        window.mpccPreviewEditor.bindEvents();
+        // Reload drafts for the new content
+        window.mpccPreviewEditor.loadDrafts();
+    } else if (window.CoursePreviewEditor) {
+        // Initialize editor if class exists but instance doesn't
+        console.log('Initializing preview editor for first time...');
+        window.mpccPreviewEditor = new window.CoursePreviewEditor();
+    }
     
     // Ensure the preview pane is visible
     jQuery('#mpcc-preview-pane').show();

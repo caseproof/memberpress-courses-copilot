@@ -1,0 +1,904 @@
+/**
+ * MemberPress Courses Copilot - Course Editor Page Styles
+ * Magnetic UI Design
+ */
+
+/* Layout */
+.mpcc-course-editor-wrap {
+    max-width: 100%;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 0;
+    position: relative;
+}
+
+.mpcc-editor-container {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.mpcc-editor-layout {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 80px);
+}
+
+/* Sidebar (AI Chat) */
+.mpcc-editor-sidebar {
+    width: 440px;
+    flex-shrink: 0;
+    background: #f8f9fa;
+    border-right: 1px solid #e1e4e8;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main Content Area */
+.mpcc-editor-main {
+    flex: 1;
+    min-width: 0;
+    background: #fff;
+}
+
+/* Header */
+.mpcc-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: none;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.mpcc-header-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mpcc-header-title .dashicons {
+    color: #ffffff;
+    font-size: 28px;
+}
+
+.mpcc-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.mpcc-status-text {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.mpcc-status-dot {
+    width: 8px;
+    height: 8px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.mpcc-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mpcc-header-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+}
+
+.mpcc-header-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.mpcc-header-button .dashicons {
+    font-size: 18px;
+}
+
+.mpcc-close-button {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    text-decoration: none;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+}
+
+.mpcc-close-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+/* Panels */
+.mpcc-editor-panel {
+    padding: 25px;
+}
+
+.mpcc-editor-panel h2,
+.mpcc-editor-panel h3 {
+    margin: 0 0 20px 0;
+    padding: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+/* Chat Interface */
+.mpcc-chat-header {
+    padding: 20px 25px;
+    background: #fff;
+    border-bottom: 1px solid #e1e4e8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mpcc-chat-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.mpcc-quick-starters {
+    display: flex;
+    gap: 8px;
+}
+
+.mpcc-quick-starter {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dcdcde;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mpcc-quick-starter:hover {
+    background: #f0f0f1;
+    border-color: #667eea;
+}
+
+.mpcc-quick-starter .dashicons {
+    color: #646970;
+    font-size: 20px;
+}
+
+.mpcc-chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.mpcc-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #fff;
+    min-height: 0;
+}
+
+.mpcc-chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.mpcc-chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.mpcc-chat-messages::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.mpcc-chat-message {
+    margin-bottom: 20px;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mpcc-chat-message.user {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mpcc-chat-message.user .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 18px 18px 4px 18px;
+    max-width: 80%;
+    box-shadow: 0 2px 5px rgba(102, 126, 234, 0.3);
+}
+
+.mpcc-chat-message.assistant .message-content {
+    background: #f0f4f8;
+    color: #1d2327;
+    padding: 12px 18px;
+    border-radius: 18px 18px 18px 4px;
+    max-width: 80%;
+}
+
+.mpcc-chat-message .message-role {
+    display: none;
+}
+
+.mpcc-chat-input-wrapper {
+    padding: 20px;
+    background: #fff;
+    border-top: 1px solid #e1e4e8;
+}
+
+.mpcc-chat-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e1e4e8;
+    border-radius: 8px;
+    resize: none;
+    min-height: 50px;
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.mpcc-chat-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+#mpcc-send-message {
+    margin-top: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#mpcc-send-message:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Session Panel */
+.mpcc-session-panel {
+    font-size: 14px;
+}
+
+.mpcc-session-id {
+    margin: 10px 0;
+    padding: 10px;
+    background: #f0f0f1;
+    border-radius: 3px;
+}
+
+.mpcc-session-id code {
+    font-size: 11px;
+    word-break: break-all;
+}
+
+.mpcc-session-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Course Structure */
+.mpcc-course-structure {
+    padding: 25px;
+    overflow-y: auto;
+    max-height: calc(100vh - 250px);
+    min-height: 400px;
+}
+
+.mpcc-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #646970;
+}
+
+.mpcc-empty-icon {
+    margin-bottom: 20px;
+}
+
+.mpcc-empty-icon .dashicons {
+    font-size: 64px;
+    color: #dcdcde;
+}
+
+.mpcc-empty-state h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1d2327;
+    margin: 0 0 10px 0;
+}
+
+.mpcc-empty-state p {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+}
+
+.mpcc-empty-suggestion {
+    font-style: italic;
+    color: #8c8f94;
+}
+
+/* Course Preview Header */
+.mpcc-preview-header {
+    padding: 25px;
+    border-bottom: 1px solid #e1e4e8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mpcc-preview-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.mpcc-preview-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.mpcc-preview-actions button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#mpcc-preview-course {
+    background: #f0f0f1;
+    border: 1px solid #dcdcde;
+    color: #1d2327;
+}
+
+#mpcc-preview-course:hover {
+    background: #e0e0e0;
+}
+
+#mpcc-create-course {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+}
+
+#mpcc-create-course:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Course Sections */
+.mpcc-section {
+    margin-bottom: 24px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.mpcc-section:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.mpcc-section-header {
+    padding: 18px 20px;
+    background: linear-gradient(to right, #f8f9fa, #fff);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+}
+
+.mpcc-section-title {
+    font-weight: 600;
+    font-size: 16px;
+    margin: 0;
+    color: #1d2327;
+}
+
+.mpcc-section-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.mpcc-lessons {
+    padding: 16px;
+    background: #fafbfc;
+}
+
+.mpcc-lesson-item {
+    background: #fff;
+    padding: 16px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.mpcc-lesson-item:last-child {
+    margin-bottom: 0;
+}
+
+.mpcc-lesson-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.mpcc-lesson-item.editing {
+    background: linear-gradient(135deg, #f0f7ff 0%, #e7f5ff 100%);
+    box-shadow: 0 0 0 2px #667eea;
+}
+
+.mpcc-lesson-item.has-draft {
+    position: relative;
+}
+
+.mpcc-lesson-item.has-draft::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #00a32a;
+    border-radius: 8px 0 0 8px;
+}
+
+.mpcc-lesson-info {
+    flex: 1;
+}
+
+.mpcc-lesson-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.mpcc-lesson-meta {
+    font-size: 12px;
+    color: #646970;
+}
+
+/* Lesson Editor */
+.mpcc-lesson-editor {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    bottom: 20px;
+    width: 600px;
+    max-width: calc(100% - 500px);
+    max-height: calc(100vh - 120px);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    display: none;
+    padding: 25px;
+    overflow-y: auto;
+}
+
+.mpcc-lesson-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #dcdcde;
+}
+
+.mpcc-lesson-header h3 {
+    margin: 0;
+}
+
+.mpcc-lesson-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+#mpcc-generate-lesson-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#mpcc-generate-lesson-content:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.mpcc-save-indicator {
+    font-size: 14px;
+    color: #646970;
+}
+
+.mpcc-save-indicator.saving {
+    color: #2271b1;
+}
+
+.mpcc-save-indicator.saved {
+    color: #00a32a;
+}
+
+.mpcc-save-indicator.error {
+    color: #d63638;
+}
+
+.mpcc-lesson-textarea {
+    width: 100%;
+    min-height: 400px;
+    max-height: 600px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    border: 2px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 12px 16px;
+    transition: border-color 0.2s;
+    overflow-y: auto;
+    resize: vertical;
+}
+
+.mpcc-lesson-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.mpcc-lesson-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+/* Buttons */
+.button .dashicons {
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+.button-link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #2271b1;
+    text-decoration: none;
+    padding: 5px;
+}
+
+.button-link:hover {
+    color: #135e96;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.typing-indicator span {
+    width: 8px;
+    height: 8px;
+    background: #646970;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        opacity: 0.2;
+        transform: scale(0.8);
+    }
+    30% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Loading Spinner */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Session History Modal */
+.mpcc-sessions-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mpcc-sessions-modal-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+.mpcc-sessions-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.mpcc-sessions-modal-overlay.active .mpcc-sessions-modal {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.mpcc-sessions-modal-header {
+    padding: 24px;
+    border-bottom: 1px solid #e1e4e8;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mpcc-sessions-modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.mpcc-sessions-modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.mpcc-sessions-modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.mpcc-sessions-modal-close .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+}
+
+.mpcc-sessions-list {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(80vh - 100px);
+}
+
+.mpcc-session-item {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e1e4e8;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.mpcc-session-item:hover {
+    background: #f0f7ff;
+    padding-left: 30px;
+}
+
+.mpcc-session-item:last-child {
+    border-bottom: none;
+}
+
+.mpcc-session-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1d2327;
+    font-size: 16px;
+}
+
+.mpcc-session-meta {
+    font-size: 14px;
+    color: #646970;
+}
+
+.mpcc-sessions-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: #646970;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+    .mpcc-sessions-modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        top: 0;
+        left: 0;
+        transform: none;
+        height: 100vh;
+    }
+    
+    .mpcc-sessions-modal-overlay.active .mpcc-sessions-modal {
+        transform: none;
+    }
+    
+    .mpcc-sessions-modal-header {
+        border-radius: 0;
+    }
+    
+    .mpcc-sessions-list {
+        max-height: calc(100vh - 80px);
+    }
+}
+
+/* Quick Starter Suggestions */
+.mpcc-quick-starter-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-top: 1px solid #e1e4e8;
+    justify-content: center;
+}
+
+.mpcc-quick-starter-btn {
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 20px;
+    color: #1d2327;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.mpcc-quick-starter-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border-color: transparent;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.mpcc-quick-starter-suggestions.hidden {
+    display: none;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .mpcc-editor-sidebar {
+        width: 350px;
+    }
+    
+    .mpcc-sessions-dropdown {
+        right: 20px;
+        width: 350px;
+    }
+}
+
+@media (max-width: 960px) {
+    .mpcc-editor-layout {
+        flex-direction: column;
+    }
+    
+    .mpcc-editor-sidebar {
+        width: 100%;
+    }
+    
+    .mpcc-chat-container {
+        height: 300px;
+    }
+    
+    .mpcc-sessions-dropdown {
+        width: calc(100% - 40px);
+        right: 20px;
+        left: 20px;
+    }
+}
