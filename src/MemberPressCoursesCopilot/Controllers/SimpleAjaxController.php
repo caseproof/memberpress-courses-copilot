@@ -162,9 +162,13 @@ class SimpleAjaxController
                 throw new \Exception('Session ID is required');
             }
             
+            // Log the incoming session ID for debugging
+            $this->logger->debug('Loading session', ['session_id' => $sessionId]);
+            
             $sessionData = $this->sessionService->getSession($sessionId);
             
             if ($sessionData === null) {
+                $this->logger->warning('Session not found', ['session_id' => $sessionId]);
                 wp_send_json_error('Session not found');
                 return;
             }

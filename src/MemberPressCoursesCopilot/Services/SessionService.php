@@ -22,7 +22,12 @@ class SessionService
      */
     public function getSession(string $sessionId): ?array
     {
-        $optionName = self::OPTION_PREFIX . $sessionId;
+        // If session ID already includes the prefix, use it as is
+        if (strpos($sessionId, self::OPTION_PREFIX) === 0) {
+            $optionName = $sessionId;
+        } else {
+            $optionName = self::OPTION_PREFIX . $sessionId;
+        }
         $data = get_option($optionName);
         
         if ($data === false) {
@@ -47,7 +52,12 @@ class SessionService
      */
     public function saveSession(string $sessionId, array $data): bool
     {
-        $optionName = self::OPTION_PREFIX . $sessionId;
+        // If session ID already includes the prefix, use it as is
+        if (strpos($sessionId, self::OPTION_PREFIX) === 0) {
+            $optionName = $sessionId;
+        } else {
+            $optionName = self::OPTION_PREFIX . $sessionId;
+        }
         
         // Add expiry timestamp
         $data['expires'] = time() + self::SESSION_EXPIRY;
@@ -128,8 +138,8 @@ class SessionService
                 continue;
             }
             
-            // Extract session ID from option name
-            $sessionId = str_replace($prefix, '', $result->option_name);
+            // Keep the full session ID including prefix
+            $sessionId = $result->option_name;
             
             // Get course title - check both direct title and conversation state
             $title = 'Untitled Course';

@@ -245,12 +245,12 @@
                         // Auto-save conversation
                         this.saveConversation();
                     } else {
-                        this.showError(response.data || 'An error occurred');
+                        mpccToast.error(response.data || 'An error occurred');
                     }
                 },
                 error: () => {
                     $('#' + typingId).remove();
-                    this.showError('Failed to communicate with the AI. Please try again.');
+                    mpccToast.error('Failed to communicate with the AI. Please try again.');
                 },
                 complete: () => {
                     button.prop('disabled', false).html('<span class="dashicons dashicons-arrow-right-alt"></span> Send');
@@ -413,11 +413,11 @@
                         $('#mpcc-lesson-textarea').val(response.data.content);
                         this.autoSaveLesson();
                     } else {
-                        this.showError(response.data || 'Failed to generate content');
+                        mpccToast.error(response.data || 'Failed to generate content');
                     }
                 },
                 error: () => {
-                    this.showError('Failed to generate content. Please try again.');
+                    mpccToast.error('Failed to generate content. Please try again.');
                 },
                 complete: () => {
                     button.prop('disabled', false).html('<span class="dashicons dashicons-welcome-write-blog"></span> Generate with AI');
@@ -530,12 +530,12 @@
         previewCourse: function() {
             console.log('Preview course:', this.courseStructure);
             // TODO: Implement course preview in a modal or new tab
-            alert('Course preview functionality coming soon!');
+            mpccToast.info('Course preview functionality coming soon!');
         },
         
         createCourse: function() {
             if (!this.courseStructure.title) {
-                this.showError('Please generate a course structure first.');
+                mpccToast.warning('Please generate a course structure first.');
                 return;
             }
             
@@ -553,14 +553,17 @@
                 },
                 success: (response) => {
                     if (response.success) {
-                        // Redirect to the created course
-                        window.location.href = response.data.edit_url;
+                        mpccToast.success('Course created successfully! Redirecting...');
+                        // Redirect to the created course after short delay
+                        setTimeout(() => {
+                            window.location.href = response.data.edit_url;
+                        }, 1000);
                     } else {
-                        this.showError(response.data || 'Failed to create course');
+                        mpccToast.error(response.data || 'Failed to create course');
                     }
                 },
                 error: () => {
-                    this.showError('Failed to create course. Please try again.');
+                    mpccToast.error('Failed to create course. Please try again.');
                 },
                 complete: () => {
                     button.prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> Create Course');
@@ -749,11 +752,11 @@
                         // Scroll to bottom
                         this.scrollToBottom();
                     } else {
-                        alert('Failed to load conversation');
+                        mpccToast.error('Failed to load conversation');
                     }
                 },
                 error: () => {
-                    alert('Failed to load conversation. Please try again.');
+                    mpccToast.error('Failed to load conversation. Please try again.');
                 }
             });
         },
@@ -798,8 +801,7 @@
         },
         
         showError: function(message) {
-            // You could implement a nicer notification system here
-            alert(message);
+            mpccToast.error(message);
         },
         
         escapeHtml: function(text) {

@@ -77,11 +77,28 @@ class CourseEditorPage
             $version
         );
         
+        // Toast notification styles
+        wp_enqueue_style(
+            'mpcc-toast',
+            $pluginUrl . 'assets/css/toast.css',
+            ['dashicons'],
+            $version
+        );
+        
+        // Toast notification script
+        wp_enqueue_script(
+            'mpcc-toast',
+            $pluginUrl . 'assets/js/toast.js',
+            ['jquery'],
+            $version,
+            true
+        );
+        
         // Core scripts
         wp_enqueue_script(
             'mpcc-course-editor',
             $pluginUrl . 'assets/js/course-editor-page.js',
-            ['jquery', 'wp-api', 'wp-components', 'wp-element'],
+            ['jquery', 'wp-api', 'wp-components', 'wp-element', 'mpcc-toast'],
             $version,
             true
         );
