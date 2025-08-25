@@ -78,6 +78,56 @@ class SessionService
     }
     
     /**
+     * Clean up empty sessions (no messages, no course structure)
+     * 
+     * @return int Number of sessions deleted
+     */
+    public function cleanupEmptySessions(): int
+    {
+        global $wpdb;
+        
+        $deleted = 0;
+        $prefix = self::OPTION_PREFIX;
+        
+        // Get all session options
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+                $wpdb->esc_like($prefix) . '%'
+            )
+        );
+        
+        foreach ($results as $result) {
+            $data = maybe_unserialize($result->option_value);
+            
+            if (!is_array($data)) {
+                continue;
+            }
+            
+            // Check if session has meaningful content
+            $hasMessages = isset($data['conversation_history']) && 
+                         is_array($data['conversation_history']) && 
+                         count($data['conversation_history']) > 0;
+                         
+            $hasCourseStructure = (isset($data['conversation_state']['course_structure']['title']) && 
+                                 !empty($data['conversation_state']['course_structure']['title'])) ||
+                                (isset($data['conversation_state']['course_data']['title']) && 
+                                 !empty($data['conversation_state']['course_data']['title'])) ||
+                                (isset($data['title']) && 
+                                 !empty($data['title']) && 
+                                 $data['title'] !== 'Untitled Course');
+            
+            // Delete if empty
+            if (!$hasMessages && !$hasCourseStructure) {
+                delete_option($result->option_name);
+                $deleted++;
+            }
+        }
+        
+        return $deleted;
+    }
+    
+    /**
      * Clean up expired sessions
      * 
      * @return int Number of sessions cleaned
