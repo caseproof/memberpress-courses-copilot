@@ -309,17 +309,6 @@ class CourseEditorPage
                 </div>
             </div>
             
-            <?php if (current_user_can('manage_options')): ?>
-            <div class="mpcc-admin-tools" style="margin-top: 20px; padding: 15px; background: #f0f0f1; border-radius: 5px;">
-                <h4 style="margin-top: 0;">Admin Tools</h4>
-                <p>Clean up empty conversation sessions that have no content:</p>
-                <a href="<?php echo wp_nonce_url(admin_url('admin-post.php?action=mpcc_cleanup_empty_sessions'), 'mpcc_cleanup_sessions'); ?>" 
-                   class="button button-secondary"
-                   onclick="return confirm('This will remove all empty conversation sessions. Continue?');">
-                    Clean Up Empty Sessions
-                </a>
-            </div>
-            <?php endif; ?>
         </div>
         <?php
     }
