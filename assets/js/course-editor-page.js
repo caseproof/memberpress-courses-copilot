@@ -83,7 +83,7 @@
             });
             
             // Course actions
-            $('#mpcc-preview-course').on('click', this.previewCourse.bind(this));
+            // Preview button is now handled dynamically
             $('#mpcc-create-course').on('click', this.createCourse.bind(this));
             
             // Lesson editor events - use event delegation for dynamic content
@@ -145,6 +145,9 @@
                         } else {
                             console.log('No course structure found in session data');
                         }
+                        
+                        // Update preview button based on published status
+                        this.updatePreviewButton();
                     }
                 },
                 error: (xhr) => {
@@ -329,18 +332,9 @@
             const publishedBadge = this.publishedCourseId ? 
                 '<span class="mpcc-published-badge"><span class="dashicons dashicons-yes-alt"></span> Published</span>' : '';
             
-            // Add view course link if URL is available
-            const viewCourseLink = this.publishedCourseUrl ? 
-                `<a href="${this.publishedCourseUrl}" class="mpcc-view-course-link" target="_blank">
-                    <span class="dashicons dashicons-external"></span> View Course
-                </a>` : '';
-            
             const headerHtml = `
                 <div class="mpcc-course-header">
-                    <div class="mpcc-course-title-row">
-                        <h2>${this.escapeHtml(this.courseStructure.title)} ${publishedBadge}</h2>
-                        ${viewCourseLink}
-                    </div>
+                    <h2>${this.escapeHtml(this.courseStructure.title)} ${publishedBadge}</h2>
                     <p>${this.escapeHtml(this.courseStructure.description || '')}</p>
                 </div>
             `;
@@ -360,6 +354,9 @@
             } else {
                 $('#mpcc-create-course').prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> Create Course');
             }
+            
+            // Update preview/view course button
+            this.updatePreviewButton();
         },
         
         renderSection: function(section, sectionIndex) {
@@ -649,11 +646,6 @@
             });
         },
         
-        previewCourse: function() {
-            console.log('Preview course:', this.courseStructure);
-            // TODO: Implement course preview in a modal or new tab
-            mpccToast.info('Course preview functionality coming soon!');
-        },
         
         createCourse: function() {
             if (!this.courseStructure.title) {
@@ -1024,6 +1016,31 @@
         
         showError: function(message) {
             mpccToast.error(message);
+        },
+        
+        updatePreviewButton: function() {
+            const $previewBtn = $('#mpcc-preview-course');
+            
+            if (this.publishedCourseId && this.publishedCourseUrl) {
+                // Change to View Course button
+                $previewBtn
+                    .html('<span class="dashicons dashicons-external"></span> View Course')
+                    .removeClass('button-secondary')
+                    .addClass('button-primary')
+                    .off('click')
+                    .on('click', () => {
+                        window.open(this.publishedCourseUrl, '_blank');
+                    })
+                    .prop('disabled', false);
+            } else {
+                // Keep as disabled Preview button
+                $previewBtn
+                    .html('<span class="dashicons dashicons-visibility"></span> Preview')
+                    .addClass('button-secondary')
+                    .removeClass('button-primary')
+                    .off('click')
+                    .prop('disabled', true);
+            }
         },
         
         escapeHtml: function(text) {
