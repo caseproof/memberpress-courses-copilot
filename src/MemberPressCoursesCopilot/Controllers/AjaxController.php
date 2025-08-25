@@ -69,11 +69,12 @@ class AjaxController extends BaseController
         'mpcc_get_suggestions',
         'mpcc_get_learning_path',
         // Lesson draft editing actions
-        'mpcc_save_lesson_content',
-        'mpcc_load_lesson_content',
-        'mpcc_generate_lesson_content',
-        'mpcc_reorder_course_items',
-        'mpcc_delete_course_item',
+        // Note: These are handled by CourseAjaxService, not this controller
+        // 'mpcc_save_lesson_content',
+        // 'mpcc_load_lesson_content', 
+        // 'mpcc_generate_lesson_content',
+        // 'mpcc_reorder_course_items',
+        // 'mpcc_delete_course_item',
         'mpcc_load_all_drafts',
         'mpcc_save_conversation'
     ];
@@ -170,12 +171,13 @@ class AjaxController extends BaseController
      */
     private function verifyAjaxNonce(): void
     {
-        $nonce = $_POST['nonce'] ?? '';
+        $nonce = $_POST['nonce'] ?? $_POST['_wpnonce'] ?? '';
         
-        // Check both nonce types that might be used
+        // Check all possible nonce types that might be used
         if (!wp_verify_nonce($nonce, 'mpcc_editor_nonce') && 
             !wp_verify_nonce($nonce, 'mpcc_ajax_nonce') &&
-            !wp_verify_nonce($nonce, 'mpcc_nonce')) {
+            !wp_verify_nonce($nonce, 'mpcc_nonce') &&
+            !wp_verify_nonce($nonce, 'mpcc_courses_integration')) {
             throw new \Exception('Security check failed');
         }
     }
@@ -249,14 +251,14 @@ class AjaxController extends BaseController
             'generate_response' => $this->handleGenerateResponse(),
             'get_suggestions' => $this->handleGetSuggestions(),
             'get_learning_path' => $this->handleGetLearningPath(),
-            // Lesson draft editing actions
-            'save_lesson_content' => $this->handleSaveLessonContent(),
-            'load_lesson_content' => $this->handleLoadLessonContent(),
-            'generate_lesson_content' => $this->handleGenerateLessonContent(),
-            'reorder_course_items' => $this->handleReorderCourseItems(),
-            'delete_course_item' => $this->handleDeleteCourseItem(),
-            'load_all_drafts' => $this->handleLoadAllDrafts(),
-            'save_conversation' => $this->handleSaveConversation(),
+            // Lesson draft editing actions - COMMENTED OUT to avoid conflicts with CourseAjaxService
+            // 'save_lesson_content' => $this->handleSaveLessonContent(),
+            // 'load_lesson_content' => $this->handleLoadLessonContent(),
+            // 'generate_lesson_content' => $this->handleGenerateLessonContent(),
+            // 'reorder_course_items' => $this->handleReorderCourseItems(),
+            // 'delete_course_item' => $this->handleDeleteCourseItem(),
+            // 'load_all_drafts' => $this->handleLoadAllDrafts(),
+            // 'save_conversation' => $this->handleSaveConversation(),
             default => throw new \Exception("Unknown action: {$action}")
         };
     }
@@ -894,20 +896,6 @@ class AjaxController extends BaseController
      * Security and validation methods
      */
 
-    /**
-     * Verify AJAX nonce
-     * 
-     * @throws \Exception If nonce is invalid
-     */
-    private function verifyAjaxNonce(): void
-    {
-        $nonce = $_POST['nonce'] ?? $_POST['_wpnonce'] ?? '';
-        
-        // Try both possible nonce names for backward compatibility
-        if (!wp_verify_nonce($nonce, 'mpcc_ajax_nonce') && !wp_verify_nonce($nonce, 'mpcc_courses_integration')) {
-            throw new \Exception('Security check failed');
-        }
-    }
 
     /**
      * Check AJAX permissions

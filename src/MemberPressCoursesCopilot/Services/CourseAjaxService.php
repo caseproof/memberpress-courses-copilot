@@ -8,6 +8,7 @@ use MemberPressCoursesCopilot\Services\BaseService;
 use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\LLMService;
+use MemberPressCoursesCopilot\Services\SessionService;
 
 /**
  * Course AJAX Service
@@ -50,6 +51,7 @@ class CourseAjaxService extends BaseService
         // Course preview editing endpoints
         add_action('wp_ajax_mpcc_save_lesson_content', [$this, 'saveLessonContent']);
         add_action('wp_ajax_mpcc_load_lesson_content', [$this, 'loadLessonContent']);
+        add_action('wp_ajax_mpcc_load_all_drafts', [$this, 'loadLessonContent']); // Same handler, loads all drafts for session
         add_action('wp_ajax_mpcc_generate_lesson_content', [$this, 'generateLessonContent']);
         add_action('wp_ajax_mpcc_reorder_course_items', [$this, 'reorderCourseItems']);
         add_action('wp_ajax_mpcc_delete_course_item', [$this, 'deleteCourseItem']);
@@ -474,19 +476,48 @@ class CourseAjaxService extends BaseService
         
         $course_data = $_POST['course_data'] ?? [];
         
+        // If course_data is a JSON string, decode it
+        if (is_string($course_data)) {
+            $decoded = json_decode($course_data, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $course_data = $decoded;
+                $this->logger->info('Decoded JSON course_data', [
+                    'decoded_keys' => array_keys($course_data),
+                    'has_title' => isset($course_data['title']),
+                    'title_value' => $course_data['title'] ?? 'not set'
+                ]);
+            }
+        }
+        
         // Log the raw POST data to debug
         $this->logger->info('Raw course_data received', [
             'raw_data' => json_encode($_POST['course_data'] ?? 'empty'),
             'is_array' => is_array($course_data),
             'is_empty' => empty($course_data),
-            'course_data_type' => gettype($course_data)
+            'course_data_type' => gettype($course_data),
+            'course_data_keys' => is_array($course_data) ? array_keys($course_data) : 'not an array',
+            'has_title_at_root' => isset($course_data['title']),
+            'title_at_root' => $course_data['title'] ?? 'no title at root',
+            'full_structure' => json_encode($course_data)
         ]);
         
         // Check if course data is nested under 'course_structure' key
         if (isset($course_data['course_structure']) && is_array($course_data['course_structure'])) {
-            $this->logger->info('Found nested course_structure, extracting it');
+            $this->logger->info('Found nested course_structure, extracting it', [
+                'nested_structure_keys' => array_keys($course_data['course_structure']),
+                'nested_has_title' => isset($course_data['course_structure']['title']),
+                'nested_title' => $course_data['course_structure']['title'] ?? 'no title in nested'
+            ]);
             $course_data = $course_data['course_structure'];
         }
+        
+        // Log final course data structure after any extraction
+        $this->logger->info('Final course_data structure', [
+            'has_title' => isset($course_data['title']),
+            'title' => $course_data['title'] ?? 'NO TITLE FOUND',
+            'keys' => is_array($course_data) ? array_keys($course_data) : 'not an array',
+            'sections_count' => isset($course_data['sections']) ? count($course_data['sections']) : 0
+        ]);
         
         if (empty($course_data)) {
             $this->logger->warning('Course creation failed: no course data provided', [
@@ -545,6 +576,13 @@ class CourseAjaxService extends BaseService
                         
                         if ($session && $session->getUserId() === get_current_user_id()) {
                             $courseTitle = $course_data['title'] ?? 'Unknown Course';
+                            $this->logger->info('Attempting to update session title', [
+                                'session_id' => $sessionId,
+                                'course_title' => $courseTitle,
+                                'course_data_has_title' => isset($course_data['title']),
+                                'course_data_keys' => array_keys($course_data)
+                            ]);
+                            
                             $session->setTitle('Course: ' . $courseTitle);
                             $conversationManager->saveSession($session);
                             
@@ -552,6 +590,24 @@ class CourseAjaxService extends BaseService
                                 'session_id' => $sessionId,
                                 'course_title' => $courseTitle
                             ]);
+                            
+                            // Also update the WordPress options-based session used by the UI
+                            $sessionService = new SessionService();
+                            $optionsSession = $sessionService->getSession($sessionId);
+                            if ($optionsSession) {
+                                // Update the title in the conversation state
+                                if (isset($optionsSession['conversation_state']['course_data'])) {
+                                    $optionsSession['conversation_state']['course_data']['title'] = $courseTitle;
+                                }
+                                $optionsSession['title'] = 'Course: ' . $courseTitle;
+                                $optionsSession['last_updated'] = current_time('mysql');
+                                $sessionService->saveSession($sessionId, $optionsSession);
+                                
+                                $this->logger->info('Updated WordPress options session title', [
+                                    'session_id' => $sessionId,
+                                    'course_title' => $courseTitle
+                                ]);
+                            }
                         }
                     } catch (\Exception $e) {
                         // Log but don't fail the course creation
@@ -736,9 +792,13 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function saveConversation(): void
     {
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        // Verify nonce - check multiple possible nonce names
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
+            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
             $this->logger->warning('Save conversation failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
+                'nonce_value' => $nonce
             ]);
             wp_send_json_error('Security check failed');
             return;
@@ -963,10 +1023,13 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function saveLessonContent(): void
     {
-        // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        // Verify nonce - check multiple possible nonce names
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
+            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
             $this->logger->warning('Save lesson content failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
+                'nonce_value' => $nonce
             ]);
             wp_send_json_error('Security check failed');
             return;
@@ -1032,10 +1095,13 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function loadLessonContent(): void
     {
-        // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        // Verify nonce - check multiple possible nonce names
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
+            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
             $this->logger->warning('Load lesson content failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
+                'nonce_value' => $nonce
             ]);
             wp_send_json_error('Security check failed');
             return;
@@ -1125,10 +1191,21 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function generateLessonContent(): void
     {
-        // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        // Debug logging
+        $this->logger->info('CourseAjaxService::generateLessonContent called', [
+            'nonce' => $_POST['nonce'] ?? 'not set',
+            'action' => $_POST['action'] ?? 'not set',
+            'user_id' => get_current_user_id()
+        ]);
+        
+        // Verify nonce - check multiple possible nonce names
+        $nonce = $_POST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
+            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
             $this->logger->warning('Generate lesson content failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
+                'nonce_value' => $nonce,
+                'expected' => 'mpcc_courses_integration or mpcc_editor_nonce'
             ]);
             wp_send_json_error('Security check failed');
             return;

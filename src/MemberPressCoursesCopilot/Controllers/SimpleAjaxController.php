@@ -8,6 +8,7 @@ use MemberPressCoursesCopilot\Services\LLMService;
 use MemberPressCoursesCopilot\Services\LessonDraftService;
 use MemberPressCoursesCopilot\Services\SessionService;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
+use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Utilities\Logger;
 
 /**
@@ -32,7 +33,9 @@ class SimpleAjaxController
         add_action('wp_ajax_mpcc_create_course', [$this, 'handleCreateCourse']);
         add_action('wp_ajax_mpcc_get_sessions', [$this, 'handleGetSessions']);
         add_action('wp_ajax_mpcc_update_session_title', [$this, 'handleUpdateSessionTitle']);
-        // Note: mpcc_save_conversation is handled by CourseAjaxService
+        
+        // Override CourseAjaxService handlers with higher priority
+        add_action('wp_ajax_mpcc_save_conversation', [$this, 'handleSaveConversation'], 5);
         // Note: mpcc_save_lesson_content, mpcc_load_lesson_content, mpcc_generate_lesson_content are handled by CourseAjaxService
     }
     
@@ -92,6 +95,44 @@ class SimpleAjaxController
                 }
             }
             
+            // Update session title when course structure is generated
+            if ($extractedStructure && !empty($extractedStructure['title']) && $extractedStructure !== $courseStructure) {
+                // Update the session title in both storage systems
+                $sessionTitle = 'Course: ' . $extractedStructure['title'];
+                
+                // Update WordPress options-based session
+                $sessionData = $this->sessionService->getSession($sessionId);
+                $sessionData['title'] = $sessionTitle;
+                $sessionData['last_updated'] = current_time('mysql');
+                $this->sessionService->saveSession($sessionId, $sessionData);
+                
+                // Also update ConversationManager session if it exists
+                try {
+                    $conversationManager = new ConversationManager();
+                    $session = $conversationManager->loadSession($sessionId);
+                    if ($session) {
+                        // The ConversationManager doesn't have updateSessionTitle method
+                        // We'll just log that the title should be updated in ConversationManager
+                        $this->logger->info('Session title should be updated in ConversationManager', [
+                            'session_id' => $sessionId,
+                            'title' => $sessionTitle
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    // ConversationManager session might not exist, that's OK
+                    $this->logger->debug('ConversationManager session not found', [
+                        'session_id' => $sessionId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+                
+                $this->logger->info('Session title updated during chat', [
+                    'session_id' => $sessionId,
+                    'new_title' => $sessionTitle,
+                    'course_title' => $extractedStructure['title']
+                ]);
+            }
+            
             $responseData = [
                 'message' => $displayMessage,
                 'course_structure' => $extractedStructure
@@ -123,6 +164,16 @@ class SimpleAjaxController
             
             $sessionData = $this->sessionService->getSession($sessionId);
             
+            if ($sessionData === null) {
+                wp_send_json_error('Session not found');
+                return;
+            }
+            
+            // Ensure course_structure is properly extracted from conversation_state
+            if (isset($sessionData['conversation_state']['course_structure']) && !isset($sessionData['course_structure'])) {
+                $sessionData['course_structure'] = $sessionData['conversation_state']['course_structure'];
+            }
+            
             wp_send_json_success($sessionData);
             
         } catch (\Exception $e) {
@@ -149,11 +200,36 @@ class SimpleAjaxController
                 throw new \Exception('Session ID is required');
             }
             
-            $this->sessionService->saveSession($sessionId, [
+            // Get existing session data to preserve title
+            $existingData = $this->sessionService->getSession($sessionId);
+            
+            // If session doesn't exist, create it with default values
+            if ($existingData === null) {
+                $existingData = [
+                    'created_at' => current_time('mysql'),
+                    'user_id' => get_current_user_id()
+                ];
+            }
+            
+            // Merge with new data, preserving title if it exists
+            $sessionData = array_merge($existingData, [
                 'conversation_history' => $conversationHistory,
                 'conversation_state' => $conversationState,
                 'last_updated' => current_time('mysql')
             ]);
+            
+            // Extract title from course structure if available and not already set
+            if (empty($sessionData['title'])) {
+                // Check both course_data and course_structure for compatibility
+                $courseTitle = $conversationState['course_data']['title'] ?? 
+                              $conversationState['course_structure']['title'] ?? null;
+                              
+                if (!empty($courseTitle)) {
+                    $sessionData['title'] = 'Course: ' . $courseTitle;
+                }
+            }
+            
+            $this->sessionService->saveSession($sessionId, $sessionData);
             
             wp_send_json_success(['saved' => true]);
             
@@ -188,6 +264,43 @@ class SimpleAjaxController
             
             if (!$result['success']) {
                 throw new \Exception($result['error'] ?? 'Failed to create course');
+            }
+            
+            // Update session title after successful course creation
+            if (!empty($courseData['title'])) {
+                $sessionTitle = 'Course: ' . $courseData['title'];
+                
+                // Update WordPress options-based session
+                $sessionData = $this->sessionService->getSession($sessionId);
+                $sessionData['title'] = $sessionTitle;
+                $sessionData['last_updated'] = current_time('mysql');
+                $this->sessionService->saveSession($sessionId, $sessionData);
+                
+                // Also update ConversationManager session if it exists
+                try {
+                    $conversationManager = new ConversationManager();
+                    $session = $conversationManager->loadSession($sessionId);
+                    if ($session) {
+                        // The ConversationManager doesn't have updateSessionTitle method
+                        // We'll just log that the title should be updated in ConversationManager
+                        $this->logger->info('Session title should be updated in ConversationManager', [
+                            'session_id' => $sessionId,
+                            'title' => $sessionTitle
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    // ConversationManager session might not exist, that's OK
+                    $this->logger->debug('ConversationManager session not found', [
+                        'session_id' => $sessionId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+                
+                $this->logger->info('Session title updated after course creation', [
+                    'session_id' => $sessionId,
+                    'new_title' => $sessionTitle,
+                    'course_id' => $result['course_id']
+                ]);
             }
             
             // Clean up drafts after successful course creation
@@ -401,8 +514,11 @@ Format the content with clear headings and sections.";
     public function handleUpdateSessionTitle(): void
     {
         try {
-            // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            // Verify nonce - accept multiple nonce types
+            $nonce = $_POST['nonce'] ?? '';
+            if (!wp_verify_nonce($nonce, 'mpcc_editor_nonce') && 
+                !wp_verify_nonce($nonce, 'mpcc_courses_integration') &&
+                !wp_verify_nonce($nonce, 'mpcc_ai_interface')) {
                 throw new \Exception('Security check failed');
             }
             

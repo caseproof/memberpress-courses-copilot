@@ -231,13 +231,24 @@
         saveLessonContent(sectionId, lessonId, content, isAutoSave = false) {
             this.updateSaveIndicator('saving');
             
+            // Get session ID and create one if needed
+            let sessionId = sessionStorage.getItem('mpcc_current_session_id') || this.sessionId;
+            
+            if (!sessionId) {
+                console.warn('No session ID available, creating temporary session');
+                // Create a temporary session ID
+                sessionId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('mpcc_current_session_id', sessionId);
+                this.sessionId = sessionId;
+            }
+            
             $.ajax({
                 url: window.mpccCoursesIntegration?.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php',
                 type: 'POST',
                 data: {
                     action: 'mpcc_save_lesson_content',
                     nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
-                    session_id: sessionStorage.getItem('mpcc_current_session_id') || this.sessionId,
+                    session_id: sessionId,
                     section_id: sectionId,
                     lesson_id: lessonId,
                     content: content
@@ -326,13 +337,24 @@
             const originalText = $generateBtn.html();
             $generateBtn.prop('disabled', true).html('<span class="spinner is-active"></span> Generating...');
             
+            // Get session ID and create one if needed
+            let sessionId = sessionStorage.getItem('mpcc_current_session_id') || this.sessionId;
+            
+            if (!sessionId) {
+                console.warn('No session ID available for content generation, creating temporary session');
+                // Create a temporary session ID
+                sessionId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('mpcc_current_session_id', sessionId);
+                this.sessionId = sessionId;
+            }
+            
             $.ajax({
                 url: window.mpccCoursesIntegration?.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php',
                 type: 'POST',
                 data: {
                     action: 'mpcc_generate_lesson_content',
                     nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
-                    session_id: sessionStorage.getItem('mpcc_current_session_id') || this.sessionId,
+                    session_id: sessionId,
                     section_id: this.currentEditingLesson.sectionId,
                     lesson_id: this.currentEditingLesson.lessonId,
                     lesson_title: lessonTitle,
@@ -423,8 +445,10 @@
             this.sessionId = sessionStorage.getItem('mpcc_current_session_id');
             
             if (!this.sessionId) {
-                console.log('CoursePreviewEditor: No session ID available for loading drafts');
-                return;
+                console.log('CoursePreviewEditor: No session ID available for loading drafts, creating temporary session');
+                // Create a temporary session ID
+                this.sessionId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('mpcc_current_session_id', this.sessionId);
             }
             
             console.log('CoursePreviewEditor: Loading drafts for session:', this.sessionId);

@@ -121,7 +121,14 @@ class ConversationManager extends BaseService
         }
         
         // Load from database
-        $sessionData = $this->databaseService->getConversation($this->getConversationIdBySessionId($sessionId));
+        $conversationId = $this->getConversationIdBySessionId($sessionId);
+        
+        // Check if conversation ID exists before trying to load
+        if (!$conversationId) {
+            return null;
+        }
+        
+        $sessionData = $this->databaseService->getConversation($conversationId);
         
         if (!$sessionData) {
             return null;

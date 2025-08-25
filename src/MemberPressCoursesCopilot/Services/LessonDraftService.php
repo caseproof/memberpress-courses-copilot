@@ -51,7 +51,7 @@ class LessonDraftService {
             'session_id' => $session_id,
             'section_id' => $section_id,
             'lesson_id' => $lesson_id,
-            'content' => wp_kses_post($content),
+            'content' => $content, // Content is already sanitized in the AJAX handler
             'order_index' => intval($order_index)
         ];
         

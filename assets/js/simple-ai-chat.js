@@ -1076,6 +1076,10 @@ jQuery(document).ready(function($) {
                     
                     // Update course preview if data available
                     if (response.data.course_data) {
+                        console.log('Received course_data from server:', response.data.course_data);
+                        console.log('Course data has title:', response.data.course_data.title);
+                        console.log('Course data keys:', Object.keys(response.data.course_data));
+                        
                         window.mpccCurrentCourse = response.data.course_data;
                         
                         // Store course data in conversation state for persistence
@@ -1235,6 +1239,9 @@ window.mpccHandleAction = window.mpccHandleAction || function(action) {
 
 window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
     console.log('Creating course:', courseData);
+    console.log('Course data type:', typeof courseData);
+    console.log('Course data keys:', courseData ? Object.keys(courseData) : 'null/undefined');
+    console.log('Course title:', courseData ? courseData.title : 'no title');
     
     // Prevent multiple submissions
     const $createButton = jQuery('#mpcc-create-course');
@@ -1259,7 +1266,7 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
         data: {
             action: 'mpcc_create_course_with_ai',
             nonce: jQuery('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : ''),
-            course_data: courseData,
+            course_data: JSON.stringify(courseData),
             session_id: sessionStorage.getItem(MPCC_SESSION_STORAGE_KEY) || ''
         },
         success: function(response) {
@@ -1269,6 +1276,32 @@ window.mpccCreateCourse = window.mpccCreateCourse || function(courseData) {
                 // Show success message
                 if (typeof window.showNotification === 'function') {
                     window.showNotification('Course created successfully! Redirecting...', 'success');
+                }
+                
+                // Update session title if we have it
+                if (courseData && courseData.title) {
+                    const sessionId = sessionStorage.getItem(MPCC_SESSION_STORAGE_KEY);
+                    if (sessionId) {
+                        // Update via AJAX to ensure it persists
+                        jQuery.ajax({
+                            url: window.mpccAISettings ? window.mpccAISettings.ajaxUrl : (window.ajaxurl || '/wp-admin/admin-ajax.php'),
+                            type: 'POST',
+                            data: {
+                                action: 'mpcc_update_session_title',
+                                session_id: sessionId,
+                                title: 'Course: ' + courseData.title,
+                                nonce: jQuery('#mpcc-ajax-nonce').val() || (window.mpccAISettings ? window.mpccAISettings.nonce : '')
+                            },
+                            success: function() {
+                                console.log('Session title updated successfully');
+                                
+                                // If the session modal is open, refresh it
+                                if (jQuery('#mpcc-modal-overlay').hasClass('mpcc-modal-open')) {
+                                    window.showSessionManager();
+                                }
+                            }
+                        });
+                    }
                 }
                 
                 // Redirect to the edit page with a small delay

@@ -85,6 +85,7 @@
                     session_id: this.sessionId
                 },
                 success: (response) => {
+                    console.log('Session loaded:', response);
                     if (response.success && response.data) {
                         // Restore conversation history
                         if (response.data.conversation_history) {
@@ -92,15 +93,31 @@
                             this.rebuildChatHistory();
                         }
                         
-                        // Restore course structure
-                        if (response.data.conversation_state?.course_data) {
+                        // Restore course structure - check multiple possible locations
+                        if (response.data.course_structure) {
+                            console.log('Found course structure at root level');
+                            this.courseStructure = response.data.course_structure;
+                            this.renderCourseStructure();
+                        } else if (response.data.conversation_state?.course_structure) {
+                            console.log('Found course structure in conversation_state.course_structure');
+                            this.courseStructure = response.data.conversation_state.course_structure;
+                            this.renderCourseStructure();
+                        } else if (response.data.conversation_state?.course_data) {
+                            console.log('Found course structure in conversation_state.course_data');
                             this.courseStructure = response.data.conversation_state.course_data;
                             this.renderCourseStructure();
+                        } else {
+                            console.log('No course structure found in session data');
                         }
                     }
                 },
-                error: () => {
-                    console.log('No existing session found');
+                error: (xhr) => {
+                    console.log('No existing session found, initializing new session');
+                    // Initialize empty session data
+                    this.conversationHistory = [];
+                    this.courseStructure = {};
+                    // Save initial empty session
+                    this.saveConversation();
                 }
             });
         },
@@ -476,6 +493,17 @@
         },
         
         saveConversation: function() {
+            const conversationState = {
+                course_structure: this.courseStructure
+            };
+            
+            console.log('Saving conversation:', {
+                session_id: this.sessionId,
+                history_length: this.conversationHistory.length,
+                has_course_structure: !!this.courseStructure.title,
+                course_title: this.courseStructure.title || 'No title'
+            });
+            
             $.ajax({
                 url: mpccEditorSettings.ajaxUrl,
                 type: 'POST',
@@ -484,9 +512,17 @@
                     nonce: mpccEditorSettings.nonce,
                     session_id: this.sessionId,
                     conversation_history: JSON.stringify(this.conversationHistory),
-                    conversation_state: JSON.stringify({
-                        course_structure: this.courseStructure
-                    })
+                    conversation_state: JSON.stringify(conversationState)
+                },
+                success: (response) => {
+                    if (response.success) {
+                        console.log('Conversation saved successfully');
+                    } else {
+                        console.error('Failed to save conversation:', response.data);
+                    }
+                },
+                error: (xhr, status, error) => {
+                    console.error('Error saving conversation:', error);
                 }
             });
         },
@@ -652,8 +688,10 @@
                 const sessionTitle = $item.find('.mpcc-session-title').text();
                 
                 if (confirm('Load this session? Current progress will be saved.')) {
-                    // Save current conversation first
-                    this.saveConversation();
+                    // Save current conversation first if there's content to save
+                    if (this.sessionId && (this.conversationHistory.length > 0 || this.courseStructure.title)) {
+                        this.saveConversation();
+                    }
                     
                     // Load the selected session via AJAX
                     this.loadConversation(sessionId, sessionTitle);
@@ -673,6 +711,7 @@
         },
         
         loadConversation: function(sessionId, sessionTitle) {
+            console.log('Loading conversation:', sessionId, sessionTitle);
             $.ajax({
                 url: mpccEditorSettings.ajaxUrl,
                 type: 'POST',
@@ -682,9 +721,10 @@
                     nonce: mpccEditorSettings.nonce
                 },
                 success: (response) => {
+                    console.log('Load conversation response:', response);
                     if (response.success && response.data) {
                         // Update current session
-                        this.currentSessionId = sessionId;
+                        this.sessionId = sessionId;
                         
                         // Clear and populate chat
                         const $messages = $('#mpcc-chat-messages');
@@ -693,8 +733,9 @@
                         // Handle conversation history
                         const conversationHistory = response.data.conversation_history || response.data.messages || [];
                         if (conversationHistory.length > 0) {
+                            this.conversationHistory = conversationHistory;
                             conversationHistory.forEach(msg => {
-                                this.appendMessage(msg.role === 'user' ? 'user' : 'assistant', msg.content);
+                                this.addMessage(msg.role === 'user' ? 'user' : 'assistant', msg.content, false);
                             });
                         }
                         
@@ -735,19 +776,22 @@
         
         updateSessionTitle: function(title) {
             // Update the session title in memory
-            if (this.currentSessionId) {
+            if (this.sessionId) {
                 // Save the updated title to the server
                 $.ajax({
                     url: mpccEditorSettings.ajaxUrl,
                     type: 'POST',
                     data: {
                         action: 'mpcc_update_session_title',
-                        session_id: this.currentSessionId,
+                        session_id: this.sessionId,
                         title: title,
                         nonce: mpccEditorSettings.nonce
                     },
                     success: (response) => {
                         console.log('Session title updated:', title);
+                    },
+                    error: (xhr, status, error) => {
+                        console.error('Failed to update session title:', error);
                     }
                 });
             }
@@ -775,6 +819,12 @@
         if ($('#mpcc-editor-container').length) {
             window.CourseEditor = CourseEditor;
             CourseEditor.init();
+            
+            // Expose updateSessionTitle globally for other scripts
+            window.updateSessionTitle = function(sessionId, title) {
+                CourseEditor.sessionId = sessionId;
+                CourseEditor.updateSessionTitle(title);
+            };
         }
     });
     

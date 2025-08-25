@@ -131,10 +131,14 @@ class SessionService
             // Extract session ID from option name
             $sessionId = str_replace($prefix, '', $result->option_name);
             
-            // Get course title from conversation state
+            // Get course title - check both direct title and conversation state
             $title = 'Untitled Course';
-            if (isset($data['conversation_state']['course_data']['title'])) {
-                $title = $data['conversation_state']['course_data']['title'];
+            if (isset($data['title'])) {
+                $title = $data['title'];
+            } elseif (isset($data['conversation_state']['course_data']['title'])) {
+                $title = 'Course: ' . $data['conversation_state']['course_data']['title'];
+            } elseif (isset($data['conversation_state']['course_structure']['title'])) {
+                $title = 'Course: ' . $data['conversation_state']['course_structure']['title'];
             }
             
             $sessions[] = [
