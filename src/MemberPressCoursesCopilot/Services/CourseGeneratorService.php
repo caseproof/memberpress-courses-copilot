@@ -219,6 +219,14 @@ class CourseGeneratorService
      */
     private function createLesson(array $lessonData, int $sectionId, int $courseId, int $order): int
     {
+        // Log lesson data for debugging
+        $this->logger->debug('Creating lesson with data', [
+            'lesson_title' => $lessonData['title'] ?? 'No title',
+            'has_content' => !empty($lessonData['content']),
+            'content_length' => isset($lessonData['content']) ? strlen($lessonData['content']) : 0,
+            'lesson_keys' => array_keys($lessonData)
+        ]);
+        
         $postData = [
             'post_title' => $lessonData['title'] ?? 'Lesson ' . $order,
             'post_content' => $lessonData['content'] ?? '',

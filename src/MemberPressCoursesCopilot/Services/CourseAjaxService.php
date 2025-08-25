@@ -556,6 +556,35 @@ class CourseAjaxService extends BaseService
                 return;
             }
             
+            // Apply saved draft content if we have a session ID
+            if (isset($_POST['session_id']) && !empty($_POST['session_id'])) {
+                $sessionId = sanitize_text_field($_POST['session_id']);
+                $this->logger->info('Applying lesson drafts to course structure', [
+                    'session_id' => $sessionId,
+                    'course_title' => $course_data['title'] ?? 'Unknown'
+                ]);
+                
+                // Initialize lesson draft service and map drafts to course structure
+                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                $course_data = $draftService->mapDraftsToStructure($sessionId, $course_data);
+                
+                $this->logger->info('Drafts mapped to course structure', [
+                    'session_id' => $sessionId,
+                    'sections_with_content' => array_map(function($section) {
+                        return [
+                            'title' => $section['title'] ?? 'Untitled',
+                            'lessons_with_content' => array_map(function($lesson) {
+                                return [
+                                    'title' => $lesson['title'] ?? 'Untitled',
+                                    'has_content' => !empty($lesson['content']),
+                                    'content_length' => isset($lesson['content']) ? strlen($lesson['content']) : 0
+                                ];
+                            }, $section['lessons'] ?? [])
+                        ];
+                    }, $course_data['sections'] ?? [])
+                ]);
+            }
+            
             // Generate the course
             $result = $generator->generateCourse($course_data);
             
@@ -612,6 +641,22 @@ class CourseAjaxService extends BaseService
                     } catch (\Exception $e) {
                         // Log but don't fail the course creation
                         $this->logger->warning('Failed to update session title after course creation', [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                    
+                    // Clean up lesson drafts after successful course creation
+                    try {
+                        $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                        $deletedCount = $draftService->deleteSessionDrafts($sessionId);
+                        $this->logger->info('Cleaned up lesson drafts after course creation', [
+                            'session_id' => $sessionId,
+                            'drafts_deleted' => $deletedCount
+                        ]);
+                    } catch (\Exception $e) {
+                        // Log but don't fail the course creation
+                        $this->logger->warning('Failed to clean up lesson drafts after course creation', [
+                            'session_id' => $sessionId,
                             'error' => $e->getMessage()
                         ]);
                     }
@@ -1050,7 +1095,18 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $content = sanitize_textarea_field($_POST['content'] ?? '');
         $orderIndex = isset($_POST['order_index']) ? (int) $_POST['order_index'] : 0;
         
-        if (empty($sessionId) || empty($sectionId) || empty($lessonId)) {
+        $this->logger->info('Save lesson content request', [
+            'session_id' => $sessionId,
+            'section_id' => $sectionId,
+            'lesson_id' => $lessonId,
+            'content_length' => strlen($content),
+            'has_session' => !empty($sessionId),
+            'has_section' => !empty($sectionId),
+            'has_lesson' => !empty($lessonId),
+            'post_keys' => array_keys($_POST)
+        ]);
+        
+        if (empty($sessionId) || $sectionId === '' || $lessonId === '') {
             wp_send_json_error('Missing required parameters');
             return;
         }
@@ -1060,18 +1116,17 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
             
             // Save draft
-            $draftId = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex);
+            $result = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex);
             
-            if ($draftId !== false) {
+            if ($result !== false) {
                 $this->logger->info('Lesson content saved', [
                     'session_id' => $sessionId,
                     'section_id' => $sectionId,
-                    'lesson_id' => $lessonId,
-                    'draft_id' => $draftId
+                    'lesson_id' => $lessonId
                 ]);
                 
                 wp_send_json_success([
-                    'draft_id' => $draftId,
+                    'saved' => true,
                     'saved_at' => current_time('c'),
                     'message' => 'Lesson content saved successfully'
                 ]);
@@ -1130,7 +1185,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
             
             // Load specific lesson or all session drafts
-            if (!empty($sectionId) && !empty($lessonId)) {
+            if ($sectionId !== '' && $lessonId !== '') {
                 // Load specific lesson
                 $draft = $draftService->getDraft($sessionId, $sectionId, $lessonId);
                 
