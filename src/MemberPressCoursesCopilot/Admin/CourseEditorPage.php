@@ -251,6 +251,10 @@ class CourseEditorPage
                                     <span class="dashicons dashicons-external"></span>
                                     <?php echo esc_html__('View Course', 'memberpress-courses-copilot'); ?>
                                 </button>
+                                <button type="button" id="mpcc-duplicate-course" style="display: none;">
+                                    <span class="dashicons dashicons-admin-page"></span>
+                                    <?php echo esc_html__('Duplicate Course', 'memberpress-courses-copilot'); ?>
+                                </button>
                                 <button type="button" id="mpcc-create-course" disabled>
                                     <span class="dashicons dashicons-yes"></span>
                                     <?php echo esc_html__('Create Course', 'memberpress-courses-copilot'); ?>

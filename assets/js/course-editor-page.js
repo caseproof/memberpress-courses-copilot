@@ -85,6 +85,7 @@
             // Course actions
             // Preview button is now handled dynamically
             $('#mpcc-create-course').on('click', this.createCourse.bind(this));
+            $('#mpcc-duplicate-course').on('click', this.duplicateCourse.bind(this));
             
             // Lesson editor events - use event delegation for dynamic content
             $(document).on('click', '.mpcc-lesson-item', this.handleLessonClick.bind(this));
@@ -328,14 +329,21 @@
                 return;
             }
             
-            // Course header with published badge if applicable
+            // Course header with published badge and locked message if applicable
             const publishedBadge = this.publishedCourseId ? 
                 '<span class="mpcc-published-badge"><span class="dashicons dashicons-yes-alt"></span> Published</span>' : '';
+            
+            const lockedMessage = this.publishedCourseId ? `
+                <div class="mpcc-course-locked-notice">
+                    <span class="dashicons dashicons-lock"></span>
+                    <span>This course has been published and is locked for editing.</span>
+                </div>` : '';
             
             const headerHtml = `
                 <div class="mpcc-course-header">
                     <h2>${this.escapeHtml(this.courseStructure.title)} ${publishedBadge}</h2>
                     <p>${this.escapeHtml(this.courseStructure.description || '')}</p>
+                    ${lockedMessage}
                 </div>
             `;
             container.append(headerHtml);
@@ -366,18 +374,24 @@
                 this.renderLesson(lesson, sectionIndex, lessonIndex)
             ).join('');
             
+            // Hide section editing actions if course is published
+            const sectionActions = this.publishedCourseId ? '' : `
+                <div class="mpcc-section-actions">
+                    <button type="button" class="button-link" title="Edit section">
+                        <span class="dashicons dashicons-edit"></span>
+                    </button>
+                    <button type="button" class="button-link" title="Delete section">
+                        <span class="dashicons dashicons-trash"></span>
+                    </button>
+                </div>`;
+            
+            const lockedClass = this.publishedCourseId ? ' mpcc-section-locked' : '';
+            
             return `
-                <div class="mpcc-section" id="${sectionId}" data-section-index="${sectionIndex}">
+                <div class="mpcc-section${lockedClass}" id="${sectionId}" data-section-index="${sectionIndex}">
                     <div class="mpcc-section-header">
                         <h3 class="mpcc-section-title">${this.escapeHtml(section.title)}</h3>
-                        <div class="mpcc-section-actions">
-                            <button type="button" class="button-link" title="Edit section">
-                                <span class="dashicons dashicons-edit"></span>
-                            </button>
-                            <button type="button" class="button-link" title="Delete section">
-                                <span class="dashicons dashicons-trash"></span>
-                            </button>
-                        </div>
+                        ${sectionActions}
                     </div>
                     <div class="mpcc-lessons">
                         ${lessonsHtml}
@@ -390,8 +404,21 @@
             const lessonId = `${sectionIndex}-${lessonIndex}`;
             const hasDraft = lesson.draft_content ? 'has-draft' : '';
             
+            // Hide edit button and add locked class if course is published
+            const isLocked = this.publishedCourseId;
+            const lockedClass = isLocked ? ' mpcc-lesson-locked' : '';
+            const editButton = isLocked ? '' : `
+                <button type="button" class="button-link">
+                    <span class="dashicons dashicons-edit"></span>
+                </button>`;
+                
+            const lockIcon = isLocked ? `
+                <span class="mpcc-lesson-lock-icon" title="Course is published - editing disabled">
+                    <span class="dashicons dashicons-lock"></span>
+                </span>` : '';
+            
             return `
-                <div class="mpcc-lesson-item ${hasDraft}" 
+                <div class="mpcc-lesson-item ${hasDraft}${lockedClass}" 
                      data-lesson-id="${lessonId}"
                      data-section-index="${sectionIndex}"
                      data-lesson-index="${lessonIndex}">
@@ -399,9 +426,8 @@
                         <div class="mpcc-lesson-title">${this.escapeHtml(lesson.title)}</div>
                         <div class="mpcc-lesson-meta">${lesson.duration || 'Duration not set'}</div>
                     </div>
-                    <button type="button" class="button-link">
-                        <span class="dashicons dashicons-edit"></span>
-                    </button>
+                    ${lockIcon}
+                    ${editButton}
                 </div>
             `;
         },
@@ -411,12 +437,24 @@
             const $target = $(e.currentTarget);
             const lessonId = $target.data('lesson-id');
             
+            // Prevent editing if course is published
+            if (this.publishedCourseId) {
+                mpccToast.warning('This course has been published and cannot be edited.');
+                return;
+            }
+            
             if (lessonId) {
                 this.editLesson(lessonId);
             }
         },
         
         editLesson: function(lessonId) {
+            // Prevent editing if course is published
+            if (this.publishedCourseId) {
+                mpccToast.warning('This course has been published and cannot be edited.');
+                return;
+            }
+            
             const [sectionIndex, lessonIndex] = lessonId.split('-').map(Number);
             const lesson = this.courseStructure.sections[sectionIndex].lessons[lessonIndex];
             
@@ -462,6 +500,12 @@
         },
         
         generateLessonContent: function() {
+            // Prevent AI generation if course is published
+            if (this.publishedCourseId) {
+                mpccToast.warning('This course has been published and cannot be edited.');
+                return;
+            }
+            
             if (!this.currentLessonId) return;
             
             const [sectionIndex, lessonIndex] = this.currentLessonId.split('-').map(Number);
@@ -1024,6 +1068,7 @@
         
         updateViewCourseButton: function() {
             const $viewBtn = $('#mpcc-view-course');
+            const $duplicateBtn = $('#mpcc-duplicate-course');
             
             if (this.publishedCourseId && this.publishedCourseUrl) {
                 // Show and setup View Course button
@@ -1033,12 +1078,56 @@
                     .on('click', () => {
                         window.open(this.publishedCourseUrl, '_blank');
                     });
+                
+                // Show duplicate button for published courses
+                $duplicateBtn.show();
             } else {
-                // Hide View Course button
+                // Hide both buttons
                 $viewBtn.hide();
+                $duplicateBtn.hide();
             }
         },
         
+        duplicateCourse: function() {
+            if (!this.publishedCourseId || !this.courseStructure.title) {
+                mpccToast.warning('No published course available to duplicate.');
+                return;
+            }
+            
+            if (confirm('Duplicate this course as a draft? This will create a new editing session with all the course content.')) {
+                const button = $('#mpcc-duplicate-course');
+                button.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Duplicating...');
+                
+                $.ajax({
+                    url: mpccEditorSettings.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'mpcc_duplicate_course',
+                        nonce: mpccEditorSettings.nonce,
+                        session_id: this.sessionId,
+                        course_data: JSON.stringify(this.courseStructure)
+                    },
+                    success: (response) => {
+                        if (response.success) {
+                            mpccToast.success('Course duplicated successfully! Redirecting to new session...');
+                            
+                            // Redirect to the new session
+                            setTimeout(() => {
+                                window.location.href = window.location.pathname + '?page=mpcc-course-editor&session=' + response.data.new_session_id;
+                            }, 1500);
+                        } else {
+                            mpccToast.error(response.data || 'Failed to duplicate course');
+                        }
+                    },
+                    error: () => {
+                        mpccToast.error('Failed to duplicate course. Please try again.');
+                    },
+                    complete: () => {
+                        button.prop('disabled', false).html('<span class="dashicons dashicons-admin-page"></span> Duplicate Course');
+                    }
+                });
+            }
+        },
         
         escapeHtml: function(text) {
             const map = {

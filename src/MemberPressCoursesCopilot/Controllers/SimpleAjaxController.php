@@ -34,6 +34,7 @@ class SimpleAjaxController
         add_action('wp_ajax_mpcc_get_sessions', [$this, 'handleGetSessions']);
         add_action('wp_ajax_mpcc_update_session_title', [$this, 'handleUpdateSessionTitle']);
         add_action('wp_ajax_mpcc_delete_session', [$this, 'handleDeleteSession']);
+        add_action('wp_ajax_mpcc_duplicate_course', [$this, 'handleDuplicateCourse']);
         
         // Override CourseAjaxService handlers with higher priority
         add_action('wp_ajax_mpcc_save_conversation', [$this, 'handleSaveConversation'], 5);
@@ -631,6 +632,79 @@ Format the content with clear headings and sections.";
             } else {
                 throw new \Exception('Failed to delete session');
             }
+            
+        } catch (\Exception $e) {
+            wp_send_json_error($e->getMessage());
+        }
+    }
+    
+    /**
+     * Handle duplicate course
+     */
+    public function handleDuplicateCourse(): void
+    {
+        try {
+            // Verify nonce
+            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+                throw new \Exception('Security check failed');
+            }
+            
+            $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+            $courseData = json_decode(stripslashes($_POST['course_data'] ?? '{}'), true);
+            
+            if (empty($sessionId)) {
+                throw new \Exception('Session ID is required');
+            }
+            
+            if (empty($courseData['title'])) {
+                throw new \Exception('Course data is required');
+            }
+            
+            // Generate a new session ID for the duplicate
+            $newSessionId = 'mpcc_session_' . time() . '_' . wp_generate_password(8, false);
+            
+            // Get the original session data to copy conversation history
+            $originalSessionData = $this->sessionService->getSession($sessionId);
+            
+            if (!$originalSessionData) {
+                throw new \Exception('Original session not found');
+            }
+            
+            // Create the new session with duplicated course structure marked as draft
+            $duplicatedCourseData = $courseData;
+            $duplicatedCourseData['title'] = $duplicatedCourseData['title'] . ' (Draft Copy)';
+            
+            $newSessionData = [
+                'created_at' => current_time('mysql'),
+                'last_updated' => current_time('mysql'),
+                'user_id' => get_current_user_id(),
+                'title' => 'Course: ' . $duplicatedCourseData['title'],
+                'conversation_history' => [],
+                'conversation_state' => [
+                    'course_structure' => $duplicatedCourseData
+                ],
+                // Don't copy the published course info - this is a draft
+                'published_course_id' => null,
+                'published_course_url' => null
+            ];
+            
+            // Save the new session
+            $this->sessionService->saveSession($newSessionId, $newSessionData);
+            
+            // Copy lesson drafts from the original session to the new session
+            $this->lessonDraftService->copySessionDrafts($sessionId, $newSessionId);
+            
+            $this->logger->info('Course duplicated successfully', [
+                'original_session_id' => $sessionId,
+                'new_session_id' => $newSessionId,
+                'course_title' => $duplicatedCourseData['title'],
+                'user_id' => get_current_user_id()
+            ]);
+            
+            wp_send_json_success([
+                'new_session_id' => $newSessionId,
+                'course_title' => $duplicatedCourseData['title']
+            ]);
             
         } catch (\Exception $e) {
             wp_send_json_error($e->getMessage());
