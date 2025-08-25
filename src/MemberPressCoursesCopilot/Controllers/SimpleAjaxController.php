@@ -82,18 +82,29 @@ class SimpleAjaxController
             
             // Clean the message by removing JSON block if course structure was found
             $displayMessage = $content;
-            if ($extractedStructure && $extractedStructure !== $courseStructure) {
-                // Remove the JSON block from the display message
+            
+            // Always try to remove JSON blocks from display (even if extraction failed)
+            if (preg_match('/```json\s*[\s\S]*?\s*```/s', $content)) {
                 $displayMessage = preg_replace('/```json\s*[\s\S]*?\s*```/s', '', $content);
                 $displayMessage = trim($displayMessage);
-                
-                // If the message is now empty, provide a friendly response
+            }
+            
+            // Also remove raw JSON that might not be wrapped in code blocks
+            if (preg_match('/^\s*\{[\s\S]*\}\s*$/s', $content)) {
+                $displayMessage = '';
+            }
+            
+            // If we found a course structure, provide a friendly response
+            if ($extractedStructure && $extractedStructure !== $courseStructure) {
                 if (empty($displayMessage)) {
                     $displayMessage = "I've created a course structure for \"" . $extractedStructure['title'] . "\". " .
                                     "This course includes " . count($extractedStructure['sections']) . " sections " .
                                     "covering all the essential topics. You can preview the course structure on the right, " .
                                     "edit individual lessons, or create the course when you're ready.";
                 }
+            } elseif (empty($displayMessage) && preg_match('/\{[\s\S]*\}/s', $content)) {
+                // If we have JSON but failed to extract it, provide a generic response
+                $displayMessage = "I've generated a course structure for you. You can preview it on the right side of the screen and make any adjustments needed.";
             }
             
             // Update session title when course structure is generated
@@ -520,7 +531,7 @@ Format the content with clear headings and sections.";
      */
     private function extractCourseStructure(string $response, array $currentStructure): ?array
     {
-        // Look for JSON in the response
+        // First, look for JSON in code blocks
         if (preg_match('/```json\s*([\s\S]*?)\s*```/s', $response, $matches)) {
             try {
                 $structure = json_decode($matches[1], true);
@@ -528,7 +539,20 @@ Format the content with clear headings and sections.";
                     return $structure;
                 }
             } catch (\Exception $e) {
-                // Invalid JSON, ignore
+                $this->logger->debug('Failed to parse JSON from code block', ['error' => $e->getMessage()]);
+            }
+        }
+        
+        // If no code block, try to find raw JSON in the response
+        if (preg_match('/(\{[\s\S]*\})/s', $response, $matches)) {
+            try {
+                $structure = json_decode($matches[1], true);
+                if (is_array($structure) && isset($structure['title'])) {
+                    $this->logger->debug('Extracted raw JSON course structure');
+                    return $structure;
+                }
+            } catch (\Exception $e) {
+                $this->logger->debug('Failed to parse raw JSON', ['error' => $e->getMessage()]);
             }
         }
         
