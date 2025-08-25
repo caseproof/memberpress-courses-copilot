@@ -125,8 +125,7 @@
                     // Initialize empty session data
                     this.conversationHistory = [];
                     this.courseStructure = {};
-                    // Save initial empty session
-                    this.saveConversation();
+                    // Don't save empty sessions - wait until there's actual content
                 }
             });
         },
@@ -531,6 +530,15 @@
         },
         
         saveConversation: function() {
+            // Don't save empty conversations
+            const hasContent = this.conversationHistory.length > 0 || 
+                             (this.courseStructure && this.courseStructure.title);
+            
+            if (!hasContent) {
+                console.log('Skipping save - no content to save');
+                return;
+            }
+            
             const conversationState = {
                 course_structure: this.courseStructure
             };
@@ -614,8 +622,10 @@
                 // Generate new session ID
                 const newSessionId = 'mpcc_session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 
-                // Save current session first
-                this.saveConversation();
+                // Save current session first if there's content to save
+                if (this.conversationHistory.length > 0 || (this.courseStructure && this.courseStructure.title)) {
+                    this.saveConversation();
+                }
                 
                 // Redirect to new session
                 window.location.href = window.location.pathname + '?page=mpcc-course-editor&session=' + newSessionId;

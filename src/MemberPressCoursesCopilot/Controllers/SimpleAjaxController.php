@@ -204,6 +204,17 @@ class SimpleAjaxController
                 throw new \Exception('Session ID is required');
             }
             
+            // Check if conversation has meaningful content
+            $hasCourseStructure = isset($conversationState['course_structure']['title']) && 
+                                !empty($conversationState['course_structure']['title']);
+            $hasMessages = is_array($conversationHistory) && count($conversationHistory) > 0;
+            
+            // Don't save empty conversations
+            if (!$hasCourseStructure && !$hasMessages) {
+                wp_send_json_success(['saved' => false, 'message' => 'No content to save']);
+                return;
+            }
+            
             // Get existing session data to preserve title
             $existingData = $this->sessionService->getSession($sessionId);
             
