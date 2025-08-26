@@ -91,10 +91,6 @@ final class Plugin
      */
     public function initializeComponents(): void
     {
-        // Initialize LLM service as global
-        global $mpcc_llm_service;
-        $mpcc_llm_service = new \MemberPressCoursesCopilot\Services\LLMService();
-        
         // Initialize the Simple AJAX controller for handling all AJAX requests
         $simple_ajax_controller = new \MemberPressCoursesCopilot\Controllers\SimpleAjaxController();
         $simple_ajax_controller->init();

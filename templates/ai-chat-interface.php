@@ -8,12 +8,14 @@
 
 defined('ABSPATH') || exit;
 
+use MemberPressCoursesCopilot\Security\NonceConstants;
+
 // Context can be 'course_creation' or 'course_editing'
 $context = $context ?? 'course_editing';
 $post_id = $post_id ?? 0;
 ?>
 
-<input type="hidden" id="mpcc-ajax-nonce" value="<?php echo wp_create_nonce('mpcc_courses_integration'); ?>" />
+<input type="hidden" id="mpcc-ajax-nonce" value="<?php echo NonceConstants::create(NonceConstants::COURSES_INTEGRATION); ?>" />
 <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>">
     <div id="mpcc-chat-messages" class="mpcc-chat-messages">
         <!-- Welcome message will be replaced by conversation history if a session exists -->

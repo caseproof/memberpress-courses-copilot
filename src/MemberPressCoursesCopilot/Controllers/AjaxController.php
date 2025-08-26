@@ -9,6 +9,7 @@ use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\LLMService;
 use MemberPressCoursesCopilot\Models\CourseTemplate;
 use MemberPressCoursesCopilot\Models\GeneratedCourse;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * AJAX Controller
@@ -174,10 +175,10 @@ class AjaxController extends BaseController
         $nonce = $_POST['nonce'] ?? $_POST['_wpnonce'] ?? '';
         
         // Check all possible nonce types that might be used
-        if (!wp_verify_nonce($nonce, 'mpcc_editor_nonce') && 
-            !wp_verify_nonce($nonce, 'mpcc_ajax_nonce') &&
-            !wp_verify_nonce($nonce, 'mpcc_nonce') &&
-            !wp_verify_nonce($nonce, 'mpcc_courses_integration')) {
+        if (!NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false) && 
+            !NonceConstants::verify($nonce, NonceConstants::AJAX_NONCE, false) &&
+            !NonceConstants::verify($nonce, NonceConstants::GENERIC_NONCE, false) &&
+            !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false)) {
             throw new \Exception('Security check failed');
         }
     }
@@ -866,7 +867,7 @@ class AjaxController extends BaseController
     {
         try {
             $nonce = $_GET['nonce'] ?? '';
-            if (!wp_verify_nonce($nonce, 'mpcc_export')) {
+            if (!NonceConstants::verify($nonce, NonceConstants::EXPORT, false)) {
                 throw new \Exception('Invalid nonce');
             }
 
@@ -1941,7 +1942,7 @@ class AjaxController extends BaseController
         $streamKey = "mpcc_stream_{$sessionId}";
         $updates = get_transient($streamKey) ?: [];
         
-        $update['id'] = uniqid('update_', true);
+        $update['id'] = 'update_' . wp_generate_uuid4();
         $update['timestamp'] = current_time('c');
         
         $updates[] = $update;

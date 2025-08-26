@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Services\BaseService;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * Course Asset Service
@@ -146,7 +147,7 @@ class CourseAssetService extends BaseService
         // Localize script with needed data
         wp_localize_script('mpcc-courses-integration', 'mpccCoursesIntegration', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('mpcc_courses_integration'),
+            'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION),
             'strings' => [
                 'createWithAI' => __('Create with AI', 'memberpress-courses-copilot'),
                 'aiAssistant' => __('AI Assistant', 'memberpress-courses-copilot'),
@@ -160,7 +161,7 @@ class CourseAssetService extends BaseService
         // Localize simple AI chat script
         wp_localize_script('mpcc-simple-ai-chat', 'mpccAISettings', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('mpcc_courses_integration')
+            'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION)
         ]);
     }
 

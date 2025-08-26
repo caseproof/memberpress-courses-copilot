@@ -89,9 +89,11 @@
             const $button = $(e.currentTarget);
             const suggestion = $button.data('suggestion');
             
-            // Add the suggestion to the chat input and send
+            // Add the suggestion to the chat input and trigger send event
             $('#mpcc-chat-input').val(suggestion);
-            $('#mpcc-send-message').trigger('click');
+            
+            // Trigger the click event with the proper namespace to ensure the right handler is called
+            $('#mpcc-send-message').trigger('click.mpcc-chat-send');
             
             // Ensure input is cleared after triggering send
             setTimeout(function() {

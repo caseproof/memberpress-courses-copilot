@@ -64,7 +64,7 @@ class ConversationSession
     public function addMessage(string $type, string $content, array $metadata = []): void
     {
         $message = [
-            'id' => uniqid('msg_'),
+            'id' => 'msg_' . wp_generate_uuid4(),
             'type' => $type, // 'user', 'assistant', 'system'
             'content' => $content,
             'metadata' => $metadata,

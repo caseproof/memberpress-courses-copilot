@@ -149,43 +149,7 @@ li.mpcc-lesson-item:hover {
     margin: 0;
 }
 
-/* Notifications */
-.mpcc-notification {
-    position: fixed;
-    top: 50px;
-    right: 20px;
-    max-width: 400px;
-    padding: 15px 20px;
-    background: #fff;
-    border-left: 4px solid #0073aa;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 9999;
-    animation: slideIn 0.3s ease-out;
-}
-
-.mpcc-notification-error {
-    border-left-color: #dc3232;
-}
-
-.mpcc-notification-success {
-    border-left-color: #46b450;
-}
-
-.mpcc-notification p {
-    margin: 0;
-    font-size: 14px;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
+/* Notifications - Using toast.css and ai-copilot.css notification styles */
 
 /* Loading States */
 .mpcc-content-loading {
@@ -254,11 +218,7 @@ li.mpcc-lesson-item:hover {
         gap: 10px;
     }
     
-    .mpcc-notification {
-        right: 10px;
-        left: 10px;
-        max-width: none;
-    }
+    /* Notification responsive styles in ai-copilot.css */
     
     .mpcc-lesson-content:hover:not(.editing)::after {
         display: none;
@@ -287,8 +247,5 @@ li.mpcc-lesson-item:hover {
         box-shadow: 0 0 0 1px #4a90e2;
     }
     
-    .mpcc-notification {
-        background-color: #2a2a2a;
-        color: #fff;
-    }
+    /* Notification dark mode styles in ai-copilot.css */
 }

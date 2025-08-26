@@ -8,6 +8,8 @@
 
 defined('ABSPATH') || exit;
 
+use MemberPressCoursesCopilot\Security\NonceConstants;
+
 // Get current user info
 $current_user = wp_get_current_user();
 ?>
@@ -145,7 +147,7 @@ $current_user = wp_get_current_user();
     <form id="mpcc-course-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display: none;">
         <input type="hidden" name="action" value="mpcc_create_course">
         <input type="hidden" name="course_data" id="mpcc-course-data" value="">
-        <?php wp_nonce_field('mpcc_create_course', 'mpcc_create_course_nonce'); ?>
+        <?php NonceConstants::field(NonceConstants::CREATE_COURSE, 'mpcc_create_course_nonce'); ?>
     </form>
 </div>
 

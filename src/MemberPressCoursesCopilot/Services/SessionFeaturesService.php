@@ -3,6 +3,7 @@
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Models\ConversationSession;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * Session Features Service
@@ -131,8 +132,15 @@ class SessionFeaturesService extends BaseService
     public function handleAjaxAutoSave(): void
     {
         // Verify nonce and permissions
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_auto_save_nonce')) {
-            wp_die('Security check failed');
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AUTO_SAVE_SESSION, false)) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+
+        // Check user permissions
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
         }
         
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
@@ -233,8 +241,15 @@ class SessionFeaturesService extends BaseService
      */
     public function handleSessionExtension(): void
     {
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_extend_session_nonce')) {
-            wp_die('Security check failed');
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EXTEND_SESSION, false)) {
+            wp_send_json_error('Security check failed');
+            return;
+        }
+
+        // Check user permissions
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
         }
         
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
@@ -607,7 +622,7 @@ class SessionFeaturesService extends BaseService
     private function compressExportData(array $data): array { return $data; }
     private function validateImportData(array $data): array { return ['valid' => true, 'errors' => []]; }
     private function decompressImportData(array $data): array { return $data; }
-    private function generateNewSessionId(): string { return 'imported_' . uniqid(); }
+    private function generateNewSessionId(): string { return 'imported_' . wp_generate_uuid4(); }
     private function canUserSyncSession(int $sessionUserId, int $currentUserId): bool { return $sessionUserId === $currentUserId; }
     private function generateServerSyncState(ConversationSession $session): array { return []; }
     private function detectSyncConflict(array $serverState, array $clientState): bool { return false; }

@@ -6,6 +6,7 @@ namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Services\BaseService;
 use MemberPressCoursesCopilot\Utilities\Logger;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * Course Integration Service
@@ -155,7 +156,7 @@ class CourseIntegrationService extends BaseService
      */
     public function renderAIAssistantMetaBox(\WP_Post $post): void
     {
-        wp_nonce_field('mpcc_ai_assistant', 'mpcc_ai_assistant_nonce');
+        NonceConstants::field(NonceConstants::AI_ASSISTANT, 'mpcc_ai_assistant_nonce');
         
         ?>
         <div id="mpcc-ai-assistant-metabox">
@@ -207,7 +208,7 @@ class CourseIntegrationService extends BaseService
                             type: 'POST',
                             data: {
                                 action: 'mpcc_load_ai_interface',
-                                nonce: '<?php echo wp_create_nonce('mpcc_ai_interface'); ?>',
+                                nonce: '<?php echo NonceConstants::create(NonceConstants::AI_INTERFACE); ?>',
                                 context: 'course_editing',
                                 post_id: <?php echo (int) $post->ID; ?>
                             },

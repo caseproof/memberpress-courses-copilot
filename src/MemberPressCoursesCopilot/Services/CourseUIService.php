@@ -6,6 +6,7 @@ namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Services\BaseService;
 use MemberPressCoursesCopilot\Services\EnhancedTemplateEngine;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * Course UI Service
@@ -51,7 +52,7 @@ class CourseUIService extends BaseService
                 : '1.0.0',
             'text_domain' => 'memberpress-courses-copilot',
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('mpcc_courses_integration')
+            'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION)
         ]);
         
         // Register hooks for UI rendering
@@ -110,7 +111,7 @@ class CourseUIService extends BaseService
      */
     public function renderAIAssistantMetaBox(\WP_Post $post): void
     {
-        wp_nonce_field('mpcc_ai_assistant', 'mpcc_ai_assistant_nonce');
+        NonceConstants::field(NonceConstants::AI_ASSISTANT, 'mpcc_ai_assistant_nonce');
         
         $this->logger->debug('Rendering AI Assistant meta box', [
             'post_id' => $post->ID
@@ -330,7 +331,7 @@ class CourseUIService extends BaseService
                 'error' => __('An error occurred', 'memberpress-courses-copilot')
             ],
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('mpcc_courses_integration')
+            'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION)
         ]);
     }
     
@@ -377,7 +378,7 @@ class CourseUIService extends BaseService
     {
         echo $this->templateEngine->render('admin/partials/inline-scripts', [
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('mpcc_courses_integration')
+            'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION)
         ]);
     }
 }

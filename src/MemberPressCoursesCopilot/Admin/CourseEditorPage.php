@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MemberPressCoursesCopilot\Admin;
 
+use MemberPressCoursesCopilot\Security\NonceConstants;
+
 /**
  * Standalone Course Editor Page
  * 
@@ -107,7 +109,7 @@ class CourseEditorPage
         wp_localize_script('mpcc-course-editor', 'mpccEditorSettings', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'apiUrl' => home_url('/wp-json/wp/v2/'),
-            'nonce' => wp_create_nonce('mpcc_editor_nonce'),
+            'nonce' => NonceConstants::create(NonceConstants::EDITOR_NONCE),
             'sessionId' => $this->getOrCreateSessionId(),
             'strings' => [
                 'saving' => __('Saving...', 'memberpress-courses-copilot'),
@@ -240,7 +242,7 @@ class CourseEditorPage
                     </div>
                     
                     <!-- Hidden fields for AJAX nonces -->
-                    <input type="hidden" id="mpcc-ajax-nonce" value="<?php echo wp_create_nonce('mpcc_courses_integration'); ?>" />
+                    <input type="hidden" id="mpcc-ajax-nonce" value="<?php echo NonceConstants::create(NonceConstants::COURSES_INTEGRATION); ?>" />
                     
                     <!-- Course Content Editor -->
                     <div class="mpcc-editor-main">

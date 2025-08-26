@@ -116,35 +116,32 @@ jQuery(document).ready(function($) {
      * Show non-blocking notification
      */
     window.showNotification = function(message, type = 'info') {
-        // Remove any existing notifications
-        jQuery('.mpcc-notification').remove();
-        
-        // Create notification element
-        const notification = jQuery('<div class="mpcc-notification mpcc-notification-' + type + '">' +
-            '<div class="mpcc-notification-content">' +
-                '<span class="mpcc-notification-icon dashicons dashicons-' + 
-                (type === 'success' ? 'yes-alt' : type === 'error' ? 'dismiss' : 'info-outline') + 
-                '"></span>' +
-                '<span class="mpcc-notification-text">' + message + '</span>' +
-            '</div>' +
-        '</div>');
-        
-        // Add to page
-        jQuery('body').append(notification);
-        
-        // Animate in
-        setTimeout(function() {
-            notification.addClass('mpcc-notification-show');
-        }, 10);
-        
-        // Auto-hide after 5 seconds (except for info during processing)
-        if (type !== 'info' || !message.includes('Creating')) {
+        // Use shared utility if available
+        if (window.MPCCUtils && window.MPCCUtils.showNotification) {
+            window.MPCCUtils.showNotification(message, type);
+        } else {
+            // Fallback implementation
+            jQuery('.mpcc-notification').remove();
+            const notification = jQuery('<div class="mpcc-notification mpcc-notification-' + type + '">' +
+                '<div class="mpcc-notification-content">' +
+                    '<span class="mpcc-notification-icon dashicons dashicons-' + 
+                    (type === 'success' ? 'yes-alt' : type === 'error' ? 'dismiss' : 'info-outline') + 
+                    '"></span>' +
+                    '<span class="mpcc-notification-text">' + message + '</span>' +
+                '</div>' +
+            '</div>');
+            jQuery('body').append(notification);
             setTimeout(function() {
-                notification.removeClass('mpcc-notification-show');
+                notification.addClass('mpcc-notification-show');
+            }, 10);
+            if (type !== 'info' || !message.includes('Creating')) {
                 setTimeout(function() {
-                    notification.remove();
-                }, 300);
-            }, 5000);
+                    notification.removeClass('mpcc-notification-show');
+                    setTimeout(function() {
+                        notification.remove();
+                    }, 300);
+                }, 5000);
+            }
         }
     }
     
@@ -629,61 +626,47 @@ jQuery(document).ready(function($) {
      * Format text message to HTML with proper structure
      */
     function formatMessageToHTML(message) {
-        // First, handle escaped characters from the server
+        // Use shared utility if available
+        if (window.MPCCUtils && window.MPCCUtils.formatMessageToHTML) {
+            return window.MPCCUtils.formatMessageToHTML(message);
+        }
+        
+        // Fallback implementation
         let formatted = message
-            .replace(/\\'/g, "'")      // Replace escaped single quotes
-            .replace(/\\"/g, '"')      // Replace escaped double quotes
-            .replace(/\\\\/g, '\\')    // Replace escaped backslashes
-            .replace(/\\n/g, '\n')     // Replace escaped newlines with actual newlines
-            .replace(/\\r/g, '\r')     // Replace escaped carriage returns
-            .replace(/\\t/g, '\t');    // Replace escaped tabs
+            .replace(/\\'/g, "'")      
+            .replace(/\\"/g, '"')      
+            .replace(/\\\\/g, '\\')    
+            .replace(/\\n/g, '\n')     
+            .replace(/\\r/g, '\r')     
+            .replace(/\\t/g, '\t');    
         
-        // Escape HTML to prevent XSS
         formatted = $('<div>').text(formatted).html();
-        
-        // Convert numbered lists (e.g., "1. Item" or "1) Item")
         formatted = formatted.replace(/^(\d+)[\.\)]\s+(.+)$/gm, '<li value="$1">$2</li>');
-        
-        // Wrap consecutive list items in <ol> tags
         formatted = formatted.replace(/(<li.*?<\/li>\n?)+/g, function(match) {
             return '<ol>' + match + '</ol>';
         });
-        
-        // Convert bullet points (-, *, •) to unordered lists
         formatted = formatted.replace(/^\s*[-*•]\s+(.+)$/gm, '<li>$1</li>');
-        
-        // Handle indented lines that should be list items (2+ spaces at start)
         formatted = formatted.replace(/^\s{2,}(?!<li>)(.+)$/gm, '<li>$1</li>');
-        
-        // Wrap consecutive unordered list items
         formatted = formatted.replace(/(<li>.*?<\/li>\n?)+/g, function(match) {
-            // Only wrap if not already in an ordered list
             if (!match.includes('value=')) {
                 return '<ul>' + match + '</ul>';
             }
             return match;
         });
         
-        // Convert double line breaks to paragraphs
         const paragraphs = formatted.split(/\n\n+/);
         formatted = paragraphs.map(para => {
             para = para.trim();
-            // Don't wrap lists or empty strings in paragraphs
             if (para && !para.startsWith('<ul>') && !para.startsWith('<ol>')) {
-                // Replace single line breaks with spaces within paragraphs
-                // This prevents excessive <br> tags for normal text flow
                 para = para.replace(/\n/g, ' ');
                 return '<p>' + para + '</p>';
             }
             return para;
         }).join('');
         
-        // Only add <br> for line breaks within lists
         formatted = formatted.replace(/(<li[^>]*>)(.*?)(<\/li>)/g, function(match, start, content, end) {
             return start + content.replace(/\n/g, '<br>') + end;
         });
-        
-        // Clean up any double-wrapped lists
         formatted = formatted.replace(/<p>(<[uo]l>.*?<\/[uo]l>)<\/p>/g, '$1');
         
         return formatted;
@@ -906,8 +889,8 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // Handle send button click with delegation
-    $(document).off('click', '#mpcc-send-message').on('click', '#mpcc-send-message', function() {
+    // Handle send button click with delegation - use namespace to avoid conflicts
+    $(document).off('click.mpcc-chat-send').on('click.mpcc-chat-send', '#mpcc-send-message', function() {
         const message = $('#mpcc-chat-input').val().trim();
         if (!message) return;
         
@@ -1144,25 +1127,8 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // Close modal when clicking the close button
-    $(document).on('click', '.mpcc-modal-close', function(e) {
-        e.preventDefault();
-        $('#mpcc-modal-overlay').removeClass('mpcc-modal-open');
-    });
-    
-    // Close modal when clicking outside the modal container
-    $(document).on('click', '#mpcc-modal-overlay', function(e) {
-        if (e.target === this) {
-            $(this).removeClass('mpcc-modal-open');
-        }
-    });
-    
-    // Close modal on ESC key
-    $(document).on('keydown', function(e) {
-        if (e.key === 'Escape' && $('#mpcc-modal-overlay').hasClass('mpcc-modal-open')) {
-            $('#mpcc-modal-overlay').removeClass('mpcc-modal-open');
-        }
-    });
+    // Modal close handlers are now managed by shared utilities
+    // Only handle session-specific modal behavior if needed
     
     $(document).on('click.mpcc-session', '#mpcc-new-conversation-btn', function(e) {
         e.preventDefault();

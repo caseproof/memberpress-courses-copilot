@@ -10,6 +10,7 @@ use MemberPressCoursesCopilot\Services\SessionService;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Utilities\Logger;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * Simple AJAX Controller for standalone course editor page
@@ -60,7 +61,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -165,7 +166,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -205,7 +206,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -283,7 +284,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -363,7 +364,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -392,7 +393,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -422,7 +423,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -514,7 +515,7 @@ Format the content with clear headings and sections.";
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -569,9 +570,9 @@ Format the content with clear headings and sections.";
         try {
             // Verify nonce - accept multiple nonce types
             $nonce = $_POST['nonce'] ?? '';
-            if (!wp_verify_nonce($nonce, 'mpcc_editor_nonce') && 
-                !wp_verify_nonce($nonce, 'mpcc_courses_integration') &&
-                !wp_verify_nonce($nonce, 'mpcc_ai_interface')) {
+            if (!NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false) && 
+                !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
+                !NonceConstants::verify($nonce, NonceConstants::AI_INTERFACE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -606,7 +607,7 @@ Format the content with clear headings and sections.";
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -645,7 +646,7 @@ Format the content with clear headings and sections.";
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
