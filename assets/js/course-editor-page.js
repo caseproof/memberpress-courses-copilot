@@ -402,6 +402,38 @@
             // Update view course button visibility and functionality
             this.updateViewCourseButton();
             
+            // Disable chat for published courses
+            if (this.publishedCourseId) {
+                // Disable chat input and send button
+                $('#mpcc-chat-input').prop('disabled', true)
+                    .attr('placeholder', 'This course has been published. Use "Duplicate Course" to create a new version.');
+                $('#mpcc-send-message').prop('disabled', true);
+                
+                // Hide quick starter suggestions
+                $('#mpcc-quick-starter-suggestions').hide();
+                
+                // Add info message if not already present
+                if (!$('.mpcc-chat-disabled-notice').length) {
+                    $('.mpcc-chat-input-wrapper').prepend(
+                        '<div class="mpcc-chat-disabled-notice">' +
+                        '<span class="dashicons dashicons-info"></span> ' +
+                        'This course is published and locked. To make changes, use the "Duplicate Course" button above.' +
+                        '</div>'
+                    );
+                }
+            } else {
+                // Re-enable chat for draft courses
+                $('#mpcc-chat-input').prop('disabled', false)
+                    .attr('placeholder', 'Type a message...');
+                $('#mpcc-send-message').prop('disabled', false);
+                
+                // Show quick starter suggestions
+                $('#mpcc-quick-starter-suggestions').show();
+                
+                // Remove disabled notice
+                $('.mpcc-chat-disabled-notice').remove();
+            }
+            
         },
         
         renderSection: function(section, sectionIndex) {
