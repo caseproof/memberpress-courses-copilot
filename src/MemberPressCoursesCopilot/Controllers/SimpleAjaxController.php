@@ -319,8 +319,14 @@ class SimpleAjaxController
             $session->clearMessages();
             foreach ($conversationHistory as $msg) {
                 if (isset($msg['role']) && isset($msg['content'])) {
-                    $type = $msg['role']; // 'user' or 'assistant'
-                    $session->addMessage($type, $msg['content'], []);
+                    // Map frontend 'role' to backend 'type' field
+                    $messageType = $msg['role'] === 'user' ? 'user' : 
+                                  ($msg['role'] === 'assistant' ? 'assistant' : 'system');
+                    $metadata = [];
+                    if (isset($msg['timestamp'])) {
+                        $metadata['timestamp'] = $msg['timestamp'];
+                    }
+                    $session->addMessage($messageType, $msg['content'], $metadata);
                 }
             }
             
@@ -774,9 +780,7 @@ If modifying an existing course, include ALL sections and lessons (both existing
                 
                 $this->logger->info('Session deleted', [
                     'session_id' => $sessionId,
-                    'user_id' => get_current_user_id(),
-                    'deleted_from_cm' => $deletedFromCM,
-                    'deleted_from_ss' => $deletedFromSS
+                    'user_id' => get_current_user_id()
                 ]);
                 
                 wp_send_json_success(['deleted' => true]);

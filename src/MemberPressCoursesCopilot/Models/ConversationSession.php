@@ -214,14 +214,6 @@ class ConversationSession
         return $this->context[$key] ?? $default;
     }
 
-    /**
-     * Restore context from history item
-     */
-    public function restoreContext(array $context): void
-    {
-        $this->context = $context;
-        $this->markAsModified();
-    }
 
     /**
      * Set progress percentage

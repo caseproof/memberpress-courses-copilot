@@ -855,11 +855,21 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $conversationHistory = $_POST['conversation_history'] ?? [];
             $conversationState = $_POST['conversation_state'] ?? [];
             
+            $this->logger->info('Saving conversation - received data', [
+                'message_count' => count($conversationHistory),
+                'first_message' => count($conversationHistory) > 0 ? $conversationHistory[0] : null,
+                'message_keys' => count($conversationHistory) > 0 ? array_keys($conversationHistory[0]) : []
+            ]);
+            
             // Clear existing messages and add new ones
             $session->clearMessages();
             foreach ($conversationHistory as $message) {
+                // The frontend sends 'role' but ConversationSession expects 'type' for the first parameter
+                // Map 'role' to the message type expected by addMessage
+                $messageType = $message['role'] === 'user' ? 'user' : 
+                              ($message['role'] === 'assistant' ? 'assistant' : 'system');
                 $session->addMessage(
-                    $message['role'],
+                    $messageType,
                     $message['content'],
                     ['timestamp' => $message['timestamp'] ?? time()]
                 );
@@ -891,10 +901,14 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             // Save to database
             $saved = $conversationManager->saveSession($session);
             
+            // Verify what was actually saved
+            $savedMessages = $session->getMessages();
             $this->logger->info('Saved conversation', [
                 'session_id' => $sessionId,
                 'user_id' => get_current_user_id(),
-                'messages_count' => count($conversationHistory)
+                'messages_count' => count($conversationHistory),
+                'saved_messages_count' => count($savedMessages),
+                'first_saved_message' => count($savedMessages) > 0 ? $savedMessages[0] : null
             ]);
             
             wp_send_json_success([
@@ -951,13 +965,17 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             
             $this->logger->info('Processing messages from session', [
                 'total_messages' => count($allMessages),
-                'raw_messages' => json_encode($allMessages)
+                'first_message_structure' => count($allMessages) > 0 ? array_keys($allMessages[0]) : 'no messages',
+                'sample_message' => count($allMessages) > 0 ? $allMessages[0] : null
             ]);
             
             foreach ($allMessages as $message) {
                 if ($message['type'] !== 'system') {
+                    // Map backend 'type' to frontend 'role' field
+                    $role = $message['type'] === 'user' ? 'user' : 
+                           ($message['type'] === 'assistant' ? 'assistant' : $message['type']);
                     $messages[] = [
-                        'role' => $message['type'],
+                        'role' => $role,
                         'content' => $message['content'],
                         'timestamp' => $message['timestamp']
                     ];

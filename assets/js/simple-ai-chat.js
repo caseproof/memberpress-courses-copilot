@@ -265,8 +265,26 @@ jQuery(document).ready(function($) {
                         collected_data: {} 
                     };
                     
+                    console.log('MPCC DEBUG: Loaded conversation data');
                     console.log('Stored conversation history:', window.mpccConversationHistory);
                     console.log('History length:', window.mpccConversationHistory.length);
+                    if (window.mpccConversationHistory.length > 0) {
+                        console.log('First message structure:', window.mpccConversationHistory[0]);
+                        console.log('Message has role field:', 'role' in window.mpccConversationHistory[0]);
+                        console.log('Message role value:', window.mpccConversationHistory[0].role);
+                        console.log('Message has content field:', 'content' in window.mpccConversationHistory[0]);
+                        console.log('Message content preview:', window.mpccConversationHistory[0].content ? window.mpccConversationHistory[0].content.substring(0, 100) : 'No content');
+                        
+                        // Log all messages for debugging
+                        window.mpccConversationHistory.forEach((msg, idx) => {
+                            console.log(`Message ${idx}:`, {
+                                role: msg.role,
+                                contentLength: msg.content ? msg.content.length : 0,
+                                contentPreview: msg.content ? msg.content.substring(0, 50) + '...' : 'No content',
+                                timestamp: msg.timestamp
+                            });
+                        });
+                    }
                     console.log('Before rebuildChatInterface - Container exists:', $('#mpcc-chat-messages').length > 0);
                     console.log('Container HTML:', $('#mpcc-chat-messages').html());
                     
@@ -522,10 +540,17 @@ jQuery(document).ready(function($) {
             // Add messages from history
             window.mpccConversationHistory.forEach(function(message, index) {
                 console.log('Processing message', index, ':', message);
+                console.log('Message role:', message.role, 'Message content length:', message.content ? message.content.length : 0);
+                console.log('Message content preview:', message.content ? message.content.substring(0, 100) : 'No content');
+                
                 if (message.role === 'user') {
+                    console.log('Adding user message');
                     addUserMessage(message.content, false);
                 } else if (message.role === 'assistant') {
+                    console.log('Adding assistant message');
                     addAssistantMessage(message.content, false);
+                } else {
+                    console.log('Skipping message with role:', message.role);
                 }
             });
             
