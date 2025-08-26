@@ -75,6 +75,7 @@ class AssetManager extends BaseService
         $this->registerStyle('mpcc-toast', 'assets/css/toast.css', ['dashicons']);
         $this->registerStyle('mpcc-course-editor', 'assets/css/course-editor-page.css', ['wp-components']);
         $this->registerStyle('mpcc-course-edit-ai-chat', 'assets/css/course-edit-ai-chat.css', ['dashicons']);
+        $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons']);
         
         // Component styles
         // Removed mpcc-modal-styles and mpcc-metabox-styles - files don't exist

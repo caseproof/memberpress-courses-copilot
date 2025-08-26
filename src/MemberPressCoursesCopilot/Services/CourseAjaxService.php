@@ -163,14 +163,14 @@ class CourseAjaxService extends BaseService
             <script type="text/javascript">
             // Initialize basic chat functionality
             jQuery(document).ready(function($) {
-                $('#mpcc-send-message').on('click', function() {
-                    var message = $('#mpcc-chat-input').val().trim();
+                $('#mpcc-course-send-message').on('click', function() {
+                    var message = $('#mpcc-course-chat-input').val().trim();
                     if (message) {
                         // Add user message to chat
                         var userMessage = '<div style="margin-bottom: 15px; text-align: right;"><div style="display: inline-block; background: #0073aa; color: white; padding: 10px 15px; border-radius: 18px; max-width: 70%;">' + message + '</div></div>';
                         $('#mpcc-chat-messages').append(userMessage);
                         $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
-                        $('#mpcc-chat-input').val('');
+                        $('#mpcc-course-chat-input').val('');
                         
                         // Show typing indicator
                         var typingIndicator = '<div id="mpcc-typing" style="margin-bottom: 15px;"><div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px;"><span style="animation: pulse 1.5s infinite;">AI is typing...</span></div></div>';
@@ -187,9 +187,9 @@ class CourseAjaxService extends BaseService
                     }
                 });
                 
-                $('#mpcc-chat-input').on('keypress', function(e) {
+                $('#mpcc-course-chat-input').on('keypress', function(e) {
                     if (e.which === 13) {
-                        $('#mpcc-send-message').click();
+                        $('#mpcc-course-send-message').click();
                     }
                 });
             });
@@ -1654,13 +1654,16 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
         
         // Check permissions
-        if (!current_user_can('edit_courses')) {
+        $courseId = isset($_POST['course_id']) ? (int) $_POST['course_id'] : 0;
+        if ($courseId && !current_user_can('edit_post', $courseId)) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        } elseif (!$courseId && !current_user_can('edit_posts')) {
             wp_send_json_error('Insufficient permissions');
             return;
         }
         
         $message = sanitize_text_field($_POST['message'] ?? '');
-        $courseId = isset($_POST['course_id']) ? (int) $_POST['course_id'] : 0;
         $courseData = isset($_POST['course_data']) ? json_decode(wp_unslash($_POST['course_data']), true) : [];
         $conversationHistory = isset($_POST['conversation_history']) ? json_decode(wp_unslash($_POST['conversation_history']), true) : [];
         
