@@ -276,6 +276,12 @@
             this.conversationHistory.forEach(msg => {
                 this.addMessage(msg.role, msg.content, false);
             });
+            
+            // Hide quickstart suggestions if there are any AI responses in history
+            const hasAssistantMessages = this.conversationHistory.some(msg => msg.role === 'assistant');
+            if (hasAssistantMessages) {
+                $('#mpcc-quick-starter-suggestions').addClass('hidden');
+            }
         },
         
         sendMessage: function() {
@@ -330,11 +336,6 @@
             if (addToHistory) {
                 this.conversationHistory.push({ role, content });
             }
-            
-            // Hide quick starters after first message
-            if (this.conversationHistory.length > 1) {
-                $('#mpcc-quick-starter-suggestions').addClass('hidden');
-            }
         },
         
         handleQuickStarter: function(e) {
@@ -388,6 +389,9 @@
                     
                     if (response.success) {
                         this.addMessage('assistant', response.data.message);
+                        
+                        // Hide quick starter suggestions after AI responds
+                        $('#mpcc-quick-starter-suggestions').addClass('hidden');
                         
                         if (response.data.course_structure) {
                             // Handle course structure that might be in JSON string format
@@ -518,8 +522,11 @@
                     .attr('placeholder', 'Type a message...');
                 $('#mpcc-send-message').prop('disabled', false);
                 
-                // Show quick starter suggestions
-                $('#mpcc-quick-starter-suggestions').show();
+                // Show quick starter suggestions only if no AI responses yet
+                const hasAssistantMessages = this.conversationHistory.some(msg => msg.role === 'assistant');
+                if (!hasAssistantMessages) {
+                    $('#mpcc-quick-starter-suggestions').removeClass('hidden').show();
+                }
                 
                 // Remove disabled notice
                 $('.mpcc-chat-disabled-notice').remove();
