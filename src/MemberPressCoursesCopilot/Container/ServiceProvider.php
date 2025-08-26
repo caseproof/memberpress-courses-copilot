@@ -8,7 +8,6 @@ use MemberPressCoursesCopilot\Services\{
     DatabaseService,
     LLMService,
     ConversationManager,
-    SessionService,
     ContentGenerationService,
     CourseGeneratorService,
     LessonDraftService,
@@ -102,12 +101,6 @@ class ServiceProvider
         // LLM Service (singleton)
         $container->register(LLMService::class, function (Container $container) {
             return new LLMService();
-        }, true);
-        
-        // Session Service (singleton)
-        $container->register(SessionService::class, function (Container $container) {
-            $databaseService = $container->get(DatabaseService::class);
-            return new SessionService($databaseService);
         }, true);
         
         // Conversation Manager (singleton)
@@ -219,7 +212,6 @@ class ServiceProvider
         $container->alias('logger', Logger::class);
         $container->alias('database', DatabaseService::class);
         $container->alias('llm', LLMService::class);
-        $container->alias('session', SessionService::class);
         $container->alias('conversation', ConversationManager::class);
         $container->alias('content', ContentGenerationService::class);
         $container->alias('course_generator', CourseGeneratorService::class);
