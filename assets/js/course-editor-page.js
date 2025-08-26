@@ -134,6 +134,11 @@
                         
                         // Update view course button based on published status
                         this.updateViewCourseButton();
+                        
+                        // Load all lesson drafts for this session
+                        if (this.courseStructure && this.courseStructure.sections) {
+                            this.loadAllLessonDrafts();
+                        }
                     }
                 },
                 error: (xhr) => {
@@ -144,6 +149,36 @@
                     this.publishedCourseId = null;
                     this.publishedCourseUrl = null;
                     // Don't save empty sessions - wait until there's actual content
+                }
+            });
+        },
+        
+        loadAllLessonDrafts: function() {
+            // Load all lesson drafts for the current session
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_get_session_drafts',
+                    nonce: mpccEditorSettings.nonce,
+                    session_id: this.sessionId
+                },
+                success: (response) => {
+                    if (response.success && response.data) {
+                        // Map drafts to lessons
+                        response.data.forEach(draft => {
+                            const sectionIndex = parseInt(draft.section_id);
+                            const lessonIndex = parseInt(draft.lesson_id);
+                            
+                            if (this.courseStructure.sections[sectionIndex] && 
+                                this.courseStructure.sections[sectionIndex].lessons[lessonIndex]) {
+                                this.courseStructure.sections[sectionIndex].lessons[lessonIndex].draft_content = draft.content;
+                            }
+                        });
+                        
+                        // Re-render course structure with draft indicators
+                        this.renderCourseStructure();
+                    }
                 }
             });
         },

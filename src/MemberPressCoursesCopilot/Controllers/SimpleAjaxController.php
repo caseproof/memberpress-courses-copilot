@@ -36,6 +36,7 @@ class SimpleAjaxController
         add_action('wp_ajax_mpcc_update_session_title', [$this, 'handleUpdateSessionTitle']);
         add_action('wp_ajax_mpcc_delete_session', [$this, 'handleDeleteSession']);
         add_action('wp_ajax_mpcc_duplicate_course', [$this, 'handleDuplicateCourse']);
+        add_action('wp_ajax_mpcc_get_session_drafts', [$this, 'handleGetSessionDrafts']);
         
         // Override CourseAjaxService handlers with higher priority
         add_action('wp_ajax_mpcc_save_conversation', [$this, 'handleSaveConversation'], 5);
@@ -706,6 +707,33 @@ Format the content with clear headings and sections.";
                 'new_session_id' => $newSessionId,
                 'course_title' => $duplicatedCourseData['title']
             ]);
+            
+        } catch (\Exception $e) {
+            wp_send_json_error($e->getMessage());
+        }
+    }
+    
+    /**
+     * Handle get session drafts
+     */
+    public function handleGetSessionDrafts(): void
+    {
+        try {
+            // Verify nonce
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE)) {
+                throw new \Exception('Security check failed');
+            }
+            
+            $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+            
+            if (empty($sessionId)) {
+                throw new \Exception('Session ID is required');
+            }
+            
+            // Get all drafts for the session
+            $drafts = $this->lessonDraftService->getSessionDrafts($sessionId);
+            
+            wp_send_json_success($drafts);
             
         } catch (\Exception $e) {
             wp_send_json_error($e->getMessage());
