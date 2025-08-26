@@ -77,8 +77,7 @@ class AssetManager extends BaseService
         $this->registerStyle('mpcc-course-editor', 'assets/css/course-editor-page.css', ['wp-components']);
         
         // Component styles
-        $this->registerStyle('mpcc-modal-styles', 'assets/css/modal.css');
-        $this->registerStyle('mpcc-metabox-styles', 'assets/css/metabox.css');
+        // Removed mpcc-modal-styles and mpcc-metabox-styles - files don't exist
     }
     
     /**
@@ -118,17 +117,7 @@ class AssetManager extends BaseService
         );
         
         // Component scripts
-        $this->registerScript(
-            'mpcc-modal-component',
-            'assets/js/modal-component.js',
-            ['jquery']
-        );
-        
-        $this->registerScript(
-            'mpcc-metabox-component',
-            'assets/js/metabox-component.js',
-            ['jquery']
-        );
+        // Removed mpcc-modal-component and mpcc-metabox-component - files don't exist
         
         // Add localizations
         $this->addScriptLocalizations();
@@ -269,8 +258,7 @@ class AssetManager extends BaseService
      */
     private function enqueueCourseEditorAssets(): void
     {
-        wp_enqueue_style('mpcc-metabox-styles');
-        wp_enqueue_script('mpcc-metabox-component');
+        // Removed enqueue calls for non-existent metabox assets
     }
     
     /**
