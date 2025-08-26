@@ -1862,18 +1862,21 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 ['role' => 'user', 'content' => $message]
             ];
             
-            $response = $llmService->generateContent([
-                'messages' => $messages,
-                'temperature' => 0.7,
-                'max_tokens' => 500
-            ]);
+            $response = $llmService->generateContent(
+                $systemPrompt . "\n\nUser: " . $message . "\n\nAssistant:",
+                'course_assistance',
+                [
+                    'temperature' => 0.7,
+                    'max_tokens' => 500
+                ]
+            );
             
-            if ($response['success']) {
+            if (!$response['error']) {
                 wp_send_json_success([
                     'message' => $response['content']
                 ]);
             } else {
-                wp_send_json_error($response['error'] ?? 'Failed to generate AI response');
+                wp_send_json_error($response['message'] ?? 'Failed to generate AI response');
             }
             
         } catch (\Exception $e) {
