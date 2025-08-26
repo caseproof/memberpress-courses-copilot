@@ -106,9 +106,15 @@ class AssetManager extends BaseService
         );
         
         $this->registerScript(
+            'mpcc-shared-utilities',
+            'assets/js/shared-utilities.js',
+            ['jquery']
+        );
+        
+        $this->registerScript(
             'mpcc-course-editor',
             'assets/js/course-editor-page.js',
-            ['jquery', 'wp-api', 'wp-components', 'wp-element', 'mpcc-toast']
+            ['jquery', 'wp-api', 'wp-components', 'wp-element', 'mpcc-toast', 'mpcc-shared-utilities']
         );
         
         // Component scripts
