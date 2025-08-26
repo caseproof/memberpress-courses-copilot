@@ -1,5 +1,8 @@
 # Dependency Injection Guide
 
+## Important Update: SessionService Removed (08/26/2025)
+SessionService has been completely removed from the codebase. All session management is now handled by ConversationManager. If you have any code referencing SessionService, update it to use ConversationManager instead.
+
 ## Overview
 
 The MemberPress Courses Copilot plugin uses a simple dependency injection (DI) container to manage service dependencies. This approach follows the KISS principle while providing the benefits of dependency injection:
@@ -71,8 +74,7 @@ Core services available via the container:
 - `Logger::class` - Logging service (alias: 'logger')
 - `DatabaseService::class` - Database operations (alias: 'database')
 - `LLMService::class` - AI/LLM integration (alias: 'llm')
-- `SessionService::class` - Session management (alias: 'session')
-- `ConversationManager::class` - Conversation management (alias: 'conversation')
+- `ConversationManager::class` - Conversation/session management (alias: 'conversation') - **Replaces SessionService**
 - `ContentGenerationService::class` - Content generation (alias: 'content')
 - `CourseGeneratorService::class` - Course generation (alias: 'course_generator')
 - `TemplateEngine::class` - Template rendering (alias: 'template')
