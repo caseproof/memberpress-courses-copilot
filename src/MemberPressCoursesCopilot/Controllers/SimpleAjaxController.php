@@ -96,6 +96,14 @@ class SimpleAjaxController
             $content = $aiResponse['content'] ?? 'I apologize, but I encountered an error. Please try again.';
             $extractedStructure = $this->extractCourseStructure($content, $courseStructure);
             
+            // Log the extraction result for debugging
+            $this->logger->debug('Course structure extraction result', [
+                'has_current_structure' => !empty($courseStructure),
+                'found_new_structure' => $extractedStructure !== null && $extractedStructure !== $courseStructure,
+                'ai_response_length' => strlen($content),
+                'contains_json_block' => strpos($content, '```json') !== false
+            ]);
+            
             // Clean the message by removing JSON block if course structure was found
             $displayMessage = $content;
             
@@ -587,8 +595,9 @@ Format the content with clear headings and sections.";
     {
         $prompt = "You are an AI course creation assistant helping to build online courses. ";
         
+        // Include current course structure if available
         if (!empty($courseStructure['title'])) {
-            $prompt .= "Current course: {$courseStructure['title']}. ";
+            $prompt .= "\n\nCurrent course structure:\n```json\n" . json_encode($courseStructure, JSON_PRETTY_PRINT) . "\n```\n";
         }
         
         if (!empty($conversationHistory)) {
@@ -600,8 +609,21 @@ Format the content with clear headings and sections.";
         
         $prompt .= "\n\nUser: {$message}\n\nAssistant: ";
         
-        if (stripos($message, 'create') !== false && stripos($message, 'course') !== false) {
-            $prompt .= "\n\nPlease respond with a course structure in this exact JSON format:
+        // Check if user is asking about course creation or modification
+        $courseKeywords = ['course', 'section', 'lesson', 'module', 'curriculum', 'add', 'create', 'modify', 'update', 'remove', 'delete', 'change'];
+        $isAboutCourse = false;
+        $lowerMessage = strtolower($message);
+        
+        foreach ($courseKeywords as $keyword) {
+            if (stripos($lowerMessage, $keyword) !== false) {
+                $isAboutCourse = true;
+                break;
+            }
+        }
+        
+        // If discussing course structure, always ask for JSON response
+        if ($isAboutCourse || !empty($courseStructure['title'])) {
+            $prompt .= "\n\nIMPORTANT: If you are creating or modifying a course structure, you MUST include the complete updated course structure in this exact JSON format at the end of your response:
 ```json
 {
   \"title\": \"Course Title\",
@@ -618,7 +640,9 @@ Format the content with clear headings and sections.";
     }
   ]
 }
-```";
+```
+
+If modifying an existing course, include ALL sections and lessons (both existing and new) in your response.";
         }
         
         return $prompt;
@@ -725,7 +749,14 @@ Format the content with clear headings and sections.";
             try {
                 $structure = json_decode($matches[1], true);
                 if (is_array($structure) && isset($structure['title'])) {
-                    return $structure;
+                    // Validate structure has required fields
+                    if (isset($structure['sections']) && is_array($structure['sections'])) {
+                        $this->logger->debug('Successfully extracted course structure from JSON code block', [
+                            'title' => $structure['title'],
+                            'sections_count' => count($structure['sections'])
+                        ]);
+                        return $structure;
+                    }
                 }
             } catch (\Exception $e) {
                 $this->logger->debug('Failed to parse JSON from code block', ['error' => $e->getMessage()]);
@@ -733,15 +764,27 @@ Format the content with clear headings and sections.";
         }
         
         // If no code block, try to find raw JSON in the response
-        if (preg_match('/(\{[\s\S]*\})/s', $response, $matches)) {
-            try {
-                $structure = json_decode($matches[1], true);
-                if (is_array($structure) && isset($structure['title'])) {
-                    $this->logger->debug('Extracted raw JSON course structure');
-                    return $structure;
+        // Look for JSON that starts with { and ends with } including nested structures
+        if (preg_match('/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/s', $response, $matches)) {
+            // Find the largest valid JSON structure
+            $jsonStart = strpos($response, '{');
+            $jsonEnd = strrpos($response, '}');
+            
+            if ($jsonStart !== false && $jsonEnd !== false && $jsonEnd > $jsonStart) {
+                $potentialJson = substr($response, $jsonStart, $jsonEnd - $jsonStart + 1);
+                
+                try {
+                    $structure = json_decode($potentialJson, true);
+                    if (is_array($structure) && isset($structure['title']) && isset($structure['sections'])) {
+                        $this->logger->debug('Extracted raw JSON course structure', [
+                            'title' => $structure['title'],
+                            'sections_count' => count($structure['sections'])
+                        ]);
+                        return $structure;
+                    }
+                } catch (\Exception $e) {
+                    $this->logger->debug('Failed to parse raw JSON', ['error' => $e->getMessage()]);
                 }
-            } catch (\Exception $e) {
-                $this->logger->debug('Failed to parse raw JSON', ['error' => $e->getMessage()]);
             }
         }
         
