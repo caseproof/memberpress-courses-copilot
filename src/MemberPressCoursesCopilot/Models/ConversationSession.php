@@ -214,14 +214,6 @@ class ConversationSession
         return $this->context[$key] ?? $default;
     }
 
-    /**
-     * Restore context from history item
-     */
-    public function restoreContext(array $context): void
-    {
-        $this->context = $context;
-        $this->markAsModified();
-    }
 
     /**
      * Set progress percentage
@@ -449,6 +441,69 @@ class ConversationSession
     public function hasUnsavedChanges(): bool
     {
         return $this->hasUnsavedChanges;
+    }
+
+    /**
+     * Restore messages from database without marking as modified
+     */
+    public function restoreMessages(array $messages): void
+    {
+        $this->messages = $messages;
+        // Don't call markAsModified() during restoration
+    }
+
+    /**
+     * Restore state from database without marking as modified
+     */
+    public function restoreState(string $state): void
+    {
+        $this->currentState = $state;
+        // Don't call markAsModified() during restoration
+    }
+
+    /**
+     * Restore context from database without marking as modified
+     */
+    public function restoreContext(array $context): void
+    {
+        $this->context = $context;
+        // Don't call markAsModified() during restoration
+    }
+
+    /**
+     * Restore progress from database without marking as modified
+     */
+    public function restoreProgress(float $progress): void
+    {
+        $this->progress = $progress;
+        // Don't call markAsModified() during restoration
+    }
+
+    /**
+     * Restore confidence score from database without marking as modified
+     */
+    public function restoreConfidenceScore(float $confidenceScore): void
+    {
+        $this->confidenceScore = $confidenceScore;
+        // Don't call markAsModified() during restoration
+    }
+
+    /**
+     * Restore metadata from database without marking as modified
+     */
+    public function restoreMetadata(array $metadata): void
+    {
+        $this->metadata = $metadata;
+        // Don't call markAsModified() during restoration
+    }
+
+    /**
+     * Restore state history from database without marking as modified
+     */
+    public function restoreStateHistory(array $stateHistory): void
+    {
+        $this->stateHistory = $stateHistory;
+        // Don't call markAsModified() during restoration
     }
 
     /**

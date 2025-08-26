@@ -319,8 +319,14 @@ class SimpleAjaxController
             $session->clearMessages();
             foreach ($conversationHistory as $msg) {
                 if (isset($msg['role']) && isset($msg['content'])) {
-                    $type = $msg['role']; // 'user' or 'assistant'
-                    $session->addMessage($type, $msg['content'], []);
+                    // Map frontend 'role' to backend 'type' field
+                    $messageType = $msg['role'] === 'user' ? 'user' : 
+                                  ($msg['role'] === 'assistant' ? 'assistant' : 'system');
+                    $metadata = [];
+                    if (isset($msg['timestamp'])) {
+                        $metadata['timestamp'] = $msg['timestamp'];
+                    }
+                    $session->addMessage($messageType, $msg['content'], $metadata);
                 }
             }
             
@@ -618,8 +624,10 @@ If modifying an existing course, include ALL sections and lessons (both existing
                         'id' => $session->getSessionId(),
                         'title' => $session->getTitle(),
                         'last_updated' => date('Y-m-d H:i:s', $session->getLastUpdated()),
+                        'created_at' => date('Y-m-d H:i:s', $session->getCreatedAt()),
                         'message_count' => count($messages),
-                        'source' => 'conversation_manager'
+                        'source' => 'conversation_manager',
+                        'database_id' => $session->getDatabaseId()
                     ];
                 }
             } catch (\Exception $e) {
@@ -629,9 +637,14 @@ If modifying an existing course, include ALL sections and lessons (both existing
             }
             
             
-            // Sort by last updated, newest first
+            // Sort by last updated, newest first, with session ID as tiebreaker
             usort($sessions, function($a, $b) {
-                return strtotime($b['last_updated']) - strtotime($a['last_updated']);
+                $timeCompare = strtotime($b['last_updated']) - strtotime($a['last_updated']);
+                // If timestamps are equal, sort by session ID to ensure stable sort order
+                if ($timeCompare === 0) {
+                    return strcmp($b['id'], $a['id']);
+                }
+                return $timeCompare;
             });
             
             wp_send_json_success($sessions);
@@ -767,9 +780,7 @@ If modifying an existing course, include ALL sections and lessons (both existing
                 
                 $this->logger->info('Session deleted', [
                     'session_id' => $sessionId,
-                    'user_id' => get_current_user_id(),
-                    'deleted_from_cm' => $deletedFromCM,
-                    'deleted_from_ss' => $deletedFromSS
+                    'user_id' => get_current_user_id()
                 ]);
                 
                 wp_send_json_success(['deleted' => true]);

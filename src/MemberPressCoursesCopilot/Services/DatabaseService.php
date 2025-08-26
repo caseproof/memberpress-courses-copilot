@@ -462,6 +462,9 @@ class DatabaseService extends BaseService
     {
         $table_name = $this->table_prefix . 'conversations';
         
+        // Add a small random delay to ensure unique timestamps
+        usleep(rand(1000, 5000)); // Sleep for 1-5 milliseconds
+        
         $defaults = [
             'state' => 'active',
             'context' => 'course_creation',
@@ -493,7 +496,24 @@ class DatabaseService extends BaseService
     {
         $table_name = $this->table_prefix . 'conversations';
         
-        $data['updated_at'] = current_time('mysql');
+        // Only update timestamp if we're updating actual content, not just metadata or state
+        $contentFields = ['messages', 'title', 'step_data'];
+        $hasContentChanges = false;
+        
+        foreach ($contentFields as $field) {
+            if (isset($data[$field])) {
+                $hasContentChanges = true;
+                break;
+            }
+        }
+        
+        // Only update timestamp for content changes
+        if ($hasContentChanges) {
+            // Use microtime to ensure unique timestamps
+            // Add a small random delay to ensure uniqueness even for rapid updates
+            usleep(rand(1000, 5000)); // Sleep for 1-5 milliseconds
+            $data['updated_at'] = current_time('mysql');
+        }
         
         $result = $this->wpdb->update(
             $table_name,
@@ -538,7 +558,7 @@ class DatabaseService extends BaseService
         
         $results = $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE user_id = %d ORDER BY created_at DESC LIMIT %d OFFSET %d",
+                "SELECT * FROM {$table_name} WHERE user_id = %d ORDER BY updated_at DESC, id DESC LIMIT %d OFFSET %d",
                 $user_id,
                 $limit,
                 $offset

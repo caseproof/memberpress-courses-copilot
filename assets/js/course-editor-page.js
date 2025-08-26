@@ -186,10 +186,6 @@
         rebuildChatHistory: function() {
             $('#mpcc-chat-messages').empty();
             this.conversationHistory.forEach(msg => {
-                // Debug log to see what content looks like
-                if (msg.role === 'assistant') {
-                    console.log('Rebuilding assistant message:', msg.content);
-                }
                 this.addMessage(msg.role, msg.content, false);
             });
         },
@@ -892,10 +888,13 @@
             let html = '';
             sessions.forEach(session => {
                 const date = new Date(session.last_updated);
-                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                
+                // Add a unique identifier to help debug timestamp issues
+                const sessionDebugInfo = `Session ID: ${session.id.substring(0, 8)}... | DB ID: ${session.database_id || 'N/A'}`;
                 
                 html += `
-                    <div class="mpcc-session-item" data-session-id="${session.id}">
+                    <div class="mpcc-session-item" data-session-id="${session.id}" title="${sessionDebugInfo}">
                         <div class="mpcc-session-info">
                             <div class="mpcc-session-title">${session.title || 'Untitled Course'}</div>
                             <div class="mpcc-session-meta">${dateStr}</div>
