@@ -6,7 +6,6 @@ namespace MemberPressCoursesCopilot\Controllers;
 
 use MemberPressCoursesCopilot\Services\LLMService;
 use MemberPressCoursesCopilot\Services\LessonDraftService;
-use MemberPressCoursesCopilot\Services\SessionService;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Utilities\Logger;
@@ -19,7 +18,7 @@ class SimpleAjaxController
 {
     private LLMService $llmService;
     private LessonDraftService $lessonDraftService;
-    private SessionService $sessionService;
+    private ConversationManager $conversationManager;
     private CourseGeneratorService $courseGenerator;
     private Logger $logger;
     
@@ -44,15 +43,29 @@ class SimpleAjaxController
     }
     
     /**
-     * Constructor
+     * Constructor - dependencies can be injected
+     * 
+     * @param LLMService|null $llmService
+     * @param LessonDraftService|null $lessonDraftService
+     * @param ConversationManager|null $conversationManager
+     * @param CourseGeneratorService|null $courseGenerator
+     * @param Logger|null $logger
      */
-    public function __construct()
-    {
-        $this->llmService = new LLMService();
-        $this->lessonDraftService = new LessonDraftService();
-        $this->sessionService = new SessionService();
-        $this->logger = Logger::getInstance();
-        $this->courseGenerator = new CourseGeneratorService($this->logger);
+    public function __construct(
+        ?LLMService $llmService = null,
+        ?LessonDraftService $lessonDraftService = null,
+        ?ConversationManager $conversationManager = null,
+        ?CourseGeneratorService $courseGenerator = null,
+        ?Logger $logger = null
+    ) {
+        // Use injected dependencies or get from container
+        $container = function_exists('mpcc_container') ? mpcc_container() : null;
+        
+        $this->llmService = $llmService ?? ($container ? $container->get(LLMService::class) : new LLMService());
+        $this->lessonDraftService = $lessonDraftService ?? ($container ? $container->get(LessonDraftService::class) : new LessonDraftService());
+        $this->conversationManager = $conversationManager ?? ($container ? $container->get(ConversationManager::class) : new ConversationManager());
+        $this->logger = $logger ?? Logger::getInstance();
+        $this->courseGenerator = $courseGenerator ?? ($container ? $container->get(CourseGeneratorService::class) : new CourseGeneratorService($this->logger));
     }
     
     /**
@@ -112,40 +125,25 @@ class SimpleAjaxController
             
             // Update session title when course structure is generated
             if ($extractedStructure && !empty($extractedStructure['title']) && $extractedStructure !== $courseStructure) {
-                // Update the session title in both storage systems
                 $sessionTitle = 'Course: ' . $extractedStructure['title'];
                 
-                // Update WordPress options-based session
-                $sessionData = $this->sessionService->getSession($sessionId);
-                $sessionData['title'] = $sessionTitle;
-                $sessionData['last_updated'] = current_time('mysql');
-                $this->sessionService->saveSession($sessionId, $sessionData);
-                
-                // Also update ConversationManager session if it exists
-                try {
-                    $conversationManager = new ConversationManager();
-                    $session = $conversationManager->loadSession($sessionId);
-                    if ($session) {
-                        // The ConversationManager doesn't have updateSessionTitle method
-                        // We'll just log that the title should be updated in ConversationManager
-                        $this->logger->info('Session title should be updated in ConversationManager', [
-                            'session_id' => $sessionId,
-                            'title' => $sessionTitle
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    // ConversationManager session might not exist, that's OK
-                    $this->logger->debug('ConversationManager session not found', [
+                // Update ConversationManager session
+                $session = $this->conversationManager->loadSession($sessionId);
+                if ($session) {
+                    $session->setTitle($sessionTitle);
+                    $this->conversationManager->saveSession($session);
+                    
+                    $this->logger->info('Session title updated during chat', [
                         'session_id' => $sessionId,
-                        'error' => $e->getMessage()
+                        'new_title' => $sessionTitle,
+                        'course_title' => $extractedStructure['title']
+                    ]);
+                } else {
+                    $this->logger->warning('Session not found for title update', [
+                        'session_id' => $sessionId,
+                        'title' => $sessionTitle
                     ]);
                 }
-                
-                $this->logger->info('Session title updated during chat', [
-                    'session_id' => $sessionId,
-                    'new_title' => $sessionTitle,
-                    'course_title' => $extractedStructure['title']
-                ]);
             }
             
             $responseData = [
@@ -180,17 +178,78 @@ class SimpleAjaxController
             // Log the incoming session ID for debugging
             $this->logger->debug('Loading session', ['session_id' => $sessionId]);
             
-            $sessionData = $this->sessionService->getSession($sessionId);
+            $session = $this->conversationManager->loadSession($sessionId);
             
-            if ($sessionData === null) {
-                $this->logger->warning('Session not found', ['session_id' => $sessionId]);
-                wp_send_json_error('Session not found');
-                return;
+            if ($session === null) {
+                // Try to load from old SessionService and migrate
+                $sessionService = new \MemberPressCoursesCopilot\Services\SessionService();
+                $oldSessionData = $sessionService->getSession($sessionId);
+                
+                if ($oldSessionData !== null) {
+                    // Migrate old session to ConversationManager
+                    $sessionData = [
+                        'session_id' => $sessionId,
+                        'user_id' => $oldSessionData['user_id'] ?? get_current_user_id(),
+                        'context' => 'course_creation',
+                        'state' => 'initial',
+                        'initial_data' => $oldSessionData['conversation_state'] ?? [],
+                        'title' => $oldSessionData['title'] ?? 'New Course (Draft)'
+                    ];
+                    
+                    // Create session in ConversationManager
+                    $session = $this->conversationManager->createSession($sessionData);
+                    
+                    // Restore messages if any
+                    if (!empty($oldSessionData['conversation_history'])) {
+                        foreach ($oldSessionData['conversation_history'] as $msg) {
+                            if (isset($msg['role']) && isset($msg['content'])) {
+                                $session->addMessage($msg['role'], $msg['content'], []);
+                            }
+                        }
+                    }
+                    
+                    // Restore metadata
+                    if (isset($oldSessionData['published_course_id'])) {
+                        $session->setMetadata('published_course_id', $oldSessionData['published_course_id']);
+                    }
+                    if (isset($oldSessionData['published_course_url'])) {
+                        $session->setMetadata('published_course_url', $oldSessionData['published_course_url']);
+                    }
+                    
+                    // Save migrated session
+                    $this->conversationManager->saveSession($session);
+                    
+                    $this->logger->info('Migrated session from SessionService to ConversationManager during load', [
+                        'session_id' => $sessionId,
+                        'title' => $session->getTitle()
+                    ]);
+                } else {
+                    $this->logger->warning('Session not found in either storage', ['session_id' => $sessionId]);
+                    wp_send_json_error('Session not found');
+                    return;
+                }
             }
             
-            // Ensure course_structure is properly extracted from conversation_state
-            if (isset($sessionData['conversation_state']['course_structure']) && !isset($sessionData['course_structure'])) {
-                $sessionData['course_structure'] = $sessionData['conversation_state']['course_structure'];
+            // Convert ConversationSession to the expected data format
+            $context = $session->getContext();
+            $sessionData = [
+                'session_id' => $session->getSessionId(),
+                'title' => $session->getTitle(),
+                'conversation_history' => $session->getMessages(),
+                'conversation_state' => $context,
+                'course_structure' => $context['course_structure'] ?? [],
+                'last_updated' => date('Y-m-d H:i:s', $session->getLastUpdated()),
+                'created_at' => date('Y-m-d H:i:s', $session->getCreatedAt()),
+                'user_id' => $session->getUserId()
+            ];
+            
+            // Add any additional metadata
+            $metadata = $session->getMetadata();
+            if (isset($metadata['published_course_id'])) {
+                $sessionData['published_course_id'] = $metadata['published_course_id'];
+            }
+            if (isset($metadata['published_course_url'])) {
+                $sessionData['published_course_url'] = $metadata['published_course_url'];
             }
             
             wp_send_json_success($sessionData);
@@ -240,36 +299,102 @@ class SimpleAjaxController
                 return;
             }
             
-            // Get existing session data to preserve title
-            $existingData = $this->sessionService->getSession($sessionId);
+            // Load or create session
+            $session = $this->conversationManager->loadSession($sessionId);
             
-            // If session doesn't exist, create it with default values
-            if ($existingData === null) {
-                $existingData = [
-                    'created_at' => current_time('mysql'),
-                    'user_id' => get_current_user_id()
-                ];
-            }
-            
-            // Merge with new data, preserving title if it exists
-            $sessionData = array_merge($existingData, [
-                'conversation_history' => $conversationHistory,
-                'conversation_state' => $conversationState,
-                'last_updated' => current_time('mysql')
-            ]);
-            
-            // Extract title from course structure if available and not already set
-            if (empty($sessionData['title'])) {
-                // Check both course_data and course_structure for compatibility
-                $courseTitle = $conversationState['course_data']['title'] ?? 
-                              $conversationState['course_structure']['title'] ?? null;
-                              
-                if (!empty($courseTitle)) {
-                    $sessionData['title'] = 'Course: ' . $courseTitle;
+            if ($session === null) {
+                // Check if we need to migrate from old SessionService
+                $sessionService = new \MemberPressCoursesCopilot\Services\SessionService();
+                $oldSessionData = $sessionService->getSession($sessionId);
+                
+                if ($oldSessionData !== null) {
+                    // Migrate from old session format
+                    $sessionData = [
+                        'user_id' => $oldSessionData['user_id'] ?? get_current_user_id(),
+                        'context' => 'course_creation',
+                        'state' => 'initial',
+                        'initial_data' => $oldSessionData['conversation_state'] ?? $conversationState,
+                        'title' => $oldSessionData['title'] ?? 'New Course (Draft)'
+                    ];
+                    
+                    // Create session in ConversationManager with the same session ID
+                    $sessionData['session_id'] = $sessionId;
+                    $session = $this->conversationManager->createSession($sessionData);
+                    
+                    // Restore messages if any
+                    if (!empty($oldSessionData['conversation_history'])) {
+                        foreach ($oldSessionData['conversation_history'] as $msg) {
+                            if (isset($msg['role']) && isset($msg['content'])) {
+                                $session->addMessage($msg['role'], $msg['content'], []);
+                            }
+                        }
+                    }
+                    
+                    // Restore metadata
+                    if (isset($oldSessionData['published_course_id'])) {
+                        $session->setMetadata('published_course_id', $oldSessionData['published_course_id']);
+                    }
+                    if (isset($oldSessionData['published_course_url'])) {
+                        $session->setMetadata('published_course_url', $oldSessionData['published_course_url']);
+                    }
+                    
+                    // Save migrated session
+                    $this->conversationManager->saveSession($session);
+                    
+                    $this->logger->info('Migrated session from SessionService to ConversationManager', [
+                        'session_id' => $sessionId,
+                        'title' => $session->getTitle()
+                    ]);
+                } else {
+                    // Create new session
+                    $sessionData = [
+                        'user_id' => get_current_user_id(),
+                        'context' => 'course_creation',
+                        'state' => 'initial',
+                        'initial_data' => $conversationState,
+                        'title' => 'New Course (Draft)'
+                    ];
+                    
+                    // Extract title from course structure if available
+                    $courseTitle = $conversationState['course_data']['title'] ?? 
+                                  $conversationState['course_structure']['title'] ?? null;
+                                  
+                    if (!empty($courseTitle)) {
+                        $sessionData['title'] = 'Course: ' . $courseTitle;
+                    }
+                    
+                    // Create session with the same session ID
+                    $sessionData['session_id'] = $sessionId;
+                    $session = $this->conversationManager->createSession($sessionData);
+                    
+                    $this->logger->info('Created new ConversationManager session', [
+                        'session_id' => $session->getSessionId(),
+                        'title' => $session->getTitle()
+                    ]);
                 }
             }
             
-            $this->sessionService->saveSession($sessionId, $sessionData);
+            // Update session title if course structure has title
+            if (!empty($conversationState['course_structure']['title'])) {
+                $session->setTitle('Course: ' . $conversationState['course_structure']['title']);
+            } elseif (!empty($conversationState['course_data']['title'])) {
+                $session->setTitle('Course: ' . $conversationState['course_data']['title']);
+            }
+            
+            // Clear existing messages and add new ones
+            $session->clearMessages();
+            foreach ($conversationHistory as $msg) {
+                if (isset($msg['role']) && isset($msg['content'])) {
+                    $type = $msg['role']; // 'user' or 'assistant'
+                    $session->addMessage($type, $msg['content'], []);
+                }
+            }
+            
+            // Update context
+            $session->setContext($conversationState, null);
+            
+            // Save the session
+            $this->conversationManager->saveSession($session);
             
             wp_send_json_success(['saved' => true]);
             
@@ -310,39 +435,29 @@ class SimpleAjaxController
             if (!empty($courseData['title'])) {
                 $sessionTitle = 'Course: ' . $courseData['title'];
                 
-                // Update WordPress options-based session
-                $sessionData = $this->sessionService->getSession($sessionId);
-                $sessionData['title'] = $sessionTitle;
-                $sessionData['last_updated'] = current_time('mysql');
-                $sessionData['published_course_id'] = $result['course_id']; // Store the created course ID
-                $sessionData['published_course_url'] = $result['edit_url']; // Store the course edit URL
-                $this->sessionService->saveSession($sessionId, $sessionData);
-                
-                // Also update ConversationManager session if it exists
-                try {
-                    $conversationManager = new ConversationManager();
-                    $session = $conversationManager->loadSession($sessionId);
-                    if ($session) {
-                        // The ConversationManager doesn't have updateSessionTitle method
-                        // We'll just log that the title should be updated in ConversationManager
-                        $this->logger->info('Session title should be updated in ConversationManager', [
-                            'session_id' => $sessionId,
-                            'title' => $sessionTitle
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    // ConversationManager session might not exist, that's OK
-                    $this->logger->debug('ConversationManager session not found', [
+                // Update ConversationManager session
+                $session = $this->conversationManager->loadSession($sessionId);
+                if ($session) {
+                    $session->setTitle($sessionTitle);
+                    
+                    // Store course creation info in metadata
+                    $session->setMetadata('published_course_id', $result['course_id']);
+                    $session->setMetadata('published_course_url', $result['edit_url']);
+                    $session->setMetadata('published_at', current_time('mysql'));
+                    
+                    $this->conversationManager->saveSession($session);
+                    
+                    $this->logger->info('Session updated after course creation', [
                         'session_id' => $sessionId,
-                        'error' => $e->getMessage()
+                        'new_title' => $sessionTitle,
+                        'course_id' => $result['course_id']
+                    ]);
+                } else {
+                    $this->logger->warning('Session not found after course creation', [
+                        'session_id' => $sessionId,
+                        'course_id' => $result['course_id']
                     ]);
                 }
-                
-                $this->logger->info('Session title updated after course creation', [
-                    'session_id' => $sessionId,
-                    'new_title' => $sessionTitle,
-                    'course_id' => $result['course_id']
-                ]);
             }
             
             // Clean up drafts after successful course creation
@@ -520,7 +635,78 @@ Format the content with clear headings and sections.";
                 throw new \Exception('Security check failed');
             }
             
-            $sessions = $this->sessionService->getAllSessions();
+            $userId = get_current_user_id();
+            $sessions = [];
+            
+            // Get sessions from ConversationManager
+            try {
+                $conversationSessions = $this->conversationManager->getUserSessions($userId);
+                
+                foreach ($conversationSessions as $session) {
+                    $messages = $session->getMessages();
+                    
+                    // Check if session has user messages
+                    $hasUserMessages = false;
+                    foreach ($messages as $msg) {
+                        if ($msg['type'] === 'user') {
+                            $hasUserMessages = true;
+                            break;
+                        }
+                    }
+                    
+                    // Check if session has course structure
+                    $context = $session->getContext();
+                    $hasCourseStructure = isset($context['course_structure']['title']) && 
+                                        !empty($context['course_structure']['title']);
+                    
+                    // Skip empty sessions
+                    if (!$hasUserMessages && !$hasCourseStructure) {
+                        continue;
+                    }
+                    
+                    $sessions[] = [
+                        'id' => $session->getSessionId(),
+                        'title' => $session->getTitle(),
+                        'last_updated' => date('Y-m-d H:i:s', $session->getLastUpdated()),
+                        'message_count' => count($messages),
+                        'source' => 'conversation_manager'
+                    ];
+                }
+            } catch (\Exception $e) {
+                $this->logger->error('Error loading sessions from ConversationManager', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
+            // Also get sessions from old SessionService that haven't been migrated yet
+            try {
+                $sessionService = new \MemberPressCoursesCopilot\Services\SessionService();
+                $oldSessions = $sessionService->getAllSessions();
+                
+                foreach ($oldSessions as $oldSession) {
+                    // Check if this session already exists in ConversationManager
+                    $alreadyMigrated = false;
+                    foreach ($sessions as $session) {
+                        if ($session['id'] === $oldSession['id']) {
+                            $alreadyMigrated = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$alreadyMigrated) {
+                        $sessions[] = array_merge($oldSession, ['source' => 'session_service']);
+                    }
+                }
+            } catch (\Exception $e) {
+                $this->logger->error('Error loading sessions from SessionService', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
+            // Sort by last updated, newest first
+            usort($sessions, function($a, $b) {
+                return strtotime($b['last_updated']) - strtotime($a['last_updated']);
+            });
             
             wp_send_json_success($sessions);
             
@@ -584,15 +770,18 @@ Format the content with clear headings and sections.";
                 throw new \Exception('Session ID and title are required');
             }
             
-            // Get current session data
-            $sessionData = $this->sessionService->getSession($sessionId);
+            // Load session from ConversationManager
+            $session = $this->conversationManager->loadSession($sessionId);
+            
+            if (!$session) {
+                throw new \Exception('Session not found');
+            }
             
             // Update the title
-            $sessionData['title'] = $title;
-            $sessionData['last_updated'] = current_time('mysql');
+            $session->setTitle($title);
             
             // Save the updated session
-            $this->sessionService->saveSession($sessionId, $sessionData);
+            $this->conversationManager->saveSession($session);
             
             wp_send_json_success(['updated' => true, 'title' => $title]);
             
@@ -618,21 +807,39 @@ Format the content with clear headings and sections.";
                 throw new \Exception('Session ID is required');
             }
             
-            // Delete the session
-            $deleted = $this->sessionService->deleteSession($sessionId);
+            // Delete from both storage systems
+            $deletedFromCM = false;
+            $deletedFromSS = false;
             
-            if ($deleted) {
+            // Try to delete from ConversationManager
+            try {
+                $deletedFromCM = $this->conversationManager->deleteSession($sessionId);
+            } catch (\Exception $e) {
+                $this->logger->debug('Session not in ConversationManager', ['session_id' => $sessionId]);
+            }
+            
+            // Try to delete from SessionService
+            try {
+                $sessionService = new \MemberPressCoursesCopilot\Services\SessionService();
+                $deletedFromSS = $sessionService->deleteSession($sessionId);
+            } catch (\Exception $e) {
+                $this->logger->debug('Session not in SessionService', ['session_id' => $sessionId]);
+            }
+            
+            if ($deletedFromCM || $deletedFromSS) {
                 // Also try to delete lesson drafts for this session
                 $this->lessonDraftService->deleteSessionDrafts($sessionId);
                 
                 $this->logger->info('Session deleted', [
                     'session_id' => $sessionId,
-                    'user_id' => get_current_user_id()
+                    'user_id' => get_current_user_id(),
+                    'deleted_from_cm' => $deletedFromCM,
+                    'deleted_from_ss' => $deletedFromSS
                 ]);
                 
                 wp_send_json_success(['deleted' => true]);
             } else {
-                throw new \Exception('Failed to delete session');
+                throw new \Exception('Failed to delete session - not found in either storage');
             }
             
         } catch (\Exception $e) {
@@ -662,13 +869,10 @@ Format the content with clear headings and sections.";
                 throw new \Exception('Course data is required');
             }
             
-            // Generate a new session ID for the duplicate
-            $newSessionId = 'mpcc_session_' . time() . '_' . wp_generate_password(8, false);
+            // Get the original session to duplicate
+            $originalSession = $this->conversationManager->loadSession($sessionId);
             
-            // Get the original session data to copy conversation history
-            $originalSessionData = $this->sessionService->getSession($sessionId);
-            
-            if (!$originalSessionData) {
+            if (!$originalSession) {
                 throw new \Exception('Original session not found');
             }
             
@@ -677,21 +881,18 @@ Format the content with clear headings and sections.";
             $duplicatedCourseData['title'] = $duplicatedCourseData['title'] . ' (Draft Copy)';
             
             $newSessionData = [
-                'created_at' => current_time('mysql'),
-                'last_updated' => current_time('mysql'),
                 'user_id' => get_current_user_id(),
-                'title' => 'Course: ' . $duplicatedCourseData['title'],
-                'conversation_history' => [],
-                'conversation_state' => [
+                'context' => 'course_creation',
+                'state' => 'initial',
+                'initial_data' => [
                     'course_structure' => $duplicatedCourseData
                 ],
-                // Don't copy the published course info - this is a draft
-                'published_course_id' => null,
-                'published_course_url' => null
+                'title' => 'Course: ' . $duplicatedCourseData['title']
             ];
             
-            // Save the new session
-            $this->sessionService->saveSession($newSessionId, $newSessionData);
+            // Create new session
+            $newSession = $this->conversationManager->createSession($newSessionData);
+            $newSessionId = $newSession->getSessionId();
             
             // Copy lesson drafts from the original session to the new session
             $this->lessonDraftService->copySessionDrafts($sessionId, $newSessionId);

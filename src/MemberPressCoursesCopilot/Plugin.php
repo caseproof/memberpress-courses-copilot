@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace MemberPressCoursesCopilot;
 
+use MemberPressCoursesCopilot\Container\Container;
+use MemberPressCoursesCopilot\Container\ServiceProvider;
+
 /**
  * Main Plugin class
  * 
@@ -20,6 +23,13 @@ final class Plugin
      * @var Plugin|null
      */
     private static ?Plugin $instance = null;
+
+    /**
+     * DI Container instance
+     *
+     * @var Container
+     */
+    private Container $container;
 
     /**
      * Plugin version
@@ -47,6 +57,8 @@ final class Plugin
      */
     private function __construct()
     {
+        $this->container = Container::getInstance();
+        $this->registerServices();
         $this->init();
     }
 
@@ -71,6 +83,10 @@ final class Plugin
      */
     private function init(): void
     {
+        // Initialize AssetManager early so assets are registered before enqueuing
+        $asset_manager = $this->container->get(\MemberPressCoursesCopilot\Services\AssetManager::class);
+        $asset_manager->init();
+        
         // Hook into WordPress initialization
         add_action('init', [$this, 'initializeComponents']);
         add_action('admin_menu', [$this, 'initializeAdmin']); // Changed from admin_init to admin_menu
@@ -85,27 +101,41 @@ final class Plugin
     }
 
     /**
+     * Register services with the DI container
+     *
+     * @return void
+     */
+    private function registerServices(): void
+    {
+        ServiceProvider::register($this->container);
+    }
+
+    /**
+     * Get the DI container instance
+     *
+     * @return Container
+     */
+    public function getContainer(): Container
+    {
+        return $this->container;
+    }
+
+    /**
      * Initialize core components
      *
      * @return void
      */
     public function initializeComponents(): void
     {
-        // Initialize the Simple AJAX controller for handling all AJAX requests
-        $simple_ajax_controller = new \MemberPressCoursesCopilot\Controllers\SimpleAjaxController();
+        // Get services from container
+        $simple_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\SimpleAjaxController::class);
+        $course_integration_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseIntegrationService::class);
+        $course_ajax_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseAjaxService::class);
+        
+        // Initialize services
         $simple_ajax_controller->init();
-        
-        // Initialize the course integration service for MemberPress Courses UI integration
-        $course_integration_service = new \MemberPressCoursesCopilot\Services\CourseIntegrationService();
         $course_integration_service->init();
-        
-        // Initialize the AJAX service for handling AJAX endpoints
-        $course_ajax_service = new \MemberPressCoursesCopilot\Services\CourseAjaxService();
         $course_ajax_service->init();
-        
-        // Initialize the asset service for CSS/JS management
-        $course_asset_service = new \MemberPressCoursesCopilot\Services\CourseAssetService();
-        $course_asset_service->init();
         
         /**
          * Fires after plugin components are initialized
@@ -126,15 +156,14 @@ final class Plugin
             return;
         }
 
-        // Initialize admin menu and settings
-        $settings_page = new \MemberPressCoursesCopilot\Admin\SettingsPage();
+        // Get services from container
+        $settings_page = $this->container->get(\MemberPressCoursesCopilot\Admin\SettingsPage::class);
+        $admin_menu = $this->container->get(\MemberPressCoursesCopilot\Admin\AdminMenu::class);
+        $course_editor_page = $this->container->get(\MemberPressCoursesCopilot\Admin\CourseEditorPage::class);
+        
+        // Initialize services
         $settings_page->init();
-        
-        $admin_menu = new \MemberPressCoursesCopilot\Admin\AdminMenu($settings_page);
         $admin_menu->init();
-        
-        // Initialize standalone Course Editor page
-        $course_editor_page = new \MemberPressCoursesCopilot\Admin\CourseEditorPage();
         $course_editor_page->init();
         $course_editor_page->addMenuPage(); // Register the menu page
         
@@ -153,7 +182,7 @@ final class Plugin
      */
     public function enqueueScripts(): void
     {
-        // Enqueue frontend assets here when needed
+        // Asset management handled by AssetManager service
     }
 
     /**
@@ -164,7 +193,7 @@ final class Plugin
      */
     public function enqueueAdminScripts(string $hook_suffix): void
     {
-        // Enqueue admin assets here when needed
+        // Asset management handled by AssetManager service
     }
 
     /**

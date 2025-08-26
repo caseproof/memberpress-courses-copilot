@@ -33,7 +33,10 @@
     "autoload": {
         "psr-4": {
             "MemberPressCoursesCopilot\\": "src/MemberPressCoursesCopilot/"
-        }
+        },
+        "files": [
+            "src/MemberPressCoursesCopilot/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

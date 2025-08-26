@@ -116,7 +116,9 @@ add_action('admin_post_mpcc_cleanup_empty_sessions', function() {
         wp_die('Security check failed');
     }
     
-    $sessionService = new \MemberPressCoursesCopilot\Services\SessionService();
+    // Get session service from container
+    $container = Plugin::instance()->getContainer();
+    $sessionService = $container->get(\MemberPressCoursesCopilot\Services\SessionService::class);
     $deleted = $sessionService->cleanupEmptySessions();
     
     wp_redirect(add_query_arg([
@@ -156,8 +158,12 @@ function memberpress_courses_copilot_activate(): void {
         );
     }
     
+    // Get database service from container
+    $container = \MemberPressCoursesCopilot\Container\Container::getInstance();
+    \MemberPressCoursesCopilot\Container\ServiceProvider::register($container);
+    $database_service = $container->get(DatabaseService::class);
+    
     // Install database tables
-    $database_service = new DatabaseService();
     $db_installed = $database_service->installTables();
     
     if ( ! $db_installed ) {
@@ -208,9 +214,13 @@ function memberpress_courses_copilot_uninstall(): void {
         return;
     }
     
+    // Get database service from container
+    $container = \MemberPressCoursesCopilot\Container\Container::getInstance();
+    \MemberPressCoursesCopilot\Container\ServiceProvider::register($container);
+    $database_service = $container->get(DatabaseService::class);
+    
     // Remove all plugin data including database tables
     // This is permanent and cannot be undone
-    $database_service = new DatabaseService();
     $database_service->dropTables();
     
     // Clean up any remaining options

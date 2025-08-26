@@ -34,11 +34,23 @@ class ConversationFlowHandler extends BaseService
     ];
 
     public function __construct(
-        CourseGeneratorService $courseGenerator,
-        ConversationManager $conversationManager
+        LLMService $llmService,
+        ConversationManager $conversationManager,
+        CourseGeneratorService $courseGenerator
     ) {
+        parent::__construct();
         $this->courseGenerator = $courseGenerator;
         $this->conversationManager = $conversationManager;
+    }
+    
+    /**
+     * Initialize the service
+     *
+     * @return void
+     */
+    public function init(): void
+    {
+        // No initialization needed for this service
     }
 
     /**
