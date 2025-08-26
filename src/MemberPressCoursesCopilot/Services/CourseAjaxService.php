@@ -42,6 +42,9 @@ class CourseAjaxService extends BaseService
         add_action('wp_ajax_mpcc_ai_chat', [$this, 'handleAIChat']);
         add_action('wp_ajax_mpcc_ping', [$this, 'handlePing']);
         
+        // New simple AI chat handler
+        add_action('wp_ajax_mpcc_new_ai_chat', [$this, 'handleNewAIChat']);
+        
         // Conversation persistence endpoints
         // Note: mpcc_save_conversation is handled by SimpleAjaxController with higher priority
         add_action('wp_ajax_mpcc_load_conversation', [$this, 'loadConversation']);
@@ -1820,5 +1823,62 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         // In a real implementation, you might parse specific formats or JSON blocks
         // For now, return null to indicate no automatic updates
         return null;
+    }
+    
+    /**
+     * Handle new simple AI chat
+     */
+    public function handleNewAIChat(): void
+    {
+        // Verify nonce
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_ASSISTANT, false)) {
+            wp_send_json_error('Security verification failed');
+            return;
+        }
+        
+        // Check permissions
+        $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
+        if ($postId && !current_user_can('edit_post', $postId)) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $message = sanitize_text_field($_POST['message'] ?? '');
+        if (empty($message)) {
+            wp_send_json_error('Message cannot be empty');
+            return;
+        }
+        
+        try {
+            // Get LLM service
+            $llmService = new LLMService();
+            
+            // Simple system prompt
+            $systemPrompt = "You are an AI assistant helping to create and improve online courses. You provide helpful, practical advice about course content, structure, and learning objectives. Keep responses concise and actionable.";
+            
+            // Build messages
+            $messages = [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $message]
+            ];
+            
+            $response = $llmService->generateContent([
+                'messages' => $messages,
+                'temperature' => 0.7,
+                'max_tokens' => 500
+            ]);
+            
+            if ($response['success']) {
+                wp_send_json_success([
+                    'message' => $response['content']
+                ]);
+            } else {
+                wp_send_json_error($response['error'] ?? 'Failed to generate AI response');
+            }
+            
+        } catch (\Exception $e) {
+            error_log('MPCC: New AI Chat error: ' . $e->getMessage());
+            wp_send_json_error('An error occurred while processing your request');
+        }
     }
 }
