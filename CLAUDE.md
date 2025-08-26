@@ -53,8 +53,11 @@ $container->get('llm.factory')->create('anthropic')->withConfig($config)->genera
 
 ### Clear Boundaries
 - **LLMService**: All AI communication (ONE service only!)
+- **ConversationManager**: Session lifecycle and persistence (replaced SessionService)
 - **CourseIntegrationService**: UI integration with MemberPress Courses
 - **ContentGenerationService**: Course content creation logic
+- **CourseAjaxService**: AJAX endpoints for AI functionality
+- **SimpleAjaxController**: Session management AJAX endpoints
 - Each service has a clear, single responsibility
 
 ## Project Overview
@@ -82,22 +85,28 @@ memberpress-courses-copilot/
 ├── src/MemberPressCoursesCopilot/
 │   ├── Plugin.php (Main plugin class)
 │   ├── Controllers/
-│   │   ├── AdminController.php
 │   │   ├── AjaxController.php
-│   │   └── CourseGenerationController.php
+│   │   ├── SimpleAjaxController.php (Session management endpoints)
+│   │   └── RestApiController.php
 │   ├── Services/
 │   │   ├── LLMService.php (Single, simple AI service with hardcoded credentials)
+│   │   ├── ConversationManager.php (THE session handler - replaces SessionService)
 │   │   ├── CourseGeneratorService.php
-│   │   └── CourseIntegrationService.php
+│   │   ├── CourseIntegrationService.php
+│   │   ├── CourseAjaxService.php
+│   │   ├── DatabaseService.php
+│   │   └── LessonDraftService.php
 │   ├── Models/
-│   │   ├── CourseTemplate.php
-│   │   └── GeneratedCourse.php
+│   │   ├── ConversationSession.php
+│   │   ├── GeneratedCourse.php
+│   │   └── CourseSection.php
 │   ├── Admin/
 │   │   ├── AdminMenu.php
+│   │   ├── CourseEditorPage.php
 │   │   └── SettingsPage.php
 │   └── Utilities/
 │       ├── Logger.php
-│       └── Validator.php
+│       └── Helper.php
 ├── composer.json (PSR-4 autoloading + Caseproof-WP standard)
 ├── .editorconfig
 └── assets/
@@ -417,6 +426,44 @@ class AjaxController {
     }
 }
 ```
+
+## Session Management Architecture
+
+### ConversationManager - The ONLY Session Handler
+Following KISS principles, we use ONE service for all session management:
+
+```php
+// GOOD: Simple, direct session management
+$conversationManager = new ConversationManager();
+$session = $conversationManager->loadSession($sessionId);
+$session->addMessage('user', $content, []);
+$conversationManager->saveSession($session);
+```
+
+### Key Design Decisions
+- **NO SessionService**: Completely removed in favor of ConversationManager
+- **Direct database access**: ConversationManager uses DatabaseService directly
+- **Simple message format**: Frontend 'role' maps to backend 'type' field
+- **Automatic timestamp management**: Only updates timestamps on content changes
+- **Published course protection**: Chat interface disabled for published courses
+
+### Message Field Mapping
+```php
+// Frontend to Backend (saving)
+$messageType = $msg['role'] === 'user' ? 'user' : 
+              ($msg['role'] === 'assistant' ? 'assistant' : 'system');
+
+// Backend to Frontend (loading)  
+$role = $message['type'] === 'user' ? 'user' : 
+       ($message['type'] === 'assistant' ? 'assistant' : $message['type']);
+```
+
+### What NOT to Do
+- ❌ Don't create multiple session services
+- ❌ Don't add complex state machines
+- ❌ Don't implement session versioning
+- ❌ Don't add session migration utilities
+- ❌ Don't create session factories
 
 ## Remember These Principles
 

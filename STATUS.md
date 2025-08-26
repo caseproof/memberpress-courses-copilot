@@ -1,10 +1,34 @@
 # MemberPress Courses Copilot - Development Status
 
-## Current Status (08/21/2025)
+## Current Status (08/26/2025)
 
-The MemberPress Courses Copilot plugin is now fully functional with AI-powered course creation capabilities.
+The MemberPress Courses Copilot plugin is now fully functional with AI-powered course creation capabilities. All major architecture improvements and bug fixes have been completed.
 
 ## Recent Critical Fixes
+
+### Session Architecture Cleanup (08/26/2025)
+- **SessionService Removal**: Completely removed SessionService in favor of ConversationManager
+  - Deleted 464 lines of legacy code
+  - Migrated all session handling to ConversationManager
+  - Simplified architecture following KISS principles
+  
+### Message History Persistence Fix (08/26/2025)
+- **Issue**: Messages were saved but not displayed after page reload
+- **Root Cause**: Field mapping mismatch between frontend 'role' and backend 'type'
+- **Fix Applied**:
+  - Added proper field mapping in SimpleAjaxController::handleSaveConversation()
+  - Fixed CourseAjaxService::loadConversation() to map fields correctly
+  - Enhanced debug logging for troubleshooting
+
+### Published Course Protection (08/26/2025)
+- **Issue**: Published courses could be edited via AI chat
+- **Fix Applied**:
+  - Disabled chat interface for published courses
+  - Added visual indicators and helpful messaging
+  - Users must use "Duplicate Course" for edits
+- **Files Modified**:
+  - `/assets/js/course-editor-page.js`
+  - `/assets/css/course-editor-page.css`
 
 ### MemberPress Courses Curriculum Creation (08/21/2025)
 - **Issue**: Sections and lessons weren't appearing in the Curriculum tab after course creation
@@ -31,10 +55,12 @@ The MemberPress Courses Copilot plugin is now fully functional with AI-powered c
 ### Key Components
 
 1. **LLMService** - Handles all AI communication via auth gateway
-2. **CourseIntegrationService** - Manages UI integration and AJAX endpoints
+2. **ConversationManager** - THE ONLY session handler (replaced SessionService)
 3. **CourseGeneratorService** - Creates courses, sections, and lessons in MemberPress
-4. **ConversationManager** - Handles conversation state persistence
-5. **Logger** - Comprehensive logging system for debugging
+4. **CourseIntegrationService** - Manages UI integration and AJAX endpoints
+5. **SimpleAjaxController** - Handles session management AJAX endpoints
+6. **CourseAjaxService** - Handles AI-specific AJAX endpoints
+7. **Logger** - Comprehensive logging system for debugging
 
 ### Data Flow
 

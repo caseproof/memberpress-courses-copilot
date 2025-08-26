@@ -2,8 +2,15 @@
 
 AI-powered conversational course creation assistant for MemberPress Courses that reduces course development time from 6-10 hours to 10-30 minutes.
 
-## Recent Updates (2025-08-21)
+## Recent Updates (2025-08-26)
 
+### Architecture Changes
+- **Removed SessionService completely** - ConversationManager is now the single session handler
+- **Fixed message history persistence** - Proper field mapping between frontend/backend
+- **Fixed timestamp issues** - Timestamps only update on content changes, not on load
+- **Disabled chat for published courses** - Published courses are now read-only
+
+### Previous Updates (2025-08-21)
 - Fixed AI response formatting to use proper CSS classes for better visual presentation
 - Moved conversation management buttons (Previous Conversations/New Conversation) below the chat area
 - Added course preview restoration when loading saved conversations
