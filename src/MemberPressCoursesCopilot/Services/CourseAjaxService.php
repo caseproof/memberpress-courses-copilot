@@ -1844,6 +1844,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
         
         $message = sanitize_text_field($_POST['message'] ?? '');
+        $courseData = isset($_POST['course_data']) ? $_POST['course_data'] : [];
+        
         if (empty($message)) {
             wp_send_json_error('Message cannot be empty');
             return;
@@ -1853,17 +1855,11 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             // Get LLM service
             $llmService = new LLMService();
             
-            // Simple system prompt
-            $systemPrompt = "You are an AI assistant helping to create and improve online courses. You provide helpful, practical advice about course content, structure, and learning objectives. Keep responses concise and actionable.";
-            
-            // Build messages
-            $messages = [
-                ['role' => 'system', 'content' => $systemPrompt],
-                ['role' => 'user', 'content' => $message]
-            ];
+            // Build comprehensive system prompt with course context
+            $contextualPrompt = $this->buildCourseContextPrompt($courseData, $message);
             
             $response = $llmService->generateContent(
-                $systemPrompt . "\n\nUser: " . $message . "\n\nAssistant:",
+                $contextualPrompt,
                 'course_assistance',
                 [
                     'temperature' => 0.7,
@@ -1883,5 +1879,103 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             error_log('MPCC: New AI Chat error: ' . $e->getMessage());
             wp_send_json_error('An error occurred while processing your request');
         }
+    }
+    
+    /**
+     * Build contextual prompt with comprehensive course data
+     */
+    private function buildCourseContextPrompt(array $courseData, string $userMessage): string
+    {
+        $prompt = "You are an AI course development expert helping a user improve their online course. ";
+        $prompt .= "Provide specific, actionable advice based on the current course structure and content.\n\n";
+        
+        $prompt .= "=== CURRENT COURSE CONTEXT ===\n";
+        
+        // Basic course information
+        if (!empty($courseData['title'])) {
+            $prompt .= "Course Title: " . $courseData['title'] . "\n";
+        }
+        
+        if (!empty($courseData['content'])) {
+            $content = strip_tags($courseData['content']);
+            $prompt .= "Course Description: " . substr($content, 0, 300) . (strlen($content) > 300 ? '...' : '') . "\n";
+        }
+        
+        // Course metadata
+        if (!empty($courseData['difficulty_level'])) {
+            $prompt .= "Difficulty Level: " . $courseData['difficulty_level'] . "\n";
+        }
+        
+        if (!empty($courseData['target_audience'])) {
+            $prompt .= "Target Audience: " . $courseData['target_audience'] . "\n";
+        }
+        
+        if (!empty($courseData['course_category'])) {
+            $prompt .= "Category: " . $courseData['course_category'] . "\n";
+        }
+        
+        if (!empty($courseData['template_type'])) {
+            $prompt .= "Template Type: " . $courseData['template_type'] . "\n";
+        }
+        
+        // Learning objectives
+        if (!empty($courseData['learning_objectives']) && is_array($courseData['learning_objectives'])) {
+            $prompt .= "Learning Objectives:\n";
+            foreach ($courseData['learning_objectives'] as $objective) {
+                $prompt .= "- " . $objective . "\n";
+            }
+        }
+        
+        // Prerequisites
+        if (!empty($courseData['prerequisites']) && is_array($courseData['prerequisites'])) {
+            $prompt .= "Prerequisites:\n";
+            foreach ($courseData['prerequisites'] as $prereq) {
+                $prompt .= "- " . $prereq . "\n";
+            }
+        }
+        
+        // Course structure
+        $sectionCount = $courseData['section_count'] ?? 0;
+        $lessonCount = $courseData['lesson_count'] ?? 0;
+        $prompt .= "Course Structure: {$sectionCount} sections, {$lessonCount} lessons\n";
+        
+        if (!empty($courseData['total_estimated_duration'])) {
+            $prompt .= "Total Estimated Duration: " . $courseData['total_estimated_duration'] . " minutes\n";
+        }
+        
+        // Sections overview
+        if (!empty($courseData['sections']) && is_array($courseData['sections'])) {
+            $prompt .= "\nSECTION STRUCTURE:\n";
+            foreach ($courseData['sections'] as $section) {
+                $lessonCount = count($section['lessons'] ?? []);
+                $prompt .= "• " . $section['title'] . " ({$lessonCount} lessons)\n";
+                
+                if (!empty($section['description'])) {
+                    $prompt .= "  Description: " . substr($section['description'], 0, 100) . "\n";
+                }
+                
+                // Include lesson titles for context
+                if (!empty($section['lessons'])) {
+                    $prompt .= "  Lessons: ";
+                    $lessonTitles = array_column($section['lessons'], 'title');
+                    $prompt .= implode(', ', array_slice($lessonTitles, 0, 3));
+                    if (count($lessonTitles) > 3) {
+                        $prompt .= ', and ' . (count($lessonTitles) - 3) . ' more';
+                    }
+                    $prompt .= "\n";
+                }
+            }
+        }
+        
+        $prompt .= "\n=== USER QUESTION ===\n";
+        $prompt .= $userMessage . "\n\n";
+        
+        $prompt .= "=== YOUR RESPONSE ===\n";
+        $prompt .= "Based on the course context above, provide specific, actionable advice. ";
+        $prompt .= "Consider the current course structure, learning objectives, target audience, and difficulty level. ";
+        $prompt .= "If suggesting improvements, be specific about which sections or lessons to modify. ";
+        $prompt .= "Keep your response concise but detailed (200-400 words).\n\n";
+        
+        return $prompt;
     }
 }

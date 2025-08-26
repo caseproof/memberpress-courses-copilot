@@ -139,10 +139,7 @@ class NewCourseIntegration extends BaseService
                         nonce: $('#mpcc_ai_nonce').val(),
                         message: message,
                         post_id: <?php echo $post->ID; ?>,
-                        course_data: {
-                            title: '<?php echo esc_js($post->post_title); ?>',
-                            content: <?php echo json_encode($post->post_content); ?>
-                        }
+                        course_data: <?php echo json_encode($this->getCourseContextData($post)); ?>
                     },
                     success: function(response) {
                         $('#mpcc-typing').remove();
@@ -182,5 +179,82 @@ class NewCourseIntegration extends BaseService
         });
         </script>
         <?php
+    }
+
+    /**
+     * Get comprehensive course context data for AI
+     */
+    private function getCourseContextData(\WP_Post $post): array
+    {
+        // Basic course information
+        $courseData = [
+            'id' => $post->ID,
+            'title' => $post->post_title,
+            'content' => $post->post_content,
+            'status' => $post->post_status,
+            'excerpt' => $post->post_excerpt
+        ];
+
+        // Get course metadata
+        $courseData['learning_objectives'] = get_post_meta($post->ID, '_mpcs_course_learning_objectives', true) ?: [];
+        $courseData['difficulty_level'] = get_post_meta($post->ID, '_mpcs_course_difficulty_level', true) ?: '';
+        $courseData['target_audience'] = get_post_meta($post->ID, '_mpcs_course_target_audience', true) ?: '';
+        $courseData['prerequisites'] = get_post_meta($post->ID, '_mpcs_course_prerequisites', true) ?: [];
+        $courseData['estimated_duration'] = get_post_meta($post->ID, '_mpcs_course_estimated_duration', true) ?: '';
+        $courseData['course_category'] = get_post_meta($post->ID, '_mpcs_course_category', true) ?: '';
+        $courseData['template_type'] = get_post_meta($post->ID, '_mpcs_course_template_type', true) ?: '';
+
+        // Get sections data
+        $sections = get_post_meta($post->ID, '_mpcs_sections', true) ?: [];
+        $courseData['sections'] = [];
+        $courseData['section_count'] = 0;
+        $courseData['lesson_count'] = 0;
+
+        if (is_array($sections)) {
+            $courseData['section_count'] = count($sections);
+            
+            foreach ($sections as $index => $section) {
+                $sectionData = [
+                    'title' => $section['section_title'] ?? 'Untitled Section',
+                    'description' => $section['section_description'] ?? '',
+                    'order' => $index,
+                    'lessons' => []
+                ];
+
+                if (isset($section['lessons']) && is_array($section['lessons'])) {
+                    $courseData['lesson_count'] += count($section['lessons']);
+                    
+                    foreach ($section['lessons'] as $lessonIndex => $lesson) {
+                        $lessonData = [
+                            'title' => $lesson['post_title'] ?? 'Untitled Lesson',
+                            'content' => isset($lesson['post_content']) ? substr($lesson['post_content'], 0, 200) . '...' : '',
+                            'order' => $lessonIndex,
+                            'objectives' => $lesson['meta_input']['_mpcs_lesson_objectives'] ?? [],
+                            'duration' => $lesson['meta_input']['_mpcs_lesson_duration'] ?? 0
+                        ];
+                        $sectionData['lessons'][] = $lessonData;
+                    }
+                }
+
+                $courseData['sections'][] = $sectionData;
+            }
+        }
+
+        // Get course tags and categories
+        $terms = wp_get_post_terms($post->ID, ['course_category', 'course_tag'], ['fields' => 'names']);
+        if (!is_wp_error($terms)) {
+            $courseData['tags'] = $terms;
+        }
+
+        // Calculate total estimated time
+        $totalDuration = 0;
+        foreach ($courseData['sections'] as $section) {
+            foreach ($section['lessons'] as $lesson) {
+                $totalDuration += intval($lesson['duration']);
+            }
+        }
+        $courseData['total_estimated_duration'] = $totalDuration;
+
+        return $courseData;
     }
 }
