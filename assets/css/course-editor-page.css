@@ -755,15 +755,16 @@
     position: relative;
 }
 
-.mpcc-lesson-item.has-draft::before {
+/* Green border for lessons with draft - moved from ::before due to drag handle conflict */
+.mpcc-lesson-item.has-draft .mpcc-lesson-info::before {
     content: '';
     position: absolute;
-    left: 0;
+    left: -14px; /* Position it inside the lesson item padding */
     top: 0;
     bottom: 0;
     width: 4px;
     background: #00a32a;
-    border-radius: 8px 0 0 8px;
+    border-radius: 4px;
 }
 
 .mpcc-lesson-item.mpcc-lesson-locked {
@@ -791,6 +792,7 @@
 
 .mpcc-lesson-info {
     flex: 1;
+    position: relative;
 }
 
 .mpcc-lesson-title {
@@ -1253,7 +1255,8 @@
     position: relative;
 }
 
-.mpcc-lesson-item::before {
+/* Use ::after for drag handle to avoid conflict with draft indicator */
+.mpcc-lesson-item::after {
     content: '⋮⋮';
     position: absolute;
     left: 8px;
@@ -1262,7 +1265,9 @@
     color: #999;
     font-size: 16px;
     cursor: move;
+    z-index: 1;
 }
+
 
 /* Adjust content padding to make room for drag handles */
 .mpcc-section-header {
@@ -1272,6 +1277,7 @@
 .mpcc-lesson-item {
     padding-left: 40px;
 }
+
 
 @media (max-width: 960px) {
     .mpcc-editor-layout {
