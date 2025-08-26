@@ -213,9 +213,25 @@
         
         addMessage: function(role, content, addToHistory = true) {
             const messagesContainer = $('#mpcc-chat-messages');
+            
+            // Format content based on role
+            let formattedContent;
+            if (role === 'assistant') {
+                // Use formatMessageToHTML for AI messages to preserve formatting
+                if (window.MPCCUtils && window.MPCCUtils.formatMessageToHTML) {
+                    formattedContent = window.MPCCUtils.formatMessageToHTML(content);
+                } else {
+                    // Fallback to escapeHtml if utility not available
+                    formattedContent = this.escapeHtml(content);
+                }
+            } else {
+                // For user messages, just escape HTML
+                formattedContent = this.escapeHtml(content);
+            }
+            
             const messageHtml = `
                 <div class="mpcc-chat-message ${role}">
-                    <div class="message-content">${this.escapeHtml(content)}</div>
+                    <div class="message-content">${formattedContent}</div>
                 </div>
             `;
             
