@@ -1976,6 +1976,22 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $prompt .= "If suggesting improvements, be specific about which sections or lessons to modify. ";
         $prompt .= "Keep your response concise but detailed (200-400 words).\n\n";
         
+        // Check if user wants to make actual changes
+        $actionKeywords = ['update', 'add', 'create', 'modify', 'change', 'edit', 'generate', 'write'];
+        $userWantsAction = false;
+        foreach ($actionKeywords as $keyword) {
+            if (stripos($userMessage, $keyword) !== false) {
+                $userWantsAction = true;
+                break;
+            }
+        }
+        
+        if ($userWantsAction) {
+            $prompt .= "IMPORTANT: The user wants to make actual changes to their course. ";
+            $prompt .= "After your suggestions, add this EXACT line at the end: ";
+            $prompt .= "'[ACTION_REQUIRED: Would you like me to help implement these changes?]'\n\n";
+        }
+        
         return $prompt;
     }
 }
