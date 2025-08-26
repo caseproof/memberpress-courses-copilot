@@ -55,6 +55,9 @@ class CourseAjaxService extends BaseService
         add_action('wp_ajax_mpcc_generate_lesson_content', [$this, 'generateLessonContent']);
         add_action('wp_ajax_mpcc_reorder_course_items', [$this, 'reorderCourseItems']);
         add_action('wp_ajax_mpcc_delete_course_item', [$this, 'deleteCourseItem']);
+        
+        // Course edit page AI chat
+        add_action('wp_ajax_mpcc_course_chat_message', [$this, 'handleCourseEditChat']);
     }
 
     /**
@@ -142,44 +145,18 @@ class CourseAjaxService extends BaseService
             // Fallback basic interface
             ?>
             <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>" style="height: 100%; display: flex; flex-direction: column;">
-                <div id="mpcc-chat-messages" class="mpcc-chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; border: none; padding: 20px; background: white;">
-                    <div class="mpcc-welcome-message" style="padding: 20px; text-align: center; color: #666;">
-                        <div style="font-size: 48px; margin-bottom: 15px;">🤖</div>
-                        <h3 style="margin: 0 0 10px 0;"><?php esc_html_e('AI Course Assistant', 'memberpress-courses-copilot'); ?></h3>
-                        <p style="margin: 0;">
-                            <?php if ($context === 'course_creation'): ?>
-                                <?php esc_html_e('Hi! I\'m here to help you create an amazing course. What kind of course would you like to build?', 'memberpress-courses-copilot'); ?>
-                            <?php else: ?>
-                                <?php esc_html_e('Hi! I\'m here to help you improve your course. What would you like to work on?', 'memberpress-courses-copilot'); ?>
-                            <?php endif; ?>
-                        </p>
-                        
-                        <?php if ($context === 'course_creation'): ?>
-                        <div style="margin-top: 30px;">
-                            <p style="font-size: 14px; color: #999; margin-bottom: 20px;"><?php esc_html_e('Quick starters:', 'memberpress-courses-copilot'); ?></p>
-                            <div class="mpcc-quick-starters" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                                <button type="button" class="mpcc-quick-start button button-secondary" data-prompt="Programming Course">
-                                    <?php esc_html_e('Programming Course', 'memberpress-courses-copilot'); ?>
-                                </button>
-                                <button type="button" class="mpcc-quick-start button button-secondary" data-prompt="Business Skills">
-                                    <?php esc_html_e('Business Skills', 'memberpress-courses-copilot'); ?>
-                                </button>
-                                <button type="button" class="mpcc-quick-start button button-secondary" data-prompt="Creative Arts">
-                                    <?php esc_html_e('Creative Arts', 'memberpress-courses-copilot'); ?>
-                                </button>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                    </div>
+                <div id="mpcc-course-chat-messages" class="mpcc-chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; border: none; padding: 20px; background: #f9f9f9;">
+                    <!-- Messages will be inserted here by JavaScript -->
                 </div>
                 
-                <div class="mpcc-chat-input-container" style="padding: 20px; border-top: 1px solid #ddd; background: #f8f9fa;">
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="mpcc-chat-input" placeholder="<?php esc_attr_e('Type your message here...', 'memberpress-courses-copilot'); ?>" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-                        <button type="button" id="mpcc-send-message" class="button button-primary" style="padding: 12px 24px;">
-                            <?php esc_html_e('Send', 'memberpress-courses-copilot'); ?>
-                        </button>
-                    </div>
+                <div id="mpcc-course-chat-input-area" style="border-top: 1px solid #dcdcde; padding: 15px; background: #fff; display: flex; gap: 10px;">
+                    <textarea id="mpcc-course-chat-input" 
+                              placeholder="<?php esc_attr_e('Ask me anything about your course...', 'memberpress-courses-copilot'); ?>" 
+                              style="flex: 1; padding: 8px 12px; border: 2px solid #dcdcde; border-radius: 6px; font-size: 14px; resize: none; min-height: 40px; max-height: 120px;"></textarea>
+                    <button type="button" id="mpcc-course-send-message" class="button button-primary" style="padding: 8px 16px; display: flex; align-items: center; gap: 5px;">
+                        <span class="dashicons dashicons-arrow-right-alt"></span>
+                        <?php esc_html_e('Send', 'memberpress-courses-copilot'); ?>
+                    </button>
                 </div>
             </div>
             
@@ -1658,5 +1635,181 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $prompt .= "Do NOT use HTML tags or markdown - just plain, well-formatted text.";
         
         return $prompt;
+    }
+    
+    /**
+     * Handle AI chat for course editing page
+     *
+     * @return void
+     */
+    public function handleCourseEditChat(): void
+    {
+        // Verify nonce
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_ASSISTANT, false)) {
+            $this->logger->warning('Course edit chat failed: invalid nonce', [
+                'user_id' => get_current_user_id()
+            ]);
+            wp_send_json_error('Security verification failed');
+            return;
+        }
+        
+        // Check permissions
+        if (!current_user_can('edit_courses')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $message = sanitize_text_field($_POST['message'] ?? '');
+        $courseId = isset($_POST['course_id']) ? (int) $_POST['course_id'] : 0;
+        $courseData = isset($_POST['course_data']) ? json_decode(wp_unslash($_POST['course_data']), true) : [];
+        $conversationHistory = isset($_POST['conversation_history']) ? json_decode(wp_unslash($_POST['conversation_history']), true) : [];
+        
+        if (empty($message)) {
+            wp_send_json_error('Message cannot be empty');
+            return;
+        }
+        
+        if (!$courseId) {
+            wp_send_json_error('Invalid course ID');
+            return;
+        }
+        
+        // Verify user can edit this course
+        if (!current_user_can('edit_post', $courseId)) {
+            wp_send_json_error('You do not have permission to edit this course');
+            return;
+        }
+        
+        try {
+            $this->logger->info('Processing course edit chat message', [
+                'user_id' => get_current_user_id(),
+                'course_id' => $courseId,
+                'message_length' => strlen($message)
+            ]);
+            
+            // Build system prompt for course editing context
+            $systemPrompt = $this->buildCourseEditSystemPrompt($courseData);
+            
+            // Build conversation messages
+            $messages = [
+                ['role' => 'system', 'content' => $systemPrompt]
+            ];
+            
+            // Add conversation history
+            foreach ($conversationHistory as $msg) {
+                if (isset($msg['role']) && isset($msg['content'])) {
+                    $messages[] = [
+                        'role' => $msg['role'],
+                        'content' => $msg['content']
+                    ];
+                }
+            }
+            
+            // Add current message
+            $messages[] = ['role' => 'user', 'content' => $message];
+            
+            // Get AI response
+            $llmResponse = $this->llmService->generateContent('', [
+                'messages' => $messages,
+                'max_tokens' => 2000
+            ]);
+            
+            if (!$llmResponse['success']) {
+                throw new \Exception($llmResponse['error'] ?? 'AI service error');
+            }
+            
+            $aiResponse = $llmResponse['content'];
+            
+            // Check if AI response contains course update instructions
+            $courseUpdates = $this->extractCourseUpdates($aiResponse, $courseData);
+            
+            // Build response
+            $responseData = [
+                'message' => $aiResponse,
+                'course_updates' => $courseUpdates
+            ];
+            
+            // If course updates were suggested, prepare them
+            if ($courseUpdates && isset($courseUpdates['sections'])) {
+                // Update course metadata if sections were modified
+                update_post_meta($courseId, '_mpcs_sections', $courseUpdates['sections']);
+                $responseData['require_refresh'] = true;
+            }
+            
+            $this->logger->info('Course edit chat completed successfully', [
+                'user_id' => get_current_user_id(),
+                'course_id' => $courseId,
+                'has_updates' => !empty($courseUpdates)
+            ]);
+            
+            wp_send_json_success($responseData);
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Course edit chat failed', [
+                'user_id' => get_current_user_id(),
+                'course_id' => $courseId,
+                'error_message' => $e->getMessage()
+            ]);
+            
+            wp_send_json_error('Failed to process your request: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Build system prompt for course editing context
+     *
+     * @param array $courseData Course data
+     * @return string
+     */
+    private function buildCourseEditSystemPrompt(array $courseData): string
+    {
+        $prompt = "You are an AI assistant helping to improve and update an online course. ";
+        $prompt .= "You have access to the current course structure and can suggest improvements.\n\n";
+        
+        $prompt .= "Current Course Information:\n";
+        $prompt .= "Title: " . ($courseData['title'] ?? 'Untitled Course') . "\n";
+        $prompt .= "Status: " . ($courseData['status'] ?? 'draft') . "\n";
+        
+        if (!empty($courseData['content'])) {
+            $prompt .= "Description: " . substr($courseData['content'], 0, 200) . "...\n";
+        }
+        
+        if (!empty($courseData['sections'])) {
+            $prompt .= "\nCourse Structure:\n";
+            foreach ($courseData['sections'] as $sIndex => $section) {
+                $prompt .= sprintf("Section %d: %s\n", $sIndex + 1, $section['title'] ?? 'Untitled Section');
+                if (!empty($section['lessons'])) {
+                    foreach ($section['lessons'] as $lIndex => $lesson) {
+                        $prompt .= sprintf("  - Lesson %d.%d: %s\n", $sIndex + 1, $lIndex + 1, $lesson['title'] ?? 'Untitled Lesson');
+                    }
+                }
+            }
+        }
+        
+        $prompt .= "\nYour role is to:\n";
+        $prompt .= "1. Provide helpful suggestions for improving the course\n";
+        $prompt .= "2. Help create new content when requested\n";
+        $prompt .= "3. Assist with structuring lessons and sections\n";
+        $prompt .= "4. Offer pedagogical advice for better learning outcomes\n";
+        $prompt .= "5. Help write engaging and educational content\n\n";
+        $prompt .= "When suggesting course structure changes, format them clearly so they can be implemented.\n";
+        $prompt .= "Focus on practical, actionable advice that improves the learning experience.";
+        
+        return $prompt;
+    }
+    
+    /**
+     * Extract course updates from AI response
+     *
+     * @param string $aiResponse AI response text
+     * @param array $currentCourseData Current course data
+     * @return array|null
+     */
+    private function extractCourseUpdates(string $aiResponse, array $currentCourseData): ?array
+    {
+        // This is a placeholder for more sophisticated update extraction
+        // In a real implementation, you might parse specific formats or JSON blocks
+        // For now, return null to indicate no automatic updates
+        return null;
     }
 }

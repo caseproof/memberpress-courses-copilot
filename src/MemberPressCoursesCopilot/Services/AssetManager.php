@@ -75,6 +75,7 @@ class AssetManager extends BaseService
         $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons']);
         $this->registerStyle('mpcc-toast', 'assets/css/toast.css', ['dashicons']);
         $this->registerStyle('mpcc-course-editor', 'assets/css/course-editor-page.css', ['wp-components']);
+        $this->registerStyle('mpcc-course-edit-ai-chat', 'assets/css/course-edit-ai-chat.css', ['dashicons']);
         
         // Component styles
         // Removed mpcc-modal-styles and mpcc-metabox-styles - files don't exist
@@ -114,6 +115,12 @@ class AssetManager extends BaseService
             'mpcc-course-editor',
             'assets/js/course-editor-page.js',
             ['jquery', 'jquery-ui-sortable', 'wp-api', 'wp-components', 'wp-element', 'mpcc-toast', 'mpcc-shared-utilities']
+        );
+        
+        $this->registerScript(
+            'mpcc-course-edit-ai-chat',
+            'assets/js/course-edit-ai-chat.js',
+            ['jquery', 'mpcc-toast']
         );
         
         // Component scripts
@@ -189,6 +196,13 @@ class AssetManager extends BaseService
             'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION),
             'strings' => $this->getChatStrings()
         ]);
+        
+        // Course edit AI chat localizations
+        wp_localize_script('mpcc-course-edit-ai-chat', 'mpccCourseChat', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => NonceConstants::create(NonceConstants::AI_ASSISTANT),
+            'strings' => $this->getCourseEditChatStrings()
+        ]);
     }
     
     /**
@@ -258,7 +272,15 @@ class AssetManager extends BaseService
      */
     private function enqueueCourseEditorAssets(): void
     {
-        // Removed enqueue calls for non-existent metabox assets
+        // Enqueue styles
+        wp_enqueue_style('mpcc-ai-copilot');
+        wp_enqueue_style('mpcc-toast');
+        wp_enqueue_style('mpcc-course-edit-ai-chat');
+        
+        // Enqueue scripts
+        wp_enqueue_script('mpcc-toast');
+        wp_enqueue_script('mpcc-course-edit-ai-chat');
+        wp_enqueue_script('mpcc-simple-ai-chat');
     }
     
     /**
@@ -377,5 +399,20 @@ class AssetManager extends BaseService
         if (isset($this->scripts[$handle])) {
             wp_enqueue_script($handle);
         }
+    }
+    
+    /**
+     * Get course edit chat strings for localization
+     */
+    private function getCourseEditChatStrings(): array
+    {
+        return [
+            'thinking' => __('AI is thinking...', 'memberpress-courses-copilot'),
+            'error' => __('Error: ', 'memberpress-courses-copilot'),
+            'connectionError' => __('Connection error. Please try again.', 'memberpress-courses-copilot'),
+            'send' => __('Send', 'memberpress-courses-copilot'),
+            'updateSuccess' => __('Course updated successfully!', 'memberpress-courses-copilot'),
+            'failedToLoad' => __('Failed to communicate with the AI. Please try again.', 'memberpress-courses-copilot')
+        ];
     }
 }
