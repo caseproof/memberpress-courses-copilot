@@ -336,6 +336,9 @@ class CourseIntegrationService extends BaseService
             // Initialize AI chat for course editing
             var courseData = <?php echo json_encode($courseData); ?>;
             
+            // Make courseData available globally for the chat interface
+            window.courseData = courseData;
+            
             // Load the AI chat interface
             $.ajax({
                 url: ajaxurl,

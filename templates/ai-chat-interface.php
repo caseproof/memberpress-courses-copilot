@@ -69,12 +69,12 @@ $initialMessages = $data['messages'] ?? [];
     <div class="mpcc-chat-input-wrapper">
         <div class="mpcc-chat-input-container">
             <textarea 
-                id="mpcc-chat-input" 
+                id="mpcc-course-chat-input" 
                 class="mpcc-chat-input" 
                 placeholder="<?php esc_attr_e('Ask me anything about your course...', 'memberpress-courses-copilot'); ?>"
                 rows="2"
             ></textarea>
-            <button type="button" id="mpcc-send-message" class="mpcc-send-button" disabled>
+            <button type="button" id="mpcc-course-send-message" class="mpcc-send-button" disabled>
                 <span class="dashicons dashicons-arrow-right-alt"></span>
                 <span class="button-text"><?php esc_html_e('Send', 'memberpress-courses-copilot'); ?></span>
             </button>
@@ -273,8 +273,8 @@ jQuery(document).ready(function($) {
     // Initialize AI chat interface
     const chatContainer = $('#mpcc-ai-chat-interface');
     const chatMessages = $('#mpcc-chat-messages');
-    const chatInput = $('#mpcc-chat-input');
-    const sendButton = $('#mpcc-send-message');
+    const chatInput = $('#mpcc-course-chat-input');
+    const sendButton = $('#mpcc-course-send-message');
     const typingIndicator = $('#mpcc-typing-indicator');
     
     // Initialize course edit AI chat if available

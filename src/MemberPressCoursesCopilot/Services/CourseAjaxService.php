@@ -140,6 +140,12 @@ class CourseAjaxService extends BaseService
         $template_path = MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'templates/ai-chat-interface.php';
         
         if (file_exists($template_path)) {
+            // Prepare data for template
+            $data = [
+                'context' => $context,
+                'course_id' => $post_id,
+                'messages' => [] // Empty array for initial load
+            ];
             include $template_path;
         } else {
             // Fallback basic interface
