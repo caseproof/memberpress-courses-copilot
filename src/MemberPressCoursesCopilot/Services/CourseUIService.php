@@ -334,14 +334,7 @@ class CourseUIService extends BaseService
         // Asset enqueuing is now handled by AssetManager service
         // Scripts and styles are already registered and will be enqueued based on context
         
-        // Localize script data
-        $this->templateEngine->localizeScript('mpcc-metabox-component', 'mpccMetaBoxData', [
-            'strings' => [
-                'open_ai_chat' => __('Open AI Chat', 'memberpress-courses-copilot'),
-                'close_ai_chat' => __('Close AI Chat', 'memberpress-courses-copilot'),
-                'loading' => __('Loading AI interface...', 'memberpress-courses-copilot')
-            ]
-        ]);
+        // Removed localization for non-existent mpcc-metabox-component script
     }
     
     /**
