@@ -7,8 +7,8 @@
 (function($) {
     'use strict';
 
-    // Course Edit AI Chat Manager
-    const CourseEditAIChat = {
+    // Course Edit AI Chat Manager - Make it globally accessible
+    window.CourseEditAIChat = {
         courseData: null,
         conversationHistory: [],
         isProcessing: false,

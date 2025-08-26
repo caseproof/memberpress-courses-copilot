@@ -33,7 +33,8 @@ class CourseIntegrationService extends BaseService
         add_action('admin_footer-edit.php', [$this, 'addCreateWithAIButton']);
         
         // Hook into course editor to add AI chat interface
-        add_action('add_meta_boxes', [$this, 'addAIAssistantMetaBox'], 20);
+        // Disabled metabox to prevent conflicts with center column implementation
+        // add_action('add_meta_boxes', [$this, 'addAIAssistantMetaBox'], 20);
         
         // Add AI chat to center column of course edit page
         add_action('edit_form_after_editor', [$this, 'addAIChatToCenterColumn']);
@@ -259,10 +260,22 @@ class CourseIntegrationService extends BaseService
      */
     public function addAIChatToCenterColumn(\WP_Post $post): void
     {
+        // Debug to see if this method is being called
+        ?>
+        <!-- MPCC Debug: addAIChatToCenterColumn called for post type: <?php echo esc_html($post->post_type); ?> -->
+        <?php
+        
         // Only add for course post type
         if ($post->post_type !== 'mpcs-course') {
+            ?>
+            <!-- MPCC Debug: Not a course post type (<?php echo esc_html($post->post_type); ?>), skipping AI chat -->
+            <?php
             return;
         }
+        
+        ?>
+        <!-- MPCC Debug: Adding AI chat for course ID: <?php echo esc_html($post->ID); ?> -->
+        <?php
         
         // Get course metadata
         $sections = get_post_meta($post->ID, '_mpcs_sections', true) ?: [];

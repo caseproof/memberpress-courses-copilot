@@ -963,14 +963,14 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.6);
-    display: none;
+    display: none !important; /* Ensure it's hidden by default */
     z-index: 9999;
     opacity: 0;
     transition: opacity 0.3s ease;
 }
 
 .mpcc-sessions-modal-overlay.active {
-    display: block;
+    display: block !important;
     opacity: 1;
 }
 

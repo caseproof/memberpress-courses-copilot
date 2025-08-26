@@ -118,7 +118,7 @@ class CourseUIService extends BaseService
         ]);
         
         // Use template engine to render meta box
-        echo $this->templateEngine->renderComponent('metabox/ai-assistant', [
+        echo $this->templateEngine->renderComponent('metabox/course-edit-ai-assistant', [
             'post_id' => $post->ID,
             'post_title' => $post->post_title,
             'post_status' => $post->post_status,

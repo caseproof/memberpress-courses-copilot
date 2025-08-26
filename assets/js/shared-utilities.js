@@ -163,7 +163,8 @@ window.MPCCUtils = {
          */
         close: function(modalSelector) {
             const $modal = modalSelector ? jQuery(modalSelector) : jQuery('.mpcc-modal-overlay, .mpcc-sessions-modal-overlay');
-            $modal.removeClass('active mpcc-modal-open').fadeOut();
+            console.log('MPCCUtils: Closing modal', $modal.length ? 'found' : 'not found');
+            $modal.removeClass('active mpcc-modal-open').fadeOut(0); // Instant hide to ensure it works
             jQuery('body').css('overflow', '');
             
             // Trigger custom event
@@ -186,10 +187,13 @@ window.MPCCUtils = {
          * Initialize modal event handlers
          */
         init: function() {
+            console.log('MPCCUtils: Initializing modal manager');
+            
             // Use event delegation for all modal close buttons
             jQuery(document).off('click.mpcc-modal-close').on('click.mpcc-modal-close', '.mpcc-modal-close, .mpcc-sessions-modal-close', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                console.log('MPCCUtils: Close button clicked');
                 const $modal = jQuery(this).closest('.mpcc-modal-overlay, .mpcc-sessions-modal-overlay');
                 MPCCUtils.modalManager.close($modal);
             });

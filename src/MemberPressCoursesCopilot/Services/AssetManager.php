@@ -72,7 +72,6 @@ class AssetManager extends BaseService
     {
         // Core styles
         $this->registerStyle('mpcc-courses-integration', 'assets/css/courses-integration.css', ['wp-components']);
-        $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons']);
         $this->registerStyle('mpcc-toast', 'assets/css/toast.css', ['dashicons']);
         $this->registerStyle('mpcc-course-editor', 'assets/css/course-editor-page.css', ['wp-components']);
         $this->registerStyle('mpcc-course-edit-ai-chat', 'assets/css/course-edit-ai-chat.css', ['dashicons']);
@@ -91,12 +90,6 @@ class AssetManager extends BaseService
             'mpcc-courses-integration',
             'assets/js/courses-integration.js',
             ['jquery', 'wp-element', 'wp-components']
-        );
-        
-        $this->registerScript(
-            'mpcc-simple-ai-chat',
-            'assets/js/simple-ai-chat.js',
-            ['jquery']
         );
         
         $this->registerScript(
@@ -190,13 +183,6 @@ class AssetManager extends BaseService
             'strings' => $this->getEditorStrings()
         ]);
         
-        // Simple AI chat localizations
-        wp_localize_script('mpcc-simple-ai-chat', 'mpccSimpleChat', [
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION),
-            'strings' => $this->getChatStrings()
-        ]);
-        
         // Course edit AI chat localizations
         wp_localize_script('mpcc-course-edit-ai-chat', 'mpccCourseChat', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
@@ -260,10 +246,8 @@ class AssetManager extends BaseService
     {
         wp_enqueue_style('dashicons');
         wp_enqueue_style('mpcc-courses-integration');
-        wp_enqueue_style('mpcc-ai-copilot');
         wp_enqueue_style('mpcc-modal-styles');
         
-        wp_enqueue_script('mpcc-simple-ai-chat');
         wp_enqueue_script('mpcc-modal-component');
     }
     
@@ -273,14 +257,14 @@ class AssetManager extends BaseService
     private function enqueueCourseEditorAssets(): void
     {
         // Enqueue styles
-        wp_enqueue_style('mpcc-ai-copilot');
         wp_enqueue_style('mpcc-toast');
         wp_enqueue_style('mpcc-course-edit-ai-chat');
+        wp_enqueue_style('mpcc-ai-copilot'); // Needed for chat message styles
         
         // Enqueue scripts
         wp_enqueue_script('mpcc-toast');
         wp_enqueue_script('mpcc-course-edit-ai-chat');
-        wp_enqueue_script('mpcc-simple-ai-chat');
+        // Removed mpcc-simple-ai-chat - replaced by course-edit-ai-chat
     }
     
     /**
@@ -290,7 +274,6 @@ class AssetManager extends BaseService
     {
         wp_enqueue_style('dashicons');
         wp_enqueue_style('mpcc-courses-integration');
-        wp_enqueue_style('mpcc-ai-copilot');
         
         wp_enqueue_script('mpcc-courses-integration');
     }
