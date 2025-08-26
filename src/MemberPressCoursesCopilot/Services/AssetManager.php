@@ -59,8 +59,10 @@ class AssetManager extends BaseService
      */
     public function registerAssets(): void
     {
+        error_log('MPCC: Registering assets');
         $this->registerStyles();
         $this->registerScripts();
+        error_log('MPCC: Assets registered');
     }
     
     /**
@@ -207,6 +209,9 @@ class AssetManager extends BaseService
      */
     public function enqueueAdminAssets(string $hook): void
     {
+        // Debug logging
+        error_log('MPCC: AssetManager enqueueAdminAssets called with hook: ' . $hook);
+        
         // Course listing page assets
         if ($hook === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'mpcs-course') {
             $this->enqueueCourseListingAssets();
@@ -230,8 +235,11 @@ class AssetManager extends BaseService
             wp_enqueue_style('mpcc-courses-integration');
         }
         
-        // Standalone editor page
-        if (strpos($hook, 'mpcc-course-editor') !== false) {
+        // Standalone editor page - check multiple possible hook formats
+        if (strpos($hook, 'mpcc-course-editor') !== false || 
+            $hook === 'toplevel_page_mpcc-course-editor' ||
+            $hook === 'admin_page_mpcc-course-editor') {
+            error_log('MPCC: Enqueuing standalone editor assets for hook: ' . $hook);
             $this->enqueueStandaloneEditorAssets();
         }
     }
@@ -276,11 +284,25 @@ class AssetManager extends BaseService
      */
     private function enqueueStandaloneEditorAssets(): void
     {
+        // Ensure dependencies are enqueued first
+        wp_enqueue_style('dashicons');
+        wp_enqueue_style('wp-components');
+        
+        // Enqueue our styles
         wp_enqueue_style('mpcc-course-editor');
         wp_enqueue_style('mpcc-toast');
         
+        // Ensure script dependencies
+        wp_enqueue_script('jquery');
+        wp_enqueue_script('wp-api');
+        wp_enqueue_script('wp-components');
+        wp_enqueue_script('wp-element');
+        
+        // Enqueue our scripts
         wp_enqueue_script('mpcc-toast');
         wp_enqueue_script('mpcc-course-editor');
+        
+        error_log('MPCC: Standalone editor assets enqueued');
     }
     
     /**

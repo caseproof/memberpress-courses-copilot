@@ -83,6 +83,10 @@ final class Plugin
      */
     private function init(): void
     {
+        // Initialize AssetManager early so assets are registered before enqueuing
+        $asset_manager = $this->container->get(\MemberPressCoursesCopilot\Services\AssetManager::class);
+        $asset_manager->init();
+        
         // Hook into WordPress initialization
         add_action('init', [$this, 'initializeComponents']);
         add_action('admin_menu', [$this, 'initializeAdmin']); // Changed from admin_init to admin_menu
@@ -127,13 +131,11 @@ final class Plugin
         $simple_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\SimpleAjaxController::class);
         $course_integration_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseIntegrationService::class);
         $course_ajax_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseAjaxService::class);
-        $asset_manager = $this->container->get(\MemberPressCoursesCopilot\Services\AssetManager::class);
         
         // Initialize services
         $simple_ajax_controller->init();
         $course_integration_service->init();
         $course_ajax_service->init();
-        $asset_manager->init();
         
         /**
          * Fires after plugin components are initialized

@@ -25,8 +25,7 @@ class CourseEditorPage
     public function init(): void
     {
         // Menu will be added when addMenuPage is called directly
-        // Hook for asset enqueuing
-        add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
+        // Asset enqueuing is handled by AssetManager service
     }
     
     /**
@@ -96,31 +95,6 @@ class CourseEditorPage
         }
         
         return sanitize_text_field($sessionId);
-    }
-    
-    /**
-     * Enqueue assets for the course editor page
-     */
-    public function enqueueAssets($hook): void
-    {
-        // Only enqueue on our custom page
-        if ($hook !== $this->hookSuffix) {
-            return;
-        }
-        
-        // Core dependencies
-        wp_enqueue_style('dashicons');
-        wp_enqueue_style('wp-components');
-        wp_enqueue_style('mpcc-course-editor');
-        wp_enqueue_style('mpcc-toast');
-        
-        // Scripts with dependencies
-        wp_enqueue_script('jquery');
-        wp_enqueue_script('wp-api');
-        wp_enqueue_script('wp-components');
-        wp_enqueue_script('wp-element');
-        wp_enqueue_script('mpcc-toast');
-        wp_enqueue_script('mpcc-course-editor');
     }
     
     /**
