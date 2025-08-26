@@ -86,6 +86,94 @@
             }.bind(this));
         },
         
+        initializeSortable: function() {
+            // Only initialize if course is not published and sortable is available
+            if (this.publishedCourseId || !$.fn.sortable) {
+                return;
+            }
+            
+            // Make sections sortable
+            $('#mpcc-course-structure').sortable({
+                items: '.mpcc-section',
+                handle: '.mpcc-section-header',
+                placeholder: 'mpcc-section-placeholder',
+                cursor: 'move',
+                tolerance: 'pointer',
+                update: (event, ui) => {
+                    this.updateSectionOrder();
+                }
+            });
+            
+            // Make lessons sortable within each section
+            $('.mpcc-lessons').sortable({
+                items: '.mpcc-lesson-item',
+                placeholder: 'mpcc-lesson-placeholder',
+                cursor: 'move',
+                tolerance: 'pointer',
+                connectWith: '.mpcc-lessons',
+                update: (event, ui) => {
+                    this.updateLessonOrder();
+                }
+            });
+        },
+        
+        updateSectionOrder: function() {
+            const newOrder = [];
+            $('.mpcc-section').each((index, el) => {
+                const originalIndex = parseInt($(el).attr('id').replace('section-', ''));
+                newOrder.push(originalIndex);
+            });
+            
+            // Reorder sections in the data structure
+            const reorderedSections = newOrder.map(index => this.courseStructure.sections[index]);
+            this.courseStructure.sections = reorderedSections;
+            
+            // Re-render to update indices
+            this.renderCourseStructure();
+            
+            // Re-initialize sortable after re-render
+            this.initializeSortable();
+            
+            // Save the updated structure
+            this.saveConversation();
+            
+            mpccToast.success('Section order updated');
+        },
+        
+        updateLessonOrder: function() {
+            const newStructure = [];
+            
+            $('.mpcc-section').each((sectionIndex, sectionEl) => {
+                const sectionData = this.courseStructure.sections[sectionIndex];
+                const section = {
+                    title: sectionData.title,
+                    lessons: []
+                };
+                
+                $(sectionEl).find('.mpcc-lesson-item').each((lessonIndex, lessonEl) => {
+                    const lessonId = $(lessonEl).attr('data-lesson-id');
+                    const [origSection, origLesson] = lessonId.split('-').map(n => parseInt(n));
+                    const lesson = this.courseStructure.sections[origSection].lessons[origLesson];
+                    section.lessons.push(lesson);
+                });
+                
+                newStructure.push(section);
+            });
+            
+            this.courseStructure.sections = newStructure;
+            
+            // Re-render to update indices
+            this.renderCourseStructure();
+            
+            // Re-initialize sortable after re-render
+            this.initializeSortable();
+            
+            // Save the updated structure
+            this.saveConversation();
+            
+            mpccToast.success('Lesson order updated');
+        },
+        
         initializeChat: function() {
             // Don't add to conversation history yet - this is just UI
             this.addMessage('assistant', 'Welcome to the AI Course Creator! I\'m here to help you build amazing courses. What kind of course would you like to create today?', false);
@@ -401,6 +489,9 @@
             
             // Update view course button visibility and functionality
             this.updateViewCourseButton();
+            
+            // Initialize sortable functionality
+            this.initializeSortable();
             
             // Disable chat for published courses
             if (this.publishedCourseId) {
