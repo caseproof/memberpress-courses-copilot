@@ -58,8 +58,8 @@ class ConversationManager extends BaseService
         // Validate user session limits
         $this->enforceSessionLimits($userId);
         
-        // Generate unique session ID
-        $sessionId = $this->generateSessionId();
+        // Use provided session ID or generate unique session ID
+        $sessionId = $sessionData['session_id'] ?? $this->generateSessionId();
         
         // Prepare session data
         $sessionRecord = [

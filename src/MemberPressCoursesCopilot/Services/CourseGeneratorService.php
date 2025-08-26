@@ -13,13 +13,31 @@ use MemberPressCoursesCopilot\Utilities\Logger;
  * KISS Principle: Direct WordPress post creation for courses
  * No complex abstractions, just straightforward course generation
  */
-class CourseGeneratorService
+class CourseGeneratorService extends BaseService
 {
-    private Logger $logger;
-    
-    public function __construct(Logger $logger)
+    /**
+     * Constructor - logger can be injected or will use default
+     * 
+     * @param Logger|null $logger
+     */
+    public function __construct(?Logger $logger = null)
     {
-        $this->logger = $logger;
+        parent::__construct();
+        
+        // Use injected logger or get from container/singleton
+        if ($logger !== null) {
+            $this->logger = $logger;
+        }
+    }
+    
+    /**
+     * Initialize the service
+     *
+     * @return void
+     */
+    public function init(): void
+    {
+        // No initialization needed for this service
     }
     
     /**

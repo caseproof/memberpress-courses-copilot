@@ -162,52 +162,6 @@ class SettingsPage {
                 </ol>
             </div>
         </div>
-        
-        <style>
-        .mpcc-status-section, .mpcc-proxy-status, .mpcc-features-section, .mpcc-usage-section {
-            background: white;
-            padding: 20px;
-            margin: 20px 0;
-            border: 1px solid #ccd0d4;
-            border-radius: 4px;
-            box-shadow: 0 1px 1px rgba(0,0,0,0.04);
-        }
-        
-        .mpcc-feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 15px;
-        }
-        
-        .mpcc-feature-card {
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background: #f9f9f9;
-        }
-        
-        .mpcc-feature-card h3 {
-            margin: 0 0 10px 0;
-            color: #23282d;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .mpcc-feature-card .dashicons {
-            color: #0073aa;
-        }
-        
-        .mpcc-usage-steps {
-            margin-top: 15px;
-        }
-        
-        .mpcc-usage-steps li {
-            margin-bottom: 15px;
-            line-height: 1.6;
-        }
-        </style>
         <?php
     }
 

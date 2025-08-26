@@ -320,19 +320,8 @@ class CourseUIService extends BaseService
      */
     private function enqueueModalScripts(): void
     {
-        wp_enqueue_script('mpcc-modal-component');
-        wp_enqueue_style('mpcc-modal-styles');
-        
-        // Localize script data
-        $this->templateEngine->localizeScript('mpcc-modal-component', 'mpccModalData', [
-            'strings' => [
-                'close' => __('Close', 'memberpress-courses-copilot'),
-                'loading' => __('Loading...', 'memberpress-courses-copilot'),
-                'error' => __('An error occurred', 'memberpress-courses-copilot')
-            ],
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION)
-        ]);
+        // Asset enqueuing is now handled by AssetManager service
+        // Scripts and styles are already registered and will be enqueued based on context
     }
     
     /**
@@ -342,8 +331,8 @@ class CourseUIService extends BaseService
      */
     private function enqueueMetaBoxScripts(): void
     {
-        wp_enqueue_script('mpcc-metabox-component');
-        wp_enqueue_style('mpcc-metabox-styles');
+        // Asset enqueuing is now handled by AssetManager service
+        // Scripts and styles are already registered and will be enqueued based on context
         
         // Localize script data
         $this->templateEngine->localizeScript('mpcc-metabox-component', 'mpccMetaBoxData', [

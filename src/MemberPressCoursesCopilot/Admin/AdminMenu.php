@@ -38,7 +38,7 @@ class AdminMenu {
      */
     public function init(): void {
         add_action('admin_menu', [$this, 'registerMenus'], 20);
-        add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
+        // Asset enqueuing is now handled by AssetManager service
     }
 
     /**
@@ -137,65 +137,15 @@ class AdminMenu {
     }
 
     /**
-     * Enqueue admin scripts and styles
+     * Get page hooks for asset manager
      *
-     * @param string $hook Current admin page hook
-     * @return void
+     * @return array
      */
-    public function enqueueAssets(string $hook): void {
-        // Only load on our pages
-        if (!in_array($hook, ['mpcs-course_page_mpcc-course-generator', 'mpcs-course_page_mpcc-status'], true)) {
-            return;
-        }
-
-        // Enqueue styles
-        wp_enqueue_style(
-            'mpcc-admin',
-            MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/courses-integration.css',
-            ['wp-components'],
-            MEMBERPRESS_COURSES_COPILOT_VERSION
-        );
-
-        // Enqueue scripts for course generator page
-        if ($hook === 'mpcs-course_page_mpcc-course-generator') {
-            // Explicitly enqueue dashicons
-            wp_enqueue_style('dashicons');
-            
-            // Enqueue AI Copilot CSS
-            wp_enqueue_style(
-                'mpcc-ai-copilot',
-                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/css/ai-copilot.css',
-                ['dashicons'],
-                MEMBERPRESS_COURSES_COPILOT_VERSION
-            );
-            
-            wp_enqueue_script(
-                'mpcc-course-generator',
-                MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL . 'assets/js/courses-integration.js',
-                ['jquery', 'wp-element', 'wp-components'],
-                MEMBERPRESS_COURSES_COPILOT_VERSION,
-                true
-            );
-            
-            // AI Copilot JavaScript removed - functionality merged into simple-ai-chat.js
-
-            // Localize script
-            wp_localize_script('mpcc-course-generator', 'mpccCoursesIntegration', [
-                'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION),
-                'strings' => [
-                    'generating' => __('Generating course...', 'memberpress-courses-copilot'),
-                    'error' => __('An error occurred. Please try again.', 'memberpress-courses-copilot'),
-                    'success' => __('Course generated successfully!', 'memberpress-courses-copilot'),
-                    'createWithAI' => __('Create with AI', 'memberpress-courses-copilot'),
-                    'aiAssistant' => __('AI Assistant', 'memberpress-courses-copilot'),
-                    'loading' => __('Loading...', 'memberpress-courses-copilot'),
-                ],
-                'templates' => $this->getCourseTemplates(),
-            ]);
-            
-            // Localization moved to simple-ai-chat.js
-        }
+    public function getPageHooks(): array {
+        return [
+            'mpcs-course_page_mpcc-course-generator',
+            'mpcs-course_page_mpcc-status'
+        ];
     }
 
     /**
