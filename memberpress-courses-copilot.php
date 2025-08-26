@@ -105,41 +105,6 @@ function memberpress_courses_copilot_init(): void {
 }
 add_action( 'plugins_loaded', 'memberpress_courses_copilot_init', 20 );
 
-// Add admin action to cleanup empty sessions
-add_action('admin_post_mpcc_cleanup_empty_sessions', function() {
-    if (!current_user_can('manage_options')) {
-        wp_die('Unauthorized');
-    }
-    
-    // Verify nonce
-    if (!NonceConstants::verify($_REQUEST['_wpnonce'], NonceConstants::CLEANUP_SESSIONS, false)) {
-        wp_die('Security check failed');
-    }
-    
-    // Get session service from container
-    $container = Plugin::instance()->getContainer();
-    $sessionService = $container->get(\MemberPressCoursesCopilot\Services\SessionService::class);
-    $deleted = $sessionService->cleanupEmptySessions();
-    
-    wp_redirect(add_query_arg([
-        'page' => 'mpcc-course-editor',
-        'cleanup' => 'success',
-        'deleted' => $deleted
-    ], admin_url('admin.php')));
-    exit;
-});
-
-// Show cleanup notice
-add_action('admin_notices', function() {
-    if (isset($_GET['cleanup']) && $_GET['cleanup'] === 'success') {
-        $deleted = intval($_GET['deleted'] ?? 0);
-        ?>
-        <div class="notice notice-success is-dismissible">
-            <p><?php echo sprintf(__('Successfully cleaned up %d empty session(s).', 'memberpress-courses-copilot'), $deleted); ?></p>
-        </div>
-        <?php
-    }
-});
 
 
 /**

@@ -151,7 +151,7 @@ class ConversationManager extends BaseService
         $sessionData = [
             'state' => $session->isActive() ? 'active' : 'paused',
             'title' => $session->getTitle(),
-            'messages' => json_encode($session->getMessages()),
+            'messages' => json_encode($session->getMessages(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'metadata' => json_encode($session->getMetadata()),
             'step_data' => json_encode([
                 'current_state' => $session->getCurrentState(),

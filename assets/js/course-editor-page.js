@@ -186,6 +186,10 @@
         rebuildChatHistory: function() {
             $('#mpcc-chat-messages').empty();
             this.conversationHistory.forEach(msg => {
+                // Debug log to see what content looks like
+                if (msg.role === 'assistant') {
+                    console.log('Rebuilding assistant message:', msg.content);
+                }
                 this.addMessage(msg.role, msg.content, false);
             });
         },

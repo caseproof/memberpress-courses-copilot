@@ -8,7 +8,6 @@ use MemberPressCoursesCopilot\Services\BaseService;
 use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\LLMService;
-use MemberPressCoursesCopilot\Services\SessionService;
 use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
@@ -621,23 +620,6 @@ class CourseAjaxService extends BaseService
                                 'course_title' => $courseTitle
                             ]);
                             
-                            // Also update the WordPress options-based session used by the UI
-                            $sessionService = new SessionService();
-                            $optionsSession = $sessionService->getSession($sessionId);
-                            if ($optionsSession) {
-                                // Update the title in the conversation state
-                                if (isset($optionsSession['conversation_state']['course_data'])) {
-                                    $optionsSession['conversation_state']['course_data']['title'] = $courseTitle;
-                                }
-                                $optionsSession['title'] = 'Course: ' . $courseTitle;
-                                $optionsSession['last_updated'] = current_time('mysql');
-                                $sessionService->saveSession($sessionId, $optionsSession);
-                                
-                                $this->logger->info('Updated WordPress options session title', [
-                                    'session_id' => $sessionId,
-                                    'course_title' => $courseTitle
-                                ]);
-                            }
                         }
                     } catch (\Exception $e) {
                         // Log but don't fail the course creation
