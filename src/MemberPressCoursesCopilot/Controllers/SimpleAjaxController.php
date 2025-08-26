@@ -618,8 +618,10 @@ If modifying an existing course, include ALL sections and lessons (both existing
                         'id' => $session->getSessionId(),
                         'title' => $session->getTitle(),
                         'last_updated' => date('Y-m-d H:i:s', $session->getLastUpdated()),
+                        'created_at' => date('Y-m-d H:i:s', $session->getCreatedAt()),
                         'message_count' => count($messages),
-                        'source' => 'conversation_manager'
+                        'source' => 'conversation_manager',
+                        'database_id' => $session->getDatabaseId()
                     ];
                 }
             } catch (\Exception $e) {
@@ -629,9 +631,14 @@ If modifying an existing course, include ALL sections and lessons (both existing
             }
             
             
-            // Sort by last updated, newest first
+            // Sort by last updated, newest first, with session ID as tiebreaker
             usort($sessions, function($a, $b) {
-                return strtotime($b['last_updated']) - strtotime($a['last_updated']);
+                $timeCompare = strtotime($b['last_updated']) - strtotime($a['last_updated']);
+                // If timestamps are equal, sort by session ID to ensure stable sort order
+                if ($timeCompare === 0) {
+                    return strcmp($b['id'], $a['id']);
+                }
+                return $timeCompare;
             });
             
             wp_send_json_success($sessions);

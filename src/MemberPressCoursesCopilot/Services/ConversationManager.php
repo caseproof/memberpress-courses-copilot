@@ -534,12 +534,12 @@ class ConversationManager extends BaseService
         
         $session->setDatabaseId($record->id);
         $session->setTitle($record->title);
-        $session->setCurrentState($stepData['current_state'] ?? 'initial');
-        $session->setContext($stepData['context'] ?? [], null);
-        $session->setStateHistory($stepData['state_history'] ?? []);
-        $session->setProgress($stepData['progress'] ?? 0.0);
-        $session->setConfidenceScore($stepData['confidence_score'] ?? 0.0);
-        $session->setMetadataArray($metadata);
+        $session->restoreState($stepData['current_state'] ?? 'initial');
+        $session->restoreContext($stepData['context'] ?? []);
+        $session->restoreStateHistory($stepData['state_history'] ?? []);
+        $session->restoreProgress($stepData['progress'] ?? 0.0);
+        $session->restoreConfidenceScore($stepData['confidence_score'] ?? 0.0);
+        $session->restoreMetadata($metadata);
         $session->setTotalTokens($record->total_tokens ?? 0);
         $session->setTotalCost($record->total_cost ?? 0.0);
         $session->setCreatedAt(strtotime($record->created_at));
@@ -549,10 +549,8 @@ class ConversationManager extends BaseService
             $session->setPausedFromState($stepData['paused_from_state']);
         }
         
-        // Restore messages
-        foreach ($messages as $message) {
-            $session->addMessage($message['type'], $message['content'], $message['metadata'] ?? []);
-        }
+        // Restore messages without triggering markAsModified
+        $session->restoreMessages($messages);
         
         // Mark as saved since it's from database
         $session->markAsSaved();
