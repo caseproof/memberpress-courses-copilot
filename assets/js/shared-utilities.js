@@ -69,14 +69,22 @@ window.MPCCUtils = {
      * Format message to HTML with proper structure
      */
     formatMessageToHTML: function(message) {
-        // First, handle escaped characters from the server
-        let formatted = message
-            .replace(/\\'/g, "'")      // Replace escaped single quotes
-            .replace(/\\"/g, '"')      // Replace escaped double quotes
-            .replace(/\\\\/g, '\\')    // Replace escaped backslashes
+        // Handle both escaped sequences and actual escape characters
+        let formatted = message;
+        
+        // First pass: Handle double-escaped sequences (from multiple JSON encode/decode cycles)
+        formatted = formatted
+            .replace(/\\\\n/g, '\n')   // Replace double-escaped newlines
+            .replace(/\\\\r/g, '\r')   // Replace double-escaped carriage returns
+            .replace(/\\\\t/g, '\t');  // Replace double-escaped tabs
+            
+        // Second pass: Handle single-escaped sequences
+        formatted = formatted
             .replace(/\\n/g, '\n')     // Replace escaped newlines with actual newlines
             .replace(/\\r/g, '\r')     // Replace escaped carriage returns
-            .replace(/\\t/g, '\t');    // Replace escaped tabs
+            .replace(/\\t/g, '\t')     // Replace escaped tabs
+            .replace(/\\'/g, "'")      // Replace escaped single quotes
+            .replace(/\\"/g, '"');     // Replace escaped double quotes
         
         // Escape HTML to prevent XSS
         formatted = jQuery('<div>').text(formatted).html();

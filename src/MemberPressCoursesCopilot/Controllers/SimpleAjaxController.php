@@ -196,10 +196,24 @@ class SimpleAjaxController
             
             // Convert ConversationSession to the expected data format
             $context = $session->getContext();
+            
+            // Process messages to ensure content is preserved
+            $messages = $session->getMessages();
+            $processedMessages = [];
+            foreach ($messages as $message) {
+                // Extract the role from type field for compatibility
+                $role = $message['type'] === 'user' ? 'user' : 'assistant';
+                $processedMessages[] = [
+                    'role' => $role,
+                    'content' => $message['content'],  // Keep content as-is
+                    'timestamp' => $message['timestamp'] ?? null
+                ];
+            }
+            
             $sessionData = [
                 'session_id' => $session->getSessionId(),
                 'title' => $session->getTitle(),
-                'conversation_history' => $session->getMessages(),
+                'conversation_history' => $processedMessages,
                 'conversation_state' => $context,
                 'course_structure' => $context['course_structure'] ?? [],
                 'last_updated' => date('Y-m-d H:i:s', $session->getLastUpdated()),
