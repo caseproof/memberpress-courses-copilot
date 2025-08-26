@@ -14,7 +14,6 @@
         isSaving: false,
         publishedCourseId: null,
         publishedCourseUrl: null,
-        publishedCourseId: null,
         
         init: function() {
             this.sessionId = mpccEditorSettings.sessionId;
@@ -49,9 +48,9 @@
         },
         
         bindEvents: function() {
-            // Chat events
-            $('#mpcc-send-message').on('click', this.sendMessage.bind(this));
-            $('#mpcc-chat-input').on('keypress', function(e) {
+            // Use event delegation for chat events to avoid conflicts
+            $(document).off('click.mpcc-editor-send').on('click.mpcc-editor-send', '#mpcc-send-message', this.sendMessage.bind(this));
+            $(document).off('keypress.mpcc-editor-input').on('keypress.mpcc-editor-input', '#mpcc-chat-input', function(e) {
                 if (e.which === 13 && !e.shiftKey) {
                     e.preventDefault();
                     this.sendMessage();
@@ -67,20 +66,6 @@
             
             // Quick starter suggestion buttons
             $(document).on('click', '.mpcc-quick-starter-btn', this.handleQuickStarter.bind(this));
-            
-            // Close modal when clicking outside
-            $(document).on('click', '.mpcc-sessions-modal-overlay', (e) => {
-                if ($(e.target).hasClass('mpcc-sessions-modal-overlay')) {
-                    this.closeSessionModal();
-                }
-            });
-            
-            // Close modal with ESC key
-            $(document).on('keydown', (e) => {
-                if (e.key === 'Escape' && $('.mpcc-sessions-modal-overlay').hasClass('active')) {
-                    this.closeSessionModal();
-                }
-            });
             
             // Course actions
             // Preview button is now handled dynamically
@@ -149,6 +134,11 @@
                         
                         // Update view course button based on published status
                         this.updateViewCourseButton();
+                        
+                        // Load all lesson drafts for this session
+                        if (this.courseStructure && this.courseStructure.sections) {
+                            this.loadAllLessonDrafts();
+                        }
                     }
                 },
                 error: (xhr) => {
@@ -159,6 +149,36 @@
                     this.publishedCourseId = null;
                     this.publishedCourseUrl = null;
                     // Don't save empty sessions - wait until there's actual content
+                }
+            });
+        },
+        
+        loadAllLessonDrafts: function() {
+            // Load all lesson drafts for the current session
+            $.ajax({
+                url: mpccEditorSettings.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_get_session_drafts',
+                    nonce: mpccEditorSettings.nonce,
+                    session_id: this.sessionId
+                },
+                success: (response) => {
+                    if (response.success && response.data) {
+                        // Map drafts to lessons
+                        response.data.forEach(draft => {
+                            const sectionIndex = parseInt(draft.section_id);
+                            const lessonIndex = parseInt(draft.lesson_id);
+                            
+                            if (this.courseStructure.sections[sectionIndex] && 
+                                this.courseStructure.sections[sectionIndex].lessons[lessonIndex]) {
+                                this.courseStructure.sections[sectionIndex].lessons[lessonIndex].draft_content = draft.content;
+                            }
+                        });
+                        
+                        // Re-render course structure with draft indicators
+                        this.renderCourseStructure();
+                    }
                 }
             });
         },
@@ -782,9 +802,14 @@
         },
         
         closeSessionModal: function() {
-            const modalOverlay = $('.mpcc-sessions-modal-overlay');
-            modalOverlay.removeClass('active');
-            $('body').css('overflow', '');
+            if (window.MPCCUtils && window.MPCCUtils.modalManager) {
+                window.MPCCUtils.modalManager.close('.mpcc-sessions-modal-overlay');
+            } else {
+                // Fallback
+                const modalOverlay = $('.mpcc-sessions-modal-overlay');
+                modalOverlay.removeClass('active');
+                $('body').css('overflow', '');
+            }
         },
         
         createSessionModal: function() {
@@ -1130,6 +1155,11 @@
         },
         
         escapeHtml: function(text) {
+            // Use shared utility if available
+            if (window.MPCCUtils && window.MPCCUtils.escapeHtml) {
+                return window.MPCCUtils.escapeHtml(text);
+            }
+            // Fallback
             const map = {
                 '&': '&amp;',
                 '<': '&lt;',

@@ -3,6 +3,7 @@
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Models\CourseTemplate;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * Enhanced Template Engine Service
@@ -315,7 +316,7 @@ class EnhancedTemplateEngine extends BaseService
      */
     public function ajaxGetTemplate(): void
     {
-        check_ajax_referer('mpcc_courses_integration', 'nonce');
+        NonceConstants::verifyAjax(NonceConstants::COURSES_INTEGRATION, 'nonce');
         
         if (!current_user_can('edit_posts')) {
             wp_send_json_error('Insufficient permissions');

@@ -10,6 +10,7 @@ use MemberPressCoursesCopilot\Services\LLMService;
 use MemberPressCoursesCopilot\Models\CourseTemplate;
 use MemberPressCoursesCopilot\Models\GeneratedCourse;
 use MemberPressCoursesCopilot\Utilities\Logger;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 use WP_REST_Server;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -1313,6 +1314,6 @@ class RestApiController extends BaseController
     {
         // In a real implementation, this would create a temporary file and return its URL
         // For now, we'll return a placeholder
-        return admin_url('admin-ajax.php?action=mpcc_download_export&nonce=' . wp_create_nonce('mpcc_export'));
+        return admin_url('admin-ajax.php?action=mpcc_download_export&nonce=' . NonceConstants::create(NonceConstants::EXPORT));
     }
 }

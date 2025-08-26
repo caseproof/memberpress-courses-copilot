@@ -95,7 +95,7 @@ class QualityReport extends BaseModel
             return $updated;
         } else {
             // Create new report
-            $reportId = 'qr_' . uniqid() . '_' . time();
+            $reportId = 'qr_' . wp_generate_uuid4() . '_' . time();
             $this->set('id', $reportId);
             $this->set('created_at', current_time('mysql'));
             

@@ -9,6 +9,7 @@ use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\LLMService;
 use MemberPressCoursesCopilot\Services\SessionService;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * Course AJAX Service
@@ -43,7 +44,7 @@ class CourseAjaxService extends BaseService
         add_action('wp_ajax_mpcc_ping', [$this, 'handlePing']);
         
         // Conversation persistence endpoints
-        add_action('wp_ajax_mpcc_save_conversation', [$this, 'saveConversation']);
+        // Note: mpcc_save_conversation is handled by SimpleAjaxController with higher priority
         add_action('wp_ajax_mpcc_load_conversation', [$this, 'loadConversation']);
         add_action('wp_ajax_mpcc_create_conversation', [$this, 'createConversation']);
         add_action('wp_ajax_mpcc_list_conversations', [$this, 'listConversations']);
@@ -65,7 +66,7 @@ class CourseAjaxService extends BaseService
     public function loadAIInterface(): void
     {
         // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_ai_interface')) {
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_INTERFACE, false)) {
             $this->logger->warning('AI interface load failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
@@ -229,7 +230,7 @@ class CourseAjaxService extends BaseService
     public function handleAIChat(): void
     {
         // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('AI chat request failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
@@ -455,7 +456,7 @@ class CourseAjaxService extends BaseService
     public function createCourseWithAI(): void
     {
         // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Course creation failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
@@ -765,7 +766,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     public function handlePing(): void
     {
         // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Ping request failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
@@ -793,7 +794,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function createConversation(): void
     {
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Create conversation failed: invalid nonce', [
                 'user_id' => get_current_user_id()
             ]);
@@ -839,8 +840,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         // Verify nonce - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
-        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
-            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
+        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) && 
+            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)) {
             $this->logger->warning('Save conversation failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
                 'nonce_value' => $nonce
@@ -935,7 +936,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function loadConversation(): void
     {
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Load conversation failed: invalid nonce', [
                 'user_id' => get_current_user_id()
             ]);
@@ -1016,7 +1017,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function listConversations(): void
     {
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('List conversations failed: invalid nonce', [
                 'user_id' => get_current_user_id()
             ]);
@@ -1070,8 +1071,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         // Verify nonce - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
-        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
-            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
+        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) && 
+            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)) {
             $this->logger->warning('Save lesson content failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
                 'nonce_value' => $nonce
@@ -1152,8 +1153,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         // Verify nonce - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
-        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
-            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
+        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) && 
+            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)) {
             $this->logger->warning('Load lesson content failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
                 'nonce_value' => $nonce
@@ -1255,8 +1256,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         
         // Verify nonce - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
-        if (!wp_verify_nonce($nonce, 'mpcc_courses_integration') && 
-            !wp_verify_nonce($nonce, 'mpcc_editor_nonce')) {
+        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) && 
+            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)) {
             $this->logger->warning('Generate lesson content failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
                 'nonce_value' => $nonce,
@@ -1351,7 +1352,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     public function reorderCourseItems(): void
     {
         // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Reorder course items failed: invalid nonce', [
                 'user_id' => get_current_user_id()
             ]);
@@ -1473,7 +1474,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     public function deleteCourseItem(): void
     {
         // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_courses_integration')) {
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Delete course item failed: invalid nonce', [
                 'user_id' => get_current_user_id()
             ]);

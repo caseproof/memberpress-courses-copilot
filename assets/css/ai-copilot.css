@@ -1407,10 +1407,19 @@
   transition: var(--mpcc-transition-fast);
   line-height: 1;
   padding: var(--mpcc-spacing-sm);
+  width: auto;
+  height: auto;
 }
 
 .mpcc-modal-close:hover {
   color: var(--mpcc-text-secondary);
+}
+
+/* Ensure close button symbol is visible */
+.mpcc-modal-close::before {
+  content: '×';
+  font-size: 24px;
+  line-height: 1;
 }
 
 .mpcc-modal-body {
@@ -1478,6 +1487,12 @@
   opacity: 0.8;
 }
 
+.mpcc-typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .mpcc-typing-dots {
   display: flex;
   gap: 4px;
@@ -1495,6 +1510,27 @@
 
 .mpcc-typing-dots span:nth-child(1) { animation-delay: -0.32s; }
 .mpcc-typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+.mpcc-typing-text {
+  color: var(--mpcc-text-secondary);
+  font-style: italic;
+}
+
+/* Pulse animation for avatar */
+.mpcc-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Loading styles */
+.mpcc-loading {
+  text-align: center;
+  padding: 20px;
+}
+
+.mpcc-loading .spinner {
+  display: inline-block;
+  visibility: visible;
+}
 
 /* ==========================================================================
    Responsive Design
@@ -1743,6 +1779,17 @@
   }
 }
 
+@keyframes mpcc-typing {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* ==========================================================================
    Accessibility
    ========================================================================== */
@@ -1873,39 +1920,7 @@
   height: 18px;
 }
 
-/* Modal overlay for previous conversations */
-.mpcc-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 100000;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-  display: flex;
-}
-
-.mpcc-modal-overlay.mpcc-modal-open {
-  opacity: 1;
-  visibility: visible;
-}
-
-.mpcc-modal-overlay .mpcc-modal-container {
-  transform: translateY(-20px);
-  opacity: 0;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.mpcc-modal-overlay.mpcc-modal-open .mpcc-modal-container {
-  transform: translateY(0);
-  opacity: 1;
-}
+/* Modal overlay for previous conversations - using existing modal styles above */
 
 
 /* Modal container */

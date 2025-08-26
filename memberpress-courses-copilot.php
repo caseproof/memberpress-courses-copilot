@@ -21,6 +21,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+use MemberPressCoursesCopilot\Security\NonceConstants;
+
 // Plugin constants
 define( 'MEMBERPRESS_COURSES_COPILOT_VERSION', '1.0.0' );
 define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_FILE', __FILE__ );
@@ -103,27 +105,6 @@ function memberpress_courses_copilot_init(): void {
 }
 add_action( 'plugins_loaded', 'memberpress_courses_copilot_init', 20 );
 
-// Debug helper (remove in production)
-if (defined('WP_DEBUG') && WP_DEBUG && file_exists(__DIR__ . '/debug-test.php')) {
-    require_once __DIR__ . '/debug-test.php';
-}
-
-// Add admin menu for debug and cleanup
-add_action('admin_menu', function() {
-    if (current_user_can('manage_options')) {
-        add_submenu_page(
-            'tools.php',
-            'MPCC Draft Table Debug',
-            'MPCC Draft Debug',
-            'manage_options',
-            'mpcc-draft-debug',
-            function() {
-                require_once __DIR__ . '/debug-draft-table.php';
-            }
-        );
-    }
-});
-
 // Add admin action to cleanup empty sessions
 add_action('admin_post_mpcc_cleanup_empty_sessions', function() {
     if (!current_user_can('manage_options')) {
@@ -131,7 +112,7 @@ add_action('admin_post_mpcc_cleanup_empty_sessions', function() {
     }
     
     // Verify nonce
-    if (!wp_verify_nonce($_REQUEST['_wpnonce'], 'mpcc_cleanup_sessions')) {
+    if (!NonceConstants::verify($_REQUEST['_wpnonce'], NonceConstants::CLEANUP_SESSIONS, false)) {
         wp_die('Security check failed');
     }
     

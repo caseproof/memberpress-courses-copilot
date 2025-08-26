@@ -8,6 +8,8 @@
 
 namespace MemberPressCoursesCopilot\Admin;
 
+use MemberPressCoursesCopilot\Security\NonceConstants;
+
 /**
  * AdminMenu class handles the WordPress admin menu integration
  * Simplified to work with existing MemberPress Copilot plugin
@@ -180,7 +182,7 @@ class AdminMenu {
             // Localize script
             wp_localize_script('mpcc-course-generator', 'mpccCoursesIntegration', [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('mpcc_courses_integration'),
+                'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION),
                 'strings' => [
                     'generating' => __('Generating course...', 'memberpress-courses-copilot'),
                     'error' => __('An error occurred. Please try again.', 'memberpress-courses-copilot'),

@@ -97,10 +97,34 @@
     box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
 }
 
+/* Animation keyframes */
 @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Spin animation for dashicons */
+.spin {
+    animation: spin 1s linear infinite;
 }
 
 .mpcc-header-right {
@@ -169,21 +193,11 @@
     color: #1d2327;
 }
 
-/* Chat Interface */
-.mpcc-chat-header {
+/* Chat Interface - Specific styles for editor page */
+.mpcc-editor-sidebar .mpcc-chat-header {
     padding: 20px 25px;
     background: #fff;
     border-bottom: 1px solid #e1e4e8;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.mpcc-chat-header h2 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: #1d2327;
 }
 
 .mpcc-quick-starters {
@@ -214,6 +228,7 @@
     font-size: 20px;
 }
 
+/* Chat container - specific for editor page layout */
 .mpcc-chat-container {
     flex: 1;
     display: flex;
@@ -241,42 +256,7 @@
     border-radius: 3px;
 }
 
-.mpcc-chat-message {
-    margin-bottom: 20px;
-    animation: fadeIn 0.3s;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.mpcc-chat-message.user {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.mpcc-chat-message.user .message-content {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 12px 18px;
-    border-radius: 18px 18px 4px 18px;
-    max-width: 80%;
-    box-shadow: 0 2px 5px rgba(102, 126, 234, 0.3);
-}
-
-.mpcc-chat-message.assistant .message-content {
-    background: #f0f4f8;
-    color: #1d2327;
-    padding: 12px 18px;
-    border-radius: 18px 18px 18px 4px;
-    max-width: 80%;
-}
-
-.mpcc-chat-message .message-role {
-    display: none;
-}
-
+/* Chat input wrapper */
 .mpcc-chat-input-wrapper {
     padding: 20px;
     background: #fff;
@@ -315,6 +295,39 @@
 #mpcc-send-message:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Chat messages */
+.mpcc-chat-message {
+    margin-bottom: 20px;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mpcc-chat-message.user {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mpcc-chat-message.user .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 18px 18px 4px 18px;
+    max-width: 80%;
+    box-shadow: 0 2px 5px rgba(102, 126, 234, 0.3);
+}
+
+.mpcc-chat-message.assistant .message-content {
+    background: #f0f4f8;
+    color: #1d2327;
+    padding: 12px 18px;
+    border-radius: 18px 18px 18px 4px;
+    max-width: 80%;
 }
 
 /* Session Panel */
@@ -818,16 +831,6 @@
     }
 }
 
-/* Loading Spinner */
-.spin {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
 /* Session History Modal */
 .mpcc-sessions-modal-overlay {
     position: fixed;
@@ -888,27 +891,43 @@
 }
 
 .mpcc-sessions-modal-close {
+    position: relative;
     background: rgba(255, 255, 255, 0.2);
     border: none;
     color: #fff;
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
 }
 
 .mpcc-sessions-modal-close:hover {
     background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
 }
 
+/* Simple X character instead of dashicon */
+.mpcc-sessions-modal-close::before {
+    content: '×';
+    font-size: 28px;
+    font-weight: 300;
+    color: #fff;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 1;
+}
+
+/* Hide the dashicon span */
 .mpcc-sessions-modal-close .dashicons {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+    display: none;
 }
 
 .mpcc-sessions-list {

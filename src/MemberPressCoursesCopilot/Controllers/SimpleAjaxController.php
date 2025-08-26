@@ -10,6 +10,7 @@ use MemberPressCoursesCopilot\Services\SessionService;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Utilities\Logger;
+use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * Simple AJAX Controller for standalone course editor page
@@ -35,6 +36,7 @@ class SimpleAjaxController
         add_action('wp_ajax_mpcc_update_session_title', [$this, 'handleUpdateSessionTitle']);
         add_action('wp_ajax_mpcc_delete_session', [$this, 'handleDeleteSession']);
         add_action('wp_ajax_mpcc_duplicate_course', [$this, 'handleDuplicateCourse']);
+        add_action('wp_ajax_mpcc_get_session_drafts', [$this, 'handleGetSessionDrafts']);
         
         // Override CourseAjaxService handlers with higher priority
         add_action('wp_ajax_mpcc_save_conversation', [$this, 'handleSaveConversation'], 5);
@@ -60,7 +62,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -165,7 +167,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -205,7 +207,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -283,7 +285,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -363,7 +365,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -392,7 +394,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -422,7 +424,7 @@ class SimpleAjaxController
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -514,7 +516,7 @@ Format the content with clear headings and sections.";
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -569,9 +571,9 @@ Format the content with clear headings and sections.";
         try {
             // Verify nonce - accept multiple nonce types
             $nonce = $_POST['nonce'] ?? '';
-            if (!wp_verify_nonce($nonce, 'mpcc_editor_nonce') && 
-                !wp_verify_nonce($nonce, 'mpcc_courses_integration') &&
-                !wp_verify_nonce($nonce, 'mpcc_ai_interface')) {
+            if (!NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false) && 
+                !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
+                !NonceConstants::verify($nonce, NonceConstants::AI_INTERFACE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -606,7 +608,7 @@ Format the content with clear headings and sections.";
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -645,7 +647,7 @@ Format the content with clear headings and sections.";
     {
         try {
             // Verify nonce
-            if (!wp_verify_nonce($_POST['nonce'] ?? '', 'mpcc_editor_nonce')) {
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
                 throw new \Exception('Security check failed');
             }
             
@@ -705,6 +707,33 @@ Format the content with clear headings and sections.";
                 'new_session_id' => $newSessionId,
                 'course_title' => $duplicatedCourseData['title']
             ]);
+            
+        } catch (\Exception $e) {
+            wp_send_json_error($e->getMessage());
+        }
+    }
+    
+    /**
+     * Handle get session drafts
+     */
+    public function handleGetSessionDrafts(): void
+    {
+        try {
+            // Verify nonce
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE)) {
+                throw new \Exception('Security check failed');
+            }
+            
+            $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+            
+            if (empty($sessionId)) {
+                throw new \Exception('Session ID is required');
+            }
+            
+            // Get all drafts for the session
+            $drafts = $this->lessonDraftService->getSessionDrafts($sessionId);
+            
+            wp_send_json_success($drafts);
             
         } catch (\Exception $e) {
             wp_send_json_error($e->getMessage());

@@ -8,6 +8,8 @@
 
 defined('ABSPATH') || exit;
 
+use MemberPressCoursesCopilot\Security\NonceConstants;
+
 // Get current settings
 $settings = $this->getSettings();
 ?>
@@ -21,7 +23,7 @@ $settings = $this->getSettings();
         <div class="mpcc-settings-main">
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <input type="hidden" name="action" value="mpcc_save_settings">
-                <?php wp_nonce_field('mpcc_save_settings'); ?>
+                <?php NonceConstants::field(NonceConstants::SAVE_SETTINGS); ?>
 
                 <table class="form-table" role="presentation">
                     <tbody>

@@ -576,7 +576,7 @@ class ConversationManager extends BaseService
      */
     private function generateSessionId(): string
     {
-        return 'mpcc_session_' . uniqid() . '_' . time() . '_' . wp_generate_password(8, false);
+        return 'mpcc_session_' . wp_generate_uuid4() . '_' . time();
     }
 
     /**
