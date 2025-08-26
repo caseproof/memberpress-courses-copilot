@@ -45,6 +45,9 @@ class CourseAjaxService extends BaseService
         // New simple AI chat handler
         add_action('wp_ajax_mpcc_new_ai_chat', [$this, 'handleNewAIChat']);
         
+        // Course content update handler
+        add_action('wp_ajax_mpcc_update_course_content', [$this, 'updateCourseContent']);
+        
         // Conversation persistence endpoints
         // Note: mpcc_save_conversation is handled by SimpleAjaxController with higher priority
         add_action('wp_ajax_mpcc_load_conversation', [$this, 'loadConversation']);
@@ -1868,8 +1871,15 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             );
             
             if (!$response['error']) {
+                $content = $response['content'];
+                $hasContentUpdate = strpos($content, '[CONTENT_UPDATE]') !== false;
+                
+                // Remove the tag from display
+                $content = str_replace('[CONTENT_UPDATE]', '', $content);
+                
                 wp_send_json_success([
-                    'message' => $response['content']
+                    'message' => trim($content),
+                    'has_content_update' => $hasContentUpdate
                 ]);
             } else {
                 wp_send_json_error($response['message'] ?? 'Failed to generate AI response');
@@ -1882,12 +1892,70 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     }
     
     /**
+     * Handle course content update request
+     */
+    public function updateCourseContent(): void
+    {
+        // Verify nonce
+        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_ASSISTANT, false)) {
+            wp_send_json_error('Security verification failed');
+            return;
+        }
+        
+        // Check permissions
+        $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
+        if (!$postId || !current_user_can('edit_post', $postId)) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        $content = wp_kses_post($_POST['content'] ?? '');
+        
+        if (empty($content)) {
+            wp_send_json_error('Content cannot be empty');
+            return;
+        }
+        
+        try {
+            // Update the course post content
+            $result = wp_update_post([
+                'ID' => $postId,
+                'post_content' => $content
+            ]);
+            
+            if (is_wp_error($result)) {
+                wp_send_json_error('Failed to update course content: ' . $result->get_error_message());
+                return;
+            }
+            
+            // Log the update
+            $this->logger->info('Course content updated', [
+                'post_id' => $postId,
+                'user_id' => get_current_user_id(),
+                'content_length' => strlen($content)
+            ]);
+            
+            wp_send_json_success([
+                'message' => 'Course content updated successfully',
+                'post_id' => $postId,
+                'updated_at' => current_time('c')
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log('MPCC: Update course content error: ' . $e->getMessage());
+            wp_send_json_error('An error occurred while updating the course content');
+        }
+    }
+    
+    /**
      * Build contextual prompt with comprehensive course data
      */
     private function buildCourseContextPrompt(array $courseData, string $userMessage): string
     {
-        $prompt = "You are an AI course development expert helping a user improve their online course. ";
-        $prompt .= "Provide specific, actionable advice based on the current course structure and content.\n\n";
+        $prompt = "You are an AI course development expert helping a user improve their online course overview/description. ";
+        $prompt .= "Your focus is on the main course content/description, NOT the lessons or curriculum structure.\n";
+        $prompt .= "When the user asks you to update, enhance, or rewrite the course content, provide the ACTUAL new content they can use.\n";
+        $prompt .= "If the user asks for content changes, include [CONTENT_UPDATE] tag in your response.\n\n";
         
         $prompt .= "=== CURRENT COURSE CONTEXT ===\n";
         
@@ -1971,25 +2039,32 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $prompt .= $userMessage . "\n\n";
         
         $prompt .= "=== YOUR RESPONSE ===\n";
-        $prompt .= "Based on the course context above, provide specific, actionable advice. ";
-        $prompt .= "Consider the current course structure, learning objectives, target audience, and difficulty level. ";
-        $prompt .= "If suggesting improvements, be specific about which sections or lessons to modify. ";
-        $prompt .= "Keep your response concise but detailed (200-400 words).\n\n";
         
-        // Check if user wants to make actual changes
-        $actionKeywords = ['update', 'add', 'create', 'modify', 'change', 'edit', 'generate', 'write'];
-        $userWantsAction = false;
-        foreach ($actionKeywords as $keyword) {
-            if (stripos($userMessage, $keyword) !== false) {
-                $userWantsAction = true;
-                break;
+        // Check if user wants to update course content/description
+        $contentKeywords = ['description', 'overview', 'content', 'rewrite', 'enhance', 'improve the course text'];
+        $updateKeywords = ['update', 'change', 'edit', 'write', 'rewrite', 'enhance', 'improve'];
+        
+        $wantsContentUpdate = false;
+        foreach ($contentKeywords as $contentKeyword) {
+            if (stripos($userMessage, $contentKeyword) !== false) {
+                foreach ($updateKeywords as $updateKeyword) {
+                    if (stripos($userMessage, $updateKeyword) !== false) {
+                        $wantsContentUpdate = true;
+                        break 2;
+                    }
+                }
             }
         }
         
-        if ($userWantsAction) {
-            $prompt .= "IMPORTANT: The user wants to make actual changes to their course. ";
-            $prompt .= "After your suggestions, add this EXACT line at the end: ";
-            $prompt .= "'[ACTION_REQUIRED: Would you like me to help implement these changes?]'\n\n";
+        if ($wantsContentUpdate) {
+            $prompt .= "The user wants to update the course overview/description content. ";
+            $prompt .= "Provide the ACTUAL new course description they should use. ";
+            $prompt .= "Write compelling, engaging course content that will attract students.\n";
+            $prompt .= "After providing the new content, add '[CONTENT_UPDATE]' tag at the end.\n\n";
+        } else {
+            $prompt .= "Provide advice about the course overview and content. ";
+            $prompt .= "Focus on the main course description, not individual lessons. ";
+            $prompt .= "Be specific and actionable in your suggestions.\n\n";
         }
         
         return $prompt;

@@ -69,13 +69,13 @@ class NewCourseIntegration extends BaseService
             <div id="mpcc-ai-chat-container" style="display: none; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;">
                 <div id="mpcc-ai-messages" style="height: 300px; overflow-y: auto; padding: 10px; background: white; border-bottom: 1px solid #ddd;">
                     <div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">
-                        <strong>AI Assistant:</strong> Hi! I can help you improve your course structure and suggest content. I can:
-                        <br>• Suggest course outlines and lesson topics
-                        <br>• Help plan your curriculum structure  
-                        <br>• Provide content ideas and learning objectives
-                        <br>• Guide you on best practices
-                        <br><br><em>Note: To actually add content, you'll use the Curriculum tab above for sections and the Lessons menu for creating individual lessons.</em>
-                        <br><br>What would you like to work on?
+                        <strong>AI Assistant:</strong> Hi! I'm here to help you improve your course overview and description. I can:
+                        <br>• <strong>Update your course description</strong> - Just ask me to rewrite or enhance it
+                        <br>• Provide compelling content that attracts students
+                        <br>• Suggest improvements to your course overview
+                        <br>• Help you highlight key benefits and learning outcomes
+                        <br><br><em>Note: I focus on the main course content. For lessons and curriculum structure, use the Curriculum tab above.</em>
+                        <br><br>Would you like me to enhance your course description?
                     </div>
                 </div>
                 
@@ -152,24 +152,22 @@ class NewCourseIntegration extends BaseService
                         
                         if (response.success) {
                             var messageText = response.data.message;
-                            var hasAction = messageText.includes('[ACTION_REQUIRED:');
-                            
-                            // Remove the action tag from display
-                            messageText = messageText.replace(/\[ACTION_REQUIRED:.*?\]/g, '');
+                            var hasContentUpdate = response.data.has_content_update || false;
                             
                             var aiMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">' +
-                                '<strong>AI Assistant:</strong> ' + messageText + '</div>';
+                                '<strong>AI Assistant:</strong> <div class="ai-content">' + messageText.replace(/\n/g, '<br>') + '</div></div>';
                             $('#mpcc-ai-messages').append(aiMsg);
                             
-                            // If action is required, show implementation options
-                            if (hasAction) {
-                                var actionButtons = '<div class="mpcc-action-buttons" style="margin: 10px 0; padding: 10px; background: #fff8dc; border: 1px solid #ffd700; border-radius: 4px;">' +
-                                    '<p style="margin: 0 0 10px 0; font-weight: bold;">Would you like me to help implement these changes?</p>' +
-                                    '<button type="button" class="button button-primary mpcc-implement-changes" style="margin-right: 5px;">Yes, Show Me How</button>' +
-                                    '<button type="button" class="button mpcc-cancel-action">No Thanks</button>' +
-                                    '<p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Note: I\'ll provide step-by-step instructions to update your course.</p>' +
+                            // If content update is provided, show apply button
+                            if (hasContentUpdate) {
+                                var applyButtons = '<div class="mpcc-content-update-buttons" style="margin: 10px 0; padding: 10px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px;">' +
+                                    '<p style="margin: 0 0 10px 0; font-weight: bold;">Apply this content to your course?</p>' +
+                                    '<button type="button" class="button button-primary mpcc-apply-content" style="margin-right: 5px;">Apply Content</button>' +
+                                    '<button type="button" class="button mpcc-copy-content" style="margin-right: 5px;">Copy to Clipboard</button>' +
+                                    '<button type="button" class="button mpcc-cancel-update">Cancel</button>' +
+                                    '<p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">This will update your course description in the editor above.</p>' +
                                 '</div>';
-                                $('#mpcc-ai-messages').append(actionButtons);
+                                $('#mpcc-ai-messages').append(applyButtons);
                             }
                         } else {
                             var errorMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #ffe7e7; border-radius: 4px;">' +
@@ -200,51 +198,77 @@ class NewCourseIntegration extends BaseService
                 }
             });
             
-            // Handle action button clicks
-            $(document).on('click', '.mpcc-implement-changes', function() {
-                $(this).prop('disabled', true);
-                var $container = $(this).parent();
+            // Handle apply content button
+            $(document).on('click', '.mpcc-apply-content', function() {
+                var $button = $(this);
+                $button.prop('disabled', true).text('Applying...');
                 
-                // Show implementation guide
-                var guide = '<div class="mpcc-implementation-guide" style="margin-top: 10px; padding: 10px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px;">' +
-                    '<h4 style="margin: 0 0 10px 0;">How to implement these changes:</h4>' +
-                    '<ol style="margin: 0; padding-left: 20px;">' +
-                    '<li><strong>For the Course Structure:</strong> Use the "Curriculum" tab above to add/edit sections</li>' +
-                    '<li><strong>For Individual Lessons:</strong> Go to Courses → Lessons to create new lesson content</li>' +
-                    '<li><strong>Quick Actions:</strong>' +
-                    '<ul style="margin: 5px 0;">' +
-                    '<li><a href="' + window.location.href + '#mpcs-curriculum" style="text-decoration: underline;">Go to Curriculum Tab</a> to manage sections</li>' +
-                    '<li><a href="<?php echo admin_url('edit.php?post_type=mpcs-lesson'); ?>" target="_blank" style="text-decoration: underline;">Open Lessons Manager</a> in new tab</li>' +
-                    '<li><a href="<?php echo admin_url('post-new.php?post_type=mpcs-lesson'); ?>" target="_blank" style="text-decoration: underline;">Create New Lesson</a> in new tab</li>' +
-                    '</ul></li>' +
-                    '<li><strong>Pro Tip:</strong> Copy the AI suggestions above and use them as a checklist while creating content</li>' +
-                    '</ol>' +
-                    '<button type="button" class="button mpcc-copy-suggestions" style="margin-top: 10px;">Copy AI Suggestions</button>' +
-                    '</div>';
+                // Get the AI-generated content
+                var aiContent = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content').html();
+                // Convert br tags back to newlines
+                aiContent = aiContent.replace(/<br\s*\/?>/gi, '\n');
                 
-                $container.html(guide);
+                // Update the course content via AJAX
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'mpcc_update_course_content',
+                        nonce: $('#mpcc_ai_nonce').val(),
+                        post_id: <?php echo $post->ID; ?>,
+                        content: aiContent
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Update the WordPress editor if it exists
+                            if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor')) {
+                                // For block editor
+                                wp.data.dispatch('core/editor').editPost({content: aiContent});
+                            } else if (typeof tinyMCE !== 'undefined' && tinyMCE.get('content')) {
+                                // For classic editor
+                                tinyMCE.get('content').setContent(aiContent);
+                            } else if ($('#content').length) {
+                                // For text editor
+                                $('#content').val(aiContent);
+                            }
+                            
+                            $button.text('Applied!');
+                            setTimeout(function() {
+                                $('.mpcc-content-update-buttons').fadeOut();
+                            }, 2000);
+                        } else {
+                            $button.text('Failed').addClass('button-disabled');
+                            alert('Error: ' + (response.data || 'Failed to update content'));
+                        }
+                    },
+                    error: function() {
+                        $button.text('Failed').addClass('button-disabled');
+                        alert('Network error. Please try again.');
+                    }
+                });
             });
             
-            $(document).on('click', '.mpcc-cancel-action', function() {
-                $(this).parent().remove();
-            });
-            
-            $(document).on('click', '.mpcc-copy-suggestions', function() {
-                // Find the last AI message
-                var lastAIMessage = $('.mpcc-ai-message:has(strong:contains("AI Assistant"))').last().text();
-                lastAIMessage = lastAIMessage.replace('AI Assistant:', '').trim();
+            // Handle copy content button
+            $(document).on('click', '.mpcc-copy-content', function() {
+                // Get the AI-generated content
+                var aiContent = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content').text();
                 
                 // Create temporary textarea to copy
                 var $temp = $('<textarea>');
                 $('body').append($temp);
-                $temp.val(lastAIMessage).select();
+                $temp.val(aiContent).select();
                 document.execCommand('copy');
                 $temp.remove();
                 
                 $(this).text('Copied!').prop('disabled', true);
                 setTimeout(() => {
-                    $(this).text('Copy AI Suggestions').prop('disabled', false);
+                    $(this).text('Copy to Clipboard').prop('disabled', false);
                 }, 2000);
+            });
+            
+            // Handle cancel button
+            $(document).on('click', '.mpcc-cancel-update', function() {
+                $(this).closest('.mpcc-content-update-buttons').fadeOut();
             });
         });
         </script>
