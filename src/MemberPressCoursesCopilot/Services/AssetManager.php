@@ -72,9 +72,10 @@ class AssetManager extends BaseService
     {
         // Core styles
         $this->registerStyle('mpcc-courses-integration', 'assets/css/courses-integration.css', ['wp-components']);
-        $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons']);
         $this->registerStyle('mpcc-toast', 'assets/css/toast.css', ['dashicons']);
         $this->registerStyle('mpcc-course-editor', 'assets/css/course-editor-page.css', ['wp-components']);
+        $this->registerStyle('mpcc-course-edit-ai-chat', 'assets/css/course-edit-ai-chat.css', ['dashicons']);
+        $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons']);
         
         // Component styles
         // Removed mpcc-modal-styles and mpcc-metabox-styles - files don't exist
@@ -93,12 +94,6 @@ class AssetManager extends BaseService
         );
         
         $this->registerScript(
-            'mpcc-simple-ai-chat',
-            'assets/js/simple-ai-chat.js',
-            ['jquery']
-        );
-        
-        $this->registerScript(
             'mpcc-toast',
             'assets/js/toast.js',
             ['jquery']
@@ -114,6 +109,12 @@ class AssetManager extends BaseService
             'mpcc-course-editor',
             'assets/js/course-editor-page.js',
             ['jquery', 'jquery-ui-sortable', 'wp-api', 'wp-components', 'wp-element', 'mpcc-toast', 'mpcc-shared-utilities']
+        );
+        
+        $this->registerScript(
+            'mpcc-course-edit-ai-chat',
+            'assets/js/course-edit-ai-chat.js',
+            ['jquery', 'mpcc-toast']
         );
         
         // Component scripts
@@ -183,11 +184,11 @@ class AssetManager extends BaseService
             'strings' => $this->getEditorStrings()
         ]);
         
-        // Simple AI chat localizations
-        wp_localize_script('mpcc-simple-ai-chat', 'mpccSimpleChat', [
+        // Course edit AI chat localizations
+        wp_localize_script('mpcc-course-edit-ai-chat', 'mpccCourseChat', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => NonceConstants::create(NonceConstants::COURSES_INTEGRATION),
-            'strings' => $this->getChatStrings()
+            'nonce' => NonceConstants::create(NonceConstants::AI_ASSISTANT),
+            'strings' => $this->getCourseEditChatStrings()
         ]);
     }
     
@@ -246,10 +247,8 @@ class AssetManager extends BaseService
     {
         wp_enqueue_style('dashicons');
         wp_enqueue_style('mpcc-courses-integration');
-        wp_enqueue_style('mpcc-ai-copilot');
         wp_enqueue_style('mpcc-modal-styles');
         
-        wp_enqueue_script('mpcc-simple-ai-chat');
         wp_enqueue_script('mpcc-modal-component');
     }
     
@@ -258,7 +257,15 @@ class AssetManager extends BaseService
      */
     private function enqueueCourseEditorAssets(): void
     {
-        // Removed enqueue calls for non-existent metabox assets
+        // Enqueue styles
+        wp_enqueue_style('mpcc-toast');
+        wp_enqueue_style('mpcc-course-edit-ai-chat');
+        wp_enqueue_style('mpcc-ai-copilot'); // Needed for chat message styles
+        
+        // Enqueue scripts
+        wp_enqueue_script('mpcc-toast');
+        wp_enqueue_script('mpcc-course-edit-ai-chat');
+        // Removed mpcc-simple-ai-chat - replaced by course-edit-ai-chat
     }
     
     /**
@@ -268,7 +275,6 @@ class AssetManager extends BaseService
     {
         wp_enqueue_style('dashicons');
         wp_enqueue_style('mpcc-courses-integration');
-        wp_enqueue_style('mpcc-ai-copilot');
         
         wp_enqueue_script('mpcc-courses-integration');
     }
@@ -377,5 +383,20 @@ class AssetManager extends BaseService
         if (isset($this->scripts[$handle])) {
             wp_enqueue_script($handle);
         }
+    }
+    
+    /**
+     * Get course edit chat strings for localization
+     */
+    private function getCourseEditChatStrings(): array
+    {
+        return [
+            'thinking' => __('AI is thinking...', 'memberpress-courses-copilot'),
+            'error' => __('Error: ', 'memberpress-courses-copilot'),
+            'connectionError' => __('Connection error. Please try again.', 'memberpress-courses-copilot'),
+            'send' => __('Send', 'memberpress-courses-copilot'),
+            'updateSuccess' => __('Course updated successfully!', 'memberpress-courses-copilot'),
+            'failedToLoad' => __('Failed to communicate with the AI. Please try again.', 'memberpress-courses-copilot')
+        ];
     }
 }

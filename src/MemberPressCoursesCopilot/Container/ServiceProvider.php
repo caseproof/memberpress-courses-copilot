@@ -18,7 +18,8 @@ use MemberPressCoursesCopilot\Services\{
     AssetManager,
     CourseIntegrationService,
     CourseUIService,
-    SessionFeaturesService
+    SessionFeaturesService,
+    NewCourseIntegration
 };
 use MemberPressCoursesCopilot\Controllers\{
     SimpleAjaxController,
@@ -156,6 +157,9 @@ class ServiceProvider
         
         // Course Ajax Service (singleton)
         $container->register(CourseAjaxService::class, CourseAjaxService::class, true);
+        
+        // New Course Integration Service (singleton)
+        $container->register(NewCourseIntegration::class, NewCourseIntegration::class, true);
         
         // Asset Manager (singleton)
         $container->register(AssetManager::class, AssetManager::class, true);

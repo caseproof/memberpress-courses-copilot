@@ -1,148 +1,320 @@
 <?php
 /**
  * AI Chat Interface Template
- *
+ * 
  * @package MemberPressCoursesCopilot
- * @subpackage Templates
+ * @since 1.0.0
  */
 
-defined('ABSPATH') || exit;
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
 
-use MemberPressCoursesCopilot\Security\NonceConstants;
-
-// Context can be 'course_creation' or 'course_editing'
-$context = $context ?? 'course_editing';
-$post_id = $post_id ?? 0;
+$context = $data['context'] ?? 'general';
+$courseId = $data['course_id'] ?? 0;
+$initialMessages = $data['messages'] ?? [];
 ?>
 
-<input type="hidden" id="mpcc-ajax-nonce" value="<?php echo NonceConstants::create(NonceConstants::COURSES_INTEGRATION); ?>" />
-<div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>">
-    <div id="mpcc-chat-messages" class="mpcc-chat-messages">
-        <!-- Welcome message will be replaced by conversation history if a session exists -->
-        <div class="mpcc-welcome-message" style="text-align: center; padding: 20px; color: #666;">
-            <div style="font-size: 32px; margin-bottom: 15px;">🤖</div>
-            <h3 style="margin: 0 0 10px 0; color: #1a73e8;"><?php esc_html_e('AI Course Assistant', 'memberpress-courses-copilot'); ?></h3>
-            <p style="margin: 0; line-height: 1.5;">
-                <?php if ($context === 'course_creation'): ?>
-                    <?php esc_html_e('Hi! I\'m here to help you create an amazing course. What kind of course would you like to build today?', 'memberpress-courses-copilot'); ?>
-                <?php else: ?>
-                    <?php esc_html_e('Hi! I\'m here to help you improve your course. What would you like to work on?', 'memberpress-courses-copilot'); ?>
-                <?php endif; ?>
-            </p>
-            
-            <?php if ($context === 'course_creation'): ?>
-            <div style="margin-top: 20px;">
-                <p style="font-size: 14px; color: #888; margin-bottom: 10px;"><?php esc_html_e('Quick starters:', 'memberpress-courses-copilot'); ?></p>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
-                    <button type="button" class="button button-small mpcc-quick-start" data-message="Help me create a programming course for beginners">
-                        <?php esc_html_e('Programming Course', 'memberpress-courses-copilot'); ?>
-                    </button>
-                    <button type="button" class="button button-small mpcc-quick-start" data-message="I want to create a business skills course">
-                        <?php esc_html_e('Business Skills', 'memberpress-courses-copilot'); ?>
-                    </button>
-                    <button type="button" class="button button-small mpcc-quick-start" data-message="Help me design a creative arts course">
-                        <?php esc_html_e('Creative Arts', 'memberpress-courses-copilot'); ?>
-                    </button>
+<div id="mpcc-ai-chat-interface" class="mpcc-ai-chat-container" data-context="<?php echo esc_attr($context); ?>" data-course-id="<?php echo esc_attr($courseId); ?>">
+    <div class="mpcc-chat-header">
+        <h3 class="mpcc-chat-title">
+            <span class="dashicons dashicons-format-chat"></span>
+            <?php esc_html_e('AI Assistant', 'memberpress-courses-copilot'); ?>
+        </h3>
+        <div class="mpcc-chat-actions">
+            <button type="button" class="mpcc-chat-action-btn mpcc-clear-chat" title="<?php esc_attr_e('Clear Chat', 'memberpress-courses-copilot'); ?>">
+                <span class="dashicons dashicons-trash"></span>
+            </button>
+        </div>
+    </div>
+
+    <div class="mpcc-chat-messages-wrapper">
+        <div id="mpcc-chat-messages" class="mpcc-chat-messages">
+            <?php if (empty($initialMessages)): ?>
+                <div class="mpcc-chat-welcome">
+                    <div class="mpcc-chat-message assistant">
+                        <div class="message-content">
+                            <p><?php esc_html_e('Hi! I\'m your AI course assistant. I can help you:', 'memberpress-courses-copilot'); ?></p>
+                            <ul>
+                                <li><?php esc_html_e('Update course content and structure', 'memberpress-courses-copilot'); ?></li>
+                                <li><?php esc_html_e('Generate lesson content', 'memberpress-courses-copilot'); ?></li>
+                                <li><?php esc_html_e('Create quizzes and assessments', 'memberpress-courses-copilot'); ?></li>
+                                <li><?php esc_html_e('Improve learning objectives', 'memberpress-courses-copilot'); ?></li>
+                            </ul>
+                            <p><?php esc_html_e('What would you like to work on today?', 'memberpress-courses-copilot'); ?></p>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            <?php else: ?>
+                <?php foreach ($initialMessages as $message): ?>
+                    <div class="mpcc-chat-message <?php echo esc_attr($message['role']); ?>">
+                        <div class="message-content">
+                            <?php echo wp_kses_post($message['content']); ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             <?php endif; ?>
         </div>
-    </div>
-    
-    <div id="mpcc-chat-input-container" class="mpcc-chat-input-container">
-        <div class="mpcc-chat-input-wrapper" style="display: flex; gap: 10px; align-items: flex-end;">
-            <textarea 
-                id="mpcc-chat-input" 
-                placeholder="<?php esc_attr_e('Type your message here...', 'memberpress-courses-copilot'); ?>" 
-                rows="2"
-                style="flex: 1; padding: 12px 16px; border: 2px solid #e8eaed; border-radius: 24px; resize: none; font-family: inherit; font-size: 14px; line-height: 1.4; outline: none;"
-            ></textarea>
-            <button type="button" id="mpcc-send-message" class="button button-primary" style="padding: 12px 20px; border-radius: 20px; display: flex; align-items: center; gap: 6px;">
-                <span class="dashicons dashicons-arrow-right-alt" style="font-size: 16px; width: 16px; height: 16px;"></span>
-                <?php esc_html_e('Send', 'memberpress-courses-copilot'); ?>
-            </button>
-        </div>
         
-        <div style="margin-top: 8px; text-align: center;">
-            <small style="color: #666; font-size: 12px;">
-                <?php esc_html_e('Press Enter to send, Shift+Enter for new line', 'memberpress-courses-copilot'); ?>
-            </small>
+        <div id="mpcc-typing-indicator" class="mpcc-typing-indicator" style="display: none;">
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
         </div>
     </div>
-    
-    <!-- Session Management Controls -->
-    <div class="mpcc-session-controls" style="display: flex; gap: 10px; padding: 10px; justify-content: center; border-top: 1px solid #e8eaed; background-color: #f8f9fa;">
-        <button id="mpcc-session-manager-btn" class="button button-small" style="display: inline-flex; align-items: center; gap: 5px;">
-            <span class="dashicons dashicons-list-view" style="font-size: 16px; width: 16px; height: 16px;"></span>
-            <?php esc_html_e('Previous Conversations', 'memberpress-courses-copilot'); ?>
-        </button>
-        <button id="mpcc-new-conversation-btn" class="button button-small" style="display: inline-flex; align-items: center; gap: 5px;">
-            <span class="dashicons dashicons-plus" style="font-size: 16px; width: 16px; height: 16px;"></span>
-            <?php esc_html_e('New Conversation', 'memberpress-courses-copilot'); ?>
-        </button>
-    </div>
-</div>
 
-<!-- Modal for Previous Conversations -->
-<div id="mpcc-modal-overlay" class="mpcc-modal-overlay">
-    <div class="mpcc-modal-container">
-        <div class="mpcc-modal-header">
-            <h3 class="mpcc-modal-title"><?php esc_html_e('Previous Conversations', 'memberpress-courses-copilot'); ?></h3>
-            <button type="button" class="mpcc-modal-close" aria-label="<?php esc_attr_e('Close', 'memberpress-courses-copilot'); ?>">
-                <span class="dashicons dashicons-no-alt"></span>
+    <div class="mpcc-chat-input-wrapper">
+        <div class="mpcc-chat-input-container">
+            <textarea 
+                id="mpcc-course-chat-input" 
+                class="mpcc-chat-input" 
+                placeholder="<?php esc_attr_e('Ask me anything about your course...', 'memberpress-courses-copilot'); ?>"
+                rows="2"
+            ></textarea>
+            <button type="button" id="mpcc-course-send-message" class="mpcc-send-button" disabled>
+                <span class="dashicons dashicons-arrow-right-alt"></span>
+                <span class="button-text"><?php esc_html_e('Send', 'memberpress-courses-copilot'); ?></span>
             </button>
         </div>
-        <div id="mpcc-session-list"></div>
+        <div class="mpcc-chat-helper-text">
+            <?php esc_html_e('Press Enter to send, Shift+Enter for new line', 'memberpress-courses-copilot'); ?>
+        </div>
     </div>
 </div>
-
-<script type="text/javascript">
-// Ensure ajaxurl is available globally
-if (typeof ajaxurl === 'undefined') {
-    var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
-}
-
-// Debug any JavaScript errors
-window.addEventListener('error', function(e) {
-    console.error('JavaScript Error:', e.message, 'at', e.filename, ':', e.lineno);
-});
-
-jQuery(document).ready(function($) {
-    console.log('AI Chat Interface template loaded');
-    
-    // Trigger initialization event to let scripts know the interface is ready
-    $(document).trigger('mpcc:interface-loaded');
-    
-    // Auto-focus input
-    $('#mpcc-chat-input').focus();
-    
-    // Quick start buttons are handled by simple-ai-chat.js via event delegation
-});
-</script>
 
 <style>
-/* Additional inline styles for template-specific elements */
-.mpcc-quick-start {
-    font-size: 12px !important;
-    padding: 4px 8px !important;
-    height: auto !important;
-    line-height: 1.2 !important;
+/* Ensure proper styling for chat interface */
+.mpcc-ai-chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
 }
 
-.mpcc-quick-start:hover {
-    background: #f0f0f1 !important;
+.mpcc-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e1e4e8;
 }
 
-#mpcc-chat-input:focus {
-    border-color: #1a73e8 !important;
-    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1) !important;
+.mpcc-chat-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
 }
 
-#mpcc-send-message:disabled {
-    background: #f1f3f4 !important;
-    border-color: #f1f3f4 !important;
-    color: #9aa0a6 !important;
-    cursor: not-allowed !important;
+.mpcc-chat-messages-wrapper {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
+.mpcc-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.mpcc-chat-message {
+    margin-bottom: 16px;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mpcc-chat-message.user {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mpcc-chat-message.user .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 18px 18px 4px 18px;
+    max-width: 70%;
+}
+
+.mpcc-chat-message.assistant .message-content {
+    background: #f0f4f8;
+    color: #1d2327;
+    padding: 12px 18px;
+    border-radius: 18px 18px 18px 4px;
+    max-width: 70%;
+    display: inline-block;
+}
+
+.mpcc-typing-indicator {
+    padding: 0 20px 10px;
+}
+
+.typing-dots {
+    display: inline-flex;
+    gap: 4px;
+    padding: 12px 18px;
+    background: #f0f4f8;
+    border-radius: 18px;
+}
+
+.typing-dots span {
+    width: 8px;
+    height: 8px;
+    background: #646970;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        opacity: 0.2;
+        transform: scale(0.8);
+    }
+    30% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.mpcc-chat-input-wrapper {
+    padding: 15px;
+    background: #f8f9fa;
+    border-top: 1px solid #e1e4e8;
+}
+
+.mpcc-chat-input-container {
+    display: flex;
+    gap: 10px;
+}
+
+.mpcc-chat-input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 2px solid #e1e4e8;
+    border-radius: 8px;
+    font-size: 14px;
+    resize: none;
+    transition: border-color 0.2s;
+}
+
+.mpcc-chat-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.mpcc-send-button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.mpcc-send-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.mpcc-send-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.mpcc-chat-helper-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #646970;
+    text-align: center;
+}
+
+.mpcc-chat-action-btn {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    color: #646970;
+    transition: color 0.2s;
+}
+
+.mpcc-chat-action-btn:hover {
+    color: #d63638;
+}
 </style>
+
+<script>
+jQuery(document).ready(function($) {
+    // Initialize AI chat interface
+    const chatContainer = $('#mpcc-ai-chat-interface');
+    const chatMessages = $('#mpcc-chat-messages');
+    const chatInput = $('#mpcc-course-chat-input');
+    const sendButton = $('#mpcc-course-send-message');
+    const typingIndicator = $('#mpcc-typing-indicator');
+    
+    // Initialize course edit AI chat if available
+    if (window.CourseEditAIChat && chatContainer.data('context') === 'course_editing') {
+        const courseId = chatContainer.data('course-id');
+        // The course data should be passed from the parent page
+        if (window.courseData) {
+            window.CourseEditAIChat.init(window.courseData);
+        }
+    }
+    
+    // Enable/disable send button based on input
+    chatInput.on('input', function() {
+        sendButton.prop('disabled', !$(this).val().trim());
+    });
+    
+    // Handle Enter key (send) and Shift+Enter (new line)
+    chatInput.on('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!sendButton.prop('disabled')) {
+                sendButton.click();
+            }
+        }
+    });
+    
+    // Clear chat functionality
+    $('.mpcc-clear-chat').on('click', function() {
+        if (confirm('<?php echo esc_js(__('Are you sure you want to clear the chat?', 'memberpress-courses-copilot')); ?>')) {
+            chatMessages.empty();
+            chatMessages.html(`
+                <div class="mpcc-chat-welcome">
+                    <div class="mpcc-chat-message assistant">
+                        <div class="message-content">
+                            <p><?php echo esc_js(__('Chat cleared. How can I help you with your course?', 'memberpress-courses-copilot')); ?></p>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+    });
+});
+</script>

@@ -16,7 +16,9 @@
     "lint": "npm run lint:css && npm run lint:js",
     "lint:fix": "npm run lint:css -- --fix && npm run lint:js -- --fix",
     "clean": "rimraf assets/css assets/js",
-    "format": "prettier --write 'src/assets/**/*.{js,scss,css}'"
+    "format": "prettier --write 'src/assets/**/*.{js,scss,css}'",
+    "test:ai-chat": "node test-ai-chat-integration.js",
+    "diagnostic": "node diagnostic-check.js"
   },
   "keywords": [
     "wordpress",
@@ -42,6 +44,7 @@
     "eslint-plugin-react": "^7.33.0",
     "mini-css-extract-plugin": "^2.7.0",
     "prettier": "^3.0.0",
+    "puppeteer": "^22.15.0",
     "rimraf": "^5.0.0",
     "sass": "^1.69.0",
     "sass-loader": "^13.3.0",

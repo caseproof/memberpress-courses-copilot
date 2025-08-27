@@ -33,7 +33,11 @@ class CourseIntegrationService extends BaseService
         add_action('admin_footer-edit.php', [$this, 'addCreateWithAIButton']);
         
         // Hook into course editor to add AI chat interface
-        add_action('add_meta_boxes', [$this, 'addAIAssistantMetaBox'], 20);
+        // Disabled metabox to prevent conflicts with center column implementation
+        // add_action('add_meta_boxes', [$this, 'addAIAssistantMetaBox'], 20);
+        
+        // Add AI chat to center column of course edit page
+        add_action('edit_form_after_editor', [$this, 'addAIChatToCenterColumn']);
     }
 
     /**
@@ -246,5 +250,132 @@ class CourseIntegrationService extends BaseService
         }
         
         return $show_screen;
+    }
+    
+    /**
+     * Add AI Chat to center column of course edit page
+     *
+     * @param \WP_Post $post Current post object
+     * @return void
+     */
+    public function addAIChatToCenterColumn(\WP_Post $post): void
+    {
+        // Debug to see if this method is being called
+        ?>
+        <!-- MPCC Debug: addAIChatToCenterColumn called for post type: <?php echo esc_html($post->post_type); ?> -->
+        <?php
+        
+        // Only add for course post type
+        if ($post->post_type !== 'mpcs-course') {
+            ?>
+            <!-- MPCC Debug: Not a course post type (<?php echo esc_html($post->post_type); ?>), skipping AI chat -->
+            <?php
+            return;
+        }
+        
+        ?>
+        <!-- MPCC Debug: Adding AI chat for course ID: <?php echo esc_html($post->ID); ?> -->
+        <?php
+        
+        // Get course metadata
+        $sections = get_post_meta($post->ID, '_mpcs_sections', true) ?: [];
+        $courseData = [
+            'id' => $post->ID,
+            'title' => $post->post_title,
+            'content' => $post->post_content,
+            'sections' => $sections,
+            'status' => $post->post_status
+        ];
+        
+        ?>
+        <div id="mpcc-course-ai-chat-section" style="margin-top: 30px;">
+            <h2><?php esc_html_e('AI Course Assistant', 'memberpress-courses-copilot'); ?></h2>
+            
+            <div id="mpcc-course-ai-chat-wrapper" style="background: #fff; border: 1px solid #c3c4c7; box-shadow: 0 1px 1px rgba(0,0,0,.04); padding: 20px;">
+                <div class="mpcc-course-ai-intro" style="margin-bottom: 20px; padding: 15px; background: #f0f7ff; border-left: 4px solid #667eea; border-radius: 4px;">
+                    <h3 style="margin-top: 0; color: #1d2327;">
+                        <span class="dashicons dashicons-format-chat" style="color: #667eea; vertical-align: middle;"></span>
+                        <?php esc_html_e('Chat with AI to update your course', 'memberpress-courses-copilot'); ?>
+                    </h3>
+                    <p style="margin-bottom: 0; color: #50575e;">
+                        <?php esc_html_e('Use the AI assistant below to help you improve your course content, add new lessons, create quizzes, or enhance learning objectives.', 'memberpress-courses-copilot'); ?>
+                    </p>
+                </div>
+                
+                <div id="mpcc-course-ai-chat-container" style="min-height: 400px; max-height: 600px; display: flex; flex-direction: column; border: 1px solid #dcdcde; border-radius: 8px; overflow: hidden;">
+                    <div id="mpcc-course-ai-chat-loading" style="flex: 1; display: flex; align-items: center; justify-content: center;">
+                        <div style="text-align: center;">
+                            <div class="spinner is-active" style="float: none; margin: 0 auto 10px;"></div>
+                            <p style="color: #666;"><?php esc_html_e('Loading AI Assistant...', 'memberpress-courses-copilot'); ?></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mpcc-course-context" style="margin-top: 15px; padding: 10px; background: #f6f7f7; border-radius: 4px; font-size: 12px; color: #646970;">
+                    <strong><?php esc_html_e('Course Context:', 'memberpress-courses-copilot'); ?></strong>
+                    <?php 
+                    $sectionCount = is_array($sections) ? count($sections) : 0;
+                    $lessonCount = 0;
+                    if (is_array($sections)) {
+                        foreach ($sections as $section) {
+                            $lessonCount += isset($section['lessons']) && is_array($section['lessons']) ? count($section['lessons']) : 0;
+                        }
+                    }
+                    ?>
+                    <?php printf(
+                        esc_html__('This course has %d sections and %d lessons.', 'memberpress-courses-copilot'),
+                        $sectionCount,
+                        $lessonCount
+                    ); ?>
+                </div>
+            </div>
+        </div>
+        
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            // Initialize AI chat for course editing
+            var courseData = <?php echo json_encode($courseData); ?>;
+            
+            // Make courseData available globally for the chat interface
+            window.courseData = courseData;
+            
+            // Load the AI chat interface
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'mpcc_load_ai_interface',
+                    nonce: '<?php echo NonceConstants::create(NonceConstants::AI_INTERFACE); ?>',
+                    context: 'course_editing',
+                    post_id: <?php echo (int) $post->ID; ?>,
+                    course_data: JSON.stringify(courseData)
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#mpcc-course-ai-chat-container').html(response.data.html);
+                        
+                        // Initialize the chat with course context
+                        if (typeof window.initializeCourseAIChat === 'function') {
+                            window.initializeCourseAIChat(courseData);
+                        }
+                    } else {
+                        $('#mpcc-course-ai-chat-container').html(
+                            '<div style="padding: 20px; text-align: center; color: #d63638;">' +
+                            '<p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p>' +
+                            '</div>'
+                        );
+                    }
+                },
+                error: function() {
+                    $('#mpcc-course-ai-chat-container').html(
+                        '<div style="padding: 20px; text-align: center; color: #d63638;">' +
+                        '<p><?php echo esc_js(__('Failed to load AI interface. Please try refreshing the page.', 'memberpress-courses-copilot')); ?></p>' +
+                        '</div>'
+                    );
+                }
+            });
+        });
+        </script>
+        <?php
     }
 }
