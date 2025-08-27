@@ -77,6 +77,31 @@ class EnhancedTemplateEngine extends BaseService
     }
     
     /**
+     * Sanitize array data recursively
+     *
+     * @param array $data Data to sanitize
+     * @param string $type Sanitization type
+     * @return array Sanitized array
+     */
+    protected function sanitizeArray(array $data, string $type = 'text'): array {
+        return array_map(function($item) use ($type) {
+            if (is_array($item)) {
+                return $this->sanitizeArray($item, $type);
+            }
+            return match($type) {
+                'textarea' => sanitize_textarea_field($item),
+                'email' => sanitize_email($item),
+                'url' => esc_url_raw($item),
+                'int' => intval($item),
+                'float' => floatval($item),
+                'boolean' => filter_var($item, FILTER_VALIDATE_BOOLEAN),
+                'html' => wp_kses_post($item),
+                default => sanitize_text_field($item)
+            };
+        }, $data);
+    }
+    
+    /**
      * Render a template with data
      *
      * @param string $template Template path relative to templates directory
@@ -327,11 +352,9 @@ class EnhancedTemplateEngine extends BaseService
         $data = $_POST['data'] ?? [];
         
         // Sanitize data array
-        array_walk_recursive($data, function(&$item) {
-            if (is_string($item)) {
-                $item = sanitize_text_field($item);
-            }
-        });
+        if (is_array($data)) {
+            $data = $this->sanitizeArray($data);
+        }
         
         try {
             $html = $this->render($template, $data);

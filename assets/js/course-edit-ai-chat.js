@@ -41,7 +41,7 @@
             this.addMessage('system', contextMessage, false);
             
             // Add welcome message
-            const welcomeMessage = 'Hello! I\'m here to help you improve your course "' + this.courseData.title + '". ' +
+            const welcomeMessage = 'Hello! I\'m here to help you improve your course "' + window.MPCCUtils.escapeHtml(this.courseData.title) + '". ' +
                 'I can help you add new content, improve existing lessons, create quizzes, or enhance learning objectives. ' + 
                 'What would you like to work on?';
             this.addMessage('assistant', welcomeMessage, false);
@@ -52,7 +52,7 @@
         
         buildContextMessage: function() {
             let context = 'Current course information:\n';
-            context += '- Title: ' + this.courseData.title + '\n';
+            context += '- Title: ' + window.MPCCUtils.escapeHtml(this.courseData.title) + '\n';
             context += '- Sections: ' + (this.courseData.sections ? this.courseData.sections.length : 0) + '\n';
             
             if (this.courseData.sections && this.courseData.sections.length > 0) {
@@ -65,7 +65,7 @@
                 context += '- Total Lessons: ' + totalLessons + '\n';
             }
             
-            context += '- Status: ' + this.courseData.status;
+            context += '- Status: ' + window.MPCCUtils.escapeHtml(this.courseData.status || 'draft');
             
             return context;
         },
@@ -81,7 +81,7 @@
             let actionsHtml = '<div class="mpcc-course-quick-actions" style="margin: 15px 0; display: flex; flex-wrap: wrap; gap: 10px;">';
             quickActions.forEach(function(action) {
                 actionsHtml += '<button type="button" class="mpcc-course-quick-action button button-secondary" data-action="' + 
-                    action.action + '">' + action.text + '</button>';
+                    window.MPCCUtils.escapeHtml(action.action) + '">' + window.MPCCUtils.escapeHtml(action.text) + '</button>';
             });
             actionsHtml += '</div>';
             
@@ -132,7 +132,7 @@
             
             // Show typing indicator
             const typingId = 'typing-' + Date.now();
-            const typingHtml = '<div class="mpcc-chat-message assistant" id="' + typingId + '">' +
+            const typingHtml = '<div class="mpcc-chat-message assistant" id="' + window.MPCCUtils.escapeHtml(typingId) + '">' +
                 '<div class="message-content">' +
                 '<span class="typing-indicator">' +
                 '<span></span><span></span><span></span>' +
@@ -199,7 +199,7 @@
             // Convert content to HTML if it contains markdown-like formatting
             const formattedContent = this.formatContent(content);
             
-            return '<div class="mpcc-chat-message ' + messageClass + '">' +
+            return '<div class="mpcc-chat-message ' + window.MPCCUtils.escapeHtml(messageClass) + '">' +
                 '<div class="message-content">' + formattedContent + '</div>' +
                 '</div>';
         },
@@ -238,19 +238,19 @@
         showError: function(message) {
             const errorHtml = '<div class="mpcc-chat-error" style="background: #fee; color: #d63638; padding: 10px; ' +
                 'margin: 10px 0; border-radius: 4px; border-left: 4px solid #d63638;">' +
-                '<strong>Error:</strong> ' + message + '</div>';
+                '<strong>Error:</strong> ' + window.MPCCUtils.escapeHtml(message) + '</div>';
             
             $('#mpcc-course-chat-messages').append(errorHtml);
             this.scrollToBottom();
         },
         
         showNotification: function(message, type = 'info') {
-            const notificationHtml = '<div class="mpcc-chat-notification mpcc-' + type + '" style="' +
+            const notificationHtml = '<div class="mpcc-chat-notification mpcc-' + window.MPCCUtils.escapeHtml(type) + '" style="' +
                 'background: ' + (type === 'success' ? '#edfaef' : '#f0f7ff') + '; ' +
                 'color: ' + (type === 'success' ? '#00a32a' : '#2271b1') + '; ' +
                 'padding: 10px; margin: 10px 0; border-radius: 4px; ' +
                 'border-left: 4px solid ' + (type === 'success' ? '#00a32a' : '#2271b1') + ';">' +
-                message + '</div>';
+                window.MPCCUtils.escapeHtml(message) + '</div>';
             
             $('#mpcc-course-chat-messages').append(notificationHtml);
             this.scrollToBottom();

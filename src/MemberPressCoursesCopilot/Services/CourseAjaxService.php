@@ -30,6 +30,31 @@ class CourseAjaxService extends BaseService
     }
     
     /**
+     * Sanitize array data recursively
+     *
+     * @param array $data Data to sanitize
+     * @param string $type Sanitization type
+     * @return array Sanitized array
+     */
+    protected function sanitizeArray(array $data, string $type = 'text'): array {
+        return array_map(function($item) use ($type) {
+            if (is_array($item)) {
+                return $this->sanitizeArray($item, $type);
+            }
+            return match($type) {
+                'textarea' => sanitize_textarea_field($item),
+                'email' => sanitize_email($item),
+                'url' => esc_url_raw($item),
+                'int' => intval($item),
+                'float' => floatval($item),
+                'boolean' => filter_var($item, FILTER_VALIDATE_BOOLEAN),
+                'html' => wp_kses_post($item),
+                default => sanitize_text_field($item)
+            };
+        }, $data);
+    }
+    
+    /**
      * Initialize the service
      *
      * @return void
@@ -244,6 +269,10 @@ class CourseAjaxService extends BaseService
         $conversation_history = $_POST['conversation_history'] ?? [];
         $conversation_state = $_POST['conversation_state'] ?? [];
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+        
+        // Sanitize arrays
+        $conversation_history = $this->sanitizeArray($conversation_history, 'textarea');
+        $conversation_state = $this->sanitizeArray($conversation_state);
         
         // Load session if provided
         $session = null;
@@ -464,6 +493,11 @@ class CourseAjaxService extends BaseService
         }
         
         $course_data = $_POST['course_data'] ?? [];
+        
+        // Sanitize course data before processing
+        if (is_array($course_data)) {
+            $course_data = $this->sanitizeArray($course_data);
+        }
         
         // If course_data is a JSON string, decode it
         if (is_string($course_data)) {
@@ -843,6 +877,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             // Update session with new data
             $conversationHistory = $_POST['conversation_history'] ?? [];
             $conversationState = $_POST['conversation_state'] ?? [];
+            
+            // Sanitize arrays
+            $conversationHistory = $this->sanitizeArray($conversationHistory, 'textarea');
+            $conversationState = $this->sanitizeArray($conversationState);
             
             $this->logger->info('Saving conversation - received data', [
                 'message_count' => count($conversationHistory),
@@ -1271,6 +1309,9 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $courseTitle = sanitize_text_field($_POST['course_title'] ?? '');
         $context = $_POST['context'] ?? [];
         
+        // Sanitize context array
+        $context = $this->sanitizeArray($context);
+        
         if (empty($lessonTitle)) {
             wp_send_json_error('Lesson title is required');
             return;
@@ -1361,6 +1402,11 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
         $itemType = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'
         $reorderData = $_POST['reorder_data'] ?? [];
+        
+        // Sanitize reorder data array
+        if (is_array($reorderData)) {
+            $reorderData = $this->sanitizeArray($reorderData);
+        }
         
         if (empty($sessionId) || empty($itemType) || empty($reorderData)) {
             wp_send_json_error('Missing required parameters');
@@ -1679,6 +1725,14 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $courseData = isset($_POST['course_data']) ? json_decode(wp_unslash($_POST['course_data']), true) : [];
         $conversationHistory = isset($_POST['conversation_history']) ? json_decode(wp_unslash($_POST['conversation_history']), true) : [];
         
+        // Sanitize arrays
+        if (is_array($courseData)) {
+            $courseData = $this->sanitizeArray($courseData);
+        }
+        if (is_array($conversationHistory)) {
+            $conversationHistory = $this->sanitizeArray($conversationHistory, 'textarea');
+        }
+        
         if (empty($message)) {
             wp_send_json_error('Message cannot be empty');
             return;
@@ -1848,6 +1902,11 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         
         $message = sanitize_text_field($_POST['message'] ?? '');
         $courseData = isset($_POST['course_data']) ? $_POST['course_data'] : [];
+        
+        // Sanitize course data array
+        if (is_array($courseData)) {
+            $courseData = $this->sanitizeArray($courseData);
+        }
         
         if (empty($message)) {
             wp_send_json_error('Message cannot be empty');

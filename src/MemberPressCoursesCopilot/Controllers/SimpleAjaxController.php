@@ -69,6 +69,31 @@ class SimpleAjaxController
     }
     
     /**
+     * Sanitize array data recursively
+     *
+     * @param array $data Data to sanitize
+     * @param string $type Sanitization type
+     * @return array Sanitized array
+     */
+    protected function sanitizeArray(array $data, string $type = 'text'): array {
+        return array_map(function($item) use ($type) {
+            if (is_array($item)) {
+                return $this->sanitizeArray($item, $type);
+            }
+            return match($type) {
+                'textarea' => sanitize_textarea_field($item),
+                'email' => sanitize_email($item),
+                'url' => esc_url_raw($item),
+                'int' => intval($item),
+                'float' => floatval($item),
+                'boolean' => filter_var($item, FILTER_VALIDATE_BOOLEAN),
+                'html' => wp_kses_post($item),
+                default => sanitize_text_field($item)
+            };
+        }, $data);
+    }
+    
+    /**
      * Handle chat message
      */
     public function handleChatMessage(): void
@@ -83,6 +108,14 @@ class SimpleAjaxController
             $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
             $conversationHistory = json_decode(stripslashes($_POST['conversation_history'] ?? '[]'), true);
             $courseStructure = json_decode(stripslashes($_POST['course_structure'] ?? '{}'), true);
+            
+            // Sanitize arrays after JSON decode
+            if (is_array($conversationHistory)) {
+                $conversationHistory = $this->sanitizeArray($conversationHistory, 'textarea');
+            }
+            if (is_array($courseStructure)) {
+                $courseStructure = $this->sanitizeArray($courseStructure);
+            }
             
             if (empty($message)) {
                 throw new \Exception('Message is required');
@@ -252,6 +285,14 @@ class SimpleAjaxController
             $conversationHistory = json_decode(stripslashes($_POST['conversation_history'] ?? '[]'), true);
             $conversationState = json_decode(stripslashes($_POST['conversation_state'] ?? '{}'), true);
             
+            // Sanitize arrays after JSON decode
+            if (is_array($conversationHistory)) {
+                $conversationHistory = $this->sanitizeArray($conversationHistory, 'textarea');
+            }
+            if (is_array($conversationState)) {
+                $conversationState = $this->sanitizeArray($conversationState);
+            }
+            
             if (empty($sessionId)) {
                 throw new \Exception('Session ID is required');
             }
@@ -356,6 +397,11 @@ class SimpleAjaxController
             
             $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
             $courseData = json_decode(stripslashes($_POST['course_data'] ?? '{}'), true);
+            
+            // Sanitize course data array after JSON decode
+            if (is_array($courseData)) {
+                $courseData = $this->sanitizeArray($courseData);
+            }
             
             if (empty($courseData['title'])) {
                 throw new \Exception('Course title is required');
@@ -485,6 +531,11 @@ class SimpleAjaxController
             
             $lessonTitle = sanitize_text_field($_POST['lesson_title'] ?? '');
             $courseContext = json_decode(stripslashes($_POST['course_context'] ?? '{}'), true);
+            
+            // Sanitize course context array after JSON decode
+            if (is_array($courseContext)) {
+                $courseContext = $this->sanitizeArray($courseContext);
+            }
             
             if (empty($lessonTitle)) {
                 throw new \Exception('Lesson title is required');
@@ -806,6 +857,11 @@ If modifying an existing course, include ALL sections and lessons (both existing
             
             $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
             $courseData = json_decode(stripslashes($_POST['course_data'] ?? '{}'), true);
+            
+            // Sanitize course data array after JSON decode
+            if (is_array($courseData)) {
+                $courseData = $this->sanitizeArray($courseData);
+            }
             
             if (empty($sessionId)) {
                 throw new \Exception('Session ID is required');

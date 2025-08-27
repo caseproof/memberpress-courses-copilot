@@ -360,7 +360,7 @@
             }
             
             const messageHtml = `
-                <div class="mpcc-chat-message ${role}">
+                <div class="mpcc-chat-message ${this.escapeHtml(role)}">
                     <div class="message-content">${formattedContent}</div>
                 </div>
             `;
@@ -398,7 +398,7 @@
             // Show typing indicator
             const typingId = 'typing-' + Date.now();
             const typingHtml = `
-                <div class="mpcc-chat-message assistant" id="${typingId}">
+                <div class="mpcc-chat-message assistant" id="${this.escapeHtml(typingId)}">
                     <div class="message-content">
                         <span class="typing-indicator">
                             <span></span><span></span><span></span>
@@ -571,7 +571,7 @@
         },
         
         renderSection: function(section, sectionIndex) {
-            const sectionId = `section-${sectionIndex}`;
+            const sectionId = `section-${this.escapeHtml(String(sectionIndex))}`;
             const lessonsHtml = section.lessons.map((lesson, lessonIndex) => 
                 this.renderLesson(lesson, sectionIndex, lessonIndex)
             ).join('');
@@ -590,7 +590,7 @@
             const lockedClass = this.publishedCourseId ? ' mpcc-section-locked' : '';
             
             return `
-                <div class="mpcc-section${lockedClass}" id="${sectionId}" data-section-index="${sectionIndex}">
+                <div class="mpcc-section${lockedClass}" id="${sectionId}" data-section-index="${this.escapeHtml(String(sectionIndex))}">
                     <div class="mpcc-section-header">
                         <h3 class="mpcc-section-title">${this.escapeHtml(section.title)}</h3>
                         ${sectionActions}
@@ -603,7 +603,7 @@
         },
         
         renderLesson: function(lesson, sectionIndex, lessonIndex) {
-            const lessonId = `${sectionIndex}-${lessonIndex}`;
+            const lessonId = `${this.escapeHtml(String(sectionIndex))}-${this.escapeHtml(String(lessonIndex))}`;
             const hasDraft = lesson.draft_content ? 'has-draft' : '';
             
             // Hide edit button and add locked class if course is published
@@ -614,7 +614,7 @@
                     <button type="button" class="button-link mpcc-edit-lesson" title="Edit lesson">
                         <span class="dashicons dashicons-edit"></span>
                     </button>
-                    <button type="button" class="button-link mpcc-delete-lesson" title="Delete lesson" data-section="${sectionIndex}" data-index="${lessonIndex}">
+                    <button type="button" class="button-link mpcc-delete-lesson" title="Delete lesson" data-section="${this.escapeHtml(String(sectionIndex))}" data-index="${this.escapeHtml(String(lessonIndex))}">
                         <span class="dashicons dashicons-trash"></span>
                     </button>
                 </div>`;
@@ -627,8 +627,8 @@
             return `
                 <div class="mpcc-lesson-item ${hasDraft}${lockedClass}" 
                      data-lesson-id="${lessonId}"
-                     data-section-index="${sectionIndex}"
-                     data-lesson-index="${lessonIndex}">
+                     data-section-index="${this.escapeHtml(String(sectionIndex))}"
+                     data-lesson-index="${this.escapeHtml(String(lessonIndex))}">
                     <div class="mpcc-lesson-info">
                         <div class="mpcc-lesson-title">${this.escapeHtml(lesson.title)}</div>
                         <div class="mpcc-lesson-meta">${lesson.duration || 'Duration not set'}</div>
@@ -1070,12 +1070,12 @@
                 const sessionDebugInfo = `Session ID: ${session.id.substring(0, 8)}... | DB ID: ${session.database_id || 'N/A'}`;
                 
                 html += `
-                    <div class="mpcc-session-item" data-session-id="${session.id}" title="${sessionDebugInfo}">
+                    <div class="mpcc-session-item" data-session-id="${this.escapeHtml(session.id)}" title="${this.escapeHtml(sessionDebugInfo)}">
                         <div class="mpcc-session-info">
-                            <div class="mpcc-session-title">${session.title || 'Untitled Course'}</div>
-                            <div class="mpcc-session-meta">${dateStr}</div>
+                            <div class="mpcc-session-title">${this.escapeHtml(session.title || 'Untitled Course')}</div>
+                            <div class="mpcc-session-meta">${this.escapeHtml(dateStr)}</div>
                         </div>
-                        <button type="button" class="mpcc-session-delete" data-session-id="${session.id}" title="Delete conversation">
+                        <button type="button" class="mpcc-session-delete" data-session-id="${this.escapeHtml(session.id)}" title="Delete conversation">
                             <span class="dashicons dashicons-trash"></span>
                         </button>
                     </div>

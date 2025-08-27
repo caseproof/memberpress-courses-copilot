@@ -211,11 +211,11 @@
                         <div class="mpcc-modal-body">
                             <label>
                                 <span>Section Title</span>
-                                <input type="text" id="mpcc-section-title" value="${section.title}" />
+                                <input type="text" id="mpcc-section-title" value="${window.MPCCUtils.escapeHtml(section.title)}" />
                             </label>
                             <label>
                                 <span>Section Description</span>
-                                <textarea id="mpcc-section-description">${section.description}</textarea>
+                                <textarea id="mpcc-section-description">${window.MPCCUtils.escapeHtml(section.description || '')}</textarea>
                             </label>
                         </div>
                         <div class="mpcc-modal-footer">
@@ -251,7 +251,7 @@
                         <div class="mpcc-modal-body">
                             <label>
                                 <span>Lesson Title</span>
-                                <input type="text" id="mpcc-lesson-title" value="${lesson.title}" />
+                                <input type="text" id="mpcc-lesson-title" value="${window.MPCCUtils.escapeHtml(lesson.title)}" />
                             </label>
                             <label>
                                 <span>Lesson Type</span>
@@ -264,11 +264,11 @@
                             </label>
                             <label>
                                 <span>Duration (minutes)</span>
-                                <input type="number" id="mpcc-lesson-duration" value="${lesson.duration || 10}" />
+                                <input type="number" id="mpcc-lesson-duration" value="${window.MPCCUtils.escapeHtml(lesson.duration || 10)}" />
                             </label>
                             <label>
                                 <span>Lesson Content</span>
-                                <textarea id="mpcc-lesson-content" rows="6">${lesson.content || ''}</textarea>
+                                <textarea id="mpcc-lesson-content" rows="6">${window.MPCCUtils.escapeHtml(lesson.content || '')}</textarea>
                             </label>
                         </div>
                         <div class="mpcc-modal-footer">
@@ -442,7 +442,7 @@
                 <div class="mpcc-loading-overlay">
                     <div class="mpcc-loading-content">
                         <div class="spinner is-active"></div>
-                        <p>${message}</p>
+                        <p>${window.MPCCUtils.escapeHtml(message)}</p>
                     </div>
                 </div>
             `;
@@ -463,8 +463,8 @@
 
         showNotification(message, type = 'info') {
             const notificationHTML = `
-                <div class="mpcc-notification mpcc-notification-${type}">
-                    <p>${message}</p>
+                <div class="mpcc-notification mpcc-notification-${window.MPCCUtils.escapeHtml(type)}">
+                    <p>${window.MPCCUtils.escapeHtml(message)}</p>
                 </div>
             `;
             
