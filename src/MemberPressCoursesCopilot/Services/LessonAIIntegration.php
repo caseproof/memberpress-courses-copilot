@@ -416,13 +416,10 @@ class LessonAIIntegration extends BaseService
                             var displayText = messageText;
                             
                             if (contentMatch) {
-                                // Format the markdown content for display
+                                // Format the markdown content for display as WordPress-ready content
                                 var markdownContent = contentMatch[1].trim();
                                 var htmlContent = lessonMarkdownToHtml(markdownContent);
-                                displayText = '<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">' +
-                                    '<strong style="display: block; margin-bottom: 10px;">Lesson Content:</strong>' +
-                                    htmlContent +
-                                    '</div>';
+                                displayText = htmlContent;
                             } else {
                                 // Regular message formatting
                                 displayText = messageText.replace(/\n/g, '<br>');
