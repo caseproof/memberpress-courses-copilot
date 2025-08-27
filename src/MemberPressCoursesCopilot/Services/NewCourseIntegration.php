@@ -258,6 +258,88 @@ class NewCourseIntegration extends BaseService
         #mpcc-ai-modal-overlay .mpcc-modal-close::before {
             content: none !important;
         }
+        
+        /* Course modal quick-start buttons styling - scoped to modal only */
+        #mpcc-ai-modal-overlay .mpcc-quickstart-section {
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        
+        #mpcc-ai-modal-overlay .mpcc-quickstart-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        #mpcc-ai-modal-overlay .mpcc-quickstart-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: #f9f9f9;
+            border: 1px solid #dcdcde;
+            border-radius: 4px;
+            color: #2c3338;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        
+        #mpcc-ai-modal-overlay .mpcc-quickstart-btn:hover {
+            background: #6B4CE6;
+            border-color: #6B4CE6;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(107, 76, 230, 0.3);
+        }
+        
+        #mpcc-ai-modal-overlay .mpcc-quickstart-btn:focus {
+            outline: 2px solid #6B4CE6;
+            outline-offset: 2px;
+        }
+        
+        #mpcc-ai-modal-overlay .mpcc-quickstart-btn .dashicons {
+            font-size: 14px;
+            width: 14px;
+            height: 14px;
+        }
+        
+        #mpcc-ai-modal-overlay .mpcc-quickstart-btn.mpcc-quickstart-active {
+            background: #5A3CC5 !important;
+            border-color: #5A3CC5 !important;
+            color: white !important;
+            transform: translateY(1px) !important;
+        }
+        
+        /* Responsive design for modal quick-start buttons */
+        @media (max-width: 600px) {
+            #mpcc-ai-modal-overlay .mpcc-quickstart-buttons {
+                gap: 6px;
+            }
+            
+            #mpcc-ai-modal-overlay .mpcc-quickstart-btn {
+                padding: 6px 8px;
+                font-size: 11px;
+            }
+            
+            #mpcc-ai-modal-overlay .mpcc-quickstart-btn .dashicons {
+                font-size: 12px;
+                width: 12px;
+                height: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #mpcc-ai-modal-overlay .mpcc-quickstart-btn {
+                flex: 1 1 45%;
+                justify-content: center;
+                min-width: 0;
+            }
+        }
         </style>
         
         <!-- Using existing modal styles from ai-copilot.css -->
@@ -283,6 +365,39 @@ class NewCourseIntegration extends BaseService
                     </div>
                     
                     <div style="padding: 20px; background: white; border-top: 1px solid #ddd;">
+                        <!-- Quick-start buttons section -->
+                        <div class="mpcc-quickstart-section" style="margin-bottom: 15px;">
+                            <div class="mpcc-quickstart-label" style="font-size: 12px; color: #646970; margin-bottom: 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Quick Start Prompts
+                            </div>
+                            <div class="mpcc-quickstart-buttons" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                <button type="button" class="mpcc-quickstart-btn" data-prompt="Write a compelling course description that highlights the key benefits and learning outcomes for students.">
+                                    <span class="dashicons dashicons-edit-large"></span>
+                                    Course Description
+                                </button>
+                                <button type="button" class="mpcc-quickstart-btn" data-prompt="Create clear and specific learning objectives that describe what students will be able to do after completing this course.">
+                                    <span class="dashicons dashicons-yes-alt"></span>
+                                    Learning Objectives
+                                </button>
+                                <button type="button" class="mpcc-quickstart-btn" data-prompt="Improve the course overview to better communicate the value proposition and attract potential students.">
+                                    <span class="dashicons dashicons-visibility"></span>
+                                    Improve Overview
+                                </button>
+                                <button type="button" class="mpcc-quickstart-btn" data-prompt="Add specific benefits and outcomes students will gain from taking this course, focusing on practical results.">
+                                    <span class="dashicons dashicons-awards"></span>
+                                    Benefits & Outcomes
+                                </button>
+                                <button type="button" class="mpcc-quickstart-btn" data-prompt="Write clear course prerequisites that help students understand if this course is right for their skill level.">
+                                    <span class="dashicons dashicons-list-view"></span>
+                                    Prerequisites
+                                </button>
+                                <button type="button" class="mpcc-quickstart-btn" data-prompt="Create a compelling call-to-action that motivates students to enroll in this course.">
+                                    <span class="dashicons dashicons-megaphone"></span>
+                                    Call-to-Action
+                                </button>
+                            </div>
+                        </div>
+                        
                         <div style="display: flex; gap: 10px; align-items: flex-end;">
                             <textarea id="mpcc-ai-input" 
                                       placeholder="Ask me anything about your course..." 
@@ -486,6 +601,37 @@ class NewCourseIntegration extends BaseService
                     e.preventDefault();
                     $('#mpcc-ai-send').click();
                 }
+            });
+            
+            // Handle quick-start button clicks - scoped to course modal only
+            $(document).on('click', '#mpcc-ai-modal-overlay .mpcc-quickstart-btn', function(e) {
+                e.preventDefault();
+                
+                var prompt = $(this).data('prompt');
+                var $input = $('#mpcc-ai-input');
+                
+                // Set the prompt text
+                $input.val(prompt);
+                
+                // Focus the input and place cursor at end
+                $input.focus();
+                var inputElement = $input[0];
+                if (inputElement.setSelectionRange) {
+                    var length = prompt.length;
+                    inputElement.setSelectionRange(length, length);
+                } else if (inputElement.createTextRange) {
+                    var range = inputElement.createTextRange();
+                    range.collapse(true);
+                    range.moveEnd('character', prompt.length);
+                    range.moveStart('character', prompt.length);
+                    range.select();
+                }
+                
+                // Optional: Add visual feedback
+                $(this).addClass('mpcc-quickstart-active');
+                setTimeout(function() {
+                    $('#mpcc-ai-modal-overlay .mpcc-quickstart-btn').removeClass('mpcc-quickstart-active');
+                }, 200);
             });
             
             // Handle apply content button

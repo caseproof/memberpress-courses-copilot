@@ -257,6 +257,89 @@ class LessonAIIntegration extends BaseService
         #mpcc-lesson-ai-modal-overlay .mpcc-modal-close::before {
             content: none !important;
         }
+        
+        /* Lesson modal quick-start buttons styling - scoped to lesson modal only */
+        #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-section {
+            background: #f8f9fa !important;
+            border-top: 1px solid #e1e1e1 !important;
+            border-bottom: 1px solid #e1e1e1 !important;
+        }
+        
+        #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-buttons {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+        }
+        
+        #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            padding: 6px 12px !important;
+            font-size: 13px !important;
+            line-height: 1.4 !important;
+            border-radius: 3px !important;
+            border: 1px solid #c3c4c7 !important;
+            background: #fff !important;
+            color: #2c3338 !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease-in-out !important;
+            white-space: nowrap !important;
+            text-decoration: none !important;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04) !important;
+        }
+        
+        #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-btn:hover {
+            background: #f6f7f7 !important;
+            border-color: #8c8f94 !important;
+            color: #1d2327 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-btn:active {
+            transform: translateY(0) !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-btn .dashicons {
+            vertical-align: middle !important;
+            margin-right: 4px !important;
+            color: #50575e !important;
+        }
+        
+        #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-btn:hover .dashicons {
+            color: #135e96 !important;
+        }
+        
+        /* Responsive Design for lesson modal */
+        @media (max-width: 782px) {
+            #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-buttons {
+                flex-direction: column !important;
+            }
+            
+            #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-btn {
+                width: 100% !important;
+                justify-content: flex-start !important;
+                padding: 10px 12px !important;
+                font-size: 14px !important;
+            }
+            
+            #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-section {
+                padding: 12px 15px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-btn {
+                padding: 8px 10px !important;
+                font-size: 12px !important;
+            }
+            
+            #mpcc-lesson-ai-modal-overlay .mpcc-quick-start-btn .dashicons {
+                font-size: 14px !important;
+                margin-right: 3px !important;
+            }
+        }
         </style>
         
         <!-- Using existing modal styles from ai-copilot.css -->
@@ -280,6 +363,39 @@ class LessonAIIntegration extends BaseService
                             <br><br>I see this lesson is part of "<strong><?php echo esc_html($parent_course->post_title); ?></strong>". I'll make sure the content aligns with the course objectives.
                             <?php endif; ?>
                             <br><br>What would you like this lesson to cover?</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick-Start Buttons Section -->
+                    <div class="mpcc-quick-start-section" style="padding: 15px 20px; background: #f8f9fa; border-top: 1px solid #e1e1e1; border-bottom: 1px solid #e1e1e1;">
+                        <div style="margin-bottom: 10px;">
+                            <span style="font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Quick Start</span>
+                        </div>
+                        <div class="mpcc-quick-start-buttons" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button type="button" class="mpcc-quick-start-btn button" data-prompt="Write comprehensive lesson content for this topic, including clear explanations, examples, and key takeaways.">
+                                <span class="dashicons dashicons-edit-page" style="font-size: 16px; margin-right: 4px;"></span>
+                                Write Lesson Content
+                            </button>
+                            <button type="button" class="mpcc-quick-start-btn button" data-prompt="Create 3-5 specific, measurable learning objectives that students should achieve after completing this lesson.">
+                                <span class="dashicons dashicons-yes-alt" style="font-size: 16px; margin-right: 4px;"></span>
+                                Create Learning Objectives
+                            </button>
+                            <button type="button" class="mpcc-quick-start-btn button" data-prompt="Design engaging practice activities, exercises, or assignments that reinforce the lesson concepts.">
+                                <span class="dashicons dashicons-clipboard" style="font-size: 16px; margin-right: 4px;"></span>
+                                Add Practice Activities
+                            </button>
+                            <button type="button" class="mpcc-quick-start-btn button" data-prompt="Write an engaging lesson introduction that hooks students and clearly explains what they'll learn.">
+                                <span class="dashicons dashicons-welcome-learn-more" style="font-size: 16px; margin-right: 4px;"></span>
+                                Write Introduction
+                            </button>
+                            <button type="button" class="mpcc-quick-start-btn button" data-prompt="Create a comprehensive lesson summary that reinforces key concepts and provides clear next steps.">
+                                <span class="dashicons dashicons-portfolio" style="font-size: 16px; margin-right: 4px;"></span>
+                                Create Summary
+                            </button>
+                            <button type="button" class="mpcc-quick-start-btn button" data-prompt="Add interactive elements like quizzes, polls, discussions, or multimedia to enhance student engagement.">
+                                <span class="dashicons dashicons-admin-settings" style="font-size: 16px; margin-right: 4px;"></span>
+                                Add Interactive Elements
+                            </button>
                         </div>
                     </div>
                     
@@ -359,6 +475,28 @@ class LessonAIIntegration extends BaseService
                         $('body').css('overflow', '');
                     }
                 }
+            });
+            
+            // Handle quick-start button clicks - scoped to lesson modal only
+            $('#mpcc-lesson-ai-modal-overlay .mpcc-quick-start-btn').on('click', function() {
+                var prompt = $(this).data('prompt');
+                var input = $('#mpcc-lesson-ai-input');
+                
+                // Set the prompt text
+                input.val(prompt);
+                
+                // Focus the input field
+                input.focus();
+                
+                // Optional: Scroll to input area
+                input[0].scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest' 
+                });
+                
+                // Auto-resize the textarea if needed
+                input.css('height', 'auto');
+                input.css('height', input[0].scrollHeight + 'px');
             });
             
             // Handle send message
