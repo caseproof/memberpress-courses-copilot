@@ -18,7 +18,7 @@
     "clean": "rimraf assets/css assets/js",
     "format": "prettier --write 'src/assets/**/*.{js,scss,css}'",
     "test:ai-chat": "node test-ai-chat-integration.js",
-    "diagnostic": "node diagnostic-check.js"
+    "diagnostic": "node tests/diagnostic-check.js"
   },
   "keywords": [
     "wordpress",
