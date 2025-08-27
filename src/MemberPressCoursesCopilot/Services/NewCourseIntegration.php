@@ -22,14 +22,15 @@ class NewCourseIntegration extends BaseService
      */
     public function init(): void
     {
-        // Add metabox to course edit pages
-        add_action('add_meta_boxes', [$this, 'addAIChatMetabox']);
+        // Add button and modal to course edit pages
+        add_action('edit_form_after_title', [$this, 'addAIButton'], 5);
+        add_action('admin_footer', [$this, 'addAIModal']);
     }
 
     /**
-     * Add AI Chat metabox to course edit pages
+     * Add AI button after course title
      */
-    public function addAIChatMetabox(): void
+    public function addAIButton(): void
     {
         global $post;
         
@@ -37,74 +38,115 @@ class NewCourseIntegration extends BaseService
         if (!$post || $post->post_type !== 'mpcs-course') {
             return;
         }
-
-        add_meta_box(
-            'mpcc-ai-chat-metabox',
-            'AI Course Assistant',
-            [$this, 'renderAIChatMetabox'],
-            'mpcs-course',
-            'side',
-            'high'
-        );
+        
+        ?>
+        <div id="mpcc-ai-button-container" style="margin: 10px 0;">
+            <button type="button" id="mpcc-open-ai-modal" class="button button-primary" style="background: #6B4CE6; border-color: #6B4CE6;">
+                <span class="dashicons dashicons-lightbulb" style="margin: 3px 5px 0 0;"></span>
+                Create with AI
+            </button>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Add AI Modal to admin footer
+     */
+    public function addAIModal(): void
+    {
+        global $post;
+        
+        // Only add to course post type
+        if (!$post || $post->post_type !== 'mpcs-course' || get_current_screen()->base !== 'post') {
+            return;
+        }
+        
+        $this->renderAIModal($post);
     }
 
     /**
-     * Render AI Chat metabox content
+     * Render AI Modal content  
      */
-    public function renderAIChatMetabox(\WP_Post $post): void
+    private function renderAIModal(\WP_Post $post): void
     {
         // Add nonce for security
         NonceConstants::field(NonceConstants::AI_ASSISTANT, 'mpcc_ai_nonce');
         
         ?>
-        <div id="mpcc-new-ai-chat" style="padding: 10px;">
-            <p><strong>AI Course Assistant</strong></p>
-            <p>Get help with your course content, structure, and lessons.</p>
-            
-            <button type="button" id="mpcc-open-ai-chat" class="button button-primary" style="width: 100%; margin-bottom: 10px;">
-                <span class="dashicons dashicons-format-chat"></span>
-                Open AI Chat
-            </button>
-            
-            <div id="mpcc-ai-chat-container" style="display: none; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;">
-                <div id="mpcc-ai-messages" style="height: 300px; overflow-y: auto; padding: 10px; background: white; border-bottom: 1px solid #ddd;">
-                    <div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">
-                        <strong>AI Assistant:</strong> Hi! I'm here to help you improve your course overview and description. I can:
-                        <br>• <strong>Update your course description</strong> - Just ask me to rewrite or enhance it
-                        <br>• Provide compelling content that attracts students
-                        <br>• Suggest improvements to your course overview
-                        <br>• Help you highlight key benefits and learning outcomes
-                        <br><br><em>Note: I focus on the main course content. For lessons and curriculum structure, use the Curriculum tab above.</em>
-                        <br><br>Would you like me to enhance your course description?
-                    </div>
-                </div>
-                
-                <div style="padding: 10px;">
-                    <textarea id="mpcc-ai-input" 
-                              placeholder="Ask me anything about your course..." 
-                              style="width: 100%; height: 60px; border: 1px solid #ddd; border-radius: 3px; padding: 5px; resize: vertical;"></textarea>
-                    <button type="button" id="mpcc-ai-send" class="button button-primary" style="margin-top: 5px; width: 100%;">
-                        Send Message
+        <!-- Using existing modal styles from ai-copilot.css -->
+        <div class="mpcc-modal-overlay" id="mpcc-ai-modal-overlay" style="display: none;">
+            <div class="mpcc-modal">
+                <div class="mpcc-modal-header">
+                    <h3>AI Course Assistant</h3>
+                    <button type="button" class="mpcc-modal-close" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
                     </button>
+                </div>
+                <div class="mpcc-modal-body" style="display: flex; flex-direction: column; height: 500px;">
+                    <div id="mpcc-ai-messages" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;">
+                        <div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
+                            <strong>AI Assistant:</strong> Hi! I'm here to help you improve your course overview and description. I can:
+                            <br>• <strong>Update your course description</strong> - Just ask me to rewrite or enhance it
+                            <br>• Provide compelling content that attracts students
+                            <br>• Suggest improvements to your course overview
+                            <br>• Help you highlight key benefits and learning outcomes
+                            <br><br><em>Note: I focus on the main course content. For lessons and curriculum structure, use the Curriculum tab above.</em>
+                            <br><br>Would you like me to enhance your course description?
+                        </div>
+                    </div>
+                    
+                    <div class="mpcc-modal-footer" style="padding: 20px; background: white; border-top: 1px solid #ddd;">
+                        <textarea id="mpcc-ai-input" 
+                                  placeholder="Ask me anything about your course..." 
+                                  style="width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 3px; padding: 10px; resize: vertical; font-size: 14px;"></textarea>
+                        <button type="button" id="mpcc-ai-send" class="button button-primary" style="margin-top: 10px;">
+                            Send Message
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <script type="text/javascript">
         jQuery(document).ready(function($) {
-            console.log('MPCC: New AI Chat metabox loaded');
+            console.log('MPCC: AI Modal initialized');
             
-            // Toggle chat visibility
-            $('#mpcc-open-ai-chat').on('click', function() {
-                var container = $('#mpcc-ai-chat-container');
-                var button = $(this);
-                
-                if (container.is(':visible')) {
-                    container.slideUp();
-                    button.html('<span class="dashicons dashicons-format-chat"></span> Open AI Chat');
+            // Open modal on button click
+            $('#mpcc-open-ai-modal').on('click', function() {
+                // Use existing modal manager if available
+                if (window.MPCCUtils && window.MPCCUtils.modalManager) {
+                    window.MPCCUtils.modalManager.open('#mpcc-ai-modal-overlay');
                 } else {
-                    container.slideDown();
-                    button.html('<span class="dashicons dashicons-dismiss"></span> Close AI Chat');
+                    // Fallback
+                    $('#mpcc-ai-modal-overlay').fadeIn();
+                    $('body').css('overflow', 'hidden');
+                }
+                
+                // Focus on input
+                setTimeout(function() {
+                    $('#mpcc-ai-input').focus();
+                }, 300);
+            });
+            
+            // Close modal using existing modal manager
+            $('.mpcc-modal-close').on('click', function() {
+                if (window.MPCCUtils && window.MPCCUtils.modalManager) {
+                    window.MPCCUtils.modalManager.close('#mpcc-ai-modal-overlay');
+                } else {
+                    $('#mpcc-ai-modal-overlay').fadeOut();
+                    $('body').css('overflow', '');
+                }
+            });
+            
+            // Close on overlay click
+            $('#mpcc-ai-modal-overlay').on('click', function(e) {
+                if (e.target === this) {
+                    if (window.MPCCUtils && window.MPCCUtils.modalManager) {
+                        window.MPCCUtils.modalManager.close('#mpcc-ai-modal-overlay');
+                    } else {
+                        $(this).fadeOut();
+                        $('body').css('overflow', '');
+                    }
                 }
             });
             
