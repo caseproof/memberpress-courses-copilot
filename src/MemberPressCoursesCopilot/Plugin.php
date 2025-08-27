@@ -132,12 +132,14 @@ final class Plugin
         $course_integration_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseIntegrationService::class);
         $course_ajax_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseAjaxService::class);
         $new_course_integration = $this->container->get(\MemberPressCoursesCopilot\Services\NewCourseIntegration::class);
+        $lesson_ai_integration = $this->container->get(\MemberPressCoursesCopilot\Services\LessonAIIntegration::class);
         
         // Initialize services
         $simple_ajax_controller->init();
         $course_integration_service->init();
         $course_ajax_service->init();
         $new_course_integration->init();
+        $lesson_ai_integration->init();
         
         /**
          * Fires after plugin components are initialized

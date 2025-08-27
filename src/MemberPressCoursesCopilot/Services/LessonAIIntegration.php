@@ -8,39 +8,39 @@ use MemberPressCoursesCopilot\Services\BaseService;
 use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
- * New Course Integration Service
+ * Lesson AI Integration Service
  * 
- * Fresh, simple implementation of AI chat for course pages
+ * Handles AI integration for individual lesson pages
  * 
  * @package MemberPressCoursesCopilot\Services
  * @since 1.0.0
  */
-class NewCourseIntegration extends BaseService
+class LessonAIIntegration extends BaseService
 {
     /**
      * Initialize the service
      */
     public function init(): void
     {
-        // Add button and modal to course edit pages
+        // Add button and modal to lesson edit pages
         add_action('edit_form_after_title', [$this, 'addAIButton'], 5); // Classic Editor
         add_action('enqueue_block_editor_assets', [$this, 'enqueueBlockEditorAssets']); // Block Editor
         add_action('admin_footer', [$this, 'addAIModal']);
         
         // Register AJAX handlers
-        add_action('wp_ajax_mpcc_new_ai_chat', [$this, 'handleAIChat']);
-        add_action('wp_ajax_mpcc_update_course_content', [$this, 'handleUpdateCourseContent']);
+        add_action('wp_ajax_mpcc_lesson_ai_chat', [$this, 'handleAIChat']);
+        add_action('wp_ajax_mpcc_update_lesson_content', [$this, 'handleUpdateLessonContent']);
     }
 
     /**
-     * Add AI button after course title
+     * Add AI button after lesson title
      */
     public function addAIButton(): void
     {
         global $post;
         
-        // Only add to course post type
-        if (!$post || $post->post_type !== 'mpcs-course') {
+        // Only add to lesson post type
+        if (!$post || $post->post_type !== 'mpcs-lesson') {
             return;
         }
         
@@ -48,9 +48,9 @@ class NewCourseIntegration extends BaseService
         <script type="text/javascript">
         jQuery(document).ready(function($) {
             // Add button after the page title
-            function addAIButtonToPage() {
+            function addLessonAIButton() {
                 // Check if button already exists
-                if ($('#mpcc-create-ai-button').length > 0) {
+                if ($('#mpcc-lesson-ai-button').length > 0) {
                     return;
                 }
                 
@@ -61,9 +61,9 @@ class NewCourseIntegration extends BaseService
                 }
                 
                 // Create the button styled like WordPress "Add New" buttons
-                var $aiButton = $('<a href="#" id="mpcc-create-ai-button" class="page-title-action">' +
+                var $aiButton = $('<a href="#" id="mpcc-lesson-ai-button" class="page-title-action">' +
                     '<span class="dashicons dashicons-lightbulb" style="margin: 3px 5px 0 -2px; font-size: 16px;"></span>' +
-                    'Create with AI' +
+                    'Generate with AI' +
                     '</a>');
                 
                 // Style it with our brand color
@@ -106,25 +106,25 @@ class NewCourseIntegration extends BaseService
                     
                     // Open modal using existing modal manager
                     if (window.MPCCUtils && window.MPCCUtils.modalManager) {
-                        window.MPCCUtils.modalManager.open('#mpcc-ai-modal-overlay');
+                        window.MPCCUtils.modalManager.open('#mpcc-lesson-ai-modal-overlay');
                     } else {
-                        $('#mpcc-ai-modal-overlay').fadeIn();
+                        $('#mpcc-lesson-ai-modal-overlay').fadeIn();
                         $('body').css('overflow', 'hidden');
                     }
                     
                     // Focus on input
                     setTimeout(function() {
-                        $('#mpcc-ai-input').focus();
+                        $('#mpcc-lesson-ai-input').focus();
                     }, 300);
                 });
             }
             
             // Add button on page load
-            addAIButtonToPage();
+            addLessonAIButton();
             
             // Also add button if page structure changes (for Gutenberg compatibility)
             var observer = new MutationObserver(function(mutations) {
-                addAIButtonToPage();
+                addLessonAIButton();
             });
             
             // Observe changes to the editor header
@@ -144,8 +144,8 @@ class NewCourseIntegration extends BaseService
     {
         global $post;
         
-        // Only add to course post type
-        if (!$post || $post->post_type !== 'mpcs-course' || get_current_screen()->base !== 'post') {
+        // Only add to lesson post type
+        if (!$post || $post->post_type !== 'mpcs-lesson' || get_current_screen()->base !== 'post') {
             return;
         }
         
@@ -159,8 +159,8 @@ class NewCourseIntegration extends BaseService
     {
         global $post;
         
-        // Only add to course post type
-        if (!$post || $post->post_type !== 'mpcs-course') {
+        // Only add to lesson post type
+        if (!$post || $post->post_type !== 'mpcs-lesson') {
             return;
         }
         
@@ -175,7 +175,7 @@ class NewCourseIntegration extends BaseService
             'wp-edit-post',
             "
             wp.domReady(function() {
-                console.log('MPCC: Block Editor AI button script loaded');
+                console.log('MPCC: Block Editor Lesson AI button script loaded');
                 
                 // Wait for editor to be ready
                 const unsubscribe = wp.data.subscribe(() => {
@@ -183,12 +183,10 @@ class NewCourseIntegration extends BaseService
                     const editorWrapper = document.querySelector('.editor-header__settings') || 
                                          document.querySelector('.editor-document-tools') ||
                                          document.querySelector('.edit-post-header__toolbar');
-                    const existingButton = document.getElementById('mpcc-open-ai-modal-block');
-                    
-                    console.log('MPCC: Toolbar check - wrapper:', !!editorWrapper, 'button exists:', !!existingButton);
+                    const existingButton = document.getElementById('mpcc-lesson-ai-button-block');
                     
                     if (editorWrapper && !existingButton) {
-                        console.log('MPCC: Creating AI button');
+                        console.log('MPCC: Creating Lesson AI button');
                         // Create button container
                         const buttonContainer = document.createElement('div');
                         buttonContainer.style.marginLeft = '10px';
@@ -197,31 +195,31 @@ class NewCourseIntegration extends BaseService
                         
                         // Create button
                         const aiButton = document.createElement('button');
-                        aiButton.id = 'mpcc-open-ai-modal-block';
+                        aiButton.id = 'mpcc-lesson-ai-button-block';
                         aiButton.className = 'components-button is-primary';
                         aiButton.style.background = '#6B4CE6';
                         aiButton.style.borderColor = '#6B4CE6';
                         aiButton.style.height = '36px';
                         aiButton.style.whiteSpace = 'nowrap';
-                        aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\" style=\"margin: 3px 5px 0 0; vertical-align: middle;\"></span>Create with AI';
+                        aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\" style=\"margin: 3px 5px 0 0; vertical-align: middle;\"></span>Generate with AI';
                         
                         // Add click handler
                         aiButton.onclick = function(e) {
                             e.preventDefault();
-                            console.log('AI button clicked');
+                            console.log('Lesson AI button clicked');
                             
                             // Use modal manager if available, otherwise fallback
                             if (window.MPCCUtils && window.MPCCUtils.modalManager) {
                                 console.log('Using MPCCUtils modal manager');
-                                window.MPCCUtils.modalManager.open('#mpcc-ai-modal-overlay');
+                                window.MPCCUtils.modalManager.open('#mpcc-lesson-ai-modal-overlay');
                             } else {
                                 console.log('Using fallback modal open');
-                                const modal = document.getElementById('mpcc-ai-modal-overlay');
+                                const modal = document.getElementById('mpcc-lesson-ai-modal-overlay');
                                 if (modal) {
                                     modal.style.display = 'block';
                                     document.body.style.overflow = 'hidden';
                                     setTimeout(() => {
-                                        const input = document.getElementById('mpcc-ai-input');
+                                        const input = document.getElementById('mpcc-lesson-ai-input');
                                         if (input) input.focus();
                                     }, 300);
                                 }
@@ -231,9 +229,7 @@ class NewCourseIntegration extends BaseService
                         buttonContainer.appendChild(aiButton);
                         editorWrapper.appendChild(buttonContainer);
                         
-                        console.log('MPCC: AI button added to toolbar');
-                        
-                        // No need for tab checking - button is always visible in header
+                        console.log('MPCC: Lesson AI button added to toolbar');
                         
                         // Unsubscribe once button is added
                         unsubscribe();
@@ -245,49 +241,54 @@ class NewCourseIntegration extends BaseService
     }
 
     /**
-     * Render AI Modal content  
+     * Render AI Modal content for lessons
      */
     private function renderAIModal(\WP_Post $post): void
     {
         // Add nonce for security
-        NonceConstants::field(NonceConstants::AI_ASSISTANT, 'mpcc_ai_nonce');
+        NonceConstants::field(NonceConstants::AI_ASSISTANT, 'mpcc_lesson_ai_nonce');
+        
+        // Get parent course information
+        $parent_course = $this->getParentCourse($post);
         
         ?>
         <style>
         /* Override the CSS pseudo-element X */
-        #mpcc-ai-modal-overlay .mpcc-modal-close::before {
+        #mpcc-lesson-ai-modal-overlay .mpcc-modal-close::before {
             content: none !important;
         }
         </style>
         
         <!-- Using existing modal styles from ai-copilot.css -->
-        <div class="mpcc-modal-overlay" id="mpcc-ai-modal-overlay" style="display: none;">
+        <div class="mpcc-modal-overlay" id="mpcc-lesson-ai-modal-overlay" style="display: none;">
             <div class="mpcc-modal" style="max-width: 700px; width: 90%;">
                 <div class="mpcc-modal-header">
-                    <h3>AI Course Assistant</h3>
+                    <h3>AI Lesson Assistant</h3>
                     <button type="button" class="mpcc-modal-close" aria-label="Close" style="font-size: 0;">
                         <span class="dashicons dashicons-no-alt" style="font-size: 20px;"></span>
                     </button>
                 </div>
                 <div class="mpcc-modal-body" style="display: flex; flex-direction: column; height: 500px; padding: 0;">
-                    <div id="mpcc-ai-messages" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;">
+                    <div id="mpcc-lesson-ai-messages" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;">
                         <div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
-                            <strong>AI Assistant:</strong> <div class="ai-content">Hi! I'm here to help you improve your course overview and description. I can:
-                            <br>• <strong>Update your course description</strong> - Just ask me to rewrite or enhance it
-                            <br>• Provide compelling content that attracts students
-                            <br>• Suggest improvements to your course overview
-                            <br>• Help you highlight key benefits and learning outcomes
-                            <br><br><em>Note: I focus on the main course content. For lessons and curriculum structure, use the Curriculum tab above.</em>
-                            <br><br>Would you like me to enhance your course description?</div>
+                            <strong>AI Assistant:</strong> <div class="ai-content">Hi! I'm here to help you create engaging lesson content. I can:
+                            <br>• <strong>Generate complete lesson content</strong> based on your topic
+                            <br>• Add interactive elements and examples
+                            <br>• Create exercises and practice activities
+                            <br>• Suggest multimedia resources to enhance learning
+                            <?php if ($parent_course): ?>
+                            <br><br>I see this lesson is part of "<strong><?php echo esc_html($parent_course->post_title); ?></strong>". I'll make sure the content aligns with the course objectives.
+                            <?php endif; ?>
+                            <br><br>What would you like this lesson to cover?</div>
                         </div>
                     </div>
                     
                     <div style="padding: 20px; background: white; border-top: 1px solid #ddd;">
                         <div style="display: flex; gap: 10px; align-items: flex-end;">
-                            <textarea id="mpcc-ai-input" 
-                                      placeholder="Ask me anything about your course..." 
+                            <textarea id="mpcc-lesson-ai-input" 
+                                      placeholder="Describe what you want this lesson to teach..." 
                                       style="flex: 1; min-height: 80px; border: 1px solid #ddd; border-radius: 3px; padding: 10px; resize: vertical; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></textarea>
-                            <button type="button" id="mpcc-ai-send" class="button button-primary" style="height: 36px; padding: 0 20px; white-space: nowrap;">
+                            <button type="button" id="mpcc-lesson-ai-send" class="button button-primary" style="height: 36px; padding: 0 20px; white-space: nowrap;">
                                 Send
                             </button>
                         </div>
@@ -298,10 +299,10 @@ class NewCourseIntegration extends BaseService
 
         <script type="text/javascript">
         jQuery(document).ready(function($) {
-            console.log('MPCC: AI Modal initialized');
+            console.log('MPCC: Lesson AI Modal initialized');
             
             // Simple markdown to HTML converter
-            function markdownToHtml(markdown) {
+            function lessonMarkdownToHtml(markdown) {
                 var html = markdown;
                 
                 // Headers
@@ -338,38 +339,21 @@ class NewCourseIntegration extends BaseService
                 return html;
             }
             
-            // Open modal on button click
-            $('#mpcc-open-ai-modal').on('click', function() {
-                // Use existing modal manager if available
-                if (window.MPCCUtils && window.MPCCUtils.modalManager) {
-                    window.MPCCUtils.modalManager.open('#mpcc-ai-modal-overlay');
-                } else {
-                    // Fallback
-                    $('#mpcc-ai-modal-overlay').fadeIn();
-                    $('body').css('overflow', 'hidden');
-                }
-                
-                // Focus on input
-                setTimeout(function() {
-                    $('#mpcc-ai-input').focus();
-                }, 300);
-            });
-            
             // Close modal using existing modal manager
-            $('.mpcc-modal-close').on('click', function() {
+            $('.mpcc-modal-close', '#mpcc-lesson-ai-modal-overlay').on('click', function() {
                 if (window.MPCCUtils && window.MPCCUtils.modalManager) {
-                    window.MPCCUtils.modalManager.close('#mpcc-ai-modal-overlay');
+                    window.MPCCUtils.modalManager.close('#mpcc-lesson-ai-modal-overlay');
                 } else {
-                    $('#mpcc-ai-modal-overlay').fadeOut();
+                    $('#mpcc-lesson-ai-modal-overlay').fadeOut();
                     $('body').css('overflow', '');
                 }
             });
             
             // Close on overlay click
-            $('#mpcc-ai-modal-overlay').on('click', function(e) {
+            $('#mpcc-lesson-ai-modal-overlay').on('click', function(e) {
                 if (e.target === this) {
                     if (window.MPCCUtils && window.MPCCUtils.modalManager) {
-                        window.MPCCUtils.modalManager.close('#mpcc-ai-modal-overlay');
+                        window.MPCCUtils.modalManager.close('#mpcc-lesson-ai-modal-overlay');
                     } else {
                         $(this).fadeOut();
                         $('body').css('overflow', '');
@@ -378,8 +362,8 @@ class NewCourseIntegration extends BaseService
             });
             
             // Handle send message
-            $('#mpcc-ai-send').on('click', function() {
-                var input = $('#mpcc-ai-input');
+            $('#mpcc-lesson-ai-send').on('click', function() {
+                var input = $('#mpcc-lesson-ai-input');
                 var message = input.val().trim();
                 
                 if (!message) {
@@ -390,19 +374,19 @@ class NewCourseIntegration extends BaseService
                 // Add user message to chat
                 var userMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #f0f0f0; border-radius: 4px; text-align: right;">' +
                     '<strong>You:</strong> ' + $('<div>').text(message).html() + '</div>';
-                $('#mpcc-ai-messages').append(userMsg);
+                $('#mpcc-lesson-ai-messages').append(userMsg);
                 
                 // Clear input
                 input.val('');
                 
                 // Scroll to bottom
-                var messages = $('#mpcc-ai-messages');
+                var messages = $('#mpcc-lesson-ai-messages');
                 messages.scrollTop(messages[0].scrollHeight);
                 
                 // Show typing indicator
-                var typingMsg = '<div id="mpcc-typing" class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">' +
+                var typingMsg = '<div id="mpcc-lesson-typing" class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">' +
                     '<strong>AI Assistant:</strong> <em>Typing...</em></div>';
-                $('#mpcc-ai-messages').append(typingMsg);
+                $('#mpcc-lesson-ai-messages').append(typingMsg);
                 messages.scrollTop(messages[0].scrollHeight);
                 
                 // Send AJAX request
@@ -410,33 +394,33 @@ class NewCourseIntegration extends BaseService
                     url: ajaxurl,
                     type: 'POST',
                     data: {
-                        action: 'mpcc_new_ai_chat',
-                        nonce: $('#mpcc_ai_nonce').val(),
+                        action: 'mpcc_lesson_ai_chat',
+                        nonce: $('#mpcc_lesson_ai_nonce').val(),
                         message: message,
                         post_id: <?php echo $post->ID; ?>,
-                        course_data: <?php echo json_encode($this->getCourseContextData($post)); ?>
+                        lesson_data: <?php echo json_encode($this->getLessonContextData($post, $parent_course)); ?>
                     },
                     success: function(response) {
-                        $('#mpcc-typing').remove();
+                        $('#mpcc-lesson-typing').remove();
                         
                         if (response.success) {
                             var messageText = response.data.message;
                             var hasContentUpdate = response.data.has_content_update || false;
                             
                             // Debug: Log the raw AI response
-                            console.log('MPCC: Raw AI response:', messageText);
+                            console.log('MPCC: Raw Lesson AI response:', messageText);
                             console.log('MPCC: Has content update:', hasContentUpdate);
                             
                             // Check if the message contains markdown content tags
-                            var contentMatch = messageText.match(/\[COURSE_CONTENT\]([\s\S]*?)\[\/COURSE_CONTENT\]/);
+                            var contentMatch = messageText.match(/\[LESSON_CONTENT\]([\s\S]*?)\[\/LESSON_CONTENT\]/);
                             var displayText = messageText;
                             
                             if (contentMatch) {
                                 // Format the markdown content for display
                                 var markdownContent = contentMatch[1].trim();
-                                var htmlContent = markdownToHtml(markdownContent);
+                                var htmlContent = lessonMarkdownToHtml(markdownContent);
                                 displayText = '<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">' +
-                                    '<strong style="display: block; margin-bottom: 10px;">Course Description:</strong>' +
+                                    '<strong style="display: block; margin-bottom: 10px;">Lesson Content:</strong>' +
                                     htmlContent +
                                     '</div>';
                             } else {
@@ -446,124 +430,124 @@ class NewCourseIntegration extends BaseService
                             
                             var aiMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">' +
                                 '<strong>AI Assistant:</strong> <div class="ai-content">' + displayText + '</div></div>';
-                            $('#mpcc-ai-messages').append(aiMsg);
+                            $('#mpcc-lesson-ai-messages').append(aiMsg);
                             
                             // If content update is provided, show apply button
                             if (hasContentUpdate) {
-                                var applyButtons = '<div class="mpcc-content-update-buttons" style="margin: 10px 0; padding: 10px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px;">' +
-                                    '<p style="margin: 0 0 10px 0; font-weight: bold;">Apply this content to your course?</p>' +
-                                    '<button type="button" class="button button-primary mpcc-apply-content" style="margin-right: 5px;">Apply Content</button>' +
-                                    '<button type="button" class="button mpcc-copy-content" style="margin-right: 5px;">Copy to Clipboard</button>' +
-                                    '<button type="button" class="button mpcc-cancel-update">Cancel</button>' +
-                                    '<p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">This will update your course description in the editor above.</p>' +
+                                var applyButtons = '<div class="mpcc-lesson-content-update-buttons" style="margin: 10px 0; padding: 10px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px;">' +
+                                    '<p style="margin: 0 0 10px 0; font-weight: bold;">Apply this content to your lesson?</p>' +
+                                    '<button type="button" class="button button-primary mpcc-apply-lesson-content" style="margin-right: 5px;">Apply Content</button>' +
+                                    '<button type="button" class="button mpcc-copy-lesson-content" style="margin-right: 5px;">Copy to Clipboard</button>' +
+                                    '<button type="button" class="button mpcc-cancel-lesson-update">Cancel</button>' +
+                                    '<p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">This will update your lesson content in the editor below.</p>' +
                                 '</div>';
-                                $('#mpcc-ai-messages').append(applyButtons);
+                                $('#mpcc-lesson-ai-messages').append(applyButtons);
                             }
                         } else {
                             var errorMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #ffe7e7; border-radius: 4px;">' +
                                 '<strong>Error:</strong> ' + (response.data || 'Failed to get AI response') + '</div>';
-                            $('#mpcc-ai-messages').append(errorMsg);
+                            $('#mpcc-lesson-ai-messages').append(errorMsg);
                         }
                         
-                        var messages = $('#mpcc-ai-messages');
+                        var messages = $('#mpcc-lesson-ai-messages');
                         messages.scrollTop(messages[0].scrollHeight);
                     },
                     error: function() {
-                        $('#mpcc-typing').remove();
+                        $('#mpcc-lesson-typing').remove();
                         var errorMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #ffe7e7; border-radius: 4px;">' +
                             '<strong>Error:</strong> Network error. Please try again.</div>';
-                        $('#mpcc-ai-messages').append(errorMsg);
+                        $('#mpcc-lesson-ai-messages').append(errorMsg);
                         
-                        var messages = $('#mpcc-ai-messages');
+                        var messages = $('#mpcc-lesson-ai-messages');
                         messages.scrollTop(messages[0].scrollHeight);
                     }
                 });
             });
             
             // Handle Enter key
-            $('#mpcc-ai-input').on('keypress', function(e) {
+            $('#mpcc-lesson-ai-input').on('keypress', function(e) {
                 if (e.which === 13 && !e.shiftKey) {
                     e.preventDefault();
-                    $('#mpcc-ai-send').click();
+                    $('#mpcc-lesson-ai-send').click();
                 }
             });
             
             // Handle apply content button
-            $(document).on('click', '.mpcc-apply-content', function() {
+            $(document).on('click', '.mpcc-apply-lesson-content', function() {
                 var $button = $(this);
                 $button.prop('disabled', true).text('Applying...');
                 
                 // Get the AI-generated content
-                var $aiMessage = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
+                var $aiMessage = $(this).closest('.mpcc-lesson-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
                 var fullContent = $aiMessage.text(); // Use .text() to get raw content without HTML
                 
-                console.log('MPCC: Extracting content from:', fullContent);
+                console.log('MPCC: Extracting lesson content from:', fullContent);
                 
-                var courseContent = '';
+                var lessonContent = '';
                 
-                // Look for content between [COURSE_CONTENT] tags
-                var contentMatch = fullContent.match(/\[COURSE_CONTENT\]([\s\S]*?)\[\/COURSE_CONTENT\]/);
+                // Look for content between [LESSON_CONTENT] tags
+                var contentMatch = fullContent.match(/\[LESSON_CONTENT\]([\s\S]*?)\[\/LESSON_CONTENT\]/);
                 
                 if (contentMatch && contentMatch[1]) {
                     // Found markdown content
                     var markdownContent = contentMatch[1].trim();
-                    console.log('MPCC: Found markdown content:', markdownContent);
+                    console.log('MPCC: Found lesson markdown content:', markdownContent);
                     
                     // Convert markdown to HTML
-                    courseContent = markdownToHtml(markdownContent);
-                    console.log('MPCC: Converted to HTML:', courseContent);
+                    lessonContent = lessonMarkdownToHtml(markdownContent);
+                    console.log('MPCC: Converted to HTML:', lessonContent);
                 } else {
                     // Fallback: use the full content if no tags found
-                    console.log('MPCC: No [COURSE_CONTENT] tags found, using full content');
-                    courseContent = $aiMessage.html()
+                    console.log('MPCC: No [LESSON_CONTENT] tags found, using full content');
+                    lessonContent = $aiMessage.html()
                         .replace(/<br\s*\/?>/gi, '\n')
                         .replace(/\n{3,}/g, '\n\n')
                         .trim();
                 }
                     
-                console.log('MPCC: Final content to apply (length: ' + courseContent.length + '):', courseContent);
+                console.log('MPCC: Final lesson content to apply (length: ' + lessonContent.length + '):', lessonContent);
                 
-                // Update the course content via AJAX
+                // Update the lesson content via AJAX
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
                     data: {
-                        action: 'mpcc_update_course_content',
-                        nonce: $('#mpcc_ai_nonce').val(),
+                        action: 'mpcc_update_lesson_content',
+                        nonce: $('#mpcc_lesson_ai_nonce').val(),
                         post_id: <?php echo $post->ID; ?>,
-                        content: courseContent
+                        content: lessonContent
                     },
                     success: function(response) {
-                        console.log('MPCC: AJAX response:', response);
+                        console.log('MPCC: Lesson AJAX response:', response);
                         
                         if (response.success) {
                             // For Block Editor - we need to reload the post data
                             if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor')) {
                                 console.log('MPCC: Updating Block Editor');
                                 // Force refresh the post content
-                                wp.data.dispatch('core').receiveEntityRecords('postType', 'mpcs-course', [
+                                wp.data.dispatch('core').receiveEntityRecords('postType', 'mpcs-lesson', [
                                     {
                                         id: <?php echo $post->ID; ?>,
-                                        content: { raw: courseContent, rendered: courseContent }
+                                        content: { raw: lessonContent, rendered: lessonContent }
                                     }
                                 ]);
                                 // Also update via editPost
-                                wp.data.dispatch('core/editor').editPost({content: courseContent});
+                                wp.data.dispatch('core/editor').editPost({content: lessonContent});
                             } else if (typeof tinyMCE !== 'undefined' && tinyMCE.get('content')) {
                                 // For classic editor
                                 console.log('MPCC: Updating Classic Editor (TinyMCE)');
-                                tinyMCE.get('content').setContent(courseContent);
+                                tinyMCE.get('content').setContent(lessonContent);
                             } else if ($('#content').length) {
                                 // For text editor
                                 console.log('MPCC: Updating Text Editor');
-                                $('#content').val(courseContent);
+                                $('#content').val(lessonContent);
                             } else {
                                 console.log('MPCC: No editor found to update');
                             }
                             
                             $button.text('Applied!');
                             setTimeout(function() {
-                                $('.mpcc-content-update-buttons').fadeOut();
+                                $('.mpcc-lesson-content-update-buttons').fadeOut();
                             }, 2000);
                         } else {
                             $button.text('Failed').addClass('button-disabled');
@@ -578,14 +562,14 @@ class NewCourseIntegration extends BaseService
             });
             
             // Handle copy content button
-            $(document).on('click', '.mpcc-copy-content', function() {
+            $(document).on('click', '.mpcc-copy-lesson-content', function() {
                 // Get the AI-generated content
-                var $aiMessage = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
+                var $aiMessage = $(this).closest('.mpcc-lesson-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
                 var fullContent = $aiMessage.text();
                 var contentToCopy = '';
                 
                 // Look for markdown content
-                var contentMatch = fullContent.match(/\[COURSE_CONTENT\]([\s\S]*?)\[\/COURSE_CONTENT\]/);
+                var contentMatch = fullContent.match(/\[LESSON_CONTENT\]([\s\S]*?)\[\/LESSON_CONTENT\]/);
                 
                 if (contentMatch && contentMatch[1]) {
                     // Copy just the markdown content
@@ -595,7 +579,7 @@ class NewCourseIntegration extends BaseService
                     contentToCopy = fullContent;
                 }
                 
-                console.log('MPCC: Copy button - Content to copy:', contentToCopy);
+                console.log('MPCC: Lesson copy button - Content to copy:', contentToCopy);
                 
                 // Create temporary textarea to copy
                 var $temp = $('<textarea>');
@@ -611,8 +595,8 @@ class NewCourseIntegration extends BaseService
             });
             
             // Handle cancel button
-            $(document).on('click', '.mpcc-cancel-update', function() {
-                $(this).closest('.mpcc-content-update-buttons').fadeOut();
+            $(document).on('click', '.mpcc-cancel-lesson-update', function() {
+                $(this).closest('.mpcc-lesson-content-update-buttons').fadeOut();
             });
         });
         </script>
@@ -620,12 +604,53 @@ class NewCourseIntegration extends BaseService
     }
 
     /**
-     * Get comprehensive course context data for AI
+     * Get parent course for a lesson
      */
-    private function getCourseContextData(\WP_Post $post): array
+    private function getParentCourse(\WP_Post $lesson): ?\WP_Post
     {
-        // Basic course information
-        $courseData = [
+        // Check if lesson has a parent course meta
+        $course_id = get_post_meta($lesson->ID, '_mpcs_course_id', true);
+        if ($course_id) {
+            return get_post($course_id);
+        }
+        
+        // Alternative: Check if lesson is referenced in any course
+        $courses = get_posts([
+            'post_type' => 'mpcs-course',
+            'posts_per_page' => -1,
+            'meta_query' => [
+                [
+                    'key' => '_mpcs_sections',
+                    'compare' => 'EXISTS'
+                ]
+            ]
+        ]);
+        
+        foreach ($courses as $course) {
+            $sections = get_post_meta($course->ID, '_mpcs_sections', true);
+            if (is_array($sections)) {
+                foreach ($sections as $section) {
+                    if (isset($section['lessons']) && is_array($section['lessons'])) {
+                        foreach ($section['lessons'] as $section_lesson) {
+                            if (isset($section_lesson['ID']) && $section_lesson['ID'] == $lesson->ID) {
+                                return $course;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get comprehensive lesson context data for AI
+     */
+    private function getLessonContextData(\WP_Post $post, ?\WP_Post $parent_course = null): array
+    {
+        // Basic lesson information
+        $lessonData = [
             'id' => $post->ID,
             'title' => $post->post_title,
             'content' => $post->post_content,
@@ -633,71 +658,28 @@ class NewCourseIntegration extends BaseService
             'excerpt' => $post->post_excerpt
         ];
 
-        // Get course metadata
-        $courseData['learning_objectives'] = get_post_meta($post->ID, '_mpcs_course_learning_objectives', true) ?: [];
-        $courseData['difficulty_level'] = get_post_meta($post->ID, '_mpcs_course_difficulty_level', true) ?: '';
-        $courseData['target_audience'] = get_post_meta($post->ID, '_mpcs_course_target_audience', true) ?: '';
-        $courseData['prerequisites'] = get_post_meta($post->ID, '_mpcs_course_prerequisites', true) ?: [];
-        $courseData['estimated_duration'] = get_post_meta($post->ID, '_mpcs_course_estimated_duration', true) ?: '';
-        $courseData['course_category'] = get_post_meta($post->ID, '_mpcs_course_category', true) ?: '';
-        $courseData['template_type'] = get_post_meta($post->ID, '_mpcs_course_template_type', true) ?: '';
+        // Get lesson metadata
+        $lessonData['objectives'] = get_post_meta($post->ID, '_mpcs_lesson_objectives', true) ?: [];
+        $lessonData['duration'] = get_post_meta($post->ID, '_mpcs_lesson_duration', true) ?: 0;
+        $lessonData['video_url'] = get_post_meta($post->ID, '_mpcs_lesson_video_url', true) ?: '';
+        $lessonData['downloads'] = get_post_meta($post->ID, '_mpcs_lesson_downloads', true) ?: [];
 
-        // Get sections data
-        $sections = get_post_meta($post->ID, '_mpcs_sections', true) ?: [];
-        $courseData['sections'] = [];
-        $courseData['section_count'] = 0;
-        $courseData['lesson_count'] = 0;
-
-        if (is_array($sections)) {
-            $courseData['section_count'] = count($sections);
-            
-            foreach ($sections as $index => $section) {
-                $sectionData = [
-                    'title' => $section['section_title'] ?? 'Untitled Section',
-                    'description' => $section['section_description'] ?? '',
-                    'order' => $index,
-                    'lessons' => []
-                ];
-
-                if (isset($section['lessons']) && is_array($section['lessons'])) {
-                    $courseData['lesson_count'] += count($section['lessons']);
-                    
-                    foreach ($section['lessons'] as $lessonIndex => $lesson) {
-                        $lessonData = [
-                            'title' => $lesson['post_title'] ?? 'Untitled Lesson',
-                            'content' => isset($lesson['post_content']) ? substr($lesson['post_content'], 0, 200) . '...' : '',
-                            'order' => $lessonIndex,
-                            'objectives' => $lesson['meta_input']['_mpcs_lesson_objectives'] ?? [],
-                            'duration' => $lesson['meta_input']['_mpcs_lesson_duration'] ?? 0
-                        ];
-                        $sectionData['lessons'][] = $lessonData;
-                    }
-                }
-
-                $courseData['sections'][] = $sectionData;
-            }
+        // Include parent course information
+        if ($parent_course) {
+            $lessonData['course'] = [
+                'id' => $parent_course->ID,
+                'title' => $parent_course->post_title,
+                'description' => substr($parent_course->post_content, 0, 500),
+                'learning_objectives' => get_post_meta($parent_course->ID, '_mpcs_course_learning_objectives', true) ?: [],
+                'target_audience' => get_post_meta($parent_course->ID, '_mpcs_course_target_audience', true) ?: ''
+            ];
         }
 
-        // Get course tags and categories
-        $terms = wp_get_post_terms($post->ID, ['course_category', 'course_tag'], ['fields' => 'names']);
-        if (!is_wp_error($terms)) {
-            $courseData['tags'] = $terms;
-        }
-
-        // Calculate total estimated time
-        $totalDuration = 0;
-        foreach ($courseData['sections'] as $section) {
-            foreach ($section['lessons'] as $lesson) {
-                $totalDuration += intval($lesson['duration']);
-            }
-        }
-        $courseData['total_estimated_duration'] = $totalDuration;
-
-        return $courseData;
+        return $lessonData;
     }
     
     /**
-     * Handle AI chat AJAX request
+     * Handle AI chat AJAX request for lessons
      */
     public function handleAIChat(): void
     {
@@ -709,7 +691,7 @@ class NewCourseIntegration extends BaseService
             
             $message = sanitize_textarea_field($_POST['message'] ?? '');
             $postId = intval($_POST['post_id'] ?? 0);
-            $courseData = json_decode(stripslashes($_POST['course_data'] ?? '{}'), true);
+            $lessonData = json_decode(stripslashes($_POST['lesson_data'] ?? '{}'), true);
             
             if (empty($message)) {
                 throw new \Exception('Message is required');
@@ -723,15 +705,15 @@ class NewCourseIntegration extends BaseService
             $container = function_exists('mpcc_container') ? mpcc_container() : null;
             $llmService = $container ? $container->get(\MemberPressCoursesCopilot\Services\LLMService::class) : new \MemberPressCoursesCopilot\Services\LLMService();
             
-            // Build prompt focused on course description enhancement
-            $prompt = $this->buildCourseDescriptionPrompt($message, $courseData);
+            // Build prompt focused on lesson content generation
+            $prompt = $this->buildLessonPrompt($message, $lessonData);
             
             // Generate AI response
             $response = $llmService->generateContent($prompt);
             $aiContent = $response['content'] ?? 'I apologize, but I encountered an error. Please try again.';
             
-            // Check if the response contains a course description update
-            $hasContentUpdate = $this->detectContentUpdate($message, $aiContent);
+            // Check if the response contains a lesson content update
+            $hasContentUpdate = $this->detectLessonContentUpdate($message, $aiContent);
             
             wp_send_json_success([
                 'message' => $aiContent,
@@ -744,9 +726,9 @@ class NewCourseIntegration extends BaseService
     }
     
     /**
-     * Handle update course content AJAX request
+     * Handle update lesson content AJAX request
      */
-    public function handleUpdateCourseContent(): void
+    public function handleUpdateLessonContent(): void
     {
         try {
             // Verify nonce
@@ -779,44 +761,52 @@ class NewCourseIntegration extends BaseService
     }
     
     /**
-     * Build prompt for course description enhancement
+     * Build prompt for lesson content generation
      */
-    private function buildCourseDescriptionPrompt(string $message, array $courseData): string
+    private function buildLessonPrompt(string $message, array $lessonData): string
     {
-        $prompt = "You are an AI assistant helping to improve course descriptions and overviews.\n\n";
+        $prompt = "You are an AI assistant helping to create engaging lesson content for online courses.\n\n";
         
-        if (!empty($courseData['title'])) {
-            $prompt .= "Course Title: {$courseData['title']}\n";
+        if (!empty($lessonData['title'])) {
+            $prompt .= "Lesson Title: {$lessonData['title']}\n";
         }
         
-        if (!empty($courseData['content'])) {
-            $prompt .= "Current Description:\n{$courseData['content']}\n\n";
+        if (!empty($lessonData['content'])) {
+            $prompt .= "Current Content:\n{$lessonData['content']}\n\n";
         }
         
-        if (!empty($courseData['learning_objectives'])) {
-            $prompt .= "Learning Objectives: " . implode(', ', $courseData['learning_objectives']) . "\n";
+        if (!empty($lessonData['course']['title'])) {
+            $prompt .= "Parent Course: {$lessonData['course']['title']}\n";
         }
         
-        if (!empty($courseData['target_audience'])) {
-            $prompt .= "Target Audience: {$courseData['target_audience']}\n";
+        if (!empty($lessonData['course']['description'])) {
+            $prompt .= "Course Context: " . substr($lessonData['course']['description'], 0, 200) . "...\n";
         }
         
-        if (!empty($courseData['section_count']) && !empty($courseData['lesson_count'])) {
-            $prompt .= "Course Structure: {$courseData['section_count']} sections with {$courseData['lesson_count']} lessons\n";
+        if (!empty($lessonData['objectives']) && is_array($lessonData['objectives'])) {
+            $prompt .= "Lesson Objectives:\n";
+            foreach ($lessonData['objectives'] as $objective) {
+                $prompt .= "- {$objective}\n";
+            }
+        }
+        
+        if (!empty($lessonData['course']['target_audience'])) {
+            $prompt .= "Target Audience: {$lessonData['course']['target_audience']}\n";
         }
         
         $prompt .= "\nUser Request: {$message}\n\n";
         
-        // Check if user is asking for a new description
-        $userWantsDescription = preg_match('/\b(write|create|update|improve|enhance|rewrite|new)\b/i', $message);
+        // Check if user is asking for new content
+        $userWantsContent = preg_match('/\b(write|create|generate|make|build|develop)\b/i', $message);
         
-        if ($userWantsDescription) {
-            $prompt .= "INSTRUCTION: Provide the course description in Markdown format wrapped between [COURSE_CONTENT] and [/COURSE_CONTENT] tags. ";
-            $prompt .= "Include 3-5 paragraphs covering the overview, benefits, learning outcomes, target audience, and call-to-action. ";
-            $prompt .= "Use proper Markdown formatting with headers, bullet points, and emphasis where appropriate. ";
-            $prompt .= "Do not include any text outside the [COURSE_CONTENT] tags.";
+        if ($userWantsContent) {
+            $prompt .= "INSTRUCTION: Provide the lesson content in Markdown format wrapped between [LESSON_CONTENT] and [/LESSON_CONTENT] tags. ";
+            $prompt .= "Include an engaging introduction, clear explanations with examples, practice activities, and a summary. ";
+            $prompt .= "Use proper Markdown formatting with headers, bullet points, numbered lists, and emphasis where appropriate. ";
+            $prompt .= "Make the content educational, practical, and engaging for online learners. ";
+            $prompt .= "Do not include any text outside the [LESSON_CONTENT] tags.";
         } else {
-            $prompt .= "Provide helpful guidance about the course description.";
+            $prompt .= "Provide helpful guidance about creating effective lesson content.";
         }
         
         return $prompt;
@@ -825,29 +815,29 @@ class NewCourseIntegration extends BaseService
     /**
      * Detect if AI response contains a content update
      */
-    private function detectContentUpdate(string $userMessage, string $aiResponse): bool
+    private function detectLessonContentUpdate(string $userMessage, string $aiResponse): bool
     {
-        // Check if AI response contains the [COURSE_CONTENT] tags
-        if (strpos($aiResponse, '[COURSE_CONTENT]') !== false && 
-            strpos($aiResponse, '[/COURSE_CONTENT]') !== false) {
+        // Check if AI response contains the [LESSON_CONTENT] tags
+        if (strpos($aiResponse, '[LESSON_CONTENT]') !== false && 
+            strpos($aiResponse, '[/LESSON_CONTENT]') !== false) {
             return true;
         }
         
-        // Fallback: Check if user is requesting an update and response seems substantial
-        $requestKeywords = ['update', 'rewrite', 'improve', 'enhance', 'revise', 'create', 'write'];
-        $userRequestsUpdate = false;
+        // Fallback: Check if user is requesting content and response seems substantial
+        $requestKeywords = ['write', 'create', 'generate', 'make', 'build', 'develop'];
+        $userRequestsContent = false;
         
         $lowerMessage = strtolower($userMessage);
         foreach ($requestKeywords as $keyword) {
             if (strpos($lowerMessage, $keyword) !== false) {
-                $userRequestsUpdate = true;
+                $userRequestsContent = true;
                 break;
             }
         }
         
-        // If user requested update and response is substantial, consider it an update
+        // If user requested content and response is substantial, consider it an update
         $wordCount = str_word_count($aiResponse);
-        if ($userRequestsUpdate && $wordCount > 100) {
+        if ($userRequestsContent && $wordCount > 150) {
             return true;
         }
         
