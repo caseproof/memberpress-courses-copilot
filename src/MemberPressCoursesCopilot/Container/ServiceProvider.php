@@ -11,7 +11,6 @@ use MemberPressCoursesCopilot\Services\{
     ContentGenerationService,
     CourseGeneratorService,
     LessonDraftService,
-    TemplateEngine,
     EnhancedTemplateEngine,
     ConversationFlowHandler,
     CourseAjaxService,
@@ -19,13 +18,10 @@ use MemberPressCoursesCopilot\Services\{
     CourseIntegrationService,
     CourseUIService,
     SessionFeaturesService,
-    NewCourseIntegration,
-    LessonAIIntegration
+    EditorAIIntegrationService
 };
 use MemberPressCoursesCopilot\Controllers\{
-    SimpleAjaxController,
-    AjaxController,
-    RestApiController
+    SimpleAjaxController
 };
 use MemberPressCoursesCopilot\Admin\{
     AdminMenu,
@@ -113,9 +109,7 @@ class ServiceProvider
         
         // Content Generation Service (singleton)
         $container->register(ContentGenerationService::class, function (Container $container) {
-            $llmService = $container->get(LLMService::class);
-            $templateEngine = $container->get(TemplateEngine::class);
-            return new ContentGenerationService($llmService, $templateEngine);
+            return new ContentGenerationService();
         }, true);
         
         // Course Generator Service (singleton)
@@ -130,13 +124,10 @@ class ServiceProvider
             return new LessonDraftService($databaseService);
         }, true);
         
-        // Template Engine (singleton)
-        $container->register(TemplateEngine::class, TemplateEngine::class, true);
-        
         // Enhanced Template Engine (singleton)
         $container->register(EnhancedTemplateEngine::class, function (Container $container) {
-            $templateEngine = $container->get(TemplateEngine::class);
-            return new EnhancedTemplateEngine();
+            $llmService = $container->get(LLMService::class);
+            return new EnhancedTemplateEngine($llmService);
         }, true);
         
         // Conversation Flow Handler (singleton)
@@ -159,11 +150,8 @@ class ServiceProvider
         // Course Ajax Service (singleton)
         $container->register(CourseAjaxService::class, CourseAjaxService::class, true);
         
-        // New Course Integration Service (singleton)
-        $container->register(NewCourseIntegration::class, NewCourseIntegration::class, true);
-        
-        // Lesson AI Integration Service (singleton)
-        $container->register(LessonAIIntegration::class, LessonAIIntegration::class, true);
+        // Editor AI Integration Service (singleton) - Unified service for both courses and lessons
+        $container->register(EditorAIIntegrationService::class, EditorAIIntegrationService::class, true);
         
         // Asset Manager (singleton)
         $container->register(AssetManager::class, AssetManager::class, true);
@@ -200,12 +188,6 @@ class ServiceProvider
     {
         // Simple Ajax Controller (singleton)
         $container->register(SimpleAjaxController::class, SimpleAjaxController::class, true);
-        
-        // Ajax Controller (singleton)
-        $container->register(AjaxController::class, AjaxController::class, true);
-        
-        // REST API Controller (singleton)
-        $container->register(RestApiController::class, RestApiController::class, true);
     }
 
     /**
@@ -223,6 +205,6 @@ class ServiceProvider
         $container->alias('conversation', ConversationManager::class);
         $container->alias('content', ContentGenerationService::class);
         $container->alias('course_generator', CourseGeneratorService::class);
-        $container->alias('template', TemplateEngine::class);
+        $container->alias('template', EnhancedTemplateEngine::class);
     }
 }

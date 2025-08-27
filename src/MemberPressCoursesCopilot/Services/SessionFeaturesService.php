@@ -61,9 +61,8 @@ class SessionFeaturesService extends BaseService
         // Hook into session modifications for immediate auto-save triggers
         add_action('mpcc_session_modified', [$this, 'handleSessionModification'], 10, 2);
         
-        // Client-side auto-save via AJAX
+        // Client-side auto-save via AJAX (logged-in users only)
         add_action('wp_ajax_mpcc_auto_save_session', [$this, 'handleAjaxAutoSave']);
-        add_action('wp_ajax_nopriv_mpcc_auto_save_session', [$this, 'handleAjaxAutoSave']);
     }
 
     /**
