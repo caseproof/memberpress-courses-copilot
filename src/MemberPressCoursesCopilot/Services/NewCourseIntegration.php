@@ -23,7 +23,8 @@ class NewCourseIntegration extends BaseService
     public function init(): void
     {
         // Add button and modal to course edit pages
-        add_action('edit_form_after_title', [$this, 'addAIButton'], 5);
+        add_action('edit_form_after_title', [$this, 'addAIButton'], 5); // Classic Editor
+        add_action('enqueue_block_editor_assets', [$this, 'enqueueBlockEditorAssets']); // Block Editor
         add_action('admin_footer', [$this, 'addAIModal']);
     }
 
@@ -62,6 +63,67 @@ class NewCourseIntegration extends BaseService
         }
         
         $this->renderAIModal($post);
+    }
+    
+    /**
+     * Enqueue assets for Block Editor
+     */
+    public function enqueueBlockEditorAssets(): void
+    {
+        global $post;
+        
+        // Only add to course post type
+        if (!$post || $post->post_type !== 'mpcs-course') {
+            return;
+        }
+        
+        // Add inline script to create button in Block Editor
+        wp_add_inline_script(
+            'wp-edit-post',
+            "
+            wp.domReady(function() {
+                // Wait for editor to be ready
+                const unsubscribe = wp.data.subscribe(() => {
+                    const editorWrapper = document.querySelector('.edit-post-header__toolbar');
+                    const existingButton = document.getElementById('mpcc-open-ai-modal-block');
+                    
+                    if (editorWrapper && !existingButton) {
+                        // Create button container
+                        const buttonContainer = document.createElement('div');
+                        buttonContainer.style.marginLeft = '10px';
+                        
+                        // Create button
+                        const aiButton = document.createElement('button');
+                        aiButton.id = 'mpcc-open-ai-modal-block';
+                        aiButton.className = 'components-button is-primary';
+                        aiButton.style.background = '#6B4CE6';
+                        aiButton.style.borderColor = '#6B4CE6';
+                        aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\" style=\"margin: 3px 5px 0 0;\"></span>Create with AI';
+                        
+                        // Add click handler
+                        aiButton.onclick = function(e) {
+                            e.preventDefault();
+                            const modal = document.getElementById('mpcc-ai-modal-overlay');
+                            if (modal) {
+                                modal.style.display = 'block';
+                                document.body.style.overflow = 'hidden';
+                                setTimeout(() => {
+                                    const input = document.getElementById('mpcc-ai-input');
+                                    if (input) input.focus();
+                                }, 300);
+                            }
+                        };
+                        
+                        buttonContainer.appendChild(aiButton);
+                        editorWrapper.appendChild(buttonContainer);
+                        
+                        // Unsubscribe once button is added
+                        unsubscribe();
+                    }
+                });
+            });
+            "
+        );
     }
 
     /**
