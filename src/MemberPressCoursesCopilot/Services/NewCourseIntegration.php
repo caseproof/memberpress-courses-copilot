@@ -26,6 +26,10 @@ class NewCourseIntegration extends BaseService
         add_action('edit_form_after_title', [$this, 'addAIButton'], 5); // Classic Editor
         add_action('enqueue_block_editor_assets', [$this, 'enqueueBlockEditorAssets']); // Block Editor
         add_action('admin_footer', [$this, 'addAIModal']);
+        
+        // Register AJAX handlers
+        add_action('wp_ajax_mpcc_new_ai_chat', [$this, 'handleAIChat']);
+        add_action('wp_ajax_mpcc_update_course_content', [$this, 'handleUpdateCourseContent']);
     }
 
     /**
@@ -77,20 +81,36 @@ class NewCourseIntegration extends BaseService
             return;
         }
         
+        // Enqueue required CSS and JS for modal functionality
+        wp_enqueue_style('mpcc-ai-copilot');
+        wp_enqueue_script('mpcc-shared-utilities');
+        wp_enqueue_style('mpcc-toast');
+        wp_enqueue_script('mpcc-toast');
+        
         // Add inline script to create button in Block Editor
         wp_add_inline_script(
             'wp-edit-post',
             "
             wp.domReady(function() {
+                console.log('MPCC: Block Editor AI button script loaded');
+                
                 // Wait for editor to be ready
                 const unsubscribe = wp.data.subscribe(() => {
-                    const editorWrapper = document.querySelector('.edit-post-header__toolbar');
+                    // Try multiple selectors for better compatibility
+                    const editorWrapper = document.querySelector('.editor-header__settings') || 
+                                         document.querySelector('.editor-document-tools') ||
+                                         document.querySelector('.edit-post-header__toolbar');
                     const existingButton = document.getElementById('mpcc-open-ai-modal-block');
                     
+                    console.log('MPCC: Toolbar check - wrapper:', !!editorWrapper, 'button exists:', !!existingButton);
+                    
                     if (editorWrapper && !existingButton) {
+                        console.log('MPCC: Creating AI button');
                         // Create button container
                         const buttonContainer = document.createElement('div');
                         buttonContainer.style.marginLeft = '10px';
+                        buttonContainer.style.display = 'inline-flex';
+                        buttonContainer.style.alignItems = 'center';
                         
                         // Create button
                         const aiButton = document.createElement('button');
@@ -98,24 +118,37 @@ class NewCourseIntegration extends BaseService
                         aiButton.className = 'components-button is-primary';
                         aiButton.style.background = '#6B4CE6';
                         aiButton.style.borderColor = '#6B4CE6';
-                        aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\" style=\"margin: 3px 5px 0 0;\"></span>Create with AI';
+                        aiButton.style.height = '36px';
+                        aiButton.style.whiteSpace = 'nowrap';
+                        aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\" style=\"margin: 3px 5px 0 0; vertical-align: middle;\"></span>Create with AI';
                         
                         // Add click handler
                         aiButton.onclick = function(e) {
                             e.preventDefault();
-                            const modal = document.getElementById('mpcc-ai-modal-overlay');
-                            if (modal) {
-                                modal.style.display = 'block';
-                                document.body.style.overflow = 'hidden';
-                                setTimeout(() => {
-                                    const input = document.getElementById('mpcc-ai-input');
-                                    if (input) input.focus();
-                                }, 300);
+                            console.log('AI button clicked');
+                            
+                            // Use modal manager if available, otherwise fallback
+                            if (window.MPCCUtils && window.MPCCUtils.modalManager) {
+                                console.log('Using MPCCUtils modal manager');
+                                window.MPCCUtils.modalManager.open('#mpcc-ai-modal-overlay');
+                            } else {
+                                console.log('Using fallback modal open');
+                                const modal = document.getElementById('mpcc-ai-modal-overlay');
+                                if (modal) {
+                                    modal.style.display = 'block';
+                                    document.body.style.overflow = 'hidden';
+                                    setTimeout(() => {
+                                        const input = document.getElementById('mpcc-ai-input');
+                                        if (input) input.focus();
+                                    }, 300);
+                                }
                             }
                         };
                         
                         buttonContainer.appendChild(aiButton);
                         editorWrapper.appendChild(buttonContainer);
+                        
+                        console.log('MPCC: AI button added to toolbar');
                         
                         // Unsubscribe once button is added
                         unsubscribe();
@@ -454,5 +487,164 @@ class NewCourseIntegration extends BaseService
         $courseData['total_estimated_duration'] = $totalDuration;
 
         return $courseData;
+    }
+    
+    /**
+     * Handle AI chat AJAX request
+     */
+    public function handleAIChat(): void
+    {
+        try {
+            // Verify nonce
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_ASSISTANT)) {
+                throw new \Exception('Security check failed');
+            }
+            
+            $message = sanitize_textarea_field($_POST['message'] ?? '');
+            $postId = intval($_POST['post_id'] ?? 0);
+            $courseData = json_decode(stripslashes($_POST['course_data'] ?? '{}'), true);
+            
+            if (empty($message)) {
+                throw new \Exception('Message is required');
+            }
+            
+            if (empty($postId)) {
+                throw new \Exception('Post ID is required');
+            }
+            
+            // Get LLM service from container
+            $container = function_exists('mpcc_container') ? mpcc_container() : null;
+            $llmService = $container ? $container->get(\MemberPressCoursesCopilot\Services\LLMService::class) : new \MemberPressCoursesCopilot\Services\LLMService();
+            
+            // Build prompt focused on course description enhancement
+            $prompt = $this->buildCourseDescriptionPrompt($message, $courseData);
+            
+            // Generate AI response
+            $response = $llmService->generateContent($prompt);
+            $aiContent = $response['content'] ?? 'I apologize, but I encountered an error. Please try again.';
+            
+            // Check if the response contains a course description update
+            $hasContentUpdate = $this->detectContentUpdate($message, $aiContent);
+            
+            wp_send_json_success([
+                'message' => $aiContent,
+                'has_content_update' => $hasContentUpdate
+            ]);
+            
+        } catch (\Exception $e) {
+            wp_send_json_error($e->getMessage());
+        }
+    }
+    
+    /**
+     * Handle update course content AJAX request
+     */
+    public function handleUpdateCourseContent(): void
+    {
+        try {
+            // Verify nonce
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_ASSISTANT)) {
+                throw new \Exception('Security check failed');
+            }
+            
+            $postId = intval($_POST['post_id'] ?? 0);
+            $content = wp_kses_post($_POST['content'] ?? '');
+            
+            if (empty($postId)) {
+                throw new \Exception('Post ID is required');
+            }
+            
+            // Update the post content
+            $result = wp_update_post([
+                'ID' => $postId,
+                'post_content' => $content
+            ], true);
+            
+            if (is_wp_error($result)) {
+                throw new \Exception($result->get_error_message());
+            }
+            
+            wp_send_json_success(['updated' => true]);
+            
+        } catch (\Exception $e) {
+            wp_send_json_error($e->getMessage());
+        }
+    }
+    
+    /**
+     * Build prompt for course description enhancement
+     */
+    private function buildCourseDescriptionPrompt(string $message, array $courseData): string
+    {
+        $prompt = "You are an AI assistant helping to improve course descriptions and overviews. ";
+        $prompt .= "Focus on creating compelling, informative content that attracts students.\n\n";
+        
+        if (!empty($courseData['title'])) {
+            $prompt .= "Course Title: {$courseData['title']}\n";
+        }
+        
+        if (!empty($courseData['content'])) {
+            $prompt .= "Current Description:\n{$courseData['content']}\n\n";
+        }
+        
+        if (!empty($courseData['learning_objectives'])) {
+            $prompt .= "Learning Objectives: " . implode(', ', $courseData['learning_objectives']) . "\n";
+        }
+        
+        if (!empty($courseData['target_audience'])) {
+            $prompt .= "Target Audience: {$courseData['target_audience']}\n";
+        }
+        
+        if (!empty($courseData['section_count']) && !empty($courseData['lesson_count'])) {
+            $prompt .= "Course Structure: {$courseData['section_count']} sections with {$courseData['lesson_count']} lessons\n";
+        }
+        
+        $prompt .= "\nUser Request: {$message}\n\n";
+        $prompt .= "Please provide a response that helps improve the course description. ";
+        $prompt .= "If you're providing a new or updated description, make it engaging, clear, and focused on the value students will receive.";
+        
+        return $prompt;
+    }
+    
+    /**
+     * Detect if AI response contains a content update
+     */
+    private function detectContentUpdate(string $userMessage, string $aiResponse): bool
+    {
+        // Keywords that suggest content generation/update
+        $updateKeywords = [
+            'here is', 'here\'s', 'updated', 'revised', 'enhanced', 'improved',
+            'description:', 'overview:', 'rewritten', 'new version'
+        ];
+        
+        $userRequestsUpdate = false;
+        $aiProvidesUpdate = false;
+        
+        // Check if user is requesting an update
+        $requestKeywords = ['update', 'rewrite', 'improve', 'enhance', 'revise', 'create', 'write'];
+        $lowerMessage = strtolower($userMessage);
+        foreach ($requestKeywords as $keyword) {
+            if (strpos($lowerMessage, $keyword) !== false) {
+                $userRequestsUpdate = true;
+                break;
+            }
+        }
+        
+        // Check if AI response contains update indicators
+        $lowerResponse = strtolower($aiResponse);
+        foreach ($updateKeywords as $keyword) {
+            if (strpos($lowerResponse, $keyword) !== false) {
+                $aiProvidesUpdate = true;
+                break;
+            }
+        }
+        
+        // Also check if response is long enough to be a full description
+        $wordCount = str_word_count($aiResponse);
+        if ($wordCount > 50 && $userRequestsUpdate) {
+            $aiProvidesUpdate = true;
+        }
+        
+        return $userRequestsUpdate && $aiProvidesUpdate;
     }
 }

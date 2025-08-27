@@ -163,9 +163,6 @@ class ServiceProvider
         
         // Asset Manager (singleton)
         $container->register(AssetManager::class, AssetManager::class, true);
-        
-        // New Course Integration (singleton)
-        $container->register(NewCourseIntegration::class, NewCourseIntegration::class, true);
     }
 
     /**
