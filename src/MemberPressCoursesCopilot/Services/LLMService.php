@@ -15,7 +15,8 @@ class LLMService extends BaseService
     
     // License key for authentication with the gateway
     // In production, this should come from MemberPress license system
-    private const LICENSE_KEY = 'dev-license-key-001';
+    // TODO: Replace with actual licensing implementation from external server
+    private const LICENSE_KEY = 'dev-license-key-001'; // Placeholder - not a real credential
     
     /**
      * Constructor
