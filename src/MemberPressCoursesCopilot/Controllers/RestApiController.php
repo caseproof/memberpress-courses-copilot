@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MemberPressCoursesCopilot\Controllers;
 
-use MemberPressCoursesCopilot\Controllers\BaseController;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\LLMService;
 use MemberPressCoursesCopilot\Models\CourseTemplate;
@@ -19,14 +18,17 @@ use WP_Error;
 /**
  * REST API Controller
  * 
- * Handles all REST API endpoints for MemberPress Courses Copilot
- * Provides secure endpoints for conversation management, course generation,
- * template handling, and course validation.
+ * NOTE: This controller is currently not in use. REST API functionality may be
+ * implemented in the future. Currently, all API interactions are handled through
+ * AJAX endpoints in SimpleAjaxController and CourseAjaxService.
  * 
+ * This class is retained for potential future REST API implementation.
+ * 
+ * @deprecated Consider removing if REST API is not needed
  * @package MemberPressCoursesCopilot\Controllers
  * @since 1.0.0
  */
-class RestApiController extends BaseController
+class RestApiController
 {
     /**
      * API namespace
@@ -1315,5 +1317,16 @@ class RestApiController extends BaseController
         // In a real implementation, this would create a temporary file and return its URL
         // For now, we'll return a placeholder
         return admin_url('admin-ajax.php?action=mpcc_download_export&nonce=' . NonceConstants::create(NonceConstants::EXPORT));
+    }
+
+    /**
+     * Check if current user has the specified capability
+     * 
+     * @param string $capability The capability to check
+     * @return bool True if user has capability, false otherwise
+     */
+    protected function userCan(string $capability): bool
+    {
+        return current_user_can($capability);
     }
 }
