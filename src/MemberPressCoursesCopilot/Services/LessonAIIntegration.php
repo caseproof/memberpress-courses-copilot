@@ -691,7 +691,9 @@ class LessonAIIntegration extends BaseService
             
             $message = sanitize_textarea_field($_POST['message'] ?? '');
             $postId = intval($_POST['post_id'] ?? 0);
-            $lessonData = json_decode(stripslashes($_POST['lesson_data'] ?? '{}'), true);
+            // Handle lesson_data - it may come as an array or JSON string depending on how jQuery sends it
+            $lessonDataRaw = $_POST['lesson_data'] ?? '{}';
+            $lessonData = is_array($lessonDataRaw) ? $lessonDataRaw : json_decode(stripslashes($lessonDataRaw), true);
             
             if (empty($message)) {
                 throw new \Exception('Message is required');
@@ -701,7 +703,7 @@ class LessonAIIntegration extends BaseService
                 throw new \Exception('Post ID is required');
             }
             
-            // Get LLM service from container
+            // Get LLM service from container with graceful fallback
             $container = function_exists('mpcc_container') ? mpcc_container() : null;
             $llmService = $container ? $container->get(\MemberPressCoursesCopilot\Services\LLMService::class) : new \MemberPressCoursesCopilot\Services\LLMService();
             
