@@ -1,5 +1,34 @@
 # MemberPress Courses Copilot Development Guidelines
 
+## CRITICAL: File Organization Rules
+
+### Documentation Files
+- **ALL documentation files (*.md) MUST go in the `/docs/` directory**
+- **NEVER create .md files in the root directory**
+- **NEVER create random documentation files scattered throughout the project**
+- Examples of proper placement:
+  - `/docs/STYLE_GUIDE.md` ✓
+  - `/docs/API_REFERENCE.md` ✓
+  - `/docs/TESTING_GUIDE.md` ✓
+  - `/STYLE_GUIDE.md` ✗ (WRONG - should be in docs/)
+  - `/random-notes.md` ✗ (WRONG - should be in docs/)
+
+### Test Files
+- **ALL test files MUST go in the `/tests/` directory**
+- **Follow the directory structure that mirrors the source code**
+- **NEVER create test files outside the tests directory**
+- Examples of proper placement:
+  - `/tests/unit/Services/LLMServiceTest.php` ✓
+  - `/tests/integration/CourseGeneratorTest.php` ✓
+  - `/tests/test-procedures.md` ✓
+  - `/test-button-functionality.md` ✗ (WRONG - should be in tests/)
+  - `/src/Services/test-llm.php` ✗ (WRONG - should be in tests/)
+
+### Enforcement
+- **DELETE any misplaced files immediately**
+- **MOVE existing misplaced files to proper directories**
+- **NO EXCEPTIONS** - Keep the project organized!
+
 ## Core Development Principles
 
 ### KISS (Keep It Simple, Stupid)
@@ -32,7 +61,7 @@
 - **REAL OR NOTHING** - Either it works with real data/APIs or it doesn't work at all
 
 ## Security: Auth Gateway Implementation
-API keys are now protected via an authentication gateway. See `/docs/AUTH_GATEWAY_IMPLEMENTATION.md` for setup details. The plugin uses license keys only - no API keys in code.
+API keys are protected via an authentication gateway. See `/docs/AUTH_GATEWAY_IMPLEMENTATION.md` for setup details. The plugin uses license keys only - no API keys in code.
 
 ## Architecture Principles
 
