@@ -365,28 +365,49 @@ class NewCourseIntegration extends BaseService
                     courseContent = rewriteMatch[1];
                     console.log('MPCC: Found content after marker:', courseContent);
                 } else {
-                    // Method 2: Look for content between double line breaks
+                    // Method 2: Look for the main content after a title or intro
                     var contentBlocks = fullContent.split('<br><br>');
+                    var contentParts = [];
+                    var foundMainContent = false;
                     
-                    // Find the largest content block that's not a question or instruction
+                    // Collect all content blocks that look like course description
                     for (var i = 0; i < contentBlocks.length; i++) {
                         var block = contentBlocks[i].trim();
-                        // Skip blocks that are questions, greetings, or too short
-                        if (block.length > 100 && 
-                            !block.match(/^(Would you|What do you|Is there|Let me|I can|Here's|Hi!|Hello)/i) &&
-                            !block.endsWith('?')) {
-                            courseContent = block;
-                            console.log('MPCC: Using content block:', courseContent);
-                            break;
+                        
+                        // Skip obvious non-content blocks
+                        if (block.match(/^(Would you|What do you|Is there|Let me know|Do you want)/i) ||
+                            block.length < 50) {
+                            continue;
+                        }
+                        
+                        // Check if this looks like the start of main content
+                        if (!foundMainContent && (
+                            block.match(/^(Transform|Welcome|Business Startup|A comprehensive)/i) ||
+                            block.length > 150
+                        )) {
+                            foundMainContent = true;
+                        }
+                        
+                        // Collect content blocks
+                        if (foundMainContent) {
+                            // Stop at ending phrases
+                            if (block.match(/^(Don't let another|Join thousands|Enroll now|Sign up)/i)) {
+                                contentParts.push(block);
+                                break;
+                            }
+                            contentParts.push(block);
                         }
                     }
                     
-                    // Method 3: If still no content, use everything except obvious chat elements
-                    if (!courseContent) {
+                    if (contentParts.length > 0) {
+                        courseContent = contentParts.join('<br><br>');
+                        console.log('MPCC: Found ' + contentParts.length + ' content blocks');
+                    } else {
+                        // Method 3: Fallback - use everything except obvious chat elements
                         courseContent = fullContent
                             .replace(/^[\s\S]*?(?:Here['']s (?:a |the )?(?:suggested |updated |new )?(?:rewrite|description|content):?\s*<br>)/i, '')
                             .replace(/<br><br>(?:Would you|What do you|Is there|Let me know)[\s\S]*$/i, '');
-                        console.log('MPCC: Using fallback content:', courseContent);
+                        console.log('MPCC: Using fallback content');
                     }
                 }
                 
