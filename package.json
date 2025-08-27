@@ -17,8 +17,8 @@
     "lint:fix": "npm run lint:css -- --fix && npm run lint:js -- --fix",
     "clean": "rimraf assets/css assets/js",
     "format": "prettier --write 'src/assets/**/*.{js,scss,css}'",
-    "test:ai-chat": "node test-ai-chat-integration.js",
-    "diagnostic": "node diagnostic-check.js"
+    "test:ai-chat": "node tests/test-ai-chat-integration.js",
+    "diagnostic": "node tests/diagnostic-check.js"
   },
   "keywords": [
     "wordpress",
