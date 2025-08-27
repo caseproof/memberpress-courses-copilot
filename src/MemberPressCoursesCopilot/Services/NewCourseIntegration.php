@@ -353,35 +353,48 @@ class NewCourseIntegration extends BaseService
                 var $aiMessage = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
                 var fullContent = $aiMessage.html();
                 
+                console.log('MPCC: Extracting content from:', fullContent);
+                
                 // Extract just the course description part
-                // Look for content between specific markers or after "Here's a suggested rewrite:"
                 var courseContent = '';
                 
-                // Try to extract content after "suggested rewrite:" or "Here's the updated"
+                // Method 1: Try to extract content after "suggested rewrite:" or similar markers
                 var rewriteMatch = fullContent.match(/(?:suggested rewrite:|Here['']s (?:a |the )?(?:suggested |updated |new )?(?:rewrite|description|content|course description):?)\s*<br>(?:<br>)?([\s\S]*?)(?:<br><br>(?:Would you|What do you|Is there|Let me know)|$)/i);
                 
                 if (rewriteMatch && rewriteMatch[1]) {
                     courseContent = rewriteMatch[1];
+                    console.log('MPCC: Found content after marker:', courseContent);
+                } else {
+                    // Method 2: Look for content between double line breaks
+                    var contentBlocks = fullContent.split('<br><br>');
                     
-                    // Check if the first line looks like a title (ends with colon or is the course name)
-                    var lines = courseContent.split('<br>');
-                    if (lines.length > 0) {
-                        var firstLine = lines[0].trim();
-                        // Skip the first line if it looks like a title
-                        if (firstLine.match(/^[^.!?]+:?\s*$/) && firstLine.length < 100) {
-                            // Skip title line and any empty lines after it
-                            var startIndex = 1;
-                            while (startIndex < lines.length && lines[startIndex].trim() === '') {
-                                startIndex++;
-                            }
-                            courseContent = lines.slice(startIndex).join('<br>');
+                    // Find the largest content block that's not a question or instruction
+                    for (var i = 0; i < contentBlocks.length; i++) {
+                        var block = contentBlocks[i].trim();
+                        // Skip blocks that are questions, greetings, or too short
+                        if (block.length > 100 && 
+                            !block.match(/^(Would you|What do you|Is there|Let me|I can|Here's|Hi!|Hello)/i) &&
+                            !block.endsWith('?')) {
+                            courseContent = block;
+                            console.log('MPCC: Using content block:', courseContent);
+                            break;
                         }
                     }
-                } else {
-                    // Fallback: use the entire content but try to remove obvious chat elements
-                    courseContent = fullContent
-                        .replace(/^[\s\S]*?(?:Here['']s (?:a |the )?(?:suggested |updated |new )?(?:rewrite|description|content):?\s*<br>)/i, '')
-                        .replace(/<br><br>(?:Would you|What do you|Is there|Let me know)[\s\S]*$/i, '');
+                    
+                    // Method 3: If still no content, use everything except obvious chat elements
+                    if (!courseContent) {
+                        courseContent = fullContent
+                            .replace(/^[\s\S]*?(?:Here['']s (?:a |the )?(?:suggested |updated |new )?(?:rewrite|description|content):?\s*<br>)/i, '')
+                            .replace(/<br><br>(?:Would you|What do you|Is there|Let me know)[\s\S]*$/i, '');
+                        console.log('MPCC: Using fallback content:', courseContent);
+                    }
+                }
+                
+                // Remove any title line if it exists
+                var lines = courseContent.split('<br>');
+                if (lines.length > 0 && lines[0].match(/^[^.!?,]+:?\s*$/) && lines[0].length < 100) {
+                    courseContent = lines.slice(1).join('<br>').trim();
+                    console.log('MPCC: Removed title line');
                 }
                 
                 // Clean up the content
@@ -389,6 +402,8 @@ class NewCourseIntegration extends BaseService
                     .replace(/<br\s*\/?>/gi, '\n')
                     .replace(/\n{3,}/g, '\n\n')
                     .trim();
+                    
+                console.log('MPCC: Final content to apply:', courseContent);
                 
                 // Update the course content via AJAX
                 $.ajax({
@@ -401,17 +416,31 @@ class NewCourseIntegration extends BaseService
                         content: courseContent
                     },
                     success: function(response) {
+                        console.log('MPCC: AJAX response:', response);
+                        
                         if (response.success) {
-                            // Update the WordPress editor if it exists
+                            // For Block Editor - we need to reload the post data
                             if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor')) {
-                                // For block editor
-                                wp.data.dispatch('core/editor').editPost({content: aiContent});
+                                console.log('MPCC: Updating Block Editor');
+                                // Force refresh the post content
+                                wp.data.dispatch('core').receiveEntityRecords('postType', 'mpcs-course', [
+                                    {
+                                        id: <?php echo $post->ID; ?>,
+                                        content: { raw: courseContent, rendered: courseContent }
+                                    }
+                                ]);
+                                // Also update via editPost
+                                wp.data.dispatch('core/editor').editPost({content: courseContent});
                             } else if (typeof tinyMCE !== 'undefined' && tinyMCE.get('content')) {
                                 // For classic editor
-                                tinyMCE.get('content').setContent(aiContent);
+                                console.log('MPCC: Updating Classic Editor (TinyMCE)');
+                                tinyMCE.get('content').setContent(courseContent);
                             } else if ($('#content').length) {
                                 // For text editor
-                                $('#content').val(aiContent);
+                                console.log('MPCC: Updating Text Editor');
+                                $('#content').val(courseContent);
+                            } else {
+                                console.log('MPCC: No editor found to update');
                             }
                             
                             $button.text('Applied!');
