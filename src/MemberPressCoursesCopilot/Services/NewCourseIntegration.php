@@ -215,6 +215,44 @@ class NewCourseIntegration extends BaseService
         jQuery(document).ready(function($) {
             console.log('MPCC: AI Modal initialized');
             
+            // Simple markdown to HTML converter
+            function markdownToHtml(markdown) {
+                var html = markdown;
+                
+                // Headers
+                html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+                html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+                html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+                
+                // Bold and italic
+                html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+                
+                // Bullet lists
+                html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
+                html = html.replace(/(<li>.*<\/li>\n?)+/g, function(match) {
+                    return '<ul>' + match + '</ul>';
+                });
+                
+                // Numbered lists  
+                html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+                
+                // Paragraphs - wrap lines that aren't already wrapped in tags
+                var lines = html.split('\n');
+                html = lines.map(function(line) {
+                    line = line.trim();
+                    if (line && !line.match(/^<[^>]+>/)) {
+                        return '<p>' + line + '</p>';
+                    }
+                    return line;
+                }).join('\n');
+                
+                // Clean up extra newlines
+                html = html.replace(/\n{2,}/g, '\n\n');
+                
+                return html;
+            }
+            
             // Open modal on button click
             $('#mpcc-open-ai-modal').on('click', function() {
                 // Use existing modal manager if available
@@ -300,8 +338,29 @@ class NewCourseIntegration extends BaseService
                             var messageText = response.data.message;
                             var hasContentUpdate = response.data.has_content_update || false;
                             
+                            // Debug: Log the raw AI response
+                            console.log('MPCC: Raw AI response:', messageText);
+                            console.log('MPCC: Has content update:', hasContentUpdate);
+                            
+                            // Check if the message contains markdown content tags
+                            var contentMatch = messageText.match(/\[COURSE_CONTENT\]([\s\S]*?)\[\/COURSE_CONTENT\]/);
+                            var displayText = messageText;
+                            
+                            if (contentMatch) {
+                                // Format the markdown content for display
+                                var markdownContent = contentMatch[1].trim();
+                                var htmlContent = markdownToHtml(markdownContent);
+                                displayText = '<div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">' +
+                                    '<strong style="display: block; margin-bottom: 10px;">Course Description:</strong>' +
+                                    htmlContent +
+                                    '</div>';
+                            } else {
+                                // Regular message formatting
+                                displayText = messageText.replace(/\n/g, '<br>');
+                            }
+                            
                             var aiMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">' +
-                                '<strong>AI Assistant:</strong> <div class="ai-content">' + messageText.replace(/\n/g, '<br>') + '</div></div>';
+                                '<strong>AI Assistant:</strong> <div class="ai-content">' + displayText + '</div></div>';
                             $('#mpcc-ai-messages').append(aiMsg);
                             
                             // If content update is provided, show apply button
@@ -351,80 +410,33 @@ class NewCourseIntegration extends BaseService
                 
                 // Get the AI-generated content
                 var $aiMessage = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
-                var fullContent = $aiMessage.html();
+                var fullContent = $aiMessage.text(); // Use .text() to get raw content without HTML
                 
                 console.log('MPCC: Extracting content from:', fullContent);
                 
-                // Extract just the course description part
                 var courseContent = '';
                 
-                // Method 1: Try to extract content after "suggested rewrite:" or similar markers
-                var rewriteMatch = fullContent.match(/(?:suggested rewrite:|Here['']s (?:a |the )?(?:suggested |updated |new )?(?:rewrite|description|content|course description):?)\s*<br>(?:<br>)?([\s\S]*?)(?:<br><br>(?:Would you|What do you|Is there|Let me know)|$)/i);
+                // Look for content between [COURSE_CONTENT] tags
+                var contentMatch = fullContent.match(/\[COURSE_CONTENT\]([\s\S]*?)\[\/COURSE_CONTENT\]/);
                 
-                if (rewriteMatch && rewriteMatch[1]) {
-                    courseContent = rewriteMatch[1];
-                    console.log('MPCC: Found content after marker:', courseContent);
+                if (contentMatch && contentMatch[1]) {
+                    // Found markdown content
+                    var markdownContent = contentMatch[1].trim();
+                    console.log('MPCC: Found markdown content:', markdownContent);
+                    
+                    // Convert markdown to HTML
+                    courseContent = markdownToHtml(markdownContent);
+                    console.log('MPCC: Converted to HTML:', courseContent);
                 } else {
-                    // Method 2: Look for the main content after a title or intro
-                    var contentBlocks = fullContent.split('<br><br>');
-                    var contentParts = [];
-                    var foundMainContent = false;
-                    
-                    // Collect all content blocks that look like course description
-                    for (var i = 0; i < contentBlocks.length; i++) {
-                        var block = contentBlocks[i].trim();
-                        
-                        // Skip obvious non-content blocks
-                        if (block.match(/^(Would you|What do you|Is there|Let me know|Do you want)/i) ||
-                            block.length < 50) {
-                            continue;
-                        }
-                        
-                        // Check if this looks like the start of main content
-                        if (!foundMainContent && (
-                            block.match(/^(Transform|Welcome|Business Startup|A comprehensive)/i) ||
-                            block.length > 150
-                        )) {
-                            foundMainContent = true;
-                        }
-                        
-                        // Collect content blocks
-                        if (foundMainContent) {
-                            // Stop at ending phrases
-                            if (block.match(/^(Don't let another|Join thousands|Enroll now|Sign up)/i)) {
-                                contentParts.push(block);
-                                break;
-                            }
-                            contentParts.push(block);
-                        }
-                    }
-                    
-                    if (contentParts.length > 0) {
-                        courseContent = contentParts.join('<br><br>');
-                        console.log('MPCC: Found ' + contentParts.length + ' content blocks');
-                    } else {
-                        // Method 3: Fallback - use everything except obvious chat elements
-                        courseContent = fullContent
-                            .replace(/^[\s\S]*?(?:Here['']s (?:a |the )?(?:suggested |updated |new )?(?:rewrite|description|content):?\s*<br>)/i, '')
-                            .replace(/<br><br>(?:Would you|What do you|Is there|Let me know)[\s\S]*$/i, '');
-                        console.log('MPCC: Using fallback content');
-                    }
+                    // Fallback: use the full content if no tags found
+                    console.log('MPCC: No [COURSE_CONTENT] tags found, using full content');
+                    courseContent = $aiMessage.html()
+                        .replace(/<br\s*\/?>/gi, '\n')
+                        .replace(/\n{3,}/g, '\n\n')
+                        .trim();
                 }
-                
-                // Remove any title line if it exists
-                var lines = courseContent.split('<br>');
-                if (lines.length > 0 && lines[0].match(/^[^.!?,]+:?\s*$/) && lines[0].length < 100) {
-                    courseContent = lines.slice(1).join('<br>').trim();
-                    console.log('MPCC: Removed title line');
-                }
-                
-                // Clean up the content
-                courseContent = courseContent
-                    .replace(/<br\s*\/?>/gi, '\n')
-                    .replace(/\n{3,}/g, '\n\n')
-                    .trim();
                     
-                console.log('MPCC: Final content to apply:', courseContent);
+                console.log('MPCC: Final content to apply (length: ' + courseContent.length + '):', courseContent);
                 
                 // Update the course content via AJAX
                 $.ajax({
@@ -483,12 +495,27 @@ class NewCourseIntegration extends BaseService
             // Handle copy content button
             $(document).on('click', '.mpcc-copy-content', function() {
                 // Get the AI-generated content
-                var aiContent = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content').text();
+                var $aiMessage = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
+                var fullContent = $aiMessage.text();
+                var contentToCopy = '';
+                
+                // Look for markdown content
+                var contentMatch = fullContent.match(/\[COURSE_CONTENT\]([\s\S]*?)\[\/COURSE_CONTENT\]/);
+                
+                if (contentMatch && contentMatch[1]) {
+                    // Copy just the markdown content
+                    contentToCopy = contentMatch[1].trim();
+                } else {
+                    // Copy the full text content
+                    contentToCopy = fullContent;
+                }
+                
+                console.log('MPCC: Copy button - Content to copy:', contentToCopy);
                 
                 // Create temporary textarea to copy
                 var $temp = $('<textarea>');
                 $('body').append($temp);
-                $temp.val(aiContent).select();
+                $temp.val(contentToCopy).select();
                 document.execCommand('copy');
                 $temp.remove();
                 
@@ -671,8 +698,7 @@ class NewCourseIntegration extends BaseService
      */
     private function buildCourseDescriptionPrompt(string $message, array $courseData): string
     {
-        $prompt = "You are an AI assistant helping to improve course descriptions and overviews. ";
-        $prompt .= "Focus on creating compelling, informative content that attracts students.\n\n";
+        $prompt = "You are an AI assistant helping to improve course descriptions and overviews.\n\n";
         
         if (!empty($courseData['title'])) {
             $prompt .= "Course Title: {$courseData['title']}\n";
@@ -695,8 +721,18 @@ class NewCourseIntegration extends BaseService
         }
         
         $prompt .= "\nUser Request: {$message}\n\n";
-        $prompt .= "Please provide a response that helps improve the course description. ";
-        $prompt .= "If you're providing a new or updated description, make it engaging, clear, and focused on the value students will receive.";
+        
+        // Check if user is asking for a new description
+        $userWantsDescription = preg_match('/\b(write|create|update|improve|enhance|rewrite|new)\b/i', $message);
+        
+        if ($userWantsDescription) {
+            $prompt .= "INSTRUCTION: Provide the course description in Markdown format wrapped between [COURSE_CONTENT] and [/COURSE_CONTENT] tags. ";
+            $prompt .= "Include 3-5 paragraphs covering the overview, benefits, learning outcomes, target audience, and call-to-action. ";
+            $prompt .= "Use proper Markdown formatting with headers, bullet points, and emphasis where appropriate. ";
+            $prompt .= "Do not include any text outside the [COURSE_CONTENT] tags.";
+        } else {
+            $prompt .= "Provide helpful guidance about the course description.";
+        }
         
         return $prompt;
     }
@@ -706,17 +742,16 @@ class NewCourseIntegration extends BaseService
      */
     private function detectContentUpdate(string $userMessage, string $aiResponse): bool
     {
-        // Keywords that suggest content generation/update
-        $updateKeywords = [
-            'here is', 'here\'s', 'updated', 'revised', 'enhanced', 'improved',
-            'description:', 'overview:', 'rewritten', 'new version'
-        ];
+        // Check if AI response contains the [COURSE_CONTENT] tags
+        if (strpos($aiResponse, '[COURSE_CONTENT]') !== false && 
+            strpos($aiResponse, '[/COURSE_CONTENT]') !== false) {
+            return true;
+        }
         
-        $userRequestsUpdate = false;
-        $aiProvidesUpdate = false;
-        
-        // Check if user is requesting an update
+        // Fallback: Check if user is requesting an update and response seems substantial
         $requestKeywords = ['update', 'rewrite', 'improve', 'enhance', 'revise', 'create', 'write'];
+        $userRequestsUpdate = false;
+        
         $lowerMessage = strtolower($userMessage);
         foreach ($requestKeywords as $keyword) {
             if (strpos($lowerMessage, $keyword) !== false) {
@@ -725,21 +760,12 @@ class NewCourseIntegration extends BaseService
             }
         }
         
-        // Check if AI response contains update indicators
-        $lowerResponse = strtolower($aiResponse);
-        foreach ($updateKeywords as $keyword) {
-            if (strpos($lowerResponse, $keyword) !== false) {
-                $aiProvidesUpdate = true;
-                break;
-            }
-        }
-        
-        // Also check if response is long enough to be a full description
+        // If user requested update and response is substantial, consider it an update
         $wordCount = str_word_count($aiResponse);
-        if ($wordCount > 50 && $userRequestsUpdate) {
-            $aiProvidesUpdate = true;
+        if ($userRequestsUpdate && $wordCount > 100) {
+            return true;
         }
         
-        return $userRequestsUpdate && $aiProvidesUpdate;
+        return false;
     }
 }
