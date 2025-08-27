@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MemberPressCoursesCopilot\Controllers;
 
-use MemberPressCoursesCopilot\Controllers\BaseController;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\LLMService;
 use MemberPressCoursesCopilot\Models\CourseTemplate;
@@ -14,14 +13,19 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
 /**
  * AJAX Controller
  * 
- * Handles all AJAX requests from the admin interface for MemberPress Courses Copilot
- * Provides secure AJAX endpoints for chat, course preview, template selection,
- * and other interactive features.
+ * NOTE: This controller is currently not in use. AJAX functionality is handled by:
+ * - SimpleAjaxController: Session management endpoints
+ * - CourseAjaxService: AI chat functionality
+ * - Other service classes with their own AJAX handlers
  * 
+ * This class is retained for potential future use but needs initialization in Plugin.php
+ * to become active.
+ * 
+ * @deprecated Consider removing if not needed for future development
  * @package MemberPressCoursesCopilot\Controllers
  * @since 1.0.0
  */
-class AjaxController extends BaseController
+class AjaxController
 {
     /**
      * Course generator service
@@ -2548,5 +2552,52 @@ class AjaxController extends BaseController
             'session_id' => $sessionId,
             'message' => 'Conversation saved successfully'
         ];
+    }
+
+    /**
+     * Sanitize input based on type
+     * 
+     * @param mixed $input The input to sanitize
+     * @param string $type The type of sanitization to apply
+     * @return mixed The sanitized input
+     */
+    protected function sanitizeInput($input, string $type = 'text')
+    {
+        if (is_array($input)) {
+            return array_map(function($item) use ($type) {
+                return $this->sanitizeInput($item, $type);
+            }, $input);
+        }
+
+        switch ($type) {
+            case 'textarea':
+                return sanitize_textarea_field($input);
+            case 'email':
+                return sanitize_email($input);
+            case 'url':
+                return esc_url_raw($input);
+            case 'int':
+                return intval($input);
+            case 'float':
+                return floatval($input);
+            case 'boolean':
+                return filter_var($input, FILTER_VALIDATE_BOOLEAN);
+            case 'html':
+                return wp_kses_post($input);
+            case 'text':
+            default:
+                return sanitize_text_field($input);
+        }
+    }
+
+    /**
+     * Check if current user has the specified capability
+     * 
+     * @param string $capability The capability to check
+     * @return bool True if user has capability, false otherwise
+     */
+    protected function userCan(string $capability): bool
+    {
+        return current_user_can($capability);
     }
 }
