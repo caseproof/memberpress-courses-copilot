@@ -795,6 +795,16 @@
     position: relative;
 }
 
+/* Hide lesson action buttons by default, show on hover */
+.mpcc-lesson-item .mpcc-lesson-actions {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.mpcc-lesson-item:hover .mpcc-lesson-actions {
+    opacity: 1;
+}
+
 .mpcc-lesson-title {
     font-weight: 500;
     margin-bottom: 4px;
@@ -913,12 +923,14 @@
     border: none;
     cursor: pointer;
     color: #2271b1;
-    text-decoration: none;
+    text-decoration: none !important;
     padding: 5px;
 }
 
-.button-link:hover {
+.button-link:hover,
+.button-link:focus {
     color: #135e96;
+    text-decoration: none !important;
 }
 
 /* Typing Indicator */

@@ -84,6 +84,42 @@
                 clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(this.autoSaveLesson.bind(this), 2000);
             }.bind(this));
+            
+            // Section action buttons - delegated for dynamic content
+            $(document).on('click', '.mpcc-section-actions button', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const $button = $(e.currentTarget);
+                const $section = $button.closest('.mpcc-section');
+                const sectionIndex = parseInt($section.data('section-index'));
+                
+                if ($button.find('.dashicons-edit').length) {
+                    this.handleEditSection(sectionIndex);
+                } else if ($button.find('.dashicons-trash').length) {
+                    this.handleDeleteSection(sectionIndex);
+                }
+            });
+            
+            // Lesson edit button - override the one from courses-integration.js
+            $(document).on('click', '.mpcc-edit-lesson', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const $lesson = $(e.currentTarget).closest('.mpcc-lesson-item');
+                const lessonId = $lesson.data('lesson-id');
+                if (lessonId) {
+                    this.editLesson(lessonId);
+                }
+            });
+            
+            // Lesson delete button - handle in course editor context
+            $(document).on('click', '.mpcc-delete-lesson', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const $button = $(e.currentTarget);
+                const sectionIndex = parseInt($button.data('section'));
+                const lessonIndex = parseInt($button.data('index'));
+                this.handleDeleteLesson(sectionIndex, lessonIndex);
+            });
         },
         
         initializeSortable: function() {
@@ -573,10 +609,15 @@
             // Hide edit button and add locked class if course is published
             const isLocked = this.publishedCourseId;
             const lockedClass = isLocked ? ' mpcc-lesson-locked' : '';
-            const editButton = isLocked ? '' : `
-                <button type="button" class="button-link">
-                    <span class="dashicons dashicons-edit"></span>
-                </button>`;
+            const actionButtons = isLocked ? '' : `
+                <div class="mpcc-lesson-actions">
+                    <button type="button" class="button-link mpcc-edit-lesson" title="Edit lesson">
+                        <span class="dashicons dashicons-edit"></span>
+                    </button>
+                    <button type="button" class="button-link mpcc-delete-lesson" title="Delete lesson" data-section="${sectionIndex}" data-index="${lessonIndex}">
+                        <span class="dashicons dashicons-trash"></span>
+                    </button>
+                </div>`;
                 
             const lockIcon = isLocked ? `
                 <span class="mpcc-lesson-lock-icon" title="Course is published - editing disabled">
@@ -593,12 +634,17 @@
                         <div class="mpcc-lesson-meta">${lesson.duration || 'Duration not set'}</div>
                     </div>
                     ${lockIcon}
-                    ${editButton}
+                    ${actionButtons}
                 </div>
             `;
         },
         
         handleLessonClick: function(e) {
+            // Don't trigger if clicking on action buttons
+            if ($(e.target).closest('.mpcc-lesson-actions, .button-link').length) {
+                return;
+            }
+            
             e.preventDefault();
             const $target = $(e.currentTarget);
             const lessonId = $target.data('lesson-id');
@@ -1317,6 +1363,73 @@
                 "'": '&#039;'
             };
             return text.replace(/[&<>"']/g, m => map[m]);
+        },
+        
+        handleEditSection: function(sectionIndex) {
+            if (!this.courseStructure || !this.courseStructure.sections) {
+                mpccToast.error('No course structure found');
+                return;
+            }
+            
+            const section = this.courseStructure.sections[sectionIndex];
+            if (!section) {
+                mpccToast.error('Section not found');
+                return;
+            }
+            
+            const newTitle = prompt('Edit section title:', section.title);
+            if (newTitle && newTitle.trim() && newTitle !== section.title) {
+                this.courseStructure.sections[sectionIndex].title = newTitle.trim();
+                this.renderCourseStructure();
+                this.saveConversation();
+                mpccToast.success('Section title updated');
+            }
+        },
+        
+        handleDeleteSection: function(sectionIndex) {
+            if (!this.courseStructure || !this.courseStructure.sections) {
+                mpccToast.error('No course structure found');
+                return;
+            }
+            
+            const section = this.courseStructure.sections[sectionIndex];
+            if (!section) {
+                mpccToast.error('Section not found');
+                return;
+            }
+            
+            if (!confirm(`Delete section "${section.title}" and all its lessons?`)) {
+                return;
+            }
+            
+            // Delete locally and save the updated structure
+            this.courseStructure.sections.splice(sectionIndex, 1);
+            this.renderCourseStructure();
+            this.initializeSortable();
+            this.saveConversation(); // This saves the entire updated structure
+            mpccToast.success('Section deleted');
+        },
+        
+        handleDeleteLesson: function(sectionIndex, lessonIndex) {
+            if (!this.courseStructure || !this.courseStructure.sections || 
+                !this.courseStructure.sections[sectionIndex] || 
+                !this.courseStructure.sections[sectionIndex].lessons[lessonIndex]) {
+                mpccToast.error('Lesson not found');
+                return;
+            }
+            
+            const lesson = this.courseStructure.sections[sectionIndex].lessons[lessonIndex];
+            
+            if (!confirm(`Delete lesson "${lesson.title}"?`)) {
+                return;
+            }
+            
+            // Delete locally and save the updated structure
+            this.courseStructure.sections[sectionIndex].lessons.splice(lessonIndex, 1);
+            this.renderCourseStructure();
+            this.initializeSortable();
+            this.saveConversation(); // This saves the entire updated structure
+            mpccToast.success('Lesson deleted');
         }
     };
     
