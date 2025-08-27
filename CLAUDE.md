@@ -61,7 +61,7 @@
 - **REAL OR NOTHING** - Either it works with real data/APIs or it doesn't work at all
 
 ## Security: Auth Gateway Implementation
-API keys are now protected via an authentication gateway. See `/docs/AUTH_GATEWAY_IMPLEMENTATION.md` for setup details. The plugin uses license keys only - no API keys in code.
+API keys are protected via an authentication gateway. See `/docs/AUTH_GATEWAY_IMPLEMENTATION.md` for setup details. The plugin uses license keys only - no API keys in code.
 
 ## Architecture Principles
 
