@@ -168,35 +168,44 @@ class NewCourseIntegration extends BaseService
         NonceConstants::field(NonceConstants::AI_ASSISTANT, 'mpcc_ai_nonce');
         
         ?>
+        <style>
+        /* Override the CSS pseudo-element X */
+        #mpcc-ai-modal-overlay .mpcc-modal-close::before {
+            content: none !important;
+        }
+        </style>
+        
         <!-- Using existing modal styles from ai-copilot.css -->
         <div class="mpcc-modal-overlay" id="mpcc-ai-modal-overlay" style="display: none;">
-            <div class="mpcc-modal">
+            <div class="mpcc-modal" style="max-width: 700px; width: 90%;">
                 <div class="mpcc-modal-header">
                     <h3>AI Course Assistant</h3>
-                    <button type="button" class="mpcc-modal-close" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
+                    <button type="button" class="mpcc-modal-close" aria-label="Close" style="font-size: 0;">
+                        <span class="dashicons dashicons-no-alt" style="font-size: 20px;"></span>
                     </button>
                 </div>
-                <div class="mpcc-modal-body" style="display: flex; flex-direction: column; height: 500px;">
+                <div class="mpcc-modal-body" style="display: flex; flex-direction: column; height: 500px; padding: 0;">
                     <div id="mpcc-ai-messages" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;">
                         <div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
-                            <strong>AI Assistant:</strong> Hi! I'm here to help you improve your course overview and description. I can:
+                            <strong>AI Assistant:</strong> <div class="ai-content">Hi! I'm here to help you improve your course overview and description. I can:
                             <br>• <strong>Update your course description</strong> - Just ask me to rewrite or enhance it
                             <br>• Provide compelling content that attracts students
                             <br>• Suggest improvements to your course overview
                             <br>• Help you highlight key benefits and learning outcomes
                             <br><br><em>Note: I focus on the main course content. For lessons and curriculum structure, use the Curriculum tab above.</em>
-                            <br><br>Would you like me to enhance your course description?
+                            <br><br>Would you like me to enhance your course description?</div>
                         </div>
                     </div>
                     
-                    <div class="mpcc-modal-footer" style="padding: 20px; background: white; border-top: 1px solid #ddd;">
-                        <textarea id="mpcc-ai-input" 
-                                  placeholder="Ask me anything about your course..." 
-                                  style="width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 3px; padding: 10px; resize: vertical; font-size: 14px;"></textarea>
-                        <button type="button" id="mpcc-ai-send" class="button button-primary" style="margin-top: 10px;">
-                            Send Message
-                        </button>
+                    <div style="padding: 20px; background: white; border-top: 1px solid #ddd;">
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <textarea id="mpcc-ai-input" 
+                                      placeholder="Ask me anything about your course..." 
+                                      style="flex: 1; min-height: 80px; border: 1px solid #ddd; border-radius: 3px; padding: 10px; resize: vertical; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></textarea>
+                            <button type="button" id="mpcc-ai-send" class="button button-primary" style="height: 36px; padding: 0 20px; white-space: nowrap;">
+                                Send
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -341,9 +350,45 @@ class NewCourseIntegration extends BaseService
                 $button.prop('disabled', true).text('Applying...');
                 
                 // Get the AI-generated content
-                var aiContent = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content').html();
-                // Convert br tags back to newlines
-                aiContent = aiContent.replace(/<br\s*\/?>/gi, '\n');
+                var $aiMessage = $(this).closest('.mpcc-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
+                var fullContent = $aiMessage.html();
+                
+                // Extract just the course description part
+                // Look for content between specific markers or after "Here's a suggested rewrite:"
+                var courseContent = '';
+                
+                // Try to extract content after "suggested rewrite:" or "Here's the updated"
+                var rewriteMatch = fullContent.match(/(?:suggested rewrite:|Here['']s (?:a |the )?(?:suggested |updated |new )?(?:rewrite|description|content|course description):?)\s*<br>(?:<br>)?([\s\S]*?)(?:<br><br>(?:Would you|What do you|Is there|Let me know)|$)/i);
+                
+                if (rewriteMatch && rewriteMatch[1]) {
+                    courseContent = rewriteMatch[1];
+                    
+                    // Check if the first line looks like a title (ends with colon or is the course name)
+                    var lines = courseContent.split('<br>');
+                    if (lines.length > 0) {
+                        var firstLine = lines[0].trim();
+                        // Skip the first line if it looks like a title
+                        if (firstLine.match(/^[^.!?]+:?\s*$/) && firstLine.length < 100) {
+                            // Skip title line and any empty lines after it
+                            var startIndex = 1;
+                            while (startIndex < lines.length && lines[startIndex].trim() === '') {
+                                startIndex++;
+                            }
+                            courseContent = lines.slice(startIndex).join('<br>');
+                        }
+                    }
+                } else {
+                    // Fallback: use the entire content but try to remove obvious chat elements
+                    courseContent = fullContent
+                        .replace(/^[\s\S]*?(?:Here['']s (?:a |the )?(?:suggested |updated |new )?(?:rewrite|description|content):?\s*<br>)/i, '')
+                        .replace(/<br><br>(?:Would you|What do you|Is there|Let me know)[\s\S]*$/i, '');
+                }
+                
+                // Clean up the content
+                courseContent = courseContent
+                    .replace(/<br\s*\/?>/gi, '\n')
+                    .replace(/\n{3,}/g, '\n\n')
+                    .trim();
                 
                 // Update the course content via AJAX
                 $.ajax({
@@ -353,7 +398,7 @@ class NewCourseIntegration extends BaseService
                         action: 'mpcc_update_course_content',
                         nonce: $('#mpcc_ai_nonce').val(),
                         post_id: <?php echo $post->ID; ?>,
-                        content: aiContent
+                        content: courseContent
                     },
                     success: function(response) {
                         if (response.success) {
