@@ -368,7 +368,10 @@
             `;
             
             messagesContainer.append(messageHtml);
-            messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+            // Use requestAnimationFrame to ensure DOM has been rendered
+            requestAnimationFrame(() => {
+                messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+            });
             
             // Add to conversation history
             if (addToHistory) {
@@ -1218,7 +1221,10 @@
         
         scrollToBottom: function() {
             const container = $('#mpcc-chat-messages');
-            container.scrollTop(container[0].scrollHeight);
+            // Use requestAnimationFrame to ensure DOM has been rendered
+            requestAnimationFrame(() => {
+                container.scrollTop(container[0].scrollHeight);
+            });
         },
         
         displayCourseStructure: function(courseStructure) {

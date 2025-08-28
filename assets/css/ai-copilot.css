@@ -914,6 +914,7 @@
   font-size: 64px;
   color: var(--mpcc-border-secondary);
   margin-bottom: var(--mpcc-spacing-lg);
+  line-height: 0.2;
 }
 
 .mpcc-preview-placeholder h3 {

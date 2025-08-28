@@ -475,6 +475,7 @@
 .mpcc-empty-icon .dashicons {
     font-size: 64px;
     color: #dcdcde;
+    line-height: 0.2;
 }
 
 .mpcc-empty-state h3 {

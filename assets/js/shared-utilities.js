@@ -403,7 +403,10 @@ window.MPCCUtils = {
         scrollToBottom: function(selector) {
             const element = jQuery(selector)[0];
             if (element) {
-                element.scrollTop = element.scrollHeight;
+                // Use requestAnimationFrame to ensure DOM has been rendered
+                requestAnimationFrame(() => {
+                    element.scrollTop = element.scrollHeight;
+                });
             }
         },
         
