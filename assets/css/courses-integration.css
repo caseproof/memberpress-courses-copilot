@@ -20,6 +20,8 @@
     text-shadow: none;
     box-shadow: var(--mpcc-shadow-sm);
     transition: all var(--mpcc-transition-base);
+    margin-left: 5px;
+    margin-right: 5px;
 }
 
 #mpcc-create-with-ai:hover {
@@ -29,9 +31,9 @@
 }
 
 #mpcc-create-with-ai .dashicons {
-    margin-right: 5px;
     vertical-align: middle;
-    line-height: 1;
+    line-height: .9;
+    padding-right: 5px;
 }
 
 /* ==========================================================================
