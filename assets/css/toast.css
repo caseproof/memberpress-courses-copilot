@@ -1,6 +1,12 @@
 /**
  * Toast Notifications for MemberPress Courses Copilot
+ * 
+ * @package MemberPressCoursesCopilot
+ * @version 1.0.0
  */
+
+/* Import common styles */
+@import url('mpcc-common.css');
 
 .mpcc-toast-container {
     position: fixed;
@@ -11,11 +17,11 @@
 }
 
 .mpcc-toast {
-    background: #fff;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    margin-bottom: 10px;
-    padding: 12px 20px;
+    background: var(--mpcc-bg-primary);
+    border-radius: var(--mpcc-radius-sm);
+    box-shadow: var(--mpcc-shadow-md);
+    margin-bottom: var(--mpcc-spacing-sm);
+    padding: var(--mpcc-spacing-md) var(--mpcc-spacing-lg);
     min-width: 300px;
     max-width: 500px;
     pointer-events: auto;
@@ -23,7 +29,7 @@
     align-items: center;
     opacity: 0;
     transform: translateX(100%);
-    transition: all 0.3s ease;
+    transition: all var(--mpcc-transition-base);
 }
 
 .mpcc-toast.show {
@@ -37,21 +43,21 @@
 }
 
 .mpcc-toast-icon {
-    margin-right: 12px;
+    margin-right: var(--mpcc-spacing-md);
     flex-shrink: 0;
 }
 
 .mpcc-toast-message {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--mpcc-font-size-sm);
     line-height: 1.4;
 }
 
 .mpcc-toast-close {
-    margin-left: 12px;
+    margin-left: var(--mpcc-spacing-md);
     cursor: pointer;
     opacity: 0.5;
-    transition: opacity 0.2s;
+    transition: opacity var(--mpcc-transition-fast);
     flex-shrink: 0;
 }
 
@@ -61,33 +67,33 @@
 
 /* Toast Types */
 .mpcc-toast.success {
-    border-left: 4px solid #46b450;
+    border-left: 4px solid var(--mpcc-success);
 }
 
 .mpcc-toast.success .mpcc-toast-icon {
-    color: #46b450;
+    color: var(--mpcc-success);
 }
 
 .mpcc-toast.error {
-    border-left: 4px solid #dc3232;
+    border-left: 4px solid var(--mpcc-error);
 }
 
 .mpcc-toast.error .mpcc-toast-icon {
-    color: #dc3232;
+    color: var(--mpcc-error);
 }
 
 .mpcc-toast.warning {
-    border-left: 4px solid #ffb900;
+    border-left: 4px solid var(--mpcc-warning);
 }
 
 .mpcc-toast.warning .mpcc-toast-icon {
-    color: #ffb900;
+    color: var(--mpcc-warning);
 }
 
 .mpcc-toast.info {
-    border-left: 4px solid #00a0d2;
+    border-left: 4px solid var(--mpcc-info);
 }
 
 .mpcc-toast.info .mpcc-toast-icon {
-    color: #00a0d2;
+    color: var(--mpcc-info);
 }

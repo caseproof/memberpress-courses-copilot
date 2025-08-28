@@ -1,0 +1,452 @@
+/**
+ * MemberPress Courses Copilot - Common Styles
+ * Shared styles and utilities used across the plugin
+ *
+ * @package MemberPressCoursesCopilot
+ * @version 1.0.0
+ */
+
+/* ==========================================================================
+   CSS Custom Properties (Variables)
+   ========================================================================== */
+
+:root {
+  /* Brand Colors */
+  --mpcc-primary: #0073aa;
+  --mpcc-primary-dark: #005a87;
+  --mpcc-primary-light: #0085c8;
+  --mpcc-primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --mpcc-secondary: #50575e;
+  --mpcc-success: #46b450;
+  --mpcc-warning: #f56e28;
+  --mpcc-error: #dc3232;
+  --mpcc-info: #00a0d2;
+  
+  /* Background Colors */
+  --mpcc-bg-primary: #ffffff;
+  --mpcc-bg-secondary: #f9f9f9;
+  --mpcc-bg-tertiary: #f0f0f1;
+  --mpcc-bg-input: #ffffff;
+  
+  /* Text Colors */
+  --mpcc-text-primary: #2c3338;
+  --mpcc-text-secondary: #50575e;
+  --mpcc-text-muted: #8c8f94;
+  --mpcc-text-inverse: #ffffff;
+  
+  /* Border Colors */
+  --mpcc-border-primary: #dcdcde;
+  --mpcc-border-secondary: #e0e0e0;
+  --mpcc-border-focus: #0073aa;
+  
+  /* Shadow */
+  --mpcc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --mpcc-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --mpcc-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+  --mpcc-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);
+  
+  /* Spacing */
+  --mpcc-spacing-xs: 0.25rem;
+  --mpcc-spacing-sm: 0.5rem;
+  --mpcc-spacing-md: 1rem;
+  --mpcc-spacing-lg: 1.5rem;
+  --mpcc-spacing-xl: 2rem;
+  
+  /* Border Radius */
+  --mpcc-radius-sm: 4px;
+  --mpcc-radius-md: 8px;
+  --mpcc-radius-lg: 12px;
+  --mpcc-radius-full: 9999px;
+  
+  /* Typography */
+  --mpcc-font-size-xs: 0.75rem;
+  --mpcc-font-size-sm: 0.875rem;
+  --mpcc-font-size-base: 1rem;
+  --mpcc-font-size-lg: 1.125rem;
+  --mpcc-font-size-xl: 1.25rem;
+  
+  /* Transitions */
+  --mpcc-transition-fast: 150ms ease-in-out;
+  --mpcc-transition-base: 250ms ease-in-out;
+  --mpcc-transition-slow: 350ms ease-in-out;
+  
+  /* Z-Index */
+  --mpcc-z-dropdown: 1000;
+  --mpcc-z-modal: 100000;
+  --mpcc-z-tooltip: 100001;
+  --mpcc-z-notification: 100002;
+}
+
+/* ==========================================================================
+   Common Utility Classes
+   ========================================================================== */
+
+/* Layout Utilities */
+.mpcc-hidden { display: none !important; }
+.mpcc-block { display: block !important; }
+.mpcc-inline-block { display: inline-block !important; }
+.mpcc-flex { display: flex !important; }
+.mpcc-inline-flex { display: inline-flex !important; }
+
+/* Text Alignment */
+.mpcc-text-left { text-align: left !important; }
+.mpcc-text-center { text-align: center !important; }
+.mpcc-text-right { text-align: right !important; }
+
+/* Text Colors */
+.mpcc-text-primary { color: var(--mpcc-text-primary) !important; }
+.mpcc-text-secondary { color: var(--mpcc-text-secondary) !important; }
+.mpcc-text-muted { color: var(--mpcc-text-muted) !important; }
+.mpcc-text-success { color: var(--mpcc-success) !important; }
+.mpcc-text-warning { color: var(--mpcc-warning) !important; }
+.mpcc-text-error { color: var(--mpcc-error) !important; }
+
+/* Spacing Utilities */
+.mpcc-mt-xs { margin-top: var(--mpcc-spacing-xs) !important; }
+.mpcc-mt-sm { margin-top: var(--mpcc-spacing-sm) !important; }
+.mpcc-mt-md { margin-top: var(--mpcc-spacing-md) !important; }
+.mpcc-mt-lg { margin-top: var(--mpcc-spacing-lg) !important; }
+.mpcc-mt-xl { margin-top: var(--mpcc-spacing-xl) !important; }
+
+.mpcc-mb-xs { margin-bottom: var(--mpcc-spacing-xs) !important; }
+.mpcc-mb-sm { margin-bottom: var(--mpcc-spacing-sm) !important; }
+.mpcc-mb-md { margin-bottom: var(--mpcc-spacing-md) !important; }
+.mpcc-mb-lg { margin-bottom: var(--mpcc-spacing-lg) !important; }
+.mpcc-mb-xl { margin-bottom: var(--mpcc-spacing-xl) !important; }
+
+.mpcc-p-xs { padding: var(--mpcc-spacing-xs) !important; }
+.mpcc-p-sm { padding: var(--mpcc-spacing-sm) !important; }
+.mpcc-p-md { padding: var(--mpcc-spacing-md) !important; }
+.mpcc-p-lg { padding: var(--mpcc-spacing-lg) !important; }
+.mpcc-p-xl { padding: var(--mpcc-spacing-xl) !important; }
+
+/* ==========================================================================
+   Common Component Styles
+   ========================================================================== */
+
+/* Buttons */
+.mpcc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mpcc-spacing-sm);
+  padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-lg);
+  font-size: var(--mpcc-font-size-sm);
+  font-weight: 500;
+  line-height: 1.5;
+  border-radius: var(--mpcc-radius-md);
+  cursor: pointer;
+  transition: all var(--mpcc-transition-fast);
+  text-decoration: none;
+  border: 1px solid transparent;
+  min-height: 36px;
+}
+
+.mpcc-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+.mpcc-btn:active {
+  transform: translateY(0);
+}
+
+.mpcc-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button Variants */
+.mpcc-btn--primary {
+  background: var(--mpcc-primary-gradient);
+  color: var(--mpcc-text-inverse);
+  border: none;
+}
+
+.mpcc-btn--primary:hover {
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.mpcc-btn--secondary {
+  background: var(--mpcc-bg-primary);
+  color: var(--mpcc-text-primary);
+  border-color: var(--mpcc-border-primary);
+}
+
+.mpcc-btn--secondary:hover {
+  background: var(--mpcc-bg-secondary);
+}
+
+.mpcc-btn--ghost {
+  background: transparent;
+  color: var(--mpcc-primary);
+  border-color: var(--mpcc-primary);
+}
+
+.mpcc-btn--ghost:hover {
+  background: rgba(0, 115, 170, 0.1);
+}
+
+/* Button Sizes */
+.mpcc-btn--small {
+  padding: var(--mpcc-spacing-xs) var(--mpcc-spacing-md);
+  font-size: var(--mpcc-font-size-xs);
+  min-height: 28px;
+}
+
+.mpcc-btn--large {
+  padding: var(--mpcc-spacing-md) var(--mpcc-spacing-xl);
+  font-size: var(--mpcc-font-size-lg);
+  min-height: 44px;
+}
+
+/* Icon Buttons */
+.mpcc-icon-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mpcc-border-secondary);
+  background: var(--mpcc-bg-primary);
+  color: var(--mpcc-text-secondary);
+  border-radius: var(--mpcc-radius-md);
+  cursor: pointer;
+  transition: var(--mpcc-transition-fast);
+}
+
+.mpcc-icon-btn:hover {
+  background: var(--mpcc-bg-tertiary);
+  border-color: var(--mpcc-primary);
+  color: var(--mpcc-primary);
+}
+
+/* Cards */
+.mpcc-card {
+  background: var(--mpcc-bg-primary);
+  border: 1px solid var(--mpcc-border-primary);
+  border-radius: var(--mpcc-radius-md);
+  padding: var(--mpcc-spacing-lg);
+  box-shadow: var(--mpcc-shadow-sm);
+  transition: var(--mpcc-transition-base);
+}
+
+.mpcc-card:hover {
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+.mpcc-card__header {
+  margin-bottom: var(--mpcc-spacing-lg);
+  padding-bottom: var(--mpcc-spacing-md);
+  border-bottom: 1px solid var(--mpcc-border-secondary);
+}
+
+.mpcc-card__title {
+  margin: 0;
+  font-size: var(--mpcc-font-size-lg);
+  font-weight: 600;
+  color: var(--mpcc-text-primary);
+}
+
+.mpcc-card__body {
+  color: var(--mpcc-text-secondary);
+  line-height: 1.6;
+}
+
+/* Form Elements */
+.mpcc-form-group {
+  margin-bottom: var(--mpcc-spacing-lg);
+}
+
+.mpcc-form-label {
+  display: block;
+  margin-bottom: var(--mpcc-spacing-xs);
+  font-weight: 600;
+  color: var(--mpcc-text-primary);
+}
+
+.mpcc-form-input,
+.mpcc-form-textarea {
+  width: 100%;
+  padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-md);
+  border: 2px solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-md);
+  background: var(--mpcc-bg-input);
+  color: var(--mpcc-text-primary);
+  font-size: var(--mpcc-font-size-base);
+  line-height: 1.5;
+  transition: border-color var(--mpcc-transition-fast);
+}
+
+.mpcc-form-input:focus,
+.mpcc-form-textarea:focus {
+  outline: none;
+  border-color: var(--mpcc-border-focus);
+  box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.1);
+}
+
+.mpcc-form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Status Indicators */
+.mpcc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-sm);
+  padding: var(--mpcc-spacing-xs) var(--mpcc-spacing-md);
+  border-radius: var(--mpcc-radius-sm);
+  font-size: var(--mpcc-font-size-sm);
+  font-weight: 500;
+}
+
+.mpcc-status--success {
+  background: rgba(70, 180, 80, 0.1);
+  color: var(--mpcc-success);
+}
+
+.mpcc-status--warning {
+  background: rgba(245, 110, 40, 0.1);
+  color: var(--mpcc-warning);
+}
+
+.mpcc-status--error {
+  background: rgba(220, 50, 50, 0.1);
+  color: var(--mpcc-error);
+}
+
+.mpcc-status--info {
+  background: rgba(0, 160, 210, 0.1);
+  color: var(--mpcc-info);
+}
+
+.mpcc-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--mpcc-radius-full);
+  animation: pulse 2s infinite;
+}
+
+/* Loading States */
+.mpcc-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mpcc-spacing-xl);
+  color: var(--mpcc-text-muted);
+}
+
+.mpcc-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--mpcc-border-secondary);
+  border-top-color: var(--mpcc-primary);
+  border-radius: var(--mpcc-radius-full);
+  animation: spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   Common Animations
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ==========================================================================
+   Responsive Utilities
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .mpcc-hide-mobile { display: none !important; }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .mpcc-hide-tablet { display: none !important; }
+}
+
+@media (min-width: 1025px) {
+  .mpcc-hide-desktop { display: none !important; }
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
+
+/* Focus Visible */
+.mpcc-btn:focus-visible,
+.mpcc-icon-btn:focus-visible,
+.mpcc-form-input:focus-visible,
+.mpcc-form-textarea:focus-visible {
+  outline: 2px solid var(--mpcc-primary);
+  outline-offset: 2px;
+}
+
+/* Screen Reader Only */
+.mpcc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+  .mpcc-no-print {
+    display: none !important;
+  }
+}

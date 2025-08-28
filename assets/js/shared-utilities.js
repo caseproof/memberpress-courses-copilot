@@ -25,7 +25,9 @@ window.MPCCUtils = {
         if (window.mpccToast && window.mpccToast[type]) {
             window.mpccToast[type](message);
         } else {
-            console.log(`[${type.toUpperCase()}]`, message);
+            if (window.MPCCLogger) {
+                window.MPCCLogger[type](message);
+            }
         }
     },
     
@@ -158,14 +160,29 @@ window.MPCCUtils = {
      * Centralized modal management
      */
     modalManager: {
+        focusTrap: null,
+        
         /**
          * Close any open modal
          */
         close: function(modalSelector) {
             const $modal = modalSelector ? jQuery(modalSelector) : jQuery('.mpcc-modal-overlay, .mpcc-sessions-modal-overlay');
-            console.log('MPCCUtils: Closing modal', $modal.length ? 'found' : 'not found');
+            if (window.MPCCLogger) {
+                window.MPCCLogger.debug('Closing modal', $modal.length ? 'found' : 'not found');
+            }
             $modal.removeClass('active mpcc-modal-open').fadeOut(0); // Instant hide to ensure it works
             jQuery('body').css('overflow', '');
+            
+            // Release focus trap
+            if (this.focusTrap) {
+                this.focusTrap.release();
+                this.focusTrap = null;
+            }
+            
+            // Announce to screen readers
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('Dialog closed');
+            }
             
             // Trigger custom event
             jQuery(document).trigger('mpcc:modal-closed', { modal: modalSelector });
@@ -179,6 +196,13 @@ window.MPCCUtils = {
             $modal.addClass('active mpcc-modal-open').fadeIn();
             jQuery('body').css('overflow', 'hidden');
             
+            // Enhance modal for accessibility
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.enhanceModal($modal);
+                this.focusTrap = MPCCAccessibility.trapFocus($modal);
+                MPCCAccessibility.announce('Dialog opened');
+            }
+            
             // Trigger custom event
             jQuery(document).trigger('mpcc:modal-opened', { modal: modalSelector });
         },
@@ -187,13 +211,17 @@ window.MPCCUtils = {
          * Initialize modal event handlers
          */
         init: function() {
-            console.log('MPCCUtils: Initializing modal manager');
+            if (window.MPCCLogger) {
+                window.MPCCLogger.debug('Initializing modal manager');
+            }
             
             // Use event delegation for all modal close buttons
             jQuery(document).off('click.mpcc-modal-close').on('click.mpcc-modal-close', '.mpcc-modal-close, .mpcc-sessions-modal-close', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('MPCCUtils: Close button clicked');
+                if (window.MPCCLogger) {
+                    window.MPCCLogger.debug('Close button clicked');
+                }
                 const $modal = jQuery(this).closest('.mpcc-modal-overlay, .mpcc-sessions-modal-overlay');
                 MPCCUtils.modalManager.close($modal);
             });
@@ -458,17 +486,36 @@ window.MPCCUtils = {
     },
     
     /**
-     * Debounce function for auto-save
+     * Debounce function for auto-save and input handlers
      */
-    debounce: function(func, wait) {
+    debounce: function(func, wait, immediate) {
         let timeout;
         return function executedFunction(...args) {
+            const context = this;
             const later = () => {
-                clearTimeout(timeout);
-                func(...args);
+                timeout = null;
+                if (!immediate) func.apply(context, args);
             };
+            const callNow = immediate && !timeout;
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    },
+    
+    /**
+     * Throttle function for scroll and resize handlers
+     */
+    throttle: function(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
         };
     },
     
@@ -508,6 +555,82 @@ window.MPCCUtils = {
     },
     
     /**
+     * Memory management utilities
+     */
+    memory: {
+        /**
+         * Clean up event handlers for an element and its children
+         */
+        cleanupElement: function($element) {
+            if (!$element || !$element.length) return;
+            
+            // Remove all event handlers
+            $element.off();
+            $element.find('*').off();
+            
+            // Clear data
+            $element.removeData();
+            $element.find('*').removeData();
+        },
+        
+        /**
+         * Clear all timers in a given object
+         */
+        clearTimers: function(obj) {
+            if (!obj) return;
+            
+            Object.keys(obj).forEach(key => {
+                if (key.includes('timeout') || key.includes('interval')) {
+                    if (typeof obj[key] === 'number') {
+                        clearTimeout(obj[key]);
+                        clearInterval(obj[key]);
+                        obj[key] = null;
+                    }
+                }
+            });
+        },
+        
+        /**
+         * Safely remove element and clean up references
+         */
+        removeElement: function($element) {
+            if (!$element || !$element.length) return;
+            
+            this.cleanupElement($element);
+            $element.remove();
+        }
+    },
+    
+    /**
+     * Performance monitoring
+     */
+    performance: {
+        /**
+         * Measure function execution time
+         */
+        measureTime: function(name, func) {
+            const start = performance.now();
+            const result = func();
+            const end = performance.now();
+            if (window.MPCCLogger) {
+                window.MPCCLogger.info(`Performance: ${name} took ${(end - start).toFixed(2)}ms`);
+            }
+            return result;
+        },
+        
+        /**
+         * Defer non-critical operations
+         */
+        defer: function(func) {
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(func);
+            } else {
+                setTimeout(func, 0);
+            }
+        }
+    },
+    
+    /**
      * Initialize all shared utilities
      */
     init: function() {
@@ -520,8 +643,12 @@ window.MPCCUtils = {
         // Create global shortcuts
         window.mpccAjax = this.ajax;
         window.mpccUI = this.ui;
+        window.mpccMemory = this.memory;
+        window.mpccPerformance = this.performance;
         
-        console.log('MPCC Shared Utilities initialized');
+        if (window.MPCCLogger) {
+            window.MPCCLogger.info('Shared Utilities initialized');
+        }
     }
 };
 

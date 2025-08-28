@@ -10,8 +10,16 @@
     'use strict';
 
     $(document).ready(function() {
-        $('#mpcc-toggle-ai-chat').on('click', function() {
-            var $container = $('#mpcc-ai-chat-container');
+        // Cache DOM elements
+        var $toggleButton = $('#mpcc-toggle-ai-chat');
+        var $container = null; // Lazy load when needed
+        
+        // Use event delegation and lazy loading
+        $toggleButton.off('click.toggle-ai').on('click.toggle-ai', function() {
+            // Lazy load container reference
+            if (!$container) {
+                $container = $('#mpcc-ai-chat-container');
+            }
             var $button = $(this);
             
             if ($container.is(':visible')) {
@@ -23,8 +31,9 @@
                 $button.find('.dashicons').removeClass('dashicons-format-chat').addClass('dashicons-dismiss');
                 $button.find('span:not(.dashicons)').text(mpccMetabox.strings.closeAIChat);
                 
-                // Load AI interface if not already loaded
-                if (!$container.data('loaded')) {
+                // Load AI interface if not already loaded - debounce to prevent rapid clicks
+                if (!$container.data('loaded') && !$container.data('loading')) {
+                    $container.data('loading', true);
                     MPCCUtils.ajax.request('mpcc_load_ai_interface', {
                         context: 'course_editing',
                         post_id: mpccMetabox.postId,
@@ -32,19 +41,32 @@
                     }, {
                         success: function(response) {
                             if (response.success) {
-                                $('#mpcc-ai-chat-container').html(response.data.html).data('loaded', true);
+                                $container.html(response.data.html).data('loaded', true).data('loading', false);
                                 // The interface will initialize itself when ready
                             } else {
-                                $('#mpcc-ai-chat-container').html('<div style="text-align: center; color: #d63638;"><p>' + MPCCUtils.escapeHtml(response.data || mpccMetabox.strings.failedToLoad) + '</p></div>');
+                                $container.html('<div role="alert" style="text-align: center; color: #d63638;"><p>' + MPCCUtils.escapeHtml(response.data || mpccMetabox.strings.failedToLoad) + '</p></div>').data('loading', false);
+                                if (window.MPCCAccessibility) {
+                                    MPCCAccessibility.announce('Failed to load AI chat: ' + (response.data || mpccMetabox.strings.failedToLoad), 'assertive');
+                                }
                             }
                         },
                         error: function() {
-                            $('#mpcc-ai-chat-container').html('<div style="text-align: center; color: #d63638;"><p>' + MPCCUtils.escapeHtml(mpccMetabox.strings.failedToLoad) + '</p></div>');
+                            $container.html('<div role="alert" style="text-align: center; color: #d63638;"><p>' + MPCCUtils.escapeHtml(mpccMetabox.strings.failedToLoad) + '</p></div>').data('loading', false);
+                            if (window.MPCCAccessibility) {
+                                MPCCAccessibility.announce('Failed to load AI chat: ' + mpccMetabox.strings.failedToLoad, 'assertive');
+                            }
                         }
                     });
                 }
             }
         });
     });
+    
+    // Cleanup function
+    window.MPCCMetaboxAI = {
+        destroy: function() {
+            $('#mpcc-toggle-ai-chat').off('click.toggle-ai');
+        }
+    };
 
 })(jQuery);

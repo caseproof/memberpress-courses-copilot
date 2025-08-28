@@ -9,10 +9,17 @@
 (function($) {
     'use strict';
 
-    $(document).ready(function() {
+    // Lazy load the modal functionality
+    function initializeModal() {
         var postType = mpccEditorModal.postType;
         var contentTag = mpccEditorModal.contentTag;
         var modalId = '#' + mpccEditorModal.modalId;
+        
+        // Cache commonly used DOM elements
+        var $modal = $(modalId);
+        var $input = $('#mpcc-editor-ai-input');
+        var $messages = $('#mpcc-editor-ai-messages');
+        var $sendButton = $('#mpcc-editor-ai-send');
         
         // Simple markdown to HTML converter
         function markdownToHtml(markdown) {
@@ -52,8 +59,18 @@
             return html;
         }
         
-        // Close modal using existing modal manager
-        $('.mpcc-modal-close', modalId).on('click', function() {
+        // Enhance modal for accessibility
+        if (window.MPCCAccessibility) {
+            const $modal = $(modalId);
+            MPCCAccessibility.enhanceModal($modal, {
+                labelledby: 'mpcc-editor-ai-title',
+                describedby: 'mpcc-editor-ai-description',
+                closeLabel: 'Close AI assistant dialog'
+            });
+        }
+        
+        // Close modal using existing modal manager - use event delegation
+        $modal.off('click.modal-close').on('click.modal-close', '.mpcc-modal-close', function() {
             if (window.MPCCUtils && window.MPCCUtils.modalManager) {
                 window.MPCCUtils.modalManager.close(modalId);
             } else {
@@ -63,7 +80,7 @@
         });
         
         // Close on overlay click
-        $(modalId).on('click', function(e) {
+        $modal.off('click.overlay').on('click.overlay', function(e) {
             if (e.target === this) {
                 if (window.MPCCUtils && window.MPCCUtils.modalManager) {
                     window.MPCCUtils.modalManager.close(modalId);
@@ -74,55 +91,83 @@
             }
         });
         
-        // Handle quick-start button clicks
-        $(modalId + ' .mpcc-quick-start-btn').on('click', function() {
+        // Handle quick-start button clicks - use event delegation
+        $modal.off('click.quick-start').on('click.quick-start', '.mpcc-quick-start-btn', function() {
             var prompt = $(this).data('prompt');
-            var input = $('#mpcc-editor-ai-input');
             
             // Set the prompt text
-            input.val(prompt);
+            $input.val(prompt);
             
             // Focus the input field
-            input.focus();
+            $input.focus();
             
             // Optional: Scroll to input area
-            input[0].scrollIntoView({ 
+            $input[0].scrollIntoView({ 
                 behavior: 'smooth', 
                 block: 'nearest' 
             });
             
             // Auto-resize the textarea if needed
-            input.css('height', 'auto');
-            input.css('height', input[0].scrollHeight + 'px');
+            $input.css('height', 'auto');
+            $input.css('height', $input[0].scrollHeight + 'px');
+            
+            // Announce to screen readers
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('Prompt loaded: ' + prompt);
+            }
         });
         
-        // Handle send message
-        $('#mpcc-editor-ai-send').on('click', function() {
-            var input = $('#mpcc-editor-ai-input');
-            var message = input.val().trim();
+        // Enhance quick-start buttons for accessibility
+        $(modalId + ' .mpcc-quick-start-btn').each(function() {
+            const $btn = $(this);
+            const prompt = $btn.data('prompt');
+            $btn.attr({
+                'aria-label': 'Use prompt: ' + prompt,
+                'role': 'button'
+            });
+        });
+        
+        // Handle send message with throttling to prevent rapid submissions
+        var isSending = false;
+        $sendButton.off('click.send').on('click.send', function() {
+            if (isSending) return;
+            
+            var message = $input.val().trim();
             
             if (!message) {
-                alert('Please enter a message');
+                if (window.MPCCToast) {
+                    window.MPCCToast.error('Please enter a message');
+                } else {
+                    console.error('Please enter a message');
+                }
                 return;
             }
             
             // Add user message to chat
-            var userMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #f0f0f0; border-radius: 4px; text-align: right;">' +
+            var userMsg = '<div class="mpcc-ai-message" role="article" aria-label="Your message" style="margin-bottom: 10px; padding: 8px; background: #f0f0f0; border-radius: 4px; text-align: right;">' +
                 '<strong>You:</strong> ' + $('<div>').text(message).html() + '</div>';
             $('#mpcc-editor-ai-messages').append(userMsg);
             
+            // Announce message sent
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('Message sent: ' + message);
+            }
+            
             // Clear input
-            input.val('');
+            $input.val('');
             
             // Scroll to bottom
             var messages = $('#mpcc-editor-ai-messages');
             messages.scrollTop(messages[0].scrollHeight);
             
-            // Show typing indicator
-            var typingMsg = '<div id="mpcc-editor-typing" class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">' +
-                '<strong>AI Assistant:</strong> <em>Typing...</em></div>';
-            $('#mpcc-editor-ai-messages').append(typingMsg);
-            messages.scrollTop(messages[0].scrollHeight);
+            // Show typing indicator using utility function
+            var typingId = MPCCUtils.ui.addTypingIndicator($messages);
+            isSending = true;
+            
+            // Set aria-busy on messages container
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.setBusy('#mpcc-editor-ai-messages', true);
+            }
             
             // Prepare context data
             var contextData = mpccEditorModal.contextData;
@@ -140,7 +185,8 @@
                     context_data: contextData
                 },
                 success: function(response) {
-                    $('#mpcc-editor-typing').remove();
+                    MPCCUtils.ui.removeTypingIndicator(typingId);
+                    isSending = false;
                     
                     if (response.success) {
                         var messageText = response.data.message;
@@ -165,20 +211,31 @@
                             displayText = messageText.replace(/\n/g, '<br>');
                         }
                         
-                        var aiMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">' +
+                        var aiMsg = '<div class="mpcc-ai-message" role="article" aria-label="AI Assistant message" style="margin-bottom: 10px; padding: 8px; background: #e7f3ff; border-radius: 4px;">' +
                             '<strong>AI Assistant:</strong> <div class="ai-content">' + displayText + '</div></div>';
                         $('#mpcc-editor-ai-messages').append(aiMsg);
                         
+                        // Announce AI response
+                        if (window.MPCCAccessibility) {
+                            MPCCAccessibility.announce('AI Assistant responded');
+                            MPCCAccessibility.setBusy('#mpcc-editor-ai-messages', false);
+                        }
+                        
                         // If content update is provided, show apply button
                         if (hasContentUpdate) {
-                            var applyButtons = '<div class="mpcc-editor-content-update-buttons" style="margin: 10px 0; padding: 10px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px;">' +
+                            var applyButtons = '<div class="mpcc-editor-content-update-buttons" role="group" aria-label="Content update actions" style="margin: 10px 0; padding: 10px; background: #e8f5e9; border: 1px solid #4caf50; border-radius: 4px;">' +
                                 '<p style="margin: 0 0 10px 0; font-weight: bold;">Apply this content to your ' + (postType === 'mpcs-lesson' ? 'lesson' : 'course') + '?</p>' +
-                                '<button type="button" class="button button-primary mpcc-apply-editor-content" style="margin-right: 5px;">Apply Content</button>' +
-                                '<button type="button" class="button mpcc-copy-editor-content" style="margin-right: 5px;">Copy to Clipboard</button>' +
-                                '<button type="button" class="button mpcc-cancel-editor-update">Cancel</button>' +
+                                '<button type="button" class="button button-primary mpcc-apply-editor-content" aria-label="Apply AI-generated content to editor" style="margin-right: 5px;">Apply Content</button>' +
+                                '<button type="button" class="button mpcc-copy-editor-content" aria-label="Copy AI-generated content to clipboard" style="margin-right: 5px;">Copy to Clipboard</button>' +
+                                '<button type="button" class="button mpcc-cancel-editor-update" aria-label="Cancel content update" >Cancel</button>' +
                                 '<p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">This will update your content in the editor.</p>' +
                             '</div>';
                             $('#mpcc-editor-ai-messages').append(applyButtons);
+                            
+                            // Announce action available
+                            if (window.MPCCAccessibility) {
+                                MPCCAccessibility.announce('AI has generated content. You can apply it to your editor or copy it to clipboard.');
+                            }
                         }
                     } else {
                         var errorMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #ffe7e7; border-radius: 4px;">' +
@@ -186,11 +243,11 @@
                         $('#mpcc-editor-ai-messages').append(errorMsg);
                     }
                     
-                    var messages = $('#mpcc-editor-ai-messages');
-                    messages.scrollTop(messages[0].scrollHeight);
+                    MPCCUtils.ui.scrollToBottom($messages);
                 },
                 error: function() {
-                    $('#mpcc-editor-typing').remove();
+                    MPCCUtils.ui.removeTypingIndicator(typingId);
+                    isSending = false;
                     var errorMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #ffe7e7; border-radius: 4px;">' +
                         '<strong>Error:</strong> Network error. Please try again.</div>';
                     $('#mpcc-editor-ai-messages').append(errorMsg);
@@ -201,15 +258,34 @@
         });
         
         // Handle Enter key
-        $('#mpcc-editor-ai-input').on('keypress', function(e) {
+        $input.off('keypress.send').on('keypress.send', function(e) {
             if (e.which === 13 && !e.shiftKey) {
                 e.preventDefault();
-                $('#mpcc-editor-ai-send').click();
+                $sendButton.click();
             }
         });
         
-        // Handle apply content button
-        $(document).on('click', '.mpcc-apply-editor-content', function() {
+        // Enhance input field for accessibility
+        $('#mpcc-editor-ai-input').attr({
+            'aria-label': 'Type your message to AI Assistant',
+            'placeholder': 'Ask the AI Assistant for help with your content...'
+        });
+        
+        // Enhance send button
+        $('#mpcc-editor-ai-send').attr({
+            'aria-label': 'Send message to AI Assistant'
+        });
+        
+        // Enhance messages area
+        $('#mpcc-editor-ai-messages').attr({
+            'role': 'log',
+            'aria-label': 'AI conversation history',
+            'aria-live': 'polite',
+            'tabindex': '0'
+        });
+        
+        // Handle apply content button - use event delegation
+        $(document).off('click.apply-content').on('click.apply-content', '.mpcc-apply-editor-content', function() {
             var $button = $(this);
             $button.prop('disabled', true).text('Applying...');
             
@@ -288,18 +364,26 @@
                         }, 2000);
                     } else {
                         $button.text('Failed').addClass('button-disabled');
-                        alert('Error: ' + (response.data || 'Failed to update content'));
+                        if (window.MPCCToast) {
+                            window.MPCCToast.error('Error: ' + (response.data || 'Failed to update content'));
+                        } else {
+                            console.error('Error: ' + (response.data || 'Failed to update content'));
+                        }
                     }
                 },
                 error: function() {
                     $button.text('Failed').addClass('button-disabled');
-                    alert('Network error. Please try again.');
+                    if (window.MPCCToast) {
+                        window.MPCCToast.error('Network error. Please try again.');
+                    } else {
+                        console.error('Network error. Please try again.');
+                    }
                 }
             });
         });
         
-        // Handle copy content button
-        $(document).on('click', '.mpcc-copy-editor-content', function() {
+        // Handle copy content button - use event delegation
+        $(document).off('click.copy-content').on('click.copy-content', '.mpcc-copy-editor-content', function() {
             // Get the AI-generated content
             var $aiMessage = $(this).closest('.mpcc-editor-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
             var fullContent = $aiMessage.text();
@@ -332,10 +416,56 @@
             }, 2000);
         });
         
-        // Handle cancel button
-        $(document).on('click', '.mpcc-cancel-editor-update', function() {
+        // Handle cancel button - use event delegation
+        $(document).off('click.cancel-update').on('click.cancel-update', '.mpcc-cancel-editor-update', function() {
             $(this).closest('.mpcc-editor-content-update-buttons').fadeOut();
         });
+    }
+    
+    // Initialize modal on demand when needed
+    $(document).ready(function() {
+        // Check if modal exists and should be initialized
+        if ($('#' + mpccEditorModal.modalId).length) {
+            // Defer initialization until modal is first opened
+            var isInitialized = false;
+            $(document).on('mpcc:modal-opened', function(e, data) {
+                if (!isInitialized && data.modal === '#' + mpccEditorModal.modalId) {
+                    isInitialized = true;
+                    initializeModal();
+                }
+            });
+            
+            // If modal is already visible, initialize immediately
+            if ($('#' + mpccEditorModal.modalId).is(':visible')) {
+                isInitialized = true;
+                initializeModal();
+            }
+        }
+    });
+    
+    // Cleanup function
+    window.MPCCEditorModal = {
+        destroy: function() {
+            var modalId = '#' + mpccEditorModal.modalId;
+            var $modal = $(modalId);
+            
+            // Remove all event handlers
+            $modal.off('click.modal-close');
+            $modal.off('click.overlay');
+            $modal.off('click.quick-start');
+            $('#mpcc-editor-ai-send').off('click.send');
+            $('#mpcc-editor-ai-input').off('keypress.send');
+            $(document).off('click.apply-content');
+            $(document).off('click.copy-content');
+            $(document).off('click.cancel-update');
+        }
+    };
+    
+    // Cleanup on page unload
+    $(window).on('beforeunload.mpcc-editor-modal', function() {
+        if (window.MPCCEditorModal && window.MPCCEditorModal.destroy) {
+            window.MPCCEditorModal.destroy();
+        }
     });
 
 })(jQuery);

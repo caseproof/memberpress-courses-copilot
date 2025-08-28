@@ -48,6 +48,8 @@
         },
         
         bindEvents: function() {
+            // Store debounced functions as properties for cleanup
+            this.debouncedAutoSave = MPCCUtils.debounce(this.autoSaveLesson.bind(this), 2000);
             // Use event delegation for chat events to avoid conflicts
             $(document).off('click.mpcc-editor-send').on('click.mpcc-editor-send', '#mpcc-send-message', this.sendMessage.bind(this));
             $(document).off('keypress.mpcc-editor-input').on('keypress.mpcc-editor-input', '#mpcc-chat-input', function(e) {
@@ -78,12 +80,8 @@
             $('#mpcc-save-lesson').on('click', this.saveLesson.bind(this));
             $('#mpcc-cancel-lesson, #mpcc-close-lesson').on('click', this.closeLessonEditor.bind(this));
             
-            // Auto-save on textarea change
-            let saveTimeout;
-            $('#mpcc-lesson-textarea').on('input', function() {
-                clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(this.autoSaveLesson.bind(this), 2000);
-            }.bind(this));
+            // Auto-save on textarea change with debouncing
+            $('#mpcc-lesson-textarea').off('input.autosave').on('input.autosave', this.debouncedAutoSave);
             
             // Section action buttons - delegated for dynamic content
             $(document).on('click', '.mpcc-section-actions button', (e) => {
@@ -480,6 +478,11 @@
         
         renderCourseStructure: function() {
             const container = $('#mpcc-course-structure');
+            
+            // Use document fragment for better performance
+            const fragment = document.createDocumentFragment();
+            const tempWrapper = document.createElement('div');
+            
             container.empty();
             
             if (!this.courseStructure.title) {
@@ -487,6 +490,9 @@
                 $('#mpcc-create-course').prop('disabled', true);
                 return;
             }
+            
+            // Build the entire structure in memory first
+            let structureHtml = '';
             
             // Course header with published badge and locked message if applicable
             const publishedBadge = this.publishedCourseId ? 
@@ -498,22 +504,28 @@
                     <span>This course has been published and is locked for editing.</span>
                 </div>` : '';
             
-            const headerHtml = `
+            structureHtml += `
                 <div class="mpcc-course-header">
                     <h2>${this.escapeHtml(this.courseStructure.title)} ${publishedBadge}</h2>
                     <p>${this.escapeHtml(this.courseStructure.description || '')}</p>
                     ${lockedMessage}
                 </div>
             `;
-            container.append(headerHtml);
             
             // Sections and lessons
             if (this.courseStructure.sections) {
                 this.courseStructure.sections.forEach((section, sectionIndex) => {
-                    const sectionHtml = this.renderSection(section, sectionIndex);
-                    container.append(sectionHtml);
+                    structureHtml += this.renderSection(section, sectionIndex);
                 });
             }
+            
+            // Append all at once for better performance
+            tempWrapper.innerHTML = structureHtml;
+            fragment.appendChild(tempWrapper.firstChild);
+            while (tempWrapper.firstChild) {
+                fragment.appendChild(tempWrapper.firstChild);
+            }
+            container[0].appendChild(fragment);
             
             // Update create button state based on published status
             if (this.publishedCourseId) {
@@ -842,6 +854,9 @@
         },
         
         closeLessonEditor: function() {
+            // Cleanup event handlers before closing
+            $('#mpcc-lesson-textarea').off('input.autosave');
+            
             $('#mpcc-lesson-editor').fadeOut();
             $('.mpcc-lesson-item').removeClass('editing');
             this.currentLessonId = null;
@@ -1416,6 +1431,42 @@
         }
     };
     
+    // Destroy/cleanup method for teardown
+    CourseEditor.destroy = function() {
+        // Remove all event handlers
+        $(document).off('click.mpcc-editor-send');
+        $(document).off('keypress.mpcc-editor-input');
+        $('#mpcc-new-session').off('click');
+        $('#mpcc-session-history').off('click');
+        $('#mpcc-previous-conversations').off('click');
+        $(document).off('click', '.mpcc-quick-starter-btn');
+        $('#mpcc-create-course').off('click');
+        $('#mpcc-duplicate-course').off('click');
+        $(document).off('click', '.mpcc-lesson-item');
+        $('#mpcc-generate-lesson-content').off('click');
+        $('#mpcc-save-lesson').off('click');
+        $('#mpcc-cancel-lesson, #mpcc-close-lesson').off('click');
+        $('#mpcc-lesson-textarea').off('input.autosave');
+        $(document).off('click', '.mpcc-section-actions button');
+        $(document).off('click', '.mpcc-edit-lesson');
+        $(document).off('click', '.mpcc-delete-lesson');
+        
+        // Clear any active timers
+        if (this.saveTimeout) {
+            clearTimeout(this.saveTimeout);
+        }
+        
+        // Destroy sortable if it exists
+        if ($.fn.sortable) {
+            $('#mpcc-course-structure').sortable('destroy');
+            $('.mpcc-lessons').sortable('destroy');
+        }
+        
+        // Clear references to prevent memory leaks
+        this.conversationHistory = null;
+        this.courseStructure = null;
+    };
+    
     // Initialize when document is ready
     $(document).ready(function() {
         if ($('#mpcc-editor-container').length) {
@@ -1427,6 +1478,13 @@
                 CourseEditor.sessionId = sessionId;
                 CourseEditor.updateSessionTitle(title);
             };
+            
+            // Cleanup on page unload
+            $(window).on('beforeunload', function() {
+                if (window.CourseEditor && window.CourseEditor.destroy) {
+                    window.CourseEditor.destroy();
+                }
+            });
         }
     });
     

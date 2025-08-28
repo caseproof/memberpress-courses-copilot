@@ -312,18 +312,18 @@ class EditorAIIntegrationService extends BaseService
         ?>
         
         <!-- Using existing modal styles from ai-copilot.css -->
-        <div class="mpcc-modal-overlay mpcc-editor-ai-modal" id="<?php echo esc_attr($config['modal_id']); ?>" style="display: none;">
+        <div class="mpcc-modal-overlay mpcc-editor-ai-modal" id="<?php echo esc_attr($config['modal_id']); ?>" role="dialog" aria-modal="true" aria-labelledby="mpcc-editor-ai-title" aria-describedby="mpcc-editor-ai-description" style="display: none;">
             <div class="mpcc-modal" style="max-width: 700px; width: 90%;">
                 <div class="mpcc-modal-header">
-                    <h3><?php echo esc_html($config['modal_title']); ?></h3>
-                    <button type="button" class="mpcc-modal-close" aria-label="Close" style="font-size: 0;">
-                        <span class="dashicons dashicons-no-alt" style="font-size: 20px;"></span>
+                    <h3 id="mpcc-editor-ai-title"><?php echo esc_html($config['modal_title']); ?></h3>
+                    <button type="button" class="mpcc-modal-close" aria-label="Close <?php echo esc_attr($config['modal_title']); ?> dialog" style="font-size: 0;">
+                        <span class="dashicons dashicons-no-alt" style="font-size: 20px;" aria-hidden="true"></span>
                     </button>
                 </div>
                 <div class="mpcc-modal-body" style="display: flex; flex-direction: column; height: 500px; padding: 0;">
-                    <div id="mpcc-editor-ai-messages" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;">
-                        <div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
-                            <strong>AI Assistant:</strong> <div class="ai-content"><?php echo $config['assistant_intro']; ?>
+                    <div id="mpcc-editor-ai-messages" role="log" aria-label="AI conversation history" aria-live="polite" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;" tabindex="0">
+                        <div class="mpcc-ai-message" role="article" aria-label="AI Assistant introduction" style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
+                            <strong>AI Assistant:</strong> <div class="ai-content" id="mpcc-editor-ai-description"><?php echo $config['assistant_intro']; ?>
                             <?php if ($parent_course && $post->post_type === self::POST_TYPE_LESSON): ?>
                             <br><br>I see this lesson is part of "<strong><?php echo esc_html($parent_course->post_title); ?></strong>". I'll make sure the content aligns with the course objectives.
                             <?php endif; ?>
@@ -332,14 +332,14 @@ class EditorAIIntegrationService extends BaseService
                     </div>
                     
                     <!-- Quick-Start Buttons Section -->
-                    <div class="mpcc-quick-start-section">
+                    <div class="mpcc-quick-start-section" role="region" aria-label="Quick start options">
                         <div style="margin-bottom: 10px;">
-                            <span style="font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Quick Start</span>
+                            <span id="mpcc-quick-start-label" style="font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Quick Start</span>
                         </div>
-                        <div class="mpcc-quick-start-buttons">
+                        <div class="mpcc-quick-start-buttons" role="group" aria-labelledby="mpcc-quick-start-label">
                             <?php foreach ($config['quick_prompts'] as $prompt): ?>
-                            <button type="button" class="mpcc-quick-start-btn button" data-prompt="<?php echo esc_attr($prompt['prompt']); ?>">
-                                <span class="dashicons dashicons-<?php echo esc_attr($prompt['icon']); ?>" style="font-size: 16px;"></span>
+                            <button type="button" class="mpcc-quick-start-btn button" data-prompt="<?php echo esc_attr($prompt['prompt']); ?>" aria-label="Use prompt: <?php echo esc_attr($prompt['label']); ?>">
+                                <span class="dashicons dashicons-<?php echo esc_attr($prompt['icon']); ?>" style="font-size: 16px;" aria-hidden="true"></span>
                                 <?php echo esc_html($prompt['label']); ?>
                             </button>
                             <?php endforeach; ?>
@@ -347,14 +347,18 @@ class EditorAIIntegrationService extends BaseService
                     </div>
                     
                     <div style="padding: 20px; background: white; border-top: 1px solid #ddd;">
-                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                        <form id="mpcc-editor-ai-form" style="display: flex; gap: 10px; align-items: flex-end;">
+                            <label for="mpcc-editor-ai-input" class="screen-reader-text">Enter your message to AI Assistant</label>
                             <textarea id="mpcc-editor-ai-input" 
+                                      aria-label="Type your message to AI Assistant"
+                                      aria-describedby="mpcc-editor-ai-help"
                                       placeholder="<?php echo esc_attr($post->post_type === self::POST_TYPE_LESSON ? 'Describe what you want this lesson to teach...' : 'Ask me anything about your course...'); ?>" 
                                       style="flex: 1; min-height: 80px; border: 1px solid #ddd; border-radius: 3px; padding: 10px; resize: vertical; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></textarea>
-                            <button type="button" id="mpcc-editor-ai-send" class="button button-primary" style="height: 36px; padding: 0 20px; white-space: nowrap;">
+                            <button type="button" id="mpcc-editor-ai-send" class="button button-primary" aria-label="Send message to AI Assistant" style="height: 36px; padding: 0 20px; white-space: nowrap;">
                                 Send
                             </button>
-                        </div>
+                        </form>
+                        <span id="mpcc-editor-ai-help" class="screen-reader-text">Press Enter to send message, Shift+Enter for new line</span>
                     </div>
                 </div>
             </div>

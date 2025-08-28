@@ -12,6 +12,8 @@
         courseData: null,
         conversationHistory: [],
         isProcessing: false,
+        lastMessageTime: 0,
+        messageCache: new Map(),
         
         init: function(courseData) {
             this.courseData = courseData;
@@ -48,6 +50,11 @@
             
             // Show quick actions
             this.showQuickActions();
+            
+            // Announce to screen readers
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('AI Chat ready. Welcome message displayed with quick action options.');
+            }
         },
         
         buildContextMessage: function() {
@@ -72,16 +79,18 @@
         
         showQuickActions: function() {
             const quickActions = [
-                { text: 'Add New Lesson', action: 'add_lesson' },
-                { text: 'Improve Existing Content', action: 'improve_content' },
-                { text: 'Create Quiz', action: 'create_quiz' },
-                { text: 'Enhance Learning Objectives', action: 'enhance_objectives' }
+                { text: 'Add New Lesson', action: 'add_lesson', description: 'Start creating a new lesson for your course' },
+                { text: 'Improve Existing Content', action: 'improve_content', description: 'Get suggestions to enhance your current lessons' },
+                { text: 'Create Quiz', action: 'create_quiz', description: 'Generate quiz questions for your course' },
+                { text: 'Enhance Learning Objectives', action: 'enhance_objectives', description: 'Improve learning objectives and outcomes' }
             ];
             
-            let actionsHtml = '<div class="mpcc-course-quick-actions" style="margin: 15px 0; display: flex; flex-wrap: wrap; gap: 10px;">';
+            let actionsHtml = '<div class="mpcc-course-quick-actions" role="group" aria-label="Quick actions" style="margin: 15px 0; display: flex; flex-wrap: wrap; gap: 10px;">';
             quickActions.forEach(function(action) {
-                actionsHtml += '<button type="button" class="mpcc-course-quick-action button button-secondary" data-action="' + 
-                    MPCCUtils.escapeHtml(action.action) + '">' + MPCCUtils.escapeHtml(action.text) + '</button>';
+                actionsHtml += '<button type="button" class="mpcc-course-quick-action button button-secondary" ' +
+                    'data-action="' + MPCCUtils.escapeHtml(action.action) + '" ' +
+                    'aria-label="' + MPCCUtils.escapeHtml(action.description) + '">' + 
+                    MPCCUtils.escapeHtml(action.text) + '</button>';
             });
             actionsHtml += '</div>';
             
@@ -126,20 +135,46 @@
             
             if (!message || this.isProcessing) return;
             
+            // Rate limiting - prevent rapid submissions
+            if (this.lastMessageTime && (Date.now() - this.lastMessageTime) < 1000) {
+                MPCCUtils.showWarning('Please wait a moment before sending another message');
+                return;
+            }
+            this.lastMessageTime = Date.now();
+            
             // Add user message
             this.addMessage('user', message);
             input.val('');
             
+            // Announce message sent
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('Message sent: ' + message);
+                MPCCAccessibility.setBusy('#mpcc-course-chat-messages', true);
+            }
+            
             // Show typing indicator
             const typingId = 'typing-' + Date.now();
-            const typingHtml = '<div class="mpcc-chat-message assistant" id="' + MPCCUtils.escapeHtml(typingId) + '">' +
+            const typingHtml = '<div class="mpcc-chat-message assistant" id="' + MPCCUtils.escapeHtml(typingId) + '" role="status" aria-live="polite">' +
                 '<div class="message-content">' +
-                '<span class="typing-indicator">' +
+                '<span class="typing-indicator" aria-label="AI is typing">' +
                 '<span></span><span></span><span></span>' +
                 '</span></div></div>';
             
             $('#mpcc-course-chat-messages').append(typingHtml);
             MPCCUtils.ui.scrollToBottom('#mpcc-course-chat-messages');
+            
+            // Check cache for similar messages
+            const cacheKey = this.generateCacheKey(message);
+            if (this.messageCache.has(cacheKey)) {
+                const cachedResponse = this.messageCache.get(cacheKey);
+                $('#' + typingId).remove();
+                this.addMessage('assistant', cachedResponse);
+                if (window.MPCCAccessibility) {
+                    MPCCAccessibility.setBusy('#mpcc-course-chat-messages', false);
+                    MPCCAccessibility.announce('AI Assistant has responded (from cache)');
+                }
+                return;
+            }
             
             // Send to AI
             this.isProcessing = true;
@@ -156,8 +191,26 @@
                 success: (response) => {
                     $('#' + typingId).remove();
                     
+                    if (window.MPCCAccessibility) {
+                        MPCCAccessibility.setBusy('#mpcc-course-chat-messages', false);
+                    }
+                    
                     if (response.success) {
+                        // Cache the response
+                        this.messageCache.set(cacheKey, response.data.message);
+                        
+                        // Limit cache size to prevent memory issues
+                        if (this.messageCache.size > 50) {
+                            const firstKey = this.messageCache.keys().next().value;
+                            this.messageCache.delete(firstKey);
+                        }
+                        
                         this.addMessage('assistant', response.data.message);
+                        
+                        // Announce AI response
+                        if (window.MPCCAccessibility) {
+                            MPCCAccessibility.announce('AI Assistant has responded');
+                        }
                         
                         // Handle any course updates returned by AI
                         if (response.data.course_updates) {
@@ -190,11 +243,12 @@
         
         formatMessage: function(role, content) {
             const messageClass = role === 'user' ? 'user' : 'assistant';
+            const ariaLabel = role === 'user' ? 'Your message' : 'AI Assistant message';
             
             // Convert content to HTML if it contains markdown-like formatting
             const formattedContent = this.formatContent(content);
             
-            return '<div class="mpcc-chat-message ' + MPCCUtils.escapeHtml(messageClass) + '">' +
+            return '<div class="mpcc-chat-message ' + MPCCUtils.escapeHtml(messageClass) + '" role="article" aria-label="' + ariaLabel + '">' +
                 '<div class="message-content">' + formattedContent + '</div>' +
                 '</div>';
         },
@@ -221,12 +275,17 @@
         },
         
         showError: function(message) {
-            const errorHtml = '<div class="mpcc-chat-error" style="background: #fee; color: #d63638; padding: 10px; ' +
+            const errorHtml = '<div class="mpcc-chat-error" role="alert" style="background: #fee; color: #d63638; padding: 10px; ' +
                 'margin: 10px 0; border-radius: 4px; border-left: 4px solid #d63638;">' +
                 '<strong>Error:</strong> ' + MPCCUtils.escapeHtml(message) + '</div>';
             
             $('#mpcc-course-chat-messages').append(errorHtml);
             MPCCUtils.ui.scrollToBottom('#mpcc-course-chat-messages');
+            
+            // Announce error to screen readers
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('Error: ' + message, 'assertive');
+            }
         },
         
         showNotification: function(message, type = 'info') {
@@ -244,9 +303,36 @@
         }
     };
     
+        generateCacheKey: function(message) {
+            // Generate a simple cache key based on message content and course context
+            const courseContext = this.courseData.id + '-' + (this.courseData.sections ? this.courseData.sections.length : 0);
+            return courseContext + '-' + message.toLowerCase().trim().substring(0, 100);
+        },
+        
+        // Cleanup method
+        destroy: function() {
+            // Remove event handlers
+            $(document).off('click.mpcc-course-chat');
+            $(document).off('keypress.mpcc-course-chat');
+            $(document).off('click', '.mpcc-course-quick-action');
+            
+            // Clear cache and references
+            this.messageCache.clear();
+            this.courseData = null;
+            this.conversationHistory = null;
+        }
+    };
+    
     // Global function to initialize the chat
     window.initializeCourseAIChat = function(courseData) {
         CourseEditAIChat.init(courseData);
     };
+    
+    // Cleanup on page unload
+    $(window).on('beforeunload.mpcc-course-chat', function() {
+        if (window.CourseEditAIChat && window.CourseEditAIChat.destroy) {
+            window.CourseEditAIChat.destroy();
+        }
+    });
     
 })(jQuery);

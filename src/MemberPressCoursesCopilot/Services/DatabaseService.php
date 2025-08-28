@@ -954,6 +954,177 @@ class DatabaseService extends BaseService
             return false;
         }
     }
+    
+    /**
+     * Get list of missing indexes without applying them
+     *
+     * @return array List of missing indexes
+     */
+    public function getMissingIndexes(): array
+    {
+        $missing = [];
+        
+        // Check templates table indexes
+        if (!$this->indexExists($this->table_prefix . 'templates', 'idx_created_by')) {
+            $missing[] = [
+                'table' => $this->table_prefix . 'templates',
+                'index_name' => 'idx_created_by',
+                'column' => 'created_by'
+            ];
+        }
+        
+        // Check quality_metrics table indexes
+        if (!$this->indexExists($this->table_prefix . 'quality_metrics', 'idx_human_reviewer_id')) {
+            $missing[] = [
+                'table' => $this->table_prefix . 'quality_metrics',
+                'index_name' => 'idx_human_reviewer_id',
+                'column' => 'human_reviewer_id'
+            ];
+        }
+        
+        return $missing;
+    }
+    
+    /**
+     * Check if an index exists on a table
+     *
+     * @param string $table_name
+     * @param string $index_name
+     * @return bool
+     */
+    private function indexExists(string $table_name, string $index_name): bool
+    {
+        $result = $this->wpdb->get_var(
+            $this->wpdb->prepare(
+                "SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS 
+                WHERE table_schema = %s 
+                AND table_name = %s 
+                AND index_name = %s",
+                DB_NAME,
+                $table_name,
+                $index_name
+            )
+        );
+        
+        return (bool)$result;
+    }
+    
+    /**
+     * Get status of all plugin tables
+     *
+     * @return array Table name => exists (bool)
+     */
+    public function getTableStatus(): array
+    {
+        $tables = [
+            'conversations',
+            'templates',
+            'course_patterns',
+            'usage_analytics',
+            'quality_metrics',
+            'lesson_drafts'
+        ];
+        
+        $status = [];
+        
+        foreach ($tables as $table) {
+            $table_name = $this->table_prefix . $table;
+            $exists = $this->wpdb->get_var(
+                $this->wpdb->prepare(
+                    "SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES 
+                    WHERE table_schema = %s 
+                    AND table_name = %s",
+                    DB_NAME,
+                    $table_name
+                )
+            );
+            
+            $status[$table_name] = (bool)$exists;
+        }
+        
+        return $status;
+    }
+    
+    /**
+     * Reinstall all tables (drop and recreate)
+     *
+     * @return bool
+     */
+    public function reinstallTables(): bool
+    {
+        try {
+            // First drop all tables
+            $this->dropTables();
+            
+            // Then install fresh tables
+            return $this->installTables();
+            
+        } catch (\Exception $e) {
+            $this->log('Failed to reinstall tables: ' . $e->getMessage(), 'error');
+            return false;
+        }
+    }
+    
+    /**
+     * Get pending migrations
+     *
+     * @param string|null $target_version Target version to migrate to
+     * @return array List of pending migrations
+     */
+    public function getPendingMigrations(?string $target_version = null): array
+    {
+        $current_version = $this->getOption('mpcc_db_version', '0.0.0');
+        $target = $target_version ?: self::DB_VERSION;
+        
+        $migrations = [];
+        
+        // Define all migrations
+        $all_migrations = [
+            '1.1.0' => [
+                'version' => '1.1.0',
+                'description' => 'Add missing indexes for foreign key columns',
+                'method' => 'migrateTo110'
+            ]
+        ];
+        
+        // Get only pending migrations
+        foreach ($all_migrations as $version => $migration) {
+            if (version_compare($current_version, $version, '<') && 
+                version_compare($version, $target, '<=')) {
+                $migrations[] = $migration;
+            }
+        }
+        
+        return $migrations;
+    }
+    
+    /**
+     * Run a specific migration
+     *
+     * @param string $version
+     * @return bool
+     */
+    public function runMigration(string $version): bool
+    {
+        try {
+            switch ($version) {
+                case '1.1.0':
+                    $this->migrateTo110();
+                    break;
+                default:
+                    throw new \Exception("Unknown migration version: {$version}");
+            }
+            
+            // Update database version
+            $this->updateOption('mpcc_db_version', $version);
+            
+            return true;
+            
+        } catch (\Exception $e) {
+            $this->log('Migration failed: ' . $e->getMessage(), 'error');
+            return false;
+        }
+    }
 
     /**
      * Get active session count for user

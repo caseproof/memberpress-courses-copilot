@@ -71,11 +71,12 @@ class AssetManager extends BaseService
     private function registerStyles(): void
     {
         // Core styles
-        $this->registerStyle('mpcc-courses-integration', 'assets/css/courses-integration.css', ['wp-components']);
+        $this->registerStyle('mpcc-accessibility', 'assets/css/accessibility.css', []);
+        $this->registerStyle('mpcc-courses-integration', 'assets/css/courses-integration.css', ['wp-components', 'mpcc-accessibility']);
         $this->registerStyle('mpcc-toast', 'assets/css/toast.css', ['dashicons']);
-        $this->registerStyle('mpcc-course-editor', 'assets/css/course-editor-page.css', ['wp-components']);
-        $this->registerStyle('mpcc-course-edit-ai-chat', 'assets/css/course-edit-ai-chat.css', ['dashicons']);
-        $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons']);
+        $this->registerStyle('mpcc-course-editor', 'assets/css/course-editor-page.css', ['wp-components', 'mpcc-accessibility']);
+        $this->registerStyle('mpcc-course-edit-ai-chat', 'assets/css/course-edit-ai-chat.css', ['dashicons', 'mpcc-accessibility']);
+        $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons', 'mpcc-accessibility']);
         
         // Admin page styles
         $this->registerStyle('mpcc-admin-settings', 'assets/css/admin-settings.css', ['dashicons']);
@@ -110,15 +111,21 @@ class AssetManager extends BaseService
         );
         
         $this->registerScript(
+            'mpcc-accessibility-utilities',
+            'assets/js/accessibility-utilities.js',
+            ['jquery']
+        );
+        
+        $this->registerScript(
             'mpcc-course-editor',
             'assets/js/course-editor-page.js',
-            ['jquery', 'jquery-ui-sortable', 'wp-api', 'wp-components', 'wp-element', 'mpcc-toast', 'mpcc-shared-utilities']
+            ['jquery', 'jquery-ui-sortable', 'wp-api', 'wp-components', 'wp-element', 'mpcc-toast', 'mpcc-shared-utilities', 'mpcc-accessibility-utilities']
         );
         
         $this->registerScript(
             'mpcc-course-edit-ai-chat',
             'assets/js/course-edit-ai-chat.js',
-            ['jquery', 'mpcc-toast']
+            ['jquery', 'mpcc-toast', 'mpcc-shared-utilities', 'mpcc-accessibility-utilities']
         );
         
         // Course Integration scripts (extracted from inline)
@@ -131,7 +138,7 @@ class AssetManager extends BaseService
         $this->registerScript(
             'mpcc-course-integration-metabox',
             'assets/js/course-integration-metabox.js',
-            ['jquery']
+            ['jquery', 'mpcc-shared-utilities', 'mpcc-accessibility-utilities']
         );
         
         $this->registerScript(
@@ -150,14 +157,14 @@ class AssetManager extends BaseService
         $this->registerScript(
             'mpcc-editor-ai-modal',
             'assets/js/editor-ai-modal.js',
-            ['jquery']
+            ['jquery', 'mpcc-shared-utilities', 'mpcc-accessibility-utilities']
         );
         
         // Template scripts (extracted from inline)
         $this->registerScript(
             'mpcc-ai-chat-interface',
             'assets/js/ai-chat-interface.js',
-            ['jquery']
+            ['jquery', 'mpcc-shared-utilities', 'mpcc-accessibility-utilities']
         );
         
         $this->registerScript(
@@ -235,6 +242,14 @@ class AssetManager extends BaseService
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => NonceConstants::create(NonceConstants::AI_ASSISTANT),
             'strings' => $this->getCourseEditChatStrings()
+        ]);
+        
+        // AI chat interface localizations
+        wp_localize_script('mpcc-ai-chat-interface', 'mpccChatInterface', [
+            'strings' => [
+                'confirmClear' => __('Are you sure you want to clear the chat history?', 'memberpress-courses-copilot'),
+                'chatCleared' => __('Chat history has been cleared. How can I help you today?', 'memberpress-courses-copilot')
+            ]
         ]);
     }
     
@@ -315,6 +330,8 @@ class AssetManager extends BaseService
         
         // Enqueue scripts
         wp_enqueue_script('mpcc-toast');
+        wp_enqueue_script('mpcc-shared-utilities');
+        wp_enqueue_script('mpcc-accessibility-utilities');
         wp_enqueue_script('mpcc-course-edit-ai-chat');
         // Removed mpcc-simple-ai-chat - replaced by course-edit-ai-chat
     }
@@ -351,6 +368,8 @@ class AssetManager extends BaseService
         
         // Enqueue our scripts
         wp_enqueue_script('mpcc-toast');
+        wp_enqueue_script('mpcc-shared-utilities');
+        wp_enqueue_script('mpcc-accessibility-utilities');
         wp_enqueue_script('mpcc-course-editor');
         
         error_log('MPCC: Standalone editor assets enqueued');
@@ -396,6 +415,8 @@ class AssetManager extends BaseService
             'connectionError' => __('Connection error. Please try again.', 'memberpress-courses-copilot'),
             'send' => __('Send', 'memberpress-courses-copilot'),
             'placeholder' => __('Ask me to create a course or help with course content...', 'memberpress-courses-copilot'),
+            'confirmClear' => __('Are you sure you want to clear the chat history?', 'memberpress-courses-copilot'),
+            'chatCleared' => __('Chat history has been cleared. How can I help you today?', 'memberpress-courses-copilot'),
             'welcome' => __('Hi! I can help you create engaging courses. What would you like to build today?', 'memberpress-courses-copilot'),
             'networkError' => __('Network error. Please check your connection and try again.', 'memberpress-courses-copilot'),
             'processingError' => __('Error processing response. Please try again.', 'memberpress-courses-copilot'),

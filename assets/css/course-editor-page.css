@@ -1,7 +1,13 @@
 /**
  * MemberPress Courses Copilot - Course Editor Page Styles
  * Magnetic UI Design
+ * 
+ * @package MemberPressCoursesCopilot
+ * @version 1.0.0
  */
+
+/* Import common styles */
+@import url('mpcc-common.css');
 
 /* Layout */
 .mpcc-course-editor-wrap {
@@ -46,8 +52,8 @@
 .mpcc-editor-sidebar {
     width: 440px;
     flex-shrink: 0;
-    background: #f8f9fa;
-    border-right: 1px solid #e1e4e8;
+    background: var(--mpcc-bg-secondary);
+    border-right: 1px solid var(--mpcc-border-secondary);
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -58,7 +64,7 @@
 .mpcc-editor-main {
     flex: 1;
     min-width: 0;
-    background: #fff;
+    background: var(--mpcc-bg-primary);
 }
 
 /* Header */
@@ -66,20 +72,20 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: var(--mpcc-spacing-lg) var(--mpcc-spacing-xl);
+    background: var(--mpcc-primary-gradient);
     border-bottom: none;
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--mpcc-shadow-lg);
 }
 
 .mpcc-header-title {
     margin: 0;
-    font-size: 24px;
+    font-size: var(--mpcc-font-size-xl);
     font-weight: 600;
-    color: #ffffff;
+    color: var(--mpcc-text-inverse);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--mpcc-spacing-sm);
 }
 
 .mpcc-header-title .dashicons {
@@ -90,16 +96,16 @@
 .mpcc-status-indicator {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
+    gap: var(--mpcc-spacing-sm);
+    padding: var(--mpcc-spacing-xs) var(--mpcc-spacing-lg);
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
+    border-radius: var(--mpcc-radius-full);
     backdrop-filter: blur(10px);
 }
 
 .mpcc-status-text {
-    color: #ffffff;
-    font-size: 14px;
+    color: var(--mpcc-text-inverse);
+    font-size: var(--mpcc-font-size-sm);
     font-weight: 500;
 }
 
@@ -112,30 +118,7 @@
     box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
 }
 
-/* Animation keyframes */
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.05);
-        opacity: 0.7;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
+/* Animations imported from common styles */
 
 /* Spin animation for dashicons */
 .spin {
@@ -151,16 +134,16 @@
 .mpcc-header-button {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: var(--mpcc-spacing-sm);
+    padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-lg);
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    color: #ffffff;
-    font-size: 14px;
+    border-radius: var(--mpcc-radius-md);
+    color: var(--mpcc-text-inverse);
+    font-size: var(--mpcc-font-size-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--mpcc-transition-fast);
     backdrop-filter: blur(10px);
 }
 
@@ -180,17 +163,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: var(--mpcc-radius-full);
     background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    color: var(--mpcc-text-inverse);
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all var(--mpcc-transition-fast);
     backdrop-filter: blur(10px);
 }
 
 .mpcc-close-button:hover {
     background: rgba(255, 255, 255, 0.3);
-    color: #ffffff;
+    color: var(--mpcc-text-inverse);
     transform: scale(1.05);
 }
 
@@ -201,11 +184,11 @@
 
 .mpcc-editor-panel h2,
 .mpcc-editor-panel h3 {
-    margin: 0 0 20px 0;
+    margin: 0 0 var(--mpcc-spacing-lg) 0;
     padding: 0;
-    font-size: 18px;
+    font-size: var(--mpcc-font-size-lg);
     font-weight: 600;
-    color: #1d2327;
+    color: var(--mpcc-text-primary);
 }
 
 /* Chat Interface - Specific styles for editor page */
@@ -311,15 +294,15 @@
 }
 
 #mpcc-send-message {
-    margin-top: 10px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin-top: var(--mpcc-spacing-sm);
+    background: var(--mpcc-primary-gradient);
     border: none;
-    color: white;
-    padding: 10px 24px;
-    border-radius: 8px;
+    color: var(--mpcc-text-inverse);
+    padding: var(--mpcc-spacing-sm) var(--mpcc-spacing-lg);
+    border-radius: var(--mpcc-radius-md);
     font-weight: 500;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform var(--mpcc-transition-fast), box-shadow var(--mpcc-transition-fast);
 }
 
 #mpcc-send-message:hover {
@@ -328,7 +311,7 @@
 }
 
 #mpcc-send-message:disabled {
-    background: #dcdcde;
+    background: var(--mpcc-border-primary);
     cursor: not-allowed;
     opacity: 0.5;
     transform: none;
@@ -367,10 +350,7 @@
     animation: fadeIn 0.3s;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+/* fadeIn animation imported from common styles */
 
 .mpcc-chat-message.user {
     display: flex;
@@ -378,18 +358,18 @@
 }
 
 .mpcc-chat-message.user .message-content {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 12px 18px;
+    background: var(--mpcc-primary-gradient);
+    color: var(--mpcc-text-inverse);
+    padding: var(--mpcc-spacing-md) var(--mpcc-spacing-lg);
     border-radius: 18px 18px 4px 18px;
     max-width: 80%;
-    box-shadow: 0 2px 5px rgba(102, 126, 234, 0.3);
+    box-shadow: var(--mpcc-shadow-sm);
 }
 
 .mpcc-chat-message.assistant .message-content {
-    background: #f0f4f8;
-    color: #1d2327;
-    padding: 12px 18px;
+    background: var(--mpcc-bg-tertiary);
+    color: var(--mpcc-text-primary);
+    padding: var(--mpcc-spacing-md) var(--mpcc-spacing-lg);
     border-radius: 18px 18px 18px 4px;
     max-width: 80%;
 }
@@ -956,16 +936,7 @@
     animation-delay: 0.4s;
 }
 
-@keyframes typing {
-    0%, 60%, 100% {
-        opacity: 0.2;
-        transform: scale(0.8);
-    }
-    30% {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
+/* typing animation imported from common styles as typingDot */
 
 /* Session History Modal */
 .mpcc-sessions-modal-overlay {
