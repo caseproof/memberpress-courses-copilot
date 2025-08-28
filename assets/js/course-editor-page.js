@@ -342,6 +342,15 @@
         addMessage: function(role, content, addToHistory = true) {
             const messagesContainer = $('#mpcc-chat-messages');
             
+            // Skip if content is undefined or null
+            if (content === undefined || content === null) {
+                console.warn('Attempted to add message with undefined/null content', { role });
+                return;
+            }
+            
+            // Convert to string if needed
+            content = String(content);
+            
             // Format content based on role
             let formattedContent;
             if (role === 'assistant') {

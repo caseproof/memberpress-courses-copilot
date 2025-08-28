@@ -3,6 +3,8 @@
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Models\ConversationSession;
+use MemberPressCoursesCopilot\Interfaces\IConversationManager;
+use MemberPressCoursesCopilot\Interfaces\IDatabaseService;
 
 /**
  * Conversation Manager Service
@@ -12,9 +14,9 @@ use MemberPressCoursesCopilot\Models\ConversationSession;
  * Provides comprehensive session management with auto-save, timeout handling,
  * and multi-device synchronization capabilities.
  */
-class ConversationManager extends BaseService
+class ConversationManager extends BaseService implements IConversationManager
 {
-    private DatabaseService $databaseService;
+    private IDatabaseService $databaseService;
     private array $activeSessions = [];
     private array $sessionCache = [];
     
@@ -30,10 +32,21 @@ class ConversationManager extends BaseService
         'active', 'paused', 'completed', 'error', 'abandoned'
     ];
 
-    public function __construct(?DatabaseService $databaseService = null)
+    /**
+     * Constructor with dependency injection
+     *
+     * @param IDatabaseService|null $databaseService
+     */
+    public function __construct(?IDatabaseService $databaseService = null)
     {
         parent::__construct();
-        $this->databaseService = $databaseService ?: new DatabaseService();
+        // Use injected service or get from container as fallback
+        if ($databaseService) {
+            $this->databaseService = $databaseService;
+        } else {
+            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $this->databaseService = $container->get(IDatabaseService::class);
+        }
     }
     
     /**
@@ -681,5 +694,103 @@ class ConversationManager extends BaseService
         $completionLikelihood = ($progress * 0.5) + ($engagementScore * 0.3) + (min(1.0, $stateTransitions / 10) * 0.2);
         
         return round(min(1.0, $completionLikelihood), 2);
+    }
+    
+    /**
+     * Process a user message and return the AI response (IConversationManager interface)
+     *
+     * @param string $message User message
+     * @param int $userId User ID
+     * @return array Response containing the AI message and any metadata
+     */
+    public function processMessage(string $message, int $userId): array
+    {
+        // Get or create active session for user
+        $sessions = $this->getActiveSessions($userId);
+        $session = !empty($sessions) ? reset($sessions) : null;
+        
+        if (!$session) {
+            // Create new session if none exists
+            $session = $this->createSession([
+                'user_id' => $userId,
+                'context' => 'general_conversation'
+            ]);
+        }
+        
+        // Add message to session
+        $session->addMessage([
+            'role' => 'user',
+            'content' => $message,
+            'timestamp' => time()
+        ]);
+        
+        // Here you would integrate with LLM service to get response
+        // For now, return a placeholder
+        $response = [
+            'content' => 'This is a placeholder response. Integration with LLM service needed.',
+            'metadata' => [
+                'session_id' => $session->getSessionId(),
+                'tokens_used' => 0
+            ]
+        ];
+        
+        // Add response to session
+        $session->addMessage([
+            'role' => 'assistant',
+            'content' => $response['content'],
+            'timestamp' => time()
+        ]);
+        
+        // Save session
+        $this->saveSession($session);
+        
+        return $response;
+    }
+    
+    /**
+     * Get conversation history for a user (IConversationManager interface)
+     *
+     * @param int $userId User ID
+     * @param int $limit Number of messages to retrieve
+     * @return array Formatted conversation history
+     */
+    public function getHistory(int $userId, int $limit = 50): array
+    {
+        return $this->getConversationHistory($userId, $limit);
+    }
+    
+    /**
+     * Clear conversation history for a user (IConversationManager interface)
+     *
+     * @param int $userId User ID
+     * @return bool Success status
+     */
+    public function clearHistory(int $userId): bool
+    {
+        try {
+            // Get all conversations for user
+            $conversations = $this->databaseService->getConversationsByUser($userId, 1000);
+            
+            // Delete each conversation
+            foreach ($conversations as $conversation) {
+                $this->databaseService->deleteConversation($conversation->id);
+            }
+            
+            // Clear any cached sessions
+            foreach ($this->activeSessions as $sessionId => $session) {
+                if ($session->getUserId() === $userId) {
+                    unset($this->activeSessions[$sessionId]);
+                    unset($this->sessionCache[$sessionId]);
+                }
+            }
+            
+            return true;
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to clear conversation history', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
     }
 }

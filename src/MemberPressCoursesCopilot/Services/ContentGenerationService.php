@@ -4,6 +4,7 @@ namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Models\LessonContent;
 use MemberPressCoursesCopilot\Utilities\Logger;
+use MemberPressCoursesCopilot\Interfaces\ILLMService;
 
 /**
  * Advanced Content Generation Service
@@ -12,15 +13,28 @@ use MemberPressCoursesCopilot\Utilities\Logger;
  */
 class ContentGenerationService
 {
-    private LLMService $llmService;
+    private ILLMService $llmService;
     private ?MultimediaService $multimediaService;
     private ?Logger $logger;
     
-    public function __construct()
+    /**
+     * Constructor with dependency injection
+     *
+     * @param ILLMService|null $llmService
+     * @param Logger|null $logger
+     */
+    public function __construct(?ILLMService $llmService = null, ?Logger $logger = null)
     {
-        $this->llmService = new LLMService();
+        // Use injected services or get from container as fallback
+        if ($llmService) {
+            $this->llmService = $llmService;
+        } else {
+            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $this->llmService = $container->get(ILLMService::class);
+        }
+        
+        $this->logger = $logger ?: Logger::getInstance();
         $this->multimediaService = class_exists(MultimediaService::class) ? new MultimediaService() : null;
-        $this->logger = new Logger();
     }
     
     /**

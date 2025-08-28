@@ -20,6 +20,12 @@ use MemberPressCoursesCopilot\Services\{
     SessionFeaturesService,
     EditorAIIntegrationService
 };
+use MemberPressCoursesCopilot\Interfaces\{
+    IDatabaseService,
+    ILLMService,
+    IConversationManager,
+    ICourseGenerator
+};
 use MemberPressCoursesCopilot\Controllers\{
     SimpleAjaxController
 };
@@ -66,6 +72,9 @@ class ServiceProvider
         
         // Register aliases for convenience
         self::registerAliases($container);
+        
+        // Register interface bindings
+        self::registerInterfaceBindings($container);
     }
 
     /**
@@ -109,7 +118,9 @@ class ServiceProvider
         
         // Content Generation Service (singleton)
         $container->register(ContentGenerationService::class, function (Container $container) {
-            return new ContentGenerationService();
+            $llmService = $container->get(LLMService::class);
+            $logger = $container->get(Logger::class);
+            return new ContentGenerationService($llmService, $logger);
         }, true);
         
         // Course Generator Service (singleton)
@@ -148,7 +159,13 @@ class ServiceProvider
         $container->register(CourseUIService::class, CourseUIService::class, true);
         
         // Course Ajax Service (singleton)
-        $container->register(CourseAjaxService::class, CourseAjaxService::class, true);
+        $container->register(CourseAjaxService::class, function (Container $container) {
+            $llmService = $container->get(LLMService::class);
+            $conversationManager = $container->get(ConversationManager::class);
+            $courseGenerator = $container->get(CourseGeneratorService::class);
+            $lessonDraftService = $container->get(LessonDraftService::class);
+            return new CourseAjaxService($llmService, $conversationManager, $courseGenerator, $lessonDraftService);
+        }, true);
         
         // Editor AI Integration Service (singleton) - Unified service for both courses and lessons
         $container->register(EditorAIIntegrationService::class, EditorAIIntegrationService::class, true);
@@ -206,5 +223,20 @@ class ServiceProvider
         $container->alias('content', ContentGenerationService::class);
         $container->alias('course_generator', CourseGeneratorService::class);
         $container->alias('template', EnhancedTemplateEngine::class);
+    }
+    
+    /**
+     * Register interface bindings
+     *
+     * @param Container $container
+     * @return void
+     */
+    private static function registerInterfaceBindings(Container $container): void
+    {
+        // Bind interfaces to their implementations
+        $container->bind(IDatabaseService::class, DatabaseService::class);
+        $container->bind(ILLMService::class, LLMService::class);
+        $container->bind(IConversationManager::class, ConversationManager::class);
+        $container->bind(ICourseGenerator::class, CourseGeneratorService::class);
     }
 }

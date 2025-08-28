@@ -2,20 +2,24 @@
 
 namespace MemberPressCoursesCopilot\Services;
 
+use MemberPressCoursesCopilot\Interfaces\ILLMService;
+use MemberPressCoursesCopilot\Utilities\ApiResponse;
+use WP_Error;
+
 /**
  * LLM Service
  * 
  * Provides a secure interface to the LiteLLM proxy through an authentication gateway.
  * API keys are stored securely on the gateway server, never exposed in the plugin code.
  */
-class LLMService extends BaseService
+class LLMService extends BaseService implements ILLMService
 {
-    // Auth gateway configuration (secure proxy for API keys)
-    private const AUTH_GATEWAY_URL = 'https://memberpress-auth-gateway-49bbf7ff52ea.herokuapp.com';
+    // Auth gateway URL - can be overridden via wp-config.php constant
+    private string $authGatewayUrl;
     
     // License key for authentication with the gateway
     // In production, this should come from MemberPress license system
-    // TODO: Replace with actual licensing implementation from external server
+    // See /docs/todo/LICENSING_IMPLEMENTATION.md for implementation details
     private const LICENSE_KEY = 'dev-license-key-001'; // Placeholder - not a real credential
     
     /**
@@ -24,6 +28,11 @@ class LLMService extends BaseService
     public function __construct()
     {
         parent::__construct(); // Initialize logger from BaseService
+        
+        // Set auth gateway URL from constant if defined, otherwise use default
+        $this->authGatewayUrl = defined('MPCC_AUTH_GATEWAY_URL') 
+            ? MPCC_AUTH_GATEWAY_URL 
+            : 'https://memberpress-auth-gateway-49bbf7ff52ea.herokuapp.com';
     }
 
     /**
@@ -55,14 +64,14 @@ class LLMService extends BaseService
         ];
         
         $this->logger->debug('Making API request', [
-            'endpoint' => self::AUTH_GATEWAY_URL . '/v1/chat/completions',
+            'endpoint' => $this->authGatewayUrl . '/v1/chat/completions',
             'model' => $model,
             'provider' => $provider,
             'payload' => $payload,
             'content_type' => $contentType
         ]);
         
-        $response = wp_remote_post(self::AUTH_GATEWAY_URL . '/v1/chat/completions', [
+        $response = wp_remote_post($this->authGatewayUrl . '/v1/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer ' . self::LICENSE_KEY,
                 'Content-Type' => 'application/json'
@@ -75,7 +84,7 @@ class LLMService extends BaseService
             $error_message = $response->get_error_message();
             $this->logger->error('WordPress HTTP request failed', [
                 'error_message' => $error_message,
-                'endpoint' => self::AUTH_GATEWAY_URL . '/v1/chat/completions',
+                'endpoint' => $this->authGatewayUrl . '/v1/chat/completions',
                 'model' => $model,
                 'provider' => $provider
             ]);
@@ -679,6 +688,118 @@ class LLMService extends BaseService
         }
         
         return $content;
+    }
+    
+    /**
+     * Send a message to the LLM and get a response (ILLMService interface)
+     *
+     * @param string $message The user message
+     * @param array $conversationHistory Previous messages in the conversation
+     * @return array Response from the LLM
+     */
+    public function sendMessage(string $message, array $conversationHistory = []): array
+    {
+        $messages = $conversationHistory;
+        $messages[] = ['role' => 'user', 'content' => $message];
+        
+        $provider = $this->getProviderForContentType('general');
+        $model = $this->getModelForProvider($provider, 'general');
+        
+        $payload = [
+            'model' => $model,
+            'messages' => $messages,
+            'temperature' => 0.7,
+            'max_tokens' => 2000
+        ];
+        
+        $response = wp_remote_post($this->authGatewayUrl . '/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . self::LICENSE_KEY,
+                'Content-Type' => 'application/json'
+            ],
+            'body' => json_encode($payload),
+            'timeout' => 60
+        ]);
+        
+        if (is_wp_error($response)) {
+            return [
+                'error' => true,
+                'message' => $response->get_error_message(),
+                'content' => ''
+            ];
+        }
+        
+        $responseBody = wp_remote_retrieve_body($response);
+        $data = json_decode($responseBody, true);
+        
+        if (!isset($data['choices'][0]['message']['content'])) {
+            return [
+                'error' => true,
+                'message' => 'Unexpected response format',
+                'content' => ''
+            ];
+        }
+        
+        return [
+            'error' => false,
+            'content' => $data['choices'][0]['message']['content'],
+            'usage' => $data['usage'] ?? [],
+            'model' => $model
+        ];
+    }
+    
+    /**
+     * Generate a course based on the provided parameters (ILLMService interface)
+     *
+     * @param array $courseData Course generation parameters
+     * @return array Generated course content
+     */
+    public function generateCourse(array $courseData): array
+    {
+        try {
+            // Extract requirements from course data
+            $requirements = $this->extractCourseRequirements($courseData['description'] ?? '');
+            
+            // Determine template type
+            $templateType = $this->determineTemplateType($courseData['description'] ?? '');
+            
+            // Generate course outline
+            $prompt = "Create a comprehensive course outline for: {$courseData['title']}\n\n";
+            $prompt .= "Description: {$courseData['description']}\n";
+            $prompt .= "Target Audience: {$requirements['target_audience']}\n";
+            $prompt .= "Difficulty: {$requirements['difficulty_level']}\n\n";
+            $prompt .= "Generate a structured course with sections and lessons.";
+            
+            $response = $this->generateContent($prompt, 'course_outline', [
+                'temperature' => 0.7,
+                'max_tokens' => 4000
+            ]);
+            
+            if ($response['error']) {
+                return [
+                    'error' => true,
+                    'message' => $response['message']
+                ];
+            }
+            
+            return [
+                'error' => false,
+                'content' => $response['content'],
+                'requirements' => $requirements,
+                'template_type' => $templateType
+            ];
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to generate course', [
+                'error' => $e->getMessage(),
+                'course_data' => $courseData
+            ]);
+            
+            return [
+                'error' => true,
+                'message' => $e->getMessage()
+            ];
+        }
     }
     
 }

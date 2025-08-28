@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MemberPressCoursesCopilot\Services;
 
 use wpdb;
+use MemberPressCoursesCopilot\Interfaces\IDatabaseService;
 
 /**
  * Database Service class
@@ -15,7 +16,7 @@ use wpdb;
  * @package MemberPressCoursesCopilot\Services
  * @since 1.0.0
  */
-class DatabaseService extends BaseService
+class DatabaseService extends BaseService implements IDatabaseService
 {
     /**
      * Database version for migrations
@@ -1273,5 +1274,54 @@ class DatabaseService extends BaseService
         $result = $this->wpdb->query($prepared_sql);
         
         return $result !== false ? $result : 0;
+    }
+    
+    /**
+     * Save a conversation to the database (IDatabaseService interface)
+     *
+     * @param int $userId User ID
+     * @param string $message User message
+     * @param string $response AI response
+     * @return int|false Conversation ID on success, false on failure
+     */
+    public function saveConversation(int $userId, string $message, string $response)
+    {
+        // Create a new conversation with the message and response
+        $data = [
+            'user_id' => $userId,
+            'session_id' => wp_generate_password(32, false),
+            'messages' => json_encode([
+                ['role' => 'user', 'content' => $message],
+                ['role' => 'assistant', 'content' => $response]
+            ])
+        ];
+        
+        return $this->insertConversation($data);
+    }
+    
+    /**
+     * Get conversation history for a user (IDatabaseService interface)
+     *
+     * @param int $userId User ID
+     * @param int $limit Number of messages to retrieve
+     * @return array Conversation history
+     */
+    public function getConversationHistory(int $userId, int $limit = 50): array
+    {
+        $conversations = $this->getConversationsByUser($userId, $limit);
+        
+        $history = [];
+        foreach ($conversations as $conversation) {
+            $messages = json_decode($conversation->messages, true) ?: [];
+            $history[] = [
+                'id' => $conversation->id,
+                'session_id' => $conversation->session_id,
+                'messages' => $messages,
+                'created_at' => $conversation->created_at,
+                'updated_at' => $conversation->updated_at
+            ];
+        }
+        
+        return $history;
     }
 }

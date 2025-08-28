@@ -222,6 +222,18 @@ class Container
     }
 
     /**
+     * Bind an interface to a concrete implementation
+     *
+     * @param string $interface Interface name
+     * @param string $concrete Concrete class name
+     * @return void
+     */
+    public function bind(string $interface, string $concrete): void
+    {
+        $this->alias($interface, $concrete);
+    }
+    
+    /**
      * Reset the container (mainly for testing)
      *
      * @return void

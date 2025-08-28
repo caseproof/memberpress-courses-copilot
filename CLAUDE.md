@@ -42,6 +42,7 @@
 - **Reusable components**: One AI service used everywhere
 - **Shared prompts**: System prompts defined once and reused
 - **No duplicate functionality**: One way to do each task
+- **Minimal configuration**: Auth Gateway URL can be customized via `MPCC_AUTH_GATEWAY_URL` constant in wp-config.php if needed
 
 ### YAGNI (You Aren't Gonna Need It)
 - **No settings UI**: Users don't need to configure AI
