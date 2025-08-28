@@ -9,10 +9,23 @@ use MemberPressCoursesCopilot\Interfaces\IDatabaseService;
 /**
  * Conversation Manager Service
  * 
- * Manages conversation session lifecycle, state validation and transitions,
- * context preservation, conversation history, and user progress tracking.
- * Provides comprehensive session management with auto-save, timeout handling,
- * and multi-device synchronization capabilities.
+ * Central service for managing AI conversation sessions throughout their lifecycle.
+ * Handles session persistence, state management, message history, and user progress tracking.
+ * 
+ * Key responsibilities:
+ * - Create, load, save, and delete conversation sessions
+ * - Manage conversation state transitions
+ * - Store and retrieve message history
+ * - Track user progress through course creation workflow
+ * - Handle session cleanup and expiration
+ * - Provide session listing and search capabilities
+ * 
+ * Database storage:
+ * Sessions are stored in the {prefix}_mpcc_conversations table with JSON-encoded
+ * messages and context data for flexibility.
+ * 
+ * @package MemberPressCoursesCopilot\Services
+ * @since 1.0.0
  */
 class ConversationManager extends BaseService implements IConversationManager
 {

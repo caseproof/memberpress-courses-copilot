@@ -1,4 +1,4 @@
-# Nonce Standardization Proposal
+# Nonce Standardization Documentation
 
 ## Current Nonce Usage Analysis
 
@@ -86,47 +86,55 @@ After analyzing the codebase, I found the following unique nonce names currently
 - Used in: Documentation only
 - Purpose: Legacy/documentation reference
 
-## Standardization Proposal
+## Current Implementation
 
-I propose consolidating these 17 different nonces into 3 standard ones:
+The nonces have been standardized using the `NonceConstants` class located at `src/MemberPressCoursesCopilot/Security/NonceConstants.php`. 
 
-### 1. **mpcc_ajax_nonce**
-- **Purpose**: All AJAX operations (frontend and backend)
-- **Replace**: 
-  - mpcc_courses_integration
-  - mpcc_ai_interface
-  - mpcc_generate_course
-  - mpcc_quality_feedback
-  - mpcc_apply_improvement
-  - mpcc_auto_save_nonce
-  - mpcc_extend_session_nonce
-  - mpcc_quality_gates
-  - mpcc_request_review
-  - mpcc_certify_quality
-  - mpcc_nonce
-  - mp_ai_copilot_nonce
+The current standard nonces are:
 
-### 2. **mpcc_admin_nonce**
-- **Purpose**: All admin-only actions (non-AJAX)
-- **Replace**:
-  - mpcc_cleanup_sessions
-  - mpcc_export
-  - mpcc_editor_nonce (when used for page rendering)
+### Core Nonces (via NonceConstants class)
 
-### 3. **wp_rest** (keep as is)
-- **Purpose**: WordPress REST API standard
-- **Keep**: This is a WordPress standard and should not be changed
+```php
+class NonceConstants {
+    const ADMIN_ACTION = 'mpcc_admin_action';
+    const EDITOR_NONCE = 'mpcc_editor_nonce';
+    const COURSES_INTEGRATION = 'mpcc_courses_integration';
+    const AI_INTERFACE = 'mpcc_ai_interface';
+    const AI_ASSISTANT = 'mpcc_ai_assistant';
+}
+```
 
-## Benefits of This Approach
+### Usage Examples
 
-1. **Simplicity**: Reduces 17 nonces to 3
-2. **Maintainability**: Easier to manage and understand
-3. **Security**: Still provides proper nonce verification
-4. **Consistency**: Clear distinction between AJAX and admin actions
-5. **Standards Compliance**: Keeps WordPress REST API standard intact
+```php
+// Creating a nonce
+$nonce = NonceConstants::create(NonceConstants::EDITOR_NONCE);
 
-## Implementation Notes
+// Verifying a nonce
+if (NonceConstants::verify($_POST['nonce'], NonceConstants::EDITOR_NONCE)) {
+    // Process request
+}
+```
 
-- The multiple fallback checks in AjaxController.php and SimpleAjaxController.php can be removed
-- JavaScript can use a single nonce variable across all AJAX calls
-- Admin actions remain properly segregated with their own nonce
+### JavaScript Usage
+
+```javascript
+// Nonces are localized to JavaScript
+jQuery.post(ajaxurl, {
+    action: 'mpcc_chat_message',
+    nonce: mpcc_editor.nonce,
+    message: 'User message'
+});
+```
+
+## Benefits of Current Implementation
+
+1. **Type Safety**: Constants prevent typos in nonce names
+2. **Centralized Management**: All nonce definitions in one place
+3. **Consistent Verification**: Standard verify() method with proper error handling
+4. **Backward Compatibility**: Supports multiple nonce checks during migration
+5. **Security**: Maintains WordPress nonce security standards
+
+## Migration Status
+
+Most of the codebase has been migrated to use the NonceConstants class. Any remaining direct nonce strings should be updated to use the constants for consistency.

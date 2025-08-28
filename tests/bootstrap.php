@@ -101,14 +101,14 @@ if (!function_exists('get_stylesheet_directory')) {
 if (!function_exists('wp_send_json_success')) {
     function wp_send_json_success($data = null) {
         echo json_encode(['success' => true, 'data' => $data]);
-        exit;
+        throw new \Exception('wp_send_json_exit');
     }
 }
 
 if (!function_exists('wp_send_json_error')) {
     function wp_send_json_error($data = null) {
         echo json_encode(['success' => false, 'data' => $data]);
-        exit;
+        throw new \Exception('wp_send_json_exit');
     }
 }
 
@@ -157,6 +157,78 @@ if (!function_exists('wp_remote_post')) {
     }
 }
 
+if (!function_exists('wp_verify_nonce')) {
+    function wp_verify_nonce($nonce, $action = -1) {
+        // Simple verification for tests
+        return $nonce === wp_create_nonce($action);
+    }
+}
+
+if (!function_exists('check_ajax_referer')) {
+    function check_ajax_referer($action = -1, $query_arg = false, $die = true) {
+        $nonce = $_REQUEST['_wpnonce'] ?? $_REQUEST['nonce'] ?? '';
+        if (!wp_verify_nonce($nonce, $action)) {
+            if ($die) {
+                wp_die('Security check failed');
+            }
+            return false;
+        }
+        return 1;
+    }
+}
+
+if (!function_exists('current_user_can')) {
+    function current_user_can($capability) {
+        global $test_user_caps;
+        return isset($test_user_caps[$capability]) && $test_user_caps[$capability];
+    }
+}
+
+if (!function_exists('wp_die')) {
+    function wp_die($message = '', $title = '', $args = []) {
+        throw new \Exception('wp_die: ' . $message);
+    }
+}
+
+if (!function_exists('is_wp_error')) {
+    function is_wp_error($thing) {
+        return $thing instanceof WP_Error;
+    }
+}
+
+// Mock WP_Error class
+if (!class_exists('WP_Error')) {
+    class WP_Error {
+        private $errors = [];
+        private $error_data = [];
+        
+        public function __construct($code = '', $message = '', $data = '') {
+            if (!empty($code)) {
+                $this->add($code, $message, $data);
+            }
+        }
+        
+        public function add($code, $message, $data = '') {
+            $this->errors[$code][] = $message;
+            if (!empty($data)) {
+                $this->error_data[$code] = $data;
+            }
+        }
+        
+        public function get_error_message($code = '') {
+            if (empty($code)) {
+                $code = $this->get_error_code();
+            }
+            return isset($this->errors[$code]) ? $this->errors[$code][0] : '';
+        }
+        
+        public function get_error_code() {
+            $codes = array_keys($this->errors);
+            return !empty($codes) ? $codes[0] : '';
+        }
+    }
+}
+
 if (!defined('WP_DEBUG')) {
     define('WP_DEBUG', true);
 }
@@ -166,9 +238,10 @@ if (!defined('ABSPATH')) {
 }
 
 // Initialize global test variables
-global $test_transients, $test_localized_data;
+global $test_transients, $test_localized_data, $test_user_caps;
 $test_transients = [];
 $test_localized_data = [];
+$test_user_caps = ['read' => true]; // Default capabilities
 
 // Output test environment info
 echo PHP_EOL . 'MemberPress Courses Copilot Test Suite' . PHP_EOL;

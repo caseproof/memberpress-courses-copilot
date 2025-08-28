@@ -1,0 +1,805 @@
+/**
+ * MemberPress Courses Copilot - Layout Styles
+ * Page-specific and complex layout patterns
+ *
+ * @package MemberPressCoursesCopilot
+ * @version 2.0.0
+ */
+
+/* Import dependencies */
+@import url('mpcc-variables.css');
+@import url('mpcc-base.css');
+@import url('mpcc-components.css');
+
+/* ==========================================================================
+   AI Chat Interface Layout
+   ========================================================================== */
+
+.mpcc-ai-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--mpcc-bg-primary);
+}
+
+.mpcc-ai-interface__header {
+  flex-shrink: 0;
+  padding: var(--mpcc-spacing-6);
+  background: var(--mpcc-bg-secondary);
+  border-bottom: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+}
+
+.mpcc-ai-interface__messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--mpcc-spacing-6);
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mpcc-border-secondary) transparent;
+}
+
+.mpcc-ai-interface__messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mpcc-ai-interface__messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mpcc-ai-interface__messages::-webkit-scrollbar-thumb {
+  background: var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-full);
+}
+
+.mpcc-ai-interface__input-area {
+  flex-shrink: 0;
+  padding: var(--mpcc-spacing-6);
+  background: var(--mpcc-bg-secondary);
+  border-top: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+}
+
+.mpcc-ai-interface__controls {
+  flex-shrink: 0;
+  padding: var(--mpcc-spacing-4) var(--mpcc-spacing-6);
+  background: var(--mpcc-bg-tertiary);
+  border-top: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+  display: flex;
+  justify-content: center;
+  gap: var(--mpcc-spacing-3);
+}
+
+/* Chat Messages */
+.mpcc-message {
+  display: flex;
+  gap: var(--mpcc-spacing-4);
+  margin-bottom: var(--mpcc-spacing-6);
+  animation: mpcc-message-slide-in 0.3s ease-out;
+}
+
+@keyframes mpcc-message-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mpcc-message--user {
+  flex-direction: row-reverse;
+}
+
+.mpcc-message__avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--mpcc-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+.mpcc-message--assistant .mpcc-message__avatar {
+  background: var(--mpcc-gradient-primary);
+  color: var(--mpcc-text-inverse);
+}
+
+.mpcc-message--user .mpcc-message__avatar {
+  background: linear-gradient(135deg, var(--mpcc-secondary), #6c757d);
+  color: var(--mpcc-text-inverse);
+}
+
+.mpcc-message__content {
+  flex: 1;
+  max-width: 80%;
+  padding: var(--mpcc-spacing-4);
+  border-radius: var(--mpcc-chat-message-radius);
+  line-height: var(--mpcc-line-height-relaxed);
+  word-wrap: break-word;
+}
+
+.mpcc-message--assistant .mpcc-message__content {
+  background: var(--mpcc-bg-secondary);
+  border: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-chat-message-radius) var(--mpcc-chat-message-radius) var(--mpcc-chat-message-radius) 4px;
+}
+
+.mpcc-message--user .mpcc-message__content {
+  background: var(--mpcc-gradient-primary);
+  color: var(--mpcc-text-inverse);
+  border-radius: var(--mpcc-chat-message-radius) var(--mpcc-chat-message-radius) 4px var(--mpcc-chat-message-radius);
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+/* Message Actions */
+.mpcc-message__actions {
+  display: flex;
+  gap: var(--mpcc-spacing-2);
+  margin-top: var(--mpcc-spacing-2);
+  opacity: 0;
+  transition: opacity var(--mpcc-duration-fast);
+}
+
+.mpcc-message:hover .mpcc-message__actions {
+  opacity: 1;
+}
+
+/* Chat Input */
+.mpcc-chat-input-wrapper {
+  display: flex;
+  gap: var(--mpcc-spacing-3);
+  align-items: flex-end;
+}
+
+.mpcc-chat-input {
+  flex: 1;
+  min-height: var(--mpcc-chat-input-min-height);
+  max-height: var(--mpcc-chat-input-max-height);
+  padding: var(--mpcc-spacing-3) var(--mpcc-spacing-4);
+  border: var(--mpcc-border-width-medium) solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-lg);
+  resize: none;
+  transition: var(--mpcc-transition-colors);
+  font-family: inherit;
+}
+
+.mpcc-chat-input:focus {
+  outline: none;
+  border-color: var(--mpcc-border-focus);
+  box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.1);
+}
+
+/* Typing Indicator */
+.mpcc-typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-3);
+  padding: var(--mpcc-spacing-3) 0;
+}
+
+.mpcc-typing-indicator__dots {
+  display: flex;
+  gap: 4px;
+}
+
+.mpcc-typing-indicator__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--mpcc-radius-full);
+  background: var(--mpcc-text-muted);
+  animation: mpcc-typing-dot 1.4s infinite ease-in-out;
+}
+
+@keyframes mpcc-typing-dot {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.mpcc-typing-indicator__dot:nth-child(1) { animation-delay: -0.32s; }
+.mpcc-typing-indicator__dot:nth-child(2) { animation-delay: -0.16s; }
+
+/* ==========================================================================
+   Course Editor Layout
+   ========================================================================== */
+
+.mpcc-course-editor {
+  display: flex;
+  height: 100vh;
+  background: var(--mpcc-gradient-primary);
+  overflow: hidden;
+}
+
+.mpcc-course-editor__container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.98);
+  margin: 0;
+  box-shadow: var(--mpcc-shadow-2xl);
+}
+
+.mpcc-course-editor__header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--mpcc-spacing-4) var(--mpcc-spacing-6);
+  background: var(--mpcc-gradient-primary);
+  color: var(--mpcc-text-inverse);
+  box-shadow: var(--mpcc-shadow-lg);
+}
+
+.mpcc-course-editor__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mpcc-course-editor__sidebar {
+  width: var(--mpcc-chat-sidebar-width);
+  flex-shrink: 0;
+  background: var(--mpcc-bg-secondary);
+  border-right: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mpcc-course-editor__main {
+  flex: 1;
+  min-width: 0;
+  background: var(--mpcc-bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.mpcc-course-editor__preview {
+  flex: 1;
+  padding: var(--mpcc-spacing-6);
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   Course Structure Layout
+   ========================================================================== */
+
+.mpcc-course-structure {
+  max-width: 100%;
+}
+
+.mpcc-course-structure__header {
+  margin-bottom: var(--mpcc-spacing-8);
+}
+
+.mpcc-course-structure__title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--mpcc-spacing-3);
+}
+
+.mpcc-course-structure__sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mpcc-spacing-6);
+}
+
+/* Course Section */
+.mpcc-section {
+  background: var(--mpcc-bg-primary);
+  border-radius: var(--mpcc-radius-lg);
+  box-shadow: var(--mpcc-shadow-sm);
+  overflow: hidden;
+  transition: var(--mpcc-transition-shadow);
+  border-left: var(--mpcc-border-width-thick) solid var(--mpcc-primary);
+}
+
+.mpcc-section:hover {
+  box-shadow: var(--mpcc-shadow-md);
+}
+
+.mpcc-section--dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.mpcc-section__header {
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-3);
+  padding: var(--mpcc-spacing-4) var(--mpcc-spacing-5);
+  background: var(--mpcc-gradient-light);
+  cursor: move;
+}
+
+.mpcc-section__drag-handle {
+  color: var(--mpcc-text-muted);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--mpcc-duration-fast);
+}
+
+.mpcc-section:hover .mpcc-section__drag-handle {
+  opacity: 1;
+}
+
+.mpcc-section__drag-handle:active {
+  cursor: grabbing;
+}
+
+.mpcc-section__title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--mpcc-font-size-lg);
+  font-weight: var(--mpcc-font-weight-semibold);
+}
+
+.mpcc-section__actions {
+  display: flex;
+  gap: var(--mpcc-spacing-1);
+  opacity: 0;
+  transition: opacity var(--mpcc-duration-fast);
+}
+
+.mpcc-section:hover .mpcc-section__actions {
+  opacity: 1;
+}
+
+.mpcc-section__body {
+  padding: var(--mpcc-spacing-4);
+  background: var(--mpcc-bg-secondary);
+}
+
+.mpcc-section__description {
+  margin: 0 0 var(--mpcc-spacing-4) 0;
+  color: var(--mpcc-text-secondary);
+  font-size: var(--mpcc-font-size-sm);
+}
+
+.mpcc-section__lessons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mpcc-spacing-2);
+  min-height: 60px;
+  padding: var(--mpcc-spacing-3);
+  background: var(--mpcc-bg-primary);
+  border-radius: var(--mpcc-radius-md);
+  border: var(--mpcc-border-width-medium) dashed transparent;
+  transition: var(--mpcc-transition-colors);
+}
+
+.mpcc-section__lessons--drag-over {
+  background: rgba(0, 115, 170, 0.05);
+  border-color: var(--mpcc-primary);
+}
+
+/* Course Lesson */
+.mpcc-lesson {
+  display: flex;
+  align-items: center;
+  gap: var(--mpcc-spacing-3);
+  padding: var(--mpcc-spacing-3);
+  background: var(--mpcc-bg-primary);
+  border-radius: var(--mpcc-radius-md);
+  transition: var(--mpcc-transition-all);
+  cursor: move;
+  position: relative;
+}
+
+.mpcc-lesson:hover {
+  background: var(--mpcc-bg-tertiary);
+  transform: translateX(4px);
+}
+
+.mpcc-lesson--dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.mpcc-lesson--has-draft::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--mpcc-success);
+  border-radius: var(--mpcc-radius-sm) 0 0 var(--mpcc-radius-sm);
+}
+
+.mpcc-lesson__drag-handle {
+  color: var(--mpcc-text-muted);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--mpcc-duration-fast);
+}
+
+.mpcc-lesson:hover .mpcc-lesson__drag-handle {
+  opacity: 1;
+}
+
+.mpcc-lesson__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mpcc-lesson__title {
+  margin: 0;
+  font-size: var(--mpcc-font-size-sm);
+  font-weight: var(--mpcc-font-weight-medium);
+  color: var(--mpcc-text-primary);
+}
+
+.mpcc-lesson__meta {
+  display: flex;
+  gap: var(--mpcc-spacing-4);
+  margin-top: var(--mpcc-spacing-1);
+  font-size: var(--mpcc-font-size-xs);
+  color: var(--mpcc-text-muted);
+}
+
+.mpcc-lesson__actions {
+  display: flex;
+  gap: var(--mpcc-spacing-1);
+  opacity: 0;
+  transition: opacity var(--mpcc-duration-fast);
+}
+
+.mpcc-lesson:hover .mpcc-lesson__actions {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   Course Generator Layout
+   ========================================================================== */
+
+.mpcc-generator {
+  display: flex;
+  gap: var(--mpcc-spacing-6);
+  margin-top: var(--mpcc-spacing-6);
+  min-height: 700px;
+  height: calc(100vh - 200px);
+  position: relative;
+}
+
+.mpcc-generator__chat,
+.mpcc-generator__preview {
+  flex: 1;
+  background: var(--mpcc-bg-primary);
+  border: var(--mpcc-border-width-thin) solid var(--mpcc-border-primary);
+  border-radius: var(--mpcc-radius-lg);
+  box-shadow: var(--mpcc-shadow-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mpcc-generator__header {
+  flex-shrink: 0;
+  padding: var(--mpcc-spacing-6);
+  background: var(--mpcc-bg-secondary);
+  border-bottom: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+}
+
+.mpcc-generator__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Templates Grid */
+.mpcc-templates {
+  padding: var(--mpcc-spacing-6);
+  border-bottom: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+  background: var(--mpcc-bg-primary);
+}
+
+.mpcc-templates__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--mpcc-spacing-4);
+}
+
+.mpcc-template-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mpcc-spacing-3);
+  padding: var(--mpcc-spacing-4);
+  border: var(--mpcc-border-width-medium) solid var(--mpcc-border-secondary);
+  border-radius: var(--mpcc-radius-lg);
+  background: var(--mpcc-bg-primary);
+  cursor: pointer;
+  transition: var(--mpcc-transition-all);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.mpcc-template-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s;
+}
+
+.mpcc-template-card:hover {
+  border-color: var(--mpcc-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--mpcc-shadow-lg);
+}
+
+.mpcc-template-card:hover::before {
+  left: 100%;
+}
+
+.mpcc-template-card--selected {
+  border-color: var(--mpcc-primary);
+  background: linear-gradient(135deg, rgba(0, 115, 170, 0.05), rgba(0, 115, 170, 0.1));
+  box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.1);
+}
+
+.mpcc-template-card__icon {
+  font-size: 48px;
+  color: var(--mpcc-primary);
+  transition: transform var(--mpcc-duration-normal);
+}
+
+.mpcc-template-card:hover .mpcc-template-card__icon {
+  transform: scale(1.1);
+}
+
+/* ==========================================================================
+   Admin Settings Layout
+   ========================================================================== */
+
+.mpcc-settings {
+  display: flex;
+  gap: var(--mpcc-spacing-6);
+  margin-top: var(--mpcc-spacing-6);
+}
+
+.mpcc-settings__main {
+  flex: 2;
+}
+
+.mpcc-settings__sidebar {
+  flex: 1;
+}
+
+/* ==========================================================================
+   Progress Tracking Layout
+   ========================================================================== */
+
+.mpcc-progress-tracker {
+  padding: var(--mpcc-spacing-6);
+  background: var(--mpcc-bg-secondary);
+  border-bottom: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+}
+
+.mpcc-progress-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--mpcc-spacing-4);
+}
+
+.mpcc-progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mpcc-spacing-2);
+  flex: 1;
+  position: relative;
+}
+
+.mpcc-progress-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--mpcc-border-secondary);
+}
+
+.mpcc-progress-step--completed:not(:last-child)::after {
+  background: var(--mpcc-success);
+}
+
+.mpcc-progress-step__indicator {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--mpcc-radius-full);
+  background: var(--mpcc-bg-tertiary);
+  color: var(--mpcc-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--mpcc-font-size-sm);
+  font-weight: var(--mpcc-font-weight-semibold);
+  border: var(--mpcc-border-width-medium) solid var(--mpcc-border-secondary);
+  transition: var(--mpcc-transition-all);
+  z-index: 1;
+  position: relative;
+}
+
+.mpcc-progress-step--active .mpcc-progress-step__indicator {
+  background: var(--mpcc-primary);
+  color: var(--mpcc-text-inverse);
+  border-color: var(--mpcc-primary);
+  box-shadow: 0 0 0 4px rgba(0, 115, 170, 0.2);
+}
+
+.mpcc-progress-step--completed .mpcc-progress-step__indicator {
+  background: var(--mpcc-success);
+  color: var(--mpcc-text-inverse);
+  border-color: var(--mpcc-success);
+}
+
+.mpcc-progress-step__label {
+  font-size: var(--mpcc-font-size-xs);
+  color: var(--mpcc-text-secondary);
+  text-align: center;
+  font-weight: var(--mpcc-font-weight-medium);
+}
+
+.mpcc-progress-step--active .mpcc-progress-step__label {
+  color: var(--mpcc-primary);
+  font-weight: var(--mpcc-font-weight-semibold);
+}
+
+/* ==========================================================================
+   Modal Layouts
+   ========================================================================== */
+
+.mpcc-modal--ai-interface {
+  max-width: 95%;
+  width: 1600px;
+  height: 92%;
+}
+
+.mpcc-modal--ai-interface .mpcc-modal__body {
+  padding: 0;
+  display: flex;
+}
+
+.mpcc-modal--sessions {
+  max-width: 600px;
+}
+
+.mpcc-sessions-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mpcc-session-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--mpcc-spacing-4) var(--mpcc-spacing-6);
+  border-bottom: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+  cursor: pointer;
+  transition: var(--mpcc-transition-all);
+}
+
+.mpcc-session-item:hover {
+  background: var(--mpcc-bg-secondary);
+  padding-left: var(--mpcc-spacing-8);
+}
+
+.mpcc-session-item--active {
+  border-left: var(--mpcc-border-width-thick) solid var(--mpcc-primary);
+  background: var(--mpcc-bg-secondary);
+}
+
+/* ==========================================================================
+   Responsive Layouts
+   ========================================================================== */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .mpcc-generator {
+    flex-direction: column;
+  }
+  
+  .mpcc-settings {
+    flex-direction: column;
+  }
+  
+  .mpcc-course-editor__sidebar {
+    width: 350px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .mpcc-course-editor__body {
+    flex-direction: column;
+  }
+  
+  .mpcc-course-editor__sidebar {
+    width: 100%;
+    height: 300px;
+    border-right: none;
+    border-bottom: var(--mpcc-border-width-thin) solid var(--mpcc-border-secondary);
+  }
+  
+  .mpcc-templates__grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .mpcc-progress-steps {
+    flex-wrap: wrap;
+    gap: var(--mpcc-spacing-4);
+  }
+  
+  .mpcc-progress-step {
+    flex: 0 0 auto;
+    min-width: 120px;
+  }
+  
+  .mpcc-progress-step:not(:last-child)::after {
+    display: none;
+  }
+  
+  .mpcc-message__content {
+    max-width: 90%;
+  }
+  
+  .mpcc-chat-input-wrapper {
+    flex-direction: column;
+  }
+  
+  .mpcc-modal--ai-interface {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    border-radius: 0;
+  }
+}
+
+/* ==========================================================================
+   Print Layouts
+   ========================================================================== */
+
+@media print {
+  .mpcc-generator__chat,
+  .mpcc-course-editor__sidebar,
+  .mpcc-templates,
+  .mpcc-progress-tracker,
+  .mpcc-section__actions,
+  .mpcc-lesson__actions,
+  .mpcc-ai-interface__input-area,
+  .mpcc-ai-interface__controls {
+    display: none !important;
+  }
+  
+  .mpcc-generator,
+  .mpcc-course-editor {
+    height: auto;
+  }
+  
+  .mpcc-section,
+  .mpcc-lesson {
+    break-inside: avoid;
+  }
+}

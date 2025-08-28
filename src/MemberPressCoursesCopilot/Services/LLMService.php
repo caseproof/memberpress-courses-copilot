@@ -9,8 +9,18 @@ use WP_Error;
 /**
  * LLM Service
  * 
- * Provides a secure interface to the LiteLLM proxy through an authentication gateway.
- * API keys are stored securely on the gateway server, never exposed in the plugin code.
+ * Provides a secure interface to AI language models through an authentication gateway.
+ * This service handles all AI-related operations including content generation,
+ * course structure creation, and lesson content writing.
+ * 
+ * Features:
+ * - Secure API key management (keys stored on gateway, not in plugin)
+ * - Intelligent model routing based on content type
+ * - Automatic retry logic for failed requests
+ * - Comprehensive error handling and logging
+ * 
+ * @package MemberPressCoursesCopilot\Services
+ * @since 1.0.0
  */
 class LLMService extends BaseService implements ILLMService
 {
@@ -47,7 +57,34 @@ class LLMService extends BaseService implements ILLMService
     }
     
     /**
-     * Make a simple request to the AI service
+     * Generate content using AI language models
+     * 
+     * Routes requests to the appropriate AI model based on content type and
+     * sends them through the authentication gateway for processing.
+     * 
+     * @param string $prompt The text prompt to send to the AI
+     * @param string $contentType Type of content being generated (e.g., 'course_structure', 'lesson_content')
+     * @param array $options Additional options including:
+     *                      - temperature (float): Creativity level 0-1, default 0.7
+     *                      - max_tokens (int): Maximum response length, default 2000
+     *                      - timeout (int): Request timeout in seconds, default 60
+     *                      - messages (array): Full conversation history for chat completions
+     * 
+     * @return array Response array with keys:
+     *               - success (bool): Whether the request succeeded
+     *               - content (string): The generated content
+     *               - error (bool): Whether an error occurred
+     *               - message (string): Error message if applicable
+     *               - usage (array): Token usage statistics
+     *               
+     * @throws \Exception When gateway URL is not configured
+     * 
+     * @example
+     * $response = $llmService->generateContent(
+     *     'Create a course outline for PHP programming',
+     *     'course_structure',
+     *     ['temperature' => 0.5]
+     * );
      */
     public function generateContent(string $prompt, string $contentType = 'general', array $options = []): array
     {
