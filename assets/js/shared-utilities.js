@@ -71,6 +71,11 @@ window.MPCCUtils = {
      * Format message to HTML with proper structure
      */
     formatMessageToHTML: function(message) {
+        // Handle undefined, null, or empty messages
+        if (!message || typeof message !== 'string') {
+            return '';
+        }
+        
         // Handle both escaped sequences and actual escape characters
         let formatted = message;
         

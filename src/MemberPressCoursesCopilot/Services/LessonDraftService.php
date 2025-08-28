@@ -2,11 +2,21 @@
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Database\LessonDraftTable;
+use MemberPressCoursesCopilot\Interfaces\IDatabaseService;
 
 class LessonDraftService {
     private $table;
+    private ?IDatabaseService $databaseService;
     
-    public function __construct() {
+    /**
+     * Constructor with dependency injection
+     *
+     * @param IDatabaseService|null $databaseService
+     */
+    public function __construct(?IDatabaseService $databaseService = null) {
+        // Store database service (optional for backward compatibility)
+        $this->databaseService = $databaseService;
+        
         $this->table = new LessonDraftTable();
         
         // Ensure table exists (temporary fix)

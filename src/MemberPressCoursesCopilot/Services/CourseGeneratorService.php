@@ -6,6 +6,9 @@ use memberpress\courses\models\Course;
 use memberpress\courses\models\Section;
 use memberpress\courses\models\Lesson;
 use MemberPressCoursesCopilot\Utilities\Logger;
+use MemberPressCoursesCopilot\Utilities\ApiResponse;
+use WP_Error;
+use MemberPressCoursesCopilot\Interfaces\ICourseGenerator;
 
 /**
  * Simple Course Generator Service
@@ -13,7 +16,7 @@ use MemberPressCoursesCopilot\Utilities\Logger;
  * KISS Principle: Direct WordPress post creation for courses
  * No complex abstractions, just straightforward course generation
  */
-class CourseGeneratorService extends BaseService
+class CourseGeneratorService extends BaseService implements ICourseGenerator
 {
     /**
      * Constructor - logger can be injected or will use default
@@ -380,5 +383,94 @@ class CourseGeneratorService extends BaseService
             'valid' => empty($errors),
             'errors' => $errors
         ];
+    }
+    
+    /**
+     * Generate additional lessons for an existing course (ICourseGenerator interface)
+     *
+     * @param int $courseId Existing course ID
+     * @param array $lessonParams Parameters for the new lessons
+     * @return array Generated lesson data
+     */
+    public function generateLessons(int $courseId, array $lessonParams): array
+    {
+        try {
+            // Get the course
+            $course = get_post($courseId);
+            if (!$course || $course->post_type !== Course::$cpt) {
+                return [
+                    'success' => false,
+                    'message' => 'Course not found',
+                    'lessons' => []
+                ];
+            }
+            
+            // Get or create a section for the new lessons
+            $sectionId = $lessonParams['section_id'] ?? null;
+            
+            if (!$sectionId) {
+                // Create a new section if none specified
+                $sectionData = [
+                    'title' => $lessonParams['section_title'] ?? 'Additional Lessons',
+                    'lessons' => []
+                ];
+                
+                // Create the section
+                $section = new Section();
+                $section->title = $sectionData['title'];
+                $section->courses = [$courseId];
+                $section->store_meta();
+                
+                $sectionId = $section->id;
+            }
+            
+            // Generate the lessons
+            $generatedLessons = [];
+            $lessons = $lessonParams['lessons'] ?? [];
+            
+            foreach ($lessons as $lessonData) {
+                $lesson = new Lesson();
+                $lesson->title = $lessonData['title'];
+                $lesson->content = $lessonData['content'] ?? '';
+                $lesson->sections = [$sectionId];
+                $lesson->store_meta();
+                
+                $generatedLessons[] = [
+                    'id' => $lesson->id,
+                    'title' => $lesson->title,
+                    'url' => get_permalink($lesson->id)
+                ];
+            }
+            
+            return [
+                'success' => true,
+                'section_id' => $sectionId,
+                'lessons' => $generatedLessons
+            ];
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to generate lessons', [
+                'course_id' => $courseId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Failed to generate lessons: ' . $e->getMessage(),
+                'lessons' => []
+            ];
+        }
+    }
+    
+    /**
+     * Validate course generation parameters (ICourseGenerator interface)
+     *
+     * @param array $courseParams Parameters to validate
+     * @return bool True if valid, false otherwise
+     */
+    public function validateParams(array $courseParams): bool
+    {
+        $validation = $this->validateCourseData($courseParams);
+        return $validation['valid'];
     }
 }

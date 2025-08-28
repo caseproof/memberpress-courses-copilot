@@ -4,9 +4,10 @@
 The MemberPress Courses Copilot plugin will implement a licensing system that integrates with MemberPress's existing license management infrastructure. Currently, the plugin uses a placeholder license key (`dev-license-key-001`) for development purposes.
 
 ## Current State
-- **Location**: `src/MemberPressCoursesCopilot/Services/LLMService.php` line 19
+- **Location**: `src/MemberPressCoursesCopilot/Services/LLMService.php` line 23
 - **Placeholder**: `private const LICENSE_KEY = 'dev-license-key-001';`
 - **Purpose**: Authenticates with the auth gateway server to access LLM services
+- **Note**: This is a development placeholder, not a real credential. The actual implementation will integrate with MemberPress's licensing system.
 
 ## Implementation Requirements
 

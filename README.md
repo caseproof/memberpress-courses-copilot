@@ -67,12 +67,15 @@ MemberPress Courses Copilot is a WordPress plugin that integrates directly with 
 
 ## Configuration
 
-### LiteLLM Proxy Settings
+### Auth Gateway Configuration
+The plugin uses a secure authentication gateway to access AI services. By default, it connects to the production gateway, but you can customize this for development:
+
 ```php
 // wp-config.php (optional)
-define('MPCC_LITELLM_PROXY_URL', 'https://your-proxy-url.herokuapp.com');
-define('MPCC_LITELLM_MASTER_KEY', 'your-master-key');
+define('MPCC_AUTH_GATEWAY_URL', 'https://your-custom-gateway-url.com');
 ```
+
+For detailed configuration options, see [Auth Gateway Configuration](docs/AUTH_GATEWAY_CONFIGURATION.md).
 
 ### Provider Configuration
 The plugin intelligently routes requests to the optimal AI provider:

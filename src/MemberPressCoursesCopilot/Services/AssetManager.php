@@ -173,6 +173,19 @@ class AssetManager extends BaseService
             ['jquery']
         );
         
+        // Test scripts
+        $this->registerScript(
+            'mpcc-ai-response-test',
+            'tests/test-ai-response-structure.js',
+            ['jquery', 'mpcc-course-editor']
+        );
+        
+        $this->registerScript(
+            'mpcc-manual-test-runner',
+            'tests/manual-test-runner.js',
+            ['jquery', 'mpcc-course-editor']
+        );
+        
         // Add localizations
         $this->addScriptLocalizations();
     }
@@ -372,6 +385,13 @@ class AssetManager extends BaseService
         wp_enqueue_script('mpcc-shared-utilities');
         wp_enqueue_script('mpcc-accessibility-utilities');
         wp_enqueue_script('mpcc-course-editor');
+        
+        // Enqueue test scripts if test mode is enabled
+        if (isset($_GET['test_mode']) && $_GET['test_mode'] === '1') {
+            wp_enqueue_script('mpcc-ai-response-test');
+            wp_enqueue_script('mpcc-manual-test-runner');
+            error_log('MPCC: Test mode enabled - AI response test scripts enqueued');
+        }
         
         error_log('MPCC: Standalone editor assets enqueued');
     }
