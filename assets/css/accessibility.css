@@ -1,0 +1,359 @@
+/**
+ * Accessibility Styles for MemberPress Courses Copilot
+ * 
+ * Provides visual indicators and enhancements for accessibility
+ * 
+ * @package MemberPressCoursesCopilot
+ * @since 1.0.0
+ */
+
+/* Screen reader only text */
+.sr-only,
+.screen-reader-text {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Screen reader text that becomes visible on focus */
+.screen-reader-text:focus {
+    position: absolute !important;
+    left: 6px;
+    top: 7px;
+    height: auto;
+    width: auto;
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 15px 20px;
+    background: #f1f1f1;
+    color: #0073aa;
+    z-index: 100000;
+    text-decoration: none;
+    box-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Skip links */
+.mpcc-skip-links {
+    position: absolute;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.mpcc-skip-links a {
+    position: absolute !important;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.mpcc-skip-links a:focus {
+    position: absolute !important;
+    left: 6px;
+    top: 7px;
+    height: auto;
+    width: auto;
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 15px 20px;
+    background: #f1f1f1;
+    color: #0073aa;
+    z-index: 100000;
+    text-decoration: none;
+    box-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Enhanced focus indicators */
+.mpcc-modal-overlay *:focus,
+.mpcc-chat-interface *:focus,
+.mpcc-editor-ai-modal *:focus,
+.mpcc-ai-chat-interface *:focus,
+.mpcc-course-edit-ai-chat *:focus {
+    outline: 2px solid #0073aa !important;
+    outline-offset: 2px !important;
+}
+
+/* Buttons focus state */
+.mpcc-modal-close:focus,
+.mpcc-quick-start-btn:focus,
+.mpcc-apply-editor-content:focus,
+.mpcc-copy-editor-content:focus,
+.mpcc-cancel-editor-update:focus,
+.mpcc-course-quick-action:focus,
+#mpcc-editor-ai-send:focus,
+#mpcc-course-send-message:focus,
+#mpcc-toggle-ai-chat:focus {
+    outline: 2px solid #0073aa !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.15);
+}
+
+/* Form field focus */
+#mpcc-editor-ai-input:focus,
+#mpcc-course-chat-input:focus,
+textarea:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+    outline: 2px solid #0073aa !important;
+    outline-offset: 2px !important;
+    border-color: #0073aa;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .mpcc-modal-overlay,
+    .mpcc-modal,
+    .mpcc-chat-interface,
+    .mpcc-ai-chat-container {
+        border: 2px solid;
+    }
+    
+    .mpcc-chat-message {
+        border: 1px solid;
+    }
+    
+    button,
+    .button {
+        border: 2px solid !important;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .mpcc-modal-overlay,
+    .mpcc-chat-interface,
+    .mpcc-typing-dot,
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+    
+    .mpcc-modal-overlay {
+        display: none;
+    }
+    
+    .mpcc-modal-overlay.active,
+    .mpcc-modal-overlay.mpcc-modal-open {
+        display: flex !important;
+    }
+}
+
+/* Typing indicator accessibility */
+.mpcc-typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.mpcc-typing-indicator::before {
+    content: "AI is typing";
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* Chat message accessibility */
+.mpcc-chat-message[role="article"] {
+    position: relative;
+}
+
+.mpcc-chat-message.user {
+    text-align: right;
+}
+
+.mpcc-chat-message.assistant {
+    text-align: left;
+}
+
+/* Error message accessibility */
+.mpcc-chat-error[role="alert"],
+.mpcc-field-error {
+    position: relative;
+    background: #fee;
+    color: #d63638;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    border-left: 4px solid #d63638;
+}
+
+/* Loading states */
+[aria-busy="true"] {
+    position: relative;
+    opacity: 0.75;
+}
+
+[aria-busy="true"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid #0073aa;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Disabled state */
+[aria-disabled="true"],
+:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Required fields */
+[aria-required="true"]::after {
+    content: " *";
+    color: #d63638;
+}
+
+/* Invalid fields */
+[aria-invalid="true"] {
+    border-color: #d63638 !important;
+}
+
+/* Keyboard navigation indicators */
+.mpcc-quick-start-btn:hover,
+.mpcc-quick-start-btn:focus,
+.mpcc-course-quick-action:hover,
+.mpcc-course-quick-action:focus {
+    background-color: #f0f0f1;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal accessibility */
+.mpcc-modal-overlay[role="dialog"] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+}
+
+/* Ensure modals are keyboard navigable */
+.mpcc-modal {
+    position: relative;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    max-height: 90vh;
+    overflow: auto;
+}
+
+/* Focus trap indication */
+.mpcc-modal:focus-within {
+    box-shadow: 0 0 0 3px rgba(0, 115, 170, 0.15), 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Live region styles */
+#mpcc-aria-live-region {
+    position: absolute !important;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* Ensure interactive elements are large enough */
+button,
+.button,
+input[type="submit"],
+input[type="button"] {
+    min-height: 36px;
+    min-width: 24px;
+    padding: 8px 16px;
+}
+
+/* Touch target size for mobile */
+@media (pointer: coarse) {
+    button,
+    .button,
+    input[type="submit"],
+    input[type="button"],
+    a.button {
+        min-height: 44px;
+        min-width: 24px;
+    }
+}
+
+/* Color contrast improvements */
+.mpcc-ai-message {
+    background-color: #e7f3ff;
+    color: #1e1e1e;
+}
+
+.mpcc-chat-message.user .message-content {
+    background-color: #f0f0f0;
+    color: #1e1e1e;
+}
+
+/* Link focus visible */
+a:focus-visible {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+    text-decoration: underline;
+}
+
+/* Form labels */
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+/* Help text */
+.mpcc-field-help {
+    font-size: 0.875em;
+    color: #646970;
+    margin-top: 4px;
+}
+
+/* Success messages */
+.mpcc-success-message {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+/* Warning messages */
+.mpcc-warning-message {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+}

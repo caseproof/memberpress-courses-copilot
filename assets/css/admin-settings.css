@@ -1,0 +1,128 @@
+/**
+ * Admin Settings Page Styles
+ * 
+ * @package MemberPressCoursesCopilot
+ * @since 1.0.0
+ */
+
+/* Import common styles */
+@import url('mpcc-common.css');
+
+.mpcc-settings-container {
+    display: flex;
+    gap: var(--mpcc-spacing-lg);
+    margin-top: var(--mpcc-spacing-lg);
+}
+
+.mpcc-settings-main {
+    flex: 2;
+}
+
+.mpcc-settings-sidebar {
+    flex: 1;
+}
+
+.mpcc-settings-card {
+    background: var(--mpcc-bg-primary);
+    border: 1px solid var(--mpcc-border-primary);
+    border-radius: var(--mpcc-radius-sm);
+    padding: var(--mpcc-spacing-lg);
+    margin-bottom: var(--mpcc-spacing-lg);
+}
+
+.mpcc-settings-card h3 {
+    margin-top: 0;
+    margin-bottom: var(--mpcc-spacing-md);
+}
+
+.mpcc-settings-actions {
+    margin-top: var(--mpcc-spacing-lg);
+}
+
+.mpcc-settings-actions .button + .button {
+    margin-left: var(--mpcc-spacing-sm);
+}
+
+.mpcc-status {
+    display: flex;
+    align-items: center;
+    gap: var(--mpcc-spacing-sm);
+    padding: var(--mpcc-spacing-sm);
+    border-radius: var(--mpcc-radius-sm);
+    margin-bottom: var(--mpcc-spacing-sm);
+}
+
+.mpcc-status-warning {
+    background: rgba(245, 110, 40, 0.1);
+    border: 1px solid var(--mpcc-warning);
+    color: var(--mpcc-warning);
+}
+
+.mpcc-status-unknown {
+    background: var(--mpcc-bg-tertiary);
+    border: 1px solid var(--mpcc-border-secondary);
+    color: var(--mpcc-text-secondary);
+}
+
+.mpcc-status-success {
+    background: rgba(70, 180, 80, 0.1);
+    border: 1px solid var(--mpcc-success);
+    color: var(--mpcc-success);
+}
+
+.mpcc-status-error {
+    background: rgba(220, 50, 50, 0.1);
+    border: 1px solid var(--mpcc-error);
+    color: var(--mpcc-error);
+}
+
+.mpcc-provider {
+    margin-bottom: var(--mpcc-spacing-md);
+}
+
+.mpcc-provider:last-child {
+    margin-bottom: 0;
+}
+
+.mpcc-provider strong {
+    display: block;
+    margin-bottom: var(--mpcc-spacing-xs);
+}
+
+.mpcc-provider p {
+    margin: 0;
+    color: var(--mpcc-text-muted);
+    font-size: var(--mpcc-font-size-sm);
+}
+
+.mpcc-requirement {
+    display: flex;
+    align-items: center;
+    gap: var(--mpcc-spacing-sm);
+    margin-bottom: var(--mpcc-spacing-sm);
+}
+
+.mpcc-requirement:last-child {
+    margin-bottom: 0;
+}
+
+.mpcc-docs-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mpcc-docs-links li {
+    margin-bottom: var(--mpcc-spacing-sm);
+}
+
+.mpcc-docs-links a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+}
+
+.mpcc-docs-links a:hover {
+    text-decoration: underline;
+}

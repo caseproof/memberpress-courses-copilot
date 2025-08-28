@@ -12,6 +12,8 @@
         courseData: null,
         conversationHistory: [],
         isProcessing: false,
+        lastMessageTime: 0,
+        messageCache: new Map(),
         
         init: function(courseData) {
             this.courseData = courseData;
@@ -41,18 +43,23 @@
             this.addMessage('system', contextMessage, false);
             
             // Add welcome message
-            const welcomeMessage = 'Hello! I\'m here to help you improve your course "' + window.MPCCUtils.escapeHtml(this.courseData.title) + '". ' +
+            const welcomeMessage = 'Hello! I\'m here to help you improve your course "' + MPCCUtils.escapeHtml(this.courseData.title) + '". ' +
                 'I can help you add new content, improve existing lessons, create quizzes, or enhance learning objectives. ' + 
                 'What would you like to work on?';
             this.addMessage('assistant', welcomeMessage, false);
             
             // Show quick actions
             this.showQuickActions();
+            
+            // Announce to screen readers
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('AI Chat ready. Welcome message displayed with quick action options.');
+            }
         },
         
         buildContextMessage: function() {
             let context = 'Current course information:\n';
-            context += '- Title: ' + window.MPCCUtils.escapeHtml(this.courseData.title) + '\n';
+            context += '- Title: ' + MPCCUtils.escapeHtml(this.courseData.title) + '\n';
             context += '- Sections: ' + (this.courseData.sections ? this.courseData.sections.length : 0) + '\n';
             
             if (this.courseData.sections && this.courseData.sections.length > 0) {
@@ -65,28 +72,30 @@
                 context += '- Total Lessons: ' + totalLessons + '\n';
             }
             
-            context += '- Status: ' + window.MPCCUtils.escapeHtml(this.courseData.status || 'draft');
+            context += '- Status: ' + MPCCUtils.escapeHtml(this.courseData.status || 'draft');
             
             return context;
         },
         
         showQuickActions: function() {
             const quickActions = [
-                { text: 'Add New Lesson', action: 'add_lesson' },
-                { text: 'Improve Existing Content', action: 'improve_content' },
-                { text: 'Create Quiz', action: 'create_quiz' },
-                { text: 'Enhance Learning Objectives', action: 'enhance_objectives' }
+                { text: 'Add New Lesson', action: 'add_lesson', description: 'Start creating a new lesson for your course' },
+                { text: 'Improve Existing Content', action: 'improve_content', description: 'Get suggestions to enhance your current lessons' },
+                { text: 'Create Quiz', action: 'create_quiz', description: 'Generate quiz questions for your course' },
+                { text: 'Enhance Learning Objectives', action: 'enhance_objectives', description: 'Improve learning objectives and outcomes' }
             ];
             
-            let actionsHtml = '<div class="mpcc-course-quick-actions" style="margin: 15px 0; display: flex; flex-wrap: wrap; gap: 10px;">';
+            let actionsHtml = '<div class="mpcc-course-quick-actions" role="group" aria-label="Quick actions" style="margin: 15px 0; display: flex; flex-wrap: wrap; gap: 10px;">';
             quickActions.forEach(function(action) {
-                actionsHtml += '<button type="button" class="mpcc-course-quick-action button button-secondary" data-action="' + 
-                    window.MPCCUtils.escapeHtml(action.action) + '">' + window.MPCCUtils.escapeHtml(action.text) + '</button>';
+                actionsHtml += '<button type="button" class="mpcc-course-quick-action button button-secondary" ' +
+                    'data-action="' + MPCCUtils.escapeHtml(action.action) + '" ' +
+                    'aria-label="' + MPCCUtils.escapeHtml(action.description) + '">' + 
+                    MPCCUtils.escapeHtml(action.text) + '</button>';
             });
             actionsHtml += '</div>';
             
             $('#mpcc-course-chat-messages').append(actionsHtml);
-            this.scrollToBottom();
+            MPCCUtils.ui.scrollToBottom('#mpcc-course-chat-messages');
         },
         
         handleQuickAction: function(e) {
@@ -126,41 +135,84 @@
             
             if (!message || this.isProcessing) return;
             
+            // Rate limiting - prevent rapid submissions
+            if (this.lastMessageTime && (Date.now() - this.lastMessageTime) < 1000) {
+                MPCCUtils.showWarning('Please wait a moment before sending another message');
+                return;
+            }
+            this.lastMessageTime = Date.now();
+            
             // Add user message
             this.addMessage('user', message);
             input.val('');
             
+            // Announce message sent
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('Message sent: ' + message);
+                MPCCAccessibility.setBusy('#mpcc-course-chat-messages', true);
+            }
+            
             // Show typing indicator
             const typingId = 'typing-' + Date.now();
-            const typingHtml = '<div class="mpcc-chat-message assistant" id="' + window.MPCCUtils.escapeHtml(typingId) + '">' +
+            const typingHtml = '<div class="mpcc-chat-message assistant" id="' + MPCCUtils.escapeHtml(typingId) + '" role="status" aria-live="polite">' +
                 '<div class="message-content">' +
-                '<span class="typing-indicator">' +
-                '<span></span><span></span><span></span>' +
-                '</span></div></div>';
+                '<div class="mpcc-typing-indicator" aria-label="AI is typing">' +
+                '<div class="mpcc-typing-dot"></div>' +
+                '<div class="mpcc-typing-dot"></div>' +
+                '<div class="mpcc-typing-dot"></div>' +
+                '</div></div></div>';
             
             $('#mpcc-course-chat-messages').append(typingHtml);
-            this.scrollToBottom();
+            MPCCUtils.ui.scrollToBottom('#mpcc-course-chat-messages');
+            
+            // Check cache for similar messages
+            const cacheKey = this.generateCacheKey(message);
+            if (this.messageCache.has(cacheKey)) {
+                const cachedResponse = this.messageCache.get(cacheKey);
+                $('#' + typingId).remove();
+                this.addMessage('assistant', cachedResponse);
+                if (window.MPCCAccessibility) {
+                    MPCCAccessibility.setBusy('#mpcc-course-chat-messages', false);
+                    MPCCAccessibility.announce('AI Assistant has responded (from cache)');
+                }
+                return;
+            }
             
             // Send to AI
             this.isProcessing = true;
-            $('#mpcc-course-send-message').prop('disabled', true).text('Thinking...');
+            const button = $('#mpcc-course-send-message');
+            MPCCUtils.ui.setButtonLoading(button, true, 'Thinking...');
             
-            $.ajax({
-                url: mpccCourseChat.ajaxUrl,
-                type: 'POST',
-                data: {
-                    action: 'mpcc_course_chat_message',
-                    nonce: mpccCourseChat.nonce,
-                    message: message,
-                    course_id: this.courseData.id,
-                    course_data: JSON.stringify(this.courseData),
-                    conversation_history: JSON.stringify(this.conversationHistory)
-                },
+            MPCCUtils.ajax.request('mpcc_course_chat_message', {
+                message: message,
+                course_id: this.courseData.id,
+                course_data: JSON.stringify(this.courseData),
+                conversation_history: JSON.stringify(this.conversationHistory),
+                nonce: mpccCourseChat.nonce
+            }, {
                 success: (response) => {
                     $('#' + typingId).remove();
                     
+                    if (window.MPCCAccessibility) {
+                        MPCCAccessibility.setBusy('#mpcc-course-chat-messages', false);
+                    }
+                    
                     if (response.success) {
+                        // Cache the response
+                        this.messageCache.set(cacheKey, response.data.message);
+                        
+                        // Limit cache size to prevent memory issues
+                        if (this.messageCache.size > 50) {
+                            const firstKey = this.messageCache.keys().next().value;
+                            this.messageCache.delete(firstKey);
+                        }
+                        
                         this.addMessage('assistant', response.data.message);
+                        
+                        // Announce AI response
+                        if (window.MPCCAccessibility) {
+                            MPCCAccessibility.announce('AI Assistant has responded');
+                        }
                         
                         // Handle any course updates returned by AI
                         if (response.data.course_updates) {
@@ -176,9 +228,7 @@
                 },
                 complete: () => {
                     this.isProcessing = false;
-                    $('#mpcc-course-send-message').prop('disabled', false).html(
-                        '<span class="dashicons dashicons-arrow-right-alt"></span> Send'
-                    );
+                    MPCCUtils.ui.setButtonLoading(button, false);
                 }
             });
         },
@@ -186,7 +236,7 @@
         addMessage: function(role, content, addToHistory = true) {
             const messageHtml = this.formatMessage(role, content);
             $('#mpcc-course-chat-messages').append(messageHtml);
-            this.scrollToBottom();
+            MPCCUtils.ui.scrollToBottom('#mpcc-course-chat-messages');
             
             if (addToHistory) {
                 this.conversationHistory.push({ role, content });
@@ -195,27 +245,18 @@
         
         formatMessage: function(role, content) {
             const messageClass = role === 'user' ? 'user' : 'assistant';
+            const ariaLabel = role === 'user' ? 'Your message' : 'AI Assistant message';
             
             // Convert content to HTML if it contains markdown-like formatting
             const formattedContent = this.formatContent(content);
             
-            return '<div class="mpcc-chat-message ' + window.MPCCUtils.escapeHtml(messageClass) + '">' +
+            return '<div class="mpcc-chat-message ' + MPCCUtils.escapeHtml(messageClass) + '" role="article" aria-label="' + ariaLabel + '">' +
                 '<div class="message-content">' + formattedContent + '</div>' +
                 '</div>';
         },
         
         formatContent: function(content) {
-            // Basic markdown-like formatting
-            return content
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/^/, '<p>')
-                .replace(/$/, '</p>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/^- (.+)$/gm, '<li>$1</li>')
-                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-                .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
-                .replace(/(<li>.*<\/li>)/s, '<ol>$1</ol>');
+            return MPCCUtils.formatContent(content);
         },
         
         handleCourseUpdates: function(updates) {
@@ -236,29 +277,51 @@
         },
         
         showError: function(message) {
-            const errorHtml = '<div class="mpcc-chat-error" style="background: #fee; color: #d63638; padding: 10px; ' +
+            const errorHtml = '<div class="mpcc-chat-error" role="alert" style="background: #fee; color: #d63638; padding: 10px; ' +
                 'margin: 10px 0; border-radius: 4px; border-left: 4px solid #d63638;">' +
-                '<strong>Error:</strong> ' + window.MPCCUtils.escapeHtml(message) + '</div>';
+                '<strong>Error:</strong> ' + MPCCUtils.escapeHtml(message) + '</div>';
             
             $('#mpcc-course-chat-messages').append(errorHtml);
-            this.scrollToBottom();
+            MPCCUtils.ui.scrollToBottom('#mpcc-course-chat-messages');
+            
+            // Announce error to screen readers
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('Error: ' + message, 'assertive');
+            }
         },
         
         showNotification: function(message, type = 'info') {
-            const notificationHtml = '<div class="mpcc-chat-notification mpcc-' + window.MPCCUtils.escapeHtml(type) + '" style="' +
-                'background: ' + (type === 'success' ? '#edfaef' : '#f0f7ff') + '; ' +
-                'color: ' + (type === 'success' ? '#00a32a' : '#2271b1') + '; ' +
-                'padding: 10px; margin: 10px 0; border-radius: 4px; ' +
-                'border-left: 4px solid ' + (type === 'success' ? '#00a32a' : '#2271b1') + ';">' +
-                window.MPCCUtils.escapeHtml(message) + '</div>';
-            
-            $('#mpcc-course-chat-messages').append(notificationHtml);
-            this.scrollToBottom();
+            if (type === 'success') {
+                MPCCUtils.showSuccess(message);
+            } else if (type === 'error') {
+                MPCCUtils.showError(message);
+            } else {
+                MPCCUtils.showNotification(message, type);
+            }
         },
         
         scrollToBottom: function() {
-            const messagesContainer = $('#mpcc-course-chat-messages');
-            messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+            MPCCUtils.ui.scrollToBottom('#mpcc-course-chat-messages');
+        }
+    };
+    
+        generateCacheKey: function(message) {
+            // Generate a simple cache key based on message content and course context
+            const courseContext = this.courseData.id + '-' + (this.courseData.sections ? this.courseData.sections.length : 0);
+            return courseContext + '-' + message.toLowerCase().trim().substring(0, 100);
+        },
+        
+        // Cleanup method
+        destroy: function() {
+            // Remove event handlers
+            $(document).off('click.mpcc-course-chat');
+            $(document).off('keypress.mpcc-course-chat');
+            $(document).off('click', '.mpcc-course-quick-action');
+            
+            // Clear cache and references
+            this.messageCache.clear();
+            this.courseData = null;
+            this.conversationHistory = null;
         }
     };
     
@@ -266,5 +329,12 @@
     window.initializeCourseAIChat = function(courseData) {
         CourseEditAIChat.init(courseData);
     };
+    
+    // Cleanup on page unload
+    $(window).on('beforeunload.mpcc-course-chat', function() {
+        if (window.CourseEditAIChat && window.CourseEditAIChat.destroy) {
+            window.CourseEditAIChat.destroy();
+        }
+    });
     
 })(jQuery);

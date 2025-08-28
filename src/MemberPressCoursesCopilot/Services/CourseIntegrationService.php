@@ -30,7 +30,8 @@ class CourseIntegrationService extends BaseService
         add_action('admin_init', [$this, 'initializeCoursesIntegration']);
         
         // Hook into courses listing page to add "Create with AI" button
-        add_action('admin_footer-edit.php', [$this, 'addCreateWithAIButton']);
+        // Use admin_enqueue_scripts to ensure proper timing
+        add_action('admin_enqueue_scripts', [$this, 'maybeEnqueueCreateButton']);
         
         // Hook into course editor to add AI chat interface
         // Disabled metabox to prevent conflicts with center column implementation
@@ -94,39 +95,38 @@ class CourseIntegrationService extends BaseService
     }
 
     /**
-     * Add "Create with AI" button to courses listing page
+     * Maybe enqueue "Create with AI" button script on courses listing page
      *
+     * @param string $hook The current admin page hook
      * @return void
      */
-    public function addCreateWithAIButton(): void
+    public function maybeEnqueueCreateButton(string $hook): void
     {
         global $post_type;
         
-        // Only add button on courses listing page
-        if ($post_type !== 'mpcs-course') {
+        // Only proceed on the edit.php page
+        if ($hook !== 'edit.php') {
             return;
         }
         
-        ?>
-        <script type="text/javascript">
-        jQuery(document).ready(function($) {
-            // Add "Create with AI" button next to "Add New Course"
-            var createWithAIButton = '<a href="#" id="mpcc-create-with-ai" class="page-title-action" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; text-shadow: none;">' + 
-                '<span class="dashicons dashicons-admin-generic" style="margin-right: 5px; vertical-align: middle; line-height: 1;"></span>' +
-                '<?php echo esc_js(__('Create with AI', 'memberpress-courses-copilot')); ?>' +
-                '</a>';
-            
-            $('.wrap .wp-header-end').before(createWithAIButton);
-            
-            // Handle click event - redirect to standalone page
-            $('#mpcc-create-with-ai').on('click', function(e) {
-                e.preventDefault();
-                // Redirect to standalone AI Course Editor page
-                window.location.href = '<?php echo admin_url('admin.php?page=mpcc-course-editor&action=new'); ?>';
-            });
-        });
-        </script>
-        <?php
+        // Check both global $post_type and $_GET parameter
+        $current_post_type = $post_type ?: (isset($_GET['post_type']) ? $_GET['post_type'] : '');
+        
+        // Only add button on courses listing page
+        if ($current_post_type !== 'mpcs-course') {
+            return;
+        }
+        
+        // Enqueue the button script
+        wp_enqueue_script('mpcc-course-integration-create-button');
+        
+        // Pass data to JavaScript
+        wp_localize_script('mpcc-course-integration-create-button', 'mpccCreateButton', [
+            'strings' => [
+                'createWithAI' => __('Create with AI', 'memberpress-courses-copilot')
+            ],
+            'editorUrl' => admin_url('admin.php?page=mpcc-course-editor&action=new')
+        ]);
     }
 
     /**
@@ -162,6 +162,20 @@ class CourseIntegrationService extends BaseService
     {
         NonceConstants::field(NonceConstants::AI_ASSISTANT, 'mpcc_ai_assistant_nonce');
         
+        // Enqueue metabox script
+        wp_enqueue_script('mpcc-course-integration-metabox');
+        
+        // Pass data to JavaScript
+        wp_localize_script('mpcc-course-integration-metabox', 'mpccMetabox', [
+            'nonce' => NonceConstants::create(NonceConstants::AI_INTERFACE),
+            'postId' => $post->ID,
+            'strings' => [
+                'openAIChat' => __('Open AI Chat', 'memberpress-courses-copilot'),
+                'closeAIChat' => __('Close AI Chat', 'memberpress-courses-copilot'),
+                'failedToLoad' => __('Failed to load AI interface', 'memberpress-courses-copilot')
+            ]
+        ]);
+        
         ?>
         <div id="mpcc-ai-assistant-metabox">
             <p style="margin-bottom: 15px;">
@@ -189,50 +203,6 @@ class CourseIntegrationService extends BaseService
                 </p>
             </div>
         </div>
-        
-        <script type="text/javascript">
-        jQuery(document).ready(function($) {
-            $('#mpcc-toggle-ai-chat').on('click', function() {
-                var $container = $('#mpcc-ai-chat-container');
-                var $button = $(this);
-                
-                if ($container.is(':visible')) {
-                    $container.slideUp();
-                    $button.find('.dashicons').removeClass('dashicons-format-chat').addClass('dashicons-format-chat');
-                    $button.find('span:not(.dashicons)').text('<?php echo esc_js(__('Open AI Chat', 'memberpress-courses-copilot')); ?>');
-                } else {
-                    $container.slideDown();
-                    $button.find('.dashicons').removeClass('dashicons-format-chat').addClass('dashicons-dismiss');
-                    $button.find('span:not(.dashicons)').text('<?php echo esc_js(__('Close AI Chat', 'memberpress-courses-copilot')); ?>');
-                    
-                    // Load AI interface if not already loaded
-                    if (!$container.data('loaded')) {
-                        $.ajax({
-                            url: ajaxurl,
-                            type: 'POST',
-                            data: {
-                                action: 'mpcc_load_ai_interface',
-                                nonce: '<?php echo NonceConstants::create(NonceConstants::AI_INTERFACE); ?>',
-                                context: 'course_editing',
-                                post_id: <?php echo (int) $post->ID; ?>
-                            },
-                            success: function(response) {
-                                if (response.success) {
-                                    $('#mpcc-ai-chat-container').html(response.data.html).data('loaded', true);
-                                    // The interface will initialize itself when ready
-                                } else {
-                                    $('#mpcc-ai-chat-container').html('<div style="text-align: center; color: #d63638;"><p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p></div>');
-                                }
-                            },
-                            error: function() {
-                                $('#mpcc-ai-chat-container').html('<div style="text-align: center; color: #d63638;"><p><?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?></p></div>');
-                            }
-                        });
-                    }
-                }
-            });
-        });
-        </script>
         <?php
     }
 
@@ -331,51 +301,23 @@ class CourseIntegrationService extends BaseService
             </div>
         </div>
         
-        <script type="text/javascript">
-        jQuery(document).ready(function($) {
-            // Initialize AI chat for course editing
-            var courseData = <?php echo json_encode($courseData); ?>;
-            
-            // Make courseData available globally for the chat interface
-            window.courseData = courseData;
-            
-            // Load the AI chat interface
-            $.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'mpcc_load_ai_interface',
-                    nonce: '<?php echo NonceConstants::create(NonceConstants::AI_INTERFACE); ?>',
-                    context: 'course_editing',
-                    post_id: <?php echo (int) $post->ID; ?>,
-                    course_data: JSON.stringify(courseData)
-                },
-                success: function(response) {
-                    if (response.success) {
-                        $('#mpcc-course-ai-chat-container').html(response.data.html);
-                        
-                        // Initialize the chat with course context
-                        if (typeof window.initializeCourseAIChat === 'function') {
-                            window.initializeCourseAIChat(courseData);
-                        }
-                    } else {
-                        $('#mpcc-course-ai-chat-container').html(
-                            '<div style="padding: 20px; text-align: center; color: #d63638;">' +
-                            '<p>' + (response.data || '<?php echo esc_js(__('Failed to load AI interface', 'memberpress-courses-copilot')); ?>') + '</p>' +
-                            '</div>'
-                        );
-                    }
-                },
-                error: function() {
-                    $('#mpcc-course-ai-chat-container').html(
-                        '<div style="padding: 20px; text-align: center; color: #d63638;">' +
-                        '<p><?php echo esc_js(__('Failed to load AI interface. Please try refreshing the page.', 'memberpress-courses-copilot')); ?></p>' +
-                        '</div>'
-                    );
-                }
-            });
-        });
-        </script>
+        <?php
+        // Enqueue center AI script
+        wp_enqueue_script('mpcc-course-integration-center-ai');
+        
+        // Pass data to JavaScript
+        wp_localize_script('mpcc-course-integration-center-ai', 'mpccCenterAI', [
+            'nonce' => NonceConstants::create(NonceConstants::AI_INTERFACE),
+            'postId' => $post->ID,
+            'strings' => [
+                'failedToLoad' => __('Failed to load AI interface', 'memberpress-courses-copilot'),
+                'failedToLoadNetwork' => __('Failed to load AI interface. Please try refreshing the page.', 'memberpress-courses-copilot')
+            ]
+        ]);
+        
+        // Make course data available globally
+        wp_add_inline_script('mpcc-course-integration-center-ai', 'window.courseData = ' . json_encode($courseData) . ';', 'before');
+        ?>
         <?php
     }
 }

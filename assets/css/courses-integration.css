@@ -6,23 +6,26 @@
  * @version 1.0.0
  */
 
+/* Import common styles */
+@import url('mpcc-common.css');
+
 /* ==========================================================================
    Create with AI Button
    ========================================================================== */
 
 #mpcc-create-with-ai {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: var(--mpcc-primary-gradient);
+    color: var(--mpcc-text-inverse);
     border: none;
     text-shadow: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    box-shadow: var(--mpcc-shadow-sm);
+    transition: all var(--mpcc-transition-base);
 }
 
 #mpcc-create-with-ai:hover {
     background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--mpcc-shadow-md);
 }
 
 #mpcc-create-with-ai .dashicons {
@@ -38,7 +41,7 @@
 #mpcc-ai-modal {
     display: none;
     position: fixed;
-    z-index: 100000;
+    z-index: var(--mpcc-z-modal);
     left: 0;
     top: 0;
     width: 100%;
@@ -47,15 +50,15 @@
 }
 
 #mpcc-ai-modal > div {
-    background-color: #fefefe;
+    background-color: var(--mpcc-bg-primary);
     margin: 2% auto;
     padding: 0;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--mpcc-radius-md);
     width: 95%;
     max-width: 1600px;
     height: 92%;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--mpcc-shadow-xl);
     display: flex;
     flex-direction: column;
 }
@@ -65,26 +68,26 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #ddd;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 8px 8px 0 0;
+    padding: var(--mpcc-spacing-lg);
+    border-bottom: 1px solid var(--mpcc-border-secondary);
+    background: var(--mpcc-primary-gradient);
+    color: var(--mpcc-text-inverse);
+    border-radius: var(--mpcc-radius-md) var(--mpcc-radius-md) 0 0;
     flex-shrink: 0;
 }
 
 #mpcc-ai-modal .modal-header h2 {
     margin: 0;
-    color: white;
-    font-size: 24px;
+    color: var(--mpcc-text-inverse);
+    font-size: var(--mpcc-font-size-xl);
     font-weight: 600;
 }
 
 #mpcc-close-modal {
     cursor: pointer;
-    font-size: 24px;
+    font-size: var(--mpcc-font-size-xl);
     font-weight: bold;
-    color: white;
+    color: var(--mpcc-text-inverse);
     background: none;
     border: none;
     padding: 0;
@@ -93,8 +96,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    transition: background-color 0.2s;
+    border-radius: var(--mpcc-radius-sm);
+    transition: background-color var(--mpcc-transition-fast);
 }
 
 #mpcc-close-modal:hover {
@@ -112,17 +115,17 @@
 #mpcc-ai-interface-container {
     flex: 1;
     min-height: 0;
-    border-right: 1px solid #ddd;
+    border-right: 1px solid var(--mpcc-border-secondary);
     display: flex;
     flex-direction: column;
-    background: #ffffff;
+    background: var(--mpcc-bg-primary);
     overflow: hidden;
 }
 
 #mpcc-preview-pane {
     flex: 1;
     min-height: 0;
-    background: #f8f9fa;
+    background: var(--mpcc-bg-secondary);
     display: none;
     flex-direction: column;
 }
@@ -154,7 +157,7 @@
     justify-content: center;
     align-items: center;
     height: 100%;
-    color: #666;
+    color: var(--mpcc-text-muted);
 }
 
 .mpcc-loading-container .spinner {
@@ -177,16 +180,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 8px;
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    transition: all 0.3s ease;
+    gap: var(--mpcc-spacing-sm);
+    padding: var(--mpcc-spacing-sm);
+    background: var(--mpcc-bg-secondary);
+    border: 1px solid var(--mpcc-border-secondary);
+    transition: all var(--mpcc-transition-base);
 }
 
 #mpcc-toggle-ai-chat:hover {
-    background: #e9ecef;
-    border-color: #0073aa;
+    background: var(--mpcc-bg-tertiary);
+    border-color: var(--mpcc-primary);
 }
 
 #mpcc-toggle-ai-chat .dashicons {
@@ -196,17 +199,17 @@
 
 #mpcc-ai-chat-container {
     display: none;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: #f9f9f9;
-    padding: 15px;
+    border: 1px solid var(--mpcc-border-secondary);
+    border-radius: var(--mpcc-radius-sm);
+    background: var(--mpcc-bg-secondary);
+    padding: var(--mpcc-spacing-md);
     max-height: 400px;
     overflow-y: auto;
 }
 
 #mpcc-ai-chat-loading {
     text-align: center;
-    color: #666;
+    color: var(--mpcc-text-muted);
 }
 
 #mpcc-ai-chat-loading .spinner {
@@ -291,18 +294,18 @@
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 100000;
+    z-index: var(--mpcc-z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .mpcc-loading-content {
-    background: white;
-    padding: 30px;
-    border-radius: 8px;
+    background: var(--mpcc-bg-primary);
+    padding: var(--mpcc-spacing-xl);
+    border-radius: var(--mpcc-radius-md);
     text-align: center;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--mpcc-shadow-xl);
 }
 
 .mpcc-loading-content .spinner {
@@ -311,44 +314,14 @@
 }
 
 .mpcc-loading-content h3 {
-    margin: 0 0 10px 0;
-    font-size: 18px;
-    color: #333;
+    margin: 0 0 var(--mpcc-spacing-sm) 0;
+    font-size: var(--mpcc-font-size-lg);
+    color: var(--mpcc-text-primary);
 }
 
 .mpcc-loading-content p {
     margin: 0;
-    color: #666;
+    color: var(--mpcc-text-muted);
 }
 
-/* ==========================================================================
-   Utility Classes
-   ========================================================================== */
-
-.mpcc-hidden {
-    display: none !important;
-}
-
-.mpcc-visible {
-    display: block !important;
-}
-
-.mpcc-text-center {
-    text-align: center;
-}
-
-.mpcc-text-muted {
-    color: #666;
-}
-
-.mpcc-mt-20 {
-    margin-top: 20px;
-}
-
-.mpcc-mb-20 {
-    margin-bottom: 20px;
-}
-
-.mpcc-p-20 {
-    padding: 20px;
-}
+/* Utility classes imported from mpcc-common.css */

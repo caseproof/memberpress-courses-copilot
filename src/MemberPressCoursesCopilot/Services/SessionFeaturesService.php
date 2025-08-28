@@ -84,15 +84,20 @@ class SessionFeaturesService extends BaseService
     public function performAutoSave(): void
     {
         try {
-            $activeSessions = $this->getActiveSessionsNeedingSave();
+            $activeSessionIds = $this->getActiveSessionsNeedingSave();
             $savedCount = 0;
             $errors = [];
             
-            foreach ($activeSessions as $sessionId) {
+            if (empty($activeSessionIds)) {
+                return;
+            }
+            
+            // Batch load all sessions in a single query to avoid N+1 queries
+            $sessions = $this->conversationManager->loadMultipleSessions($activeSessionIds);
+            
+            foreach ($sessions as $sessionId => $session) {
                 try {
-                    $session = $this->conversationManager->loadSession($sessionId);
-                    
-                    if ($session && $session->hasUnsavedChanges()) {
+                    if ($session->hasUnsavedChanges()) {
                         $success = $this->conversationManager->saveSession($session);
                         
                         if ($success) {
@@ -570,8 +575,9 @@ class SessionFeaturesService extends BaseService
 
     private function getActiveSessionsNeedingSave(): array
     {
-        // Implementation would query database for sessions with unsaved changes
-        return [];
+        // Use database service to get active sessions that need saving
+        // Sessions not updated in the last 5 minutes are candidates for auto-save
+        return $this->databaseService->getActiveSessionsNeedingSave(5, self::AUTO_SAVE_BATCH_SIZE);
     }
 
     private function handleSessionModification(string $sessionId, ConversationSession $session): void

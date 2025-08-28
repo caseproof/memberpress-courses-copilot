@@ -15,10 +15,7 @@ window.MPCCSessionManager = (function($) {
     
     // Private functions
     function getAjaxSettings() {
-        return window.MPCCUtils ? window.MPCCUtils.getAjaxSettings() : {
-            url: window.ajaxurl || '/wp-admin/admin-ajax.php',
-            nonce: $('#mpcc-ajax-nonce').val() || ''
-        };
+        return MPCCUtils.getAjaxSettings();
     }
     
     function markDirty() {
@@ -115,13 +112,11 @@ window.MPCCSessionManager = (function($) {
                 nonce: settings.nonce
             });
             
-            return $.ajax({
-                url: settings.url,
-                type: 'POST',
-                data: data
-            }).done(function(response) {
-                if (response.success && response.data.session_id) {
-                    module.setCurrentSessionId(response.data.session_id);
+            return MPCCUtils.ajax.request('mpcc_create_conversation', data, {
+                success: function(response) {
+                    if (response.success && response.data.session_id) {
+                        module.setCurrentSessionId(response.data.session_id);
+                    }
                 }
             });
         },
@@ -132,17 +127,13 @@ window.MPCCSessionManager = (function($) {
         loadConversation: function(sessionId) {
             const settings = getAjaxSettings();
             
-            return $.ajax({
-                url: settings.url,
-                type: 'POST',
-                data: {
-                    action: 'mpcc_load_conversation',
-                    nonce: settings.nonce,
-                    session_id: sessionId
-                }
-            }).done(function(response) {
-                if (response.success) {
-                    module.setCurrentSessionId(sessionId);
+            return MPCCUtils.ajax.request('mpcc_load_conversation', {
+                session_id: sessionId
+            }, {
+                success: function(response) {
+                    if (response.success) {
+                        module.setCurrentSessionId(sessionId);
+                    }
                 }
             });
         },
@@ -176,17 +167,34 @@ window.MPCCSessionManager = (function($) {
                 }
             }
             
-            return $.ajax({
-                url: settings.url,
-                type: 'POST',
-                data: saveData,
-                async: !synchronous
-            }).done(function(response) {
-                if (response.success) {
-                    module.markClean();
-                    console.log('Conversation saved successfully');
-                }
-            });
+            if (synchronous) {
+                // For synchronous saves (beforeunload), use native jQuery
+                return $.ajax({
+                    url: settings.url,
+                    type: 'POST',
+                    data: saveData,
+                    async: false
+                }).done(function(response) {
+                    if (response.success) {
+                        module.markClean();
+                        console.log('Conversation saved successfully');
+                    }
+                });
+            } else {
+                return MPCCUtils.ajax.saveConversation(
+                    currentSessionId,
+                    conversationHistory,
+                    conversationState,
+                    {
+                        success: function(response) {
+                            if (response.success) {
+                                module.markClean();
+                                console.log('Conversation saved successfully');
+                            }
+                        }
+                    }
+                );
+            }
         },
         
         /**

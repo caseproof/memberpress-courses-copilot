@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Manual Test Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #0073aa;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #0073aa;
+            border-radius: 4px;
+        }
+        .test-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .status.working {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.broken {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.partial {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .screenshot {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+        }
+        .error-log {
+            background: #fee;
+            padding: 10கூ;
+            border-left: 4px solid #dc3545;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .network-log {
+            background: #e7f3ff;
+            padding: 10px;
+            border-left: 4px solid #0073aa;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Chat Functionality Test Results</h1>
+        <p><strong>Test Date:</strong> <span id="test-date"></span></p>
+        <p><strong>Plugin Version:</strong> MemberPress Courses Copilot</p>
+        <p><strong>Test URL:</strong> http://localhost:10044/wp-admin/admin.php?page=mpcc-course-editor&action=new</p>
+
+        <div class="instructions">
+            <h3>🔍 Manual Testing Instructions</h3>
+            <ol>
+                <li>Open the course editor page in your browser</li>
+                <li>Open Developer Tools (F12) and go to Network tab</li>
+                <li>Filter by XHR to see AJAX requests</li>
+                <li>Follow the test steps below and document results</li>
+            </ol>
+        </div>
+
+        <h2>1. Course Editor AI Chat Interface</h2>
+        
+        <div class="test-section">
+            <h3>Initial Page Load</h3>
+            <div class="test-item">
+                <strong>Chat Interface Visibility:</strong>
+                <span class="status partial">❓ To Be Tested</span>
+                <p>Expected: Chat interface should load on the left side with:</p>
+                <ul>
+                    <li>Welcome message</li>
+                    <li>Input textarea (#mpcc-chat-input)</li>
+                    <li>Send button (#mpcc-send-message)</li>
+                    <li>Quick starter suggestions</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Send Message Test</h3>
+            <div class="test-item">
+                <strong>Test Message:</strong>
+                <div class="code">Create a JavaScript course for beginners that covers variables, functions, and DOM manipulation</div>
+                
+                <strong>Expected AJAX Request:</strong>
+                <div class="code">
+POST /wp-admin/admin-ajax.php
+action: mpcc_chat_message
+nonce: [nonce_value]
+session_id: [session_id]
+message: [your_message]
+conversation_history: []
+course_structure: {}
+                </div>
+
+                <strong>Actual Result:</strong>
+                <span class="status partial">❓ To Be Tested</span>
+                
+                <div class="network-log">
+                    <strong>Network Log:</strong>
+                    <pre id="network-log-1">Paste network request/response here...</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Console Checks</h3>
+            <div class="test-item">
+                <strong>Run these commands in browser console:</strong>
+                <div class="code">
+// Check chat elements
+console.log('Chat input exists:', jQuery('#mpcc-chat-input').length > 0);
+console.log('Send button exists:', jQuery('#mpcc-send-message').length > 0);
+
+// Check session
+console.log('Session ID:', sessionStorage.getItem('mpcc_current_session_id'));
+
+// Check CourseEditor
+console.log('CourseEditor loaded:', typeof window.CourseEditor);
+
+// Check AJAX handlers
+console.log('jQuery AJAX handlers:', jQuery._data(jQuery('#mpcc-send-message')[0], 'events'));
+                </div>
+
+                <strong>Console Output:</strong>
+                <div class="code">
+                    <pre id="console-output">Paste console output here...</pre>
+                </div>
+            </div>
+        </div>
+
+        <h2>2. Test Results Summary</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Chat Interface Loads</td>
+                    <td><span class="status partial">❓ To Test</span></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Send Message Works</td>
+                    <td><span class="status partial">❓ To Test</span></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>AI Response Received</td>
+                    <td><span class="status partial">❓ To Test</span></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Course Preview Updates</td>
+                    <td><span class="status partial">❓ To Test</span></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Quick Starters Work</td>
+                    <td><span class="status partial">❓ To Test</span></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Session Persistence</td>
+                    <td><span class="status partial">❓ To Test</span></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>3. Error Log</h2>
+        <div class="error-log">
+            <pre id="error-log">No errors yet...</pre>
+        </div>
+
+        <h2>4. Debug Information</h2>
+        <div class="test-section">
+            <h3>AJAX Handler Registration</h3>
+            <p>The AI chat functionality should be handled by:</p>
+            <ul>
+                <li><strong>Primary:</strong> SimpleAjaxController::handleChatMessage()</li>
+                <li><strong>Action:</strong> wp_ajax_mpcc_chat_message</li>
+                <li><strong>Nonce:</strong> mpcc_editor_nonce</li>
+            </ul>
+
+            <h3>JavaScript Files</h3>
+            <ul>
+                <li>course-editor-page.js - Main editor functionality</li>
+                <li>shared-utilities.js - Utility functions</li>
+                <li>session-manager.js - Session management</li>
+            </ul>
+
+            <h3>Key Elements</h3>
+            <div class="code">
+#mpcc-chat-container - Main chat container
+#mpcc-chat-input - Message input textarea
+#mpcc-send-message - Send button
+#mpcc-chat-messages - Messages display area
+.mpcc-quick-starter-btn - Quick starter buttons
+#mpcc-course-structure - Course preview panel
+            </div>
+        </div>
+
+        <h2>5. Screenshots</h2>
+        <p>Attach screenshots here:</p>
+        <ol>
+            <li>Initial page load</li>
+            <li>After sending message</li>
+            <li>AI response received</li>
+            <li>Course structure displayed</li>
+            <li>Any errors</li>
+        </ol>
+    </div>
+
+    <script>
+        // Set current date
+        document.getElementById('test-date').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>

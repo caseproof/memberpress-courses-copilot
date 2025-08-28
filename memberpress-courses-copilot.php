@@ -105,7 +105,17 @@ function memberpress_courses_copilot_init(): void {
 }
 add_action( 'plugins_loaded', 'memberpress_courses_copilot_init', 20 );
 
-
+/**
+ * Register WP-CLI commands
+ *
+ * @return void
+ */
+function memberpress_courses_copilot_register_cli_commands(): void {
+    if ( defined( 'WP_CLI' ) && WP_CLI ) {
+        require_once MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'src/MemberPressCoursesCopilot/Commands/DatabaseCommand.php';
+    }
+}
+add_action( 'init', 'memberpress_courses_copilot_register_cli_commands' );
 
 /**
  * Plugin activation hook

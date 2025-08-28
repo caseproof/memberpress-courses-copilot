@@ -12,6 +12,8 @@
     // Main integration class
     class MPCCCoursesIntegration {
         constructor() {
+            this.autoSaveTimer = null;
+            this.isDirty = false;
             this.init();
         }
 
@@ -25,24 +27,32 @@
         }
 
         bindEvents() {
+            // Clean up existing event handlers to prevent duplicates
+            $(document).off('.mpcc-integration');
+            
             // Handle quick start button clicks
-            $(document).on('click', '.mpcc-quick-start', this.handleQuickStart.bind(this));
+            $(document).on('click.mpcc-integration', '.mpcc-quick-start', this.handleQuickStart.bind(this));
             
             // Handle suggestion button clicks
-            $(document).on('click', '.mpcc-suggestion-btn', this.handleSuggestion.bind(this));
+            $(document).on('click.mpcc-integration', '.mpcc-suggestion-btn', this.handleSuggestion.bind(this));
             
             // Handle action button clicks
-            $(document).on('click', '.mpcc-action-btn', this.handleActionButton.bind(this));
+            $(document).on('click.mpcc-integration', '.mpcc-action-btn', this.handleActionButton.bind(this));
             
             // Handle course creation
-            $(document).on('click', '#mpcc-create-course', this.handleCreateCourse.bind(this));
+            $(document).on('click.mpcc-integration', '#mpcc-create-course', this.handleCreateCourse.bind(this));
             
             // Handle course actions
-            $(document).on('click', '.mpcc-edit-section', this.handleEditSection.bind(this));
-            $(document).on('click', '.mpcc-delete-section', this.handleDeleteSection.bind(this));
-            $(document).on('click', '.mpcc-edit-lesson', this.handleEditLesson.bind(this));
-            $(document).on('click', '.mpcc-delete-lesson', this.handleDeleteLesson.bind(this));
-            $(document).on('click', '.mpcc-add-lesson', this.handleAddLesson.bind(this));
+            $(document).on('click.mpcc-integration', '.mpcc-edit-section', this.handleEditSection.bind(this));
+            $(document).on('click.mpcc-integration', '.mpcc-delete-section', this.handleDeleteSection.bind(this));
+            $(document).on('click.mpcc-integration', '.mpcc-edit-lesson', this.handleEditLesson.bind(this));
+            $(document).on('click.mpcc-integration', '.mpcc-delete-lesson', this.handleDeleteLesson.bind(this));
+            $(document).on('click.mpcc-integration', '.mpcc-add-lesson', this.handleAddLesson.bind(this));
+            
+            // Track changes for auto-save
+            $(document).on('change.mpcc-integration', 'input[data-autosave], textarea[data-autosave], select[data-autosave]', () => {
+                this.markAsDirty();
+            });
         }
 
         enhanceInterface() {
@@ -211,11 +221,11 @@
                         <div class="mpcc-modal-body">
                             <label>
                                 <span>Section Title</span>
-                                <input type="text" id="mpcc-section-title" value="${window.MPCCUtils.escapeHtml(section.title)}" />
+                                <input type="text" id="mpcc-section-title" value="${MPCCUtils.escapeHtml(section.title)}" />
                             </label>
                             <label>
                                 <span>Section Description</span>
-                                <textarea id="mpcc-section-description">${window.MPCCUtils.escapeHtml(section.description || '')}</textarea>
+                                <textarea id="mpcc-section-description">${MPCCUtils.escapeHtml(section.description || '')}</textarea>
                             </label>
                         </div>
                         <div class="mpcc-modal-footer">
@@ -251,7 +261,7 @@
                         <div class="mpcc-modal-body">
                             <label>
                                 <span>Lesson Title</span>
-                                <input type="text" id="mpcc-lesson-title" value="${window.MPCCUtils.escapeHtml(lesson.title)}" />
+                                <input type="text" id="mpcc-lesson-title" value="${MPCCUtils.escapeHtml(lesson.title)}" />
                             </label>
                             <label>
                                 <span>Lesson Type</span>
@@ -264,11 +274,11 @@
                             </label>
                             <label>
                                 <span>Duration (minutes)</span>
-                                <input type="number" id="mpcc-lesson-duration" value="${window.MPCCUtils.escapeHtml(lesson.duration || 10)}" />
+                                <input type="number" id="mpcc-lesson-duration" value="${MPCCUtils.escapeHtml(lesson.duration || 10)}" />
                             </label>
                             <label>
                                 <span>Lesson Content</span>
-                                <textarea id="mpcc-lesson-content" rows="6">${window.MPCCUtils.escapeHtml(lesson.content || '')}</textarea>
+                                <textarea id="mpcc-lesson-content" rows="6">${MPCCUtils.escapeHtml(lesson.content || '')}</textarea>
                             </label>
                         </div>
                         <div class="mpcc-modal-footer">
@@ -349,7 +359,11 @@
                     window.mpccCopilot.updateCoursePreview(window.mpccCopilot.currentCourse, true);
                     $('.mpcc-modal-overlay').remove();
                 } else {
-                    alert('Please enter a lesson title');
+                    if (window.MPCCToast) {
+                        window.MPCCToast.error('Please enter a lesson title');
+                    } else {
+                        console.error('Please enter a lesson title');
+                    }
                 }
             });
         }
@@ -407,34 +421,58 @@
         }
 
         setupAutoSave() {
-            // Auto-save course data every 60 seconds
-            setInterval(() => {
-                if (window.mpccCopilot && window.mpccCopilot.currentCourse) {
+            // Use debounced auto-save instead of interval
+            this.debouncedSave = MPCCUtils.debounce(() => {
+                if (this.isDirty && window.mpccCopilot && window.mpccCopilot.currentCourse) {
                     this.saveDraft();
                 }
-            }, 60000);
+            }, 5000); // Save after 5 seconds of inactivity
+        }
+        
+        markAsDirty() {
+            this.isDirty = true;
+            this.debouncedSave();
+            
+            // Show save indicator
+            MPCCUtils.ui.updateSaveIndicator('unsaved');
         }
 
         saveDraft() {
             const courseData = window.mpccCopilot.currentCourse;
             
-            $.ajax({
-                url: mpccCoursesIntegration.ajaxUrl,
-                type: 'POST',
-                data: {
-                    action: 'mpcc_save_course_draft',
-                    nonce: mpccCoursesIntegration.nonce,
-                    course_data: courseData
-                },
+            // Show saving indicator
+            MPCCUtils.ui.updateSaveIndicator('saving');
+            
+            MPCCUtils.ajax.request('mpcc_save_course_draft', {
+                course_data: courseData
+            }, {
                 success: (response) => {
                     if (response.success) {
-                        console.log('Draft saved successfully');
+                        this.isDirty = false;
+                        MPCCUtils.ui.updateSaveIndicator('saved');
+                    } else {
+                        MPCCUtils.ui.updateSaveIndicator('error');
                     }
                 },
                 error: (xhr, status, error) => {
                     console.error('Failed to save draft:', error);
+                    MPCCUtils.ui.updateSaveIndicator('error');
                 }
             });
+        }
+        
+        // Cleanup method
+        destroy() {
+            // Remove all event handlers
+            $(document).off('.mpcc-integration');
+            
+            // Clear timers
+            if (this.autoSaveTimer) {
+                clearTimeout(this.autoSaveTimer);
+            }
+            
+            // Clear references
+            this.debouncedSave = null;
         }
 
         showLoading(message = 'Loading...') {
@@ -442,7 +480,7 @@
                 <div class="mpcc-loading-overlay">
                     <div class="mpcc-loading-content">
                         <div class="spinner is-active"></div>
-                        <p>${window.MPCCUtils.escapeHtml(message)}</p>
+                        <p>${MPCCUtils.escapeHtml(message)}</p>
                     </div>
                 </div>
             `;
@@ -454,26 +492,15 @@
         }
 
         showSuccess(message) {
-            this.showNotification(message, 'success');
+            MPCCUtils.showSuccess(message);
         }
 
         showError(message) {
-            this.showNotification(message, 'error');
+            MPCCUtils.showError(message);
         }
 
         showNotification(message, type = 'info') {
-            const notificationHTML = `
-                <div class="mpcc-notification mpcc-notification-${window.MPCCUtils.escapeHtml(type)}">
-                    <p>${window.MPCCUtils.escapeHtml(message)}</p>
-                </div>
-            `;
-            
-            const $notification = $(notificationHTML);
-            $('body').append($notification);
-            
-            setTimeout(() => {
-                $notification.fadeOut(() => $notification.remove());
-            }, 5000);
+            MPCCUtils.showNotification(message, type);
         }
 
         retryLastMessage() {
@@ -528,5 +555,12 @@
     // Log initialization
     const loadTime = performance.now();
     console.log(`MPCC Interface Load: ${loadTime} ms`);
+    
+    // Cleanup on page unload
+    $(window).on('beforeunload.mpcc-integration', function() {
+        if (window.mpccCoursesIntegration && window.mpccCoursesIntegration.destroy) {
+            window.mpccCoursesIntegration.destroy();
+        }
+    });
 
 })(jQuery);
