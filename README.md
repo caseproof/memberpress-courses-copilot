@@ -2,24 +2,9 @@
 
 AI-powered conversational course creation assistant for MemberPress Courses that reduces course development time from 6-10 hours to 10-30 minutes.
 
-## Recent Updates (2025-08-26)
-
-### Architecture Changes
-- **Removed SessionService completely** - ConversationManager is now the single session handler
-- **Fixed message history persistence** - Proper field mapping between frontend/backend
-- **Fixed timestamp issues** - Timestamps only update on content changes, not on load
-- **Disabled chat for published courses** - Published courses are now read-only
-
-### Previous Updates (2025-08-21)
-- Fixed AI response formatting to use proper CSS classes for better visual presentation
-- Moved conversation management buttons (Previous Conversations/New Conversation) below the chat area
-- Added course preview restoration when loading saved conversations
-- Increased chat window vertical space for better usability
-- See [STATUS.md](STATUS.md) for detailed technical status
-
 ## Overview
 
-MemberPress Courses Copilot is a WordPress plugin that integrates directly with MemberPress Courses to provide an intelligent, conversational AI assistant for course creation. Using advanced language models through LiteLLM proxy infrastructure, it guides users through course development with natural language conversations.
+MemberPress Courses Copilot is a WordPress plugin that integrates directly with MemberPress Courses to provide an intelligent, conversational AI assistant for course creation. Using advanced language models through a secure authentication gateway, it guides users through course development with natural language conversations.
 
 ## Features
 
@@ -55,14 +40,14 @@ MemberPress Courses Copilot is a WordPress plugin that integrates directly with 
 - PHP 8.0 or higher
 - MemberPress plugin (active license)
 - MemberPress Courses add-on
-- LiteLLM proxy access (configured)
+- Authentication gateway access (automatically configured)
 
 ## Installation
 
 1. Upload the `memberpress-courses-copilot` folder to `/wp-content/plugins/`
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Navigate to MemberPress → Courses → AI Copilot to configure settings
-4. Enter your LiteLLM proxy credentials
+3. Navigate to MemberPress → Courses → AI Copilot
+4. The plugin automatically connects to the authentication gateway
 5. Start creating courses with AI assistance!
 
 ## Configuration
@@ -77,29 +62,29 @@ define('MPCC_AUTH_GATEWAY_URL', 'https://your-custom-gateway-url.com');
 
 For detailed configuration options, see [Auth Gateway Configuration](docs/AUTH_GATEWAY_CONFIGURATION.md).
 
-### Provider Configuration
-The plugin intelligently routes requests to the optimal AI provider:
-- **Anthropic Claude**: Course content, lesson writing, creative tasks
-- **OpenAI GPT**: Structured data, quizzes, validation
-- **DocsBot**: User help and documentation queries
+### Development Mode
+For development environments, you can override the authentication gateway URL:
+
+```php
+// wp-config.php
+define('MPCC_AUTH_GATEWAY_URL', 'http://localhost:5000');
+```
 
 ## Usage
 
 ### Creating a Course
-1. Go to **MemberPress → Courses**
-2. Click **"Create with AI"** button
-3. Choose a course template
-4. Have a conversation with the AI about your course
-5. Review and refine the generated structure
-6. Click **"Create Course"** to generate in WordPress
+1. Go to **MemberPress → Courses → AI Copilot**
+2. Click **"New Conversation"** to start
+3. Describe your course idea in natural language
+4. The AI will ask clarifying questions and suggest a course structure
+5. Preview and edit individual lessons in the course preview
+6. Click **"Create Course"** when satisfied with the structure
 
-### Workflow States
-- **Initial**: Welcome and template selection
-- **Gathering Info**: Topic, audience, objectives collection
-- **Generating**: AI creates course outline
-- **Reviewing**: Modify and approve structure
-- **Refining**: Optional enhancement loop
-- **Creating**: Generate WordPress course entities
+### Managing Conversations
+- **Save Progress**: Your conversations are automatically saved
+- **Previous Conversations**: Load and continue past course designs
+- **Duplicate Course**: Create variations of existing course structures
+- **Edit Lessons**: Use the preview editor to customize content before creation
 
 ## Development
 
@@ -124,6 +109,14 @@ This project follows:
 - WordPress coding standards
 - Modern PHP 8.0+ features
 
+### Building Assets
+```bash
+npm install
+npm run build        # Production build
+npm run dev          # Development build
+npm run watch        # Watch for changes
+```
+
 ### Running Tests
 ```bash
 composer install
@@ -132,25 +125,14 @@ composer run cs-check
 composer run cs-fix
 ```
 
+### Database Tables
+The plugin creates these custom tables:
+- `{prefix}_mpcc_conversations` - Stores conversation sessions
+- `{prefix}_mpcc_lesson_drafts` - Stores lesson content drafts
+
 ## API Reference
 
-### REST Endpoints
-- `/wp-json/mpcc/v1/conversation` - Chat management
-- `/wp-json/mpcc/v1/generate-course` - Course generation
-- `/wp-json/mpcc/v1/templates` - Template operations
-- `/wp-json/mpcc/v1/patterns` - Pattern matching
-
-### Hooks & Filters
-
-#### Actions
-- `mpcc_course_generated` - Fired after course generation
-- `mpcc_conversation_started` - New conversation initiated
-- `mpcc_pattern_captured` - Successful pattern identified
-
-#### Filters
-- `mpcc_course_templates` - Modify available templates
-- `mpcc_ai_providers` - Customize AI provider routing
-- `mpcc_quality_checks` - Add custom validation rules
+For detailed API documentation, see [docs/API.md](docs/API.md).
 
 ## Contributing
 
@@ -166,34 +148,30 @@ Please ensure:
 - Documentation is updated
 - Commits are descriptive
 
+## Troubleshooting
+
+### Common Issues
+
+**AI not responding**
+- Check WordPress error logs for connection issues
+- Verify AUTH_GATEWAY_URL is accessible
+- Check browser console for JavaScript errors
+
+**Course creation fails**
+- Ensure MemberPress Courses is active
+- Verify user has `publish_posts` capability
+- Check for conflicting plugins
+
+**Sessions not saving**
+- Verify database tables were created
+- Check write permissions on database
+- Clear browser cache and cookies
+
 ## Support
 
 - **Documentation**: See `/docs` folder
-- **Issues**: [GitHub Issues](https://github.com/sethshoultes/memberpress-courses-copilot/issues)
 - **Community**: MemberPress community forums
 - **Email**: support@memberpress.com
-
-## Roadmap
-
-### Phase 1: Foundation (Weeks 1-3) ✅
-- Project setup and standards
-- Basic WordPress integration
-
-### Phase 2: AI Engine (Weeks 4-6) 🚧
-- LiteLLM proxy integration
-- Conversational interface
-
-### Phase 3: Course Generation (Weeks 7-9) 📅
-- Template system
-- MemberPress integration
-
-### Phase 4: Advanced Features (Weeks 10-12) 📅
-- Pattern recognition
-- Quality assurance
-
-### Phase 5: Polish (Weeks 13-14) 📅
-- Mobile optimization
-- User experience refinement
 
 ## License
 

@@ -1,0 +1,279 @@
+/**
+ * MemberPress Courses Copilot - CSS Variables & Design Tokens
+ * Centralized design tokens for consistent theming
+ *
+ * @package MemberPressCoursesCopilot
+ * @version 2.0.0
+ */
+
+:root {
+  /* ==========================================================================
+     Color Palette
+     ========================================================================== */
+  
+  /* Brand Colors */
+  --mpcc-brand-primary: #0073aa;
+  --mpcc-brand-primary-dark: #005a87;
+  --mpcc-brand-primary-light: #0085c8;
+  --mpcc-brand-secondary: #667eea;
+  --mpcc-brand-accent: #764ba2;
+  
+  /* Semantic Colors */
+  --mpcc-color-success: #46b450;
+  --mpcc-color-warning: #f56e28;
+  --mpcc-color-error: #dc3232;
+  --mpcc-color-info: #00a0d2;
+  
+  /* Neutral Colors */
+  --mpcc-color-white: #ffffff;
+  --mpcc-color-gray-50: #f9f9f9;
+  --mpcc-color-gray-100: #f0f0f1;
+  --mpcc-color-gray-200: #e0e0e0;
+  --mpcc-color-gray-300: #dcdcde;
+  --mpcc-color-gray-400: #c1c1c1;
+  --mpcc-color-gray-500: #8c8f94;
+  --mpcc-color-gray-600: #646970;
+  --mpcc-color-gray-700: #50575e;
+  --mpcc-color-gray-800: #2c3338;
+  --mpcc-color-gray-900: #1d2327;
+  --mpcc-color-black: #000000;
+  
+  /* ==========================================================================
+     Gradients
+     ========================================================================== */
+  
+  --mpcc-gradient-primary: linear-gradient(135deg, var(--mpcc-brand-secondary) 0%, var(--mpcc-brand-accent) 100%);
+  --mpcc-gradient-success: linear-gradient(135deg, var(--mpcc-color-success) 0%, #3ea047 100%);
+  --mpcc-gradient-light: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+  
+  /* ==========================================================================
+     Typography
+     ========================================================================== */
+  
+  /* Font Families */
+  --mpcc-font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mpcc-font-family-mono: 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace;
+  
+  /* Font Sizes */
+  --mpcc-font-size-xs: 0.75rem;    /* 12px */
+  --mpcc-font-size-sm: 0.875rem;   /* 14px */
+  --mpcc-font-size-base: 1rem;     /* 16px */
+  --mpcc-font-size-lg: 1.125rem;   /* 18px */
+  --mpcc-font-size-xl: 1.25rem;    /* 20px */
+  --mpcc-font-size-2xl: 1.5rem;    /* 24px */
+  --mpcc-font-size-3xl: 2rem;      /* 32px */
+  
+  /* Font Weights */
+  --mpcc-font-weight-normal: 400;
+  --mpcc-font-weight-medium: 500;
+  --mpcc-font-weight-semibold: 600;
+  --mpcc-font-weight-bold: 700;
+  
+  /* Line Heights */
+  --mpcc-line-height-tight: 1.25;
+  --mpcc-line-height-normal: 1.5;
+  --mpcc-line-height-relaxed: 1.75;
+  
+  /* ==========================================================================
+     Spacing Scale
+     ========================================================================== */
+  
+  --mpcc-spacing-0: 0;
+  --mpcc-spacing-1: 0.25rem;   /* 4px */
+  --mpcc-spacing-2: 0.5rem;    /* 8px */
+  --mpcc-spacing-3: 0.75rem;   /* 12px */
+  --mpcc-spacing-4: 1rem;      /* 16px */
+  --mpcc-spacing-5: 1.25rem;   /* 20px */
+  --mpcc-spacing-6: 1.5rem;    /* 24px */
+  --mpcc-spacing-8: 2rem;      /* 32px */
+  --mpcc-spacing-10: 2.5rem;   /* 40px */
+  --mpcc-spacing-12: 3rem;     /* 48px */
+  --mpcc-spacing-16: 4rem;     /* 64px */
+  
+  /* ==========================================================================
+     Layout
+     ========================================================================== */
+  
+  /* Border Radius */
+  --mpcc-radius-none: 0;
+  --mpcc-radius-sm: 4px;
+  --mpcc-radius-md: 8px;
+  --mpcc-radius-lg: 12px;
+  --mpcc-radius-xl: 16px;
+  --mpcc-radius-full: 9999px;
+  
+  /* Border Widths */
+  --mpcc-border-width-thin: 1px;
+  --mpcc-border-width-medium: 2px;
+  --mpcc-border-width-thick: 4px;
+  
+  /* Shadows */
+  --mpcc-shadow-none: none;
+  --mpcc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --mpcc-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --mpcc-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+  --mpcc-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);
+  --mpcc-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
+  --mpcc-shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  
+  /* ==========================================================================
+     Animation & Transitions
+     ========================================================================== */
+  
+  /* Durations */
+  --mpcc-duration-instant: 0ms;
+  --mpcc-duration-fast: 150ms;
+  --mpcc-duration-normal: 250ms;
+  --mpcc-duration-slow: 350ms;
+  --mpcc-duration-slower: 500ms;
+  
+  /* Timing Functions */
+  --mpcc-ease-linear: linear;
+  --mpcc-ease-in: ease-in;
+  --mpcc-ease-out: ease-out;
+  --mpcc-ease-in-out: ease-in-out;
+  --mpcc-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  /* Transitions */
+  --mpcc-transition-all: all var(--mpcc-duration-normal) var(--mpcc-ease-in-out);
+  --mpcc-transition-colors: color var(--mpcc-duration-fast) var(--mpcc-ease-in-out), 
+                           background-color var(--mpcc-duration-fast) var(--mpcc-ease-in-out), 
+                           border-color var(--mpcc-duration-fast) var(--mpcc-ease-in-out);
+  --mpcc-transition-transform: transform var(--mpcc-duration-normal) var(--mpcc-ease-in-out);
+  --mpcc-transition-shadow: box-shadow var(--mpcc-duration-normal) var(--mpcc-ease-in-out);
+  
+  /* ==========================================================================
+     Z-Index Scale
+     ========================================================================== */
+  
+  --mpcc-z-base: 0;
+  --mpcc-z-dropdown: 1000;
+  --mpcc-z-sticky: 1020;
+  --mpcc-z-fixed: 1030;
+  --mpcc-z-modal-backdrop: 1040;
+  --mpcc-z-modal: 1050;
+  --mpcc-z-popover: 1060;
+  --mpcc-z-tooltip: 1070;
+  --mpcc-z-notification: 1080;
+  
+  /* ==========================================================================
+     Component-Specific Variables
+     ========================================================================== */
+  
+  /* Buttons */
+  --mpcc-btn-padding-x: var(--mpcc-spacing-4);
+  --mpcc-btn-padding-y: var(--mpcc-spacing-2);
+  --mpcc-btn-font-size: var(--mpcc-font-size-sm);
+  --mpcc-btn-font-weight: var(--mpcc-font-weight-medium);
+  --mpcc-btn-line-height: var(--mpcc-line-height-normal);
+  --mpcc-btn-border-radius: var(--mpcc-radius-md);
+  --mpcc-btn-min-height: 36px;
+  
+  /* Forms */
+  --mpcc-input-padding-x: var(--mpcc-spacing-3);
+  --mpcc-input-padding-y: var(--mpcc-spacing-2);
+  --mpcc-input-font-size: var(--mpcc-font-size-base);
+  --mpcc-input-line-height: var(--mpcc-line-height-normal);
+  --mpcc-input-border-radius: var(--mpcc-radius-md);
+  --mpcc-input-border-width: var(--mpcc-border-width-medium);
+  --mpcc-input-min-height: 40px;
+  
+  /* Cards */
+  --mpcc-card-padding: var(--mpcc-spacing-6);
+  --mpcc-card-border-radius: var(--mpcc-radius-lg);
+  --mpcc-card-shadow: var(--mpcc-shadow-sm);
+  --mpcc-card-shadow-hover: var(--mpcc-shadow-md);
+  
+  /* Modals */
+  --mpcc-modal-padding: var(--mpcc-spacing-6);
+  --mpcc-modal-border-radius: var(--mpcc-radius-xl);
+  --mpcc-modal-shadow: var(--mpcc-shadow-2xl);
+  --mpcc-modal-max-width: 600px;
+  --mpcc-modal-backdrop-opacity: 0.6;
+  
+  /* Chat Interface */
+  --mpcc-chat-message-padding: var(--mpcc-spacing-4);
+  --mpcc-chat-message-radius: 18px;
+  --mpcc-chat-sidebar-width: 440px;
+  --mpcc-chat-input-min-height: 60px;
+  --mpcc-chat-input-max-height: 120px;
+}
+
+/* ==========================================================================
+   Dark Theme Variables
+   ========================================================================== */
+
+.mpcc-theme-dark {
+  /* Dark theme colors */
+  --mpcc-color-white: #1e1e1e;
+  --mpcc-color-gray-50: #2d2d2d;
+  --mpcc-color-gray-100: #3c3c3c;
+  --mpcc-color-gray-200: #404040;
+  --mpcc-color-gray-300: #505050;
+  --mpcc-color-gray-400: #606060;
+  --mpcc-color-gray-500: #888888;
+  --mpcc-color-gray-600: #b0b0b0;
+  --mpcc-color-gray-700: #d0d0d0;
+  --mpcc-color-gray-800: #e0e0e0;
+  --mpcc-color-gray-900: #f0f0f0;
+  --mpcc-color-black: #ffffff;
+  
+  /* Adjust shadows for dark theme */
+  --mpcc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --mpcc-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --mpcc-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+  --mpcc-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+  --mpcc-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.6);
+}
+
+/* ==========================================================================
+   Semantic Aliases (for easier usage)
+   ========================================================================== */
+
+:root {
+  /* Primary semantic colors */
+  --mpcc-primary: var(--mpcc-brand-primary);
+  --mpcc-primary-dark: var(--mpcc-brand-primary-dark);
+  --mpcc-primary-light: var(--mpcc-brand-primary-light);
+  --mpcc-secondary: var(--mpcc-color-gray-700);
+  --mpcc-success: var(--mpcc-color-success);
+  --mpcc-warning: var(--mpcc-color-warning);
+  --mpcc-error: var(--mpcc-color-error);
+  --mpcc-info: var(--mpcc-color-info);
+  
+  /* Background colors */
+  --mpcc-bg-primary: var(--mpcc-color-white);
+  --mpcc-bg-secondary: var(--mpcc-color-gray-50);
+  --mpcc-bg-tertiary: var(--mpcc-color-gray-100);
+  
+  /* Text colors */
+  --mpcc-text-primary: var(--mpcc-color-gray-800);
+  --mpcc-text-secondary: var(--mpcc-color-gray-700);
+  --mpcc-text-muted: var(--mpcc-color-gray-500);
+  --mpcc-text-inverse: var(--mpcc-color-white);
+  
+  /* Border colors */
+  --mpcc-border-primary: var(--mpcc-color-gray-300);
+  --mpcc-border-secondary: var(--mpcc-color-gray-200);
+  --mpcc-border-focus: var(--mpcc-primary);
+  
+  /* Legacy spacing aliases (for backward compatibility) */
+  --mpcc-spacing-xs: var(--mpcc-spacing-1);
+  --mpcc-spacing-sm: var(--mpcc-spacing-2);
+  --mpcc-spacing-md: var(--mpcc-spacing-4);
+  --mpcc-spacing-lg: var(--mpcc-spacing-6);
+  --mpcc-spacing-xl: var(--mpcc-spacing-8);
+  --mpcc-spacing-2xl: var(--mpcc-spacing-12);
+  
+  /* Legacy font size aliases */
+  --mpcc-font-size-xs: 0.75rem;
+  --mpcc-font-size-sm: 0.875rem;
+  --mpcc-font-size-base: 1rem;
+  --mpcc-font-size-lg: 1.125rem;
+  --mpcc-font-size-xl: 1.25rem;
+  
+  /* Legacy transition aliases */
+  --mpcc-transition-fast: var(--mpcc-transition-colors);
+  --mpcc-transition-base: var(--mpcc-transition-all);
+  --mpcc-transition-slow: all var(--mpcc-duration-slow) var(--mpcc-ease-in-out);
+}
