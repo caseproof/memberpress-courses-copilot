@@ -158,7 +158,10 @@
             
             // Scroll to bottom
             var messages = $('#mpcc-editor-ai-messages');
-            messages.scrollTop(messages[0].scrollHeight);
+            // Use requestAnimationFrame to ensure DOM has been rendered
+            requestAnimationFrame(() => {
+                messages.scrollTop(messages[0].scrollHeight);
+            });
             
             // Show typing indicator using utility function
             var typingId = MPCCUtils.ui.addTypingIndicator($messages);
