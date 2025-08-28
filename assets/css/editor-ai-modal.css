@@ -5,6 +5,9 @@
  * @since 1.0.0
  */
 
+/* Import common styles */
+@import url('mpcc-common.css');
+
 /* Override the CSS pseudo-element X */
 .mpcc-editor-ai-modal .mpcc-modal-close::before {
     content: none !important;

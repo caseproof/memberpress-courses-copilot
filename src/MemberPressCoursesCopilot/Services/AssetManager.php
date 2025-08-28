@@ -325,6 +325,7 @@ class AssetManager extends BaseService
     {
         // Enqueue styles
         wp_enqueue_style('mpcc-toast');
+        wp_enqueue_style('mpcc-course-editor'); // Add the course editor styles
         wp_enqueue_style('mpcc-course-edit-ai-chat');
         wp_enqueue_style('mpcc-ai-copilot'); // Needed for chat message styles
         

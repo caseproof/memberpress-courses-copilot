@@ -393,9 +393,11 @@
             const typingHtml = `
                 <div class="mpcc-chat-message assistant" id="${this.escapeHtml(typingId)}">
                     <div class="message-content">
-                        <span class="typing-indicator">
-                            <span></span><span></span><span></span>
-                        </span>
+                        <div class="mpcc-typing-indicator">
+                            <div class="mpcc-typing-dot"></div>
+                            <div class="mpcc-typing-dot"></div>
+                            <div class="mpcc-typing-dot"></div>
+                        </div>
                     </div>
                 </div>
             `;

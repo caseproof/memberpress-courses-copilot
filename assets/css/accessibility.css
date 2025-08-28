@@ -135,7 +135,7 @@ input[type="password"]:focus {
 @media (prefers-reduced-motion: reduce) {
     .mpcc-modal-overlay,
     .mpcc-chat-interface,
-    .typing-indicator span,
+    .mpcc-typing-dot,
     * {
         animation: none !important;
         transition: none !important;
@@ -152,13 +152,13 @@ input[type="password"]:focus {
 }
 
 /* Typing indicator accessibility */
-.typing-indicator {
+.mpcc-typing-indicator {
     display: inline-flex;
     align-items: center;
     gap: 3px;
 }
 
-.typing-indicator::before {
+.mpcc-typing-indicator::before {
     content: "AI is typing";
     position: absolute;
     left: -10000px;
@@ -290,7 +290,7 @@ button,
 input[type="submit"],
 input[type="button"] {
     min-height: 36px;
-    min-width: 44px;
+    min-width: 24px;
     padding: 8px 16px;
 }
 
@@ -302,7 +302,7 @@ input[type="button"] {
     input[type="button"],
     a.button {
         min-height: 44px;
-        min-width: 44px;
+        min-width: 24px;
     }
 }
 

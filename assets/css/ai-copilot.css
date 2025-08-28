@@ -1034,6 +1034,11 @@
   margin-bottom: var(--mpcc-spacing-md);
 }
 
+/* Override gap for action buttons to be tighter */
+.mpcc-section-header .mpcc-section-actions {
+  gap: 4px !important;
+}
+
 .mpcc-drag-handle {
   cursor: grab;
   color: var(--mpcc-text-muted);
@@ -1060,7 +1065,7 @@
 
 .mpcc-section-actions {
   display: flex;
-  gap: var(--mpcc-spacing-xs);
+  gap: 4px;
   opacity: 0;
   transition: var(--mpcc-transition-fast);
 }
@@ -1179,7 +1184,7 @@
 
 .mpcc-lesson-actions {
   display: flex;
-  gap: var(--mpcc-spacing-xs);
+  gap: 4px !important;
 }
 
 .mpcc-add-lesson {

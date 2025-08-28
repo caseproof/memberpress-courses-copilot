@@ -156,9 +156,11 @@
             const typingId = 'typing-' + Date.now();
             const typingHtml = '<div class="mpcc-chat-message assistant" id="' + MPCCUtils.escapeHtml(typingId) + '" role="status" aria-live="polite">' +
                 '<div class="message-content">' +
-                '<span class="typing-indicator" aria-label="AI is typing">' +
-                '<span></span><span></span><span></span>' +
-                '</span></div></div>';
+                '<div class="mpcc-typing-indicator" aria-label="AI is typing">' +
+                '<div class="mpcc-typing-dot"></div>' +
+                '<div class="mpcc-typing-dot"></div>' +
+                '<div class="mpcc-typing-dot"></div>' +
+                '</div></div></div>';
             
             $('#mpcc-course-chat-messages').append(typingHtml);
             MPCCUtils.ui.scrollToBottom('#mpcc-course-chat-messages');

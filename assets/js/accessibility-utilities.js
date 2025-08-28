@@ -519,7 +519,7 @@ if (!jQuery('#mpcc-accessibility-styles').length) {
             @media (prefers-reduced-motion: reduce) {
                 .mpcc-modal-overlay,
                 .mpcc-chat-interface,
-                .typing-indicator span {
+                .mpcc-typing-dot {
                     animation: none !important;
                     transition: none !important;
                 }
