@@ -1,13 +1,16 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 
+// Simple webpack configuration for future modular JavaScript development
+// Currently, the existing JS files in assets/js/ are standalone and don't require bundling
+
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
 
   return {
+    // Add entries here when you have modular JavaScript that needs bundling
     entry: {
-      // Currently empty - add entries when you need to bundle modular JavaScript
-      // The existing JS files in assets/js/ are standalone and don't require bundling
+      // Example: 'bundle-name': './src/js/entry-file.js'
     },
     output: {
       path: path.resolve(__dirname, 'dist/js'),
@@ -25,14 +28,6 @@ module.exports = (env, argv) => {
               presets: ['@babel/preset-env', '@babel/preset-react']
             }
           }
-        },
-        {
-          test: /\.css$/,
-          use: ['style-loader', 'css-loader']
-        },
-        {
-          test: /\.scss$/,
-          use: ['style-loader', 'css-loader', 'sass-loader']
         }
       ]
     },
@@ -50,12 +45,6 @@ module.exports = (env, argv) => {
       ],
     },
     devtool: isProduction ? false : 'source-map',
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, 'assets/js'),
-        '@css': path.resolve(__dirname, 'assets/css')
-      }
-    },
     externals: {
       jquery: 'jQuery',
       wp: 'wp'

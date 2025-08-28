@@ -173,7 +173,7 @@
             // Save the updated structure
             this.saveConversation();
             
-            mpccToast.success('Section order updated');
+            MPCCUtils.showSuccess('Section order updated');
         },
         
         updateLessonOrder: function() {
@@ -207,7 +207,7 @@
             // Save the updated structure
             this.saveConversation();
             
-            mpccToast.success('Lesson order updated');
+            MPCCUtils.showSuccess('Lesson order updated');
         },
         
         initializeChat: function() {
@@ -348,15 +348,10 @@
             let formattedContent;
             if (role === 'assistant') {
                 // Use formatMessageToHTML for AI messages to preserve formatting
-                if (window.MPCCUtils && window.MPCCUtils.formatMessageToHTML) {
-                    formattedContent = window.MPCCUtils.formatMessageToHTML(content);
-                } else {
-                    // Fallback to escapeHtml if utility not available
-                    formattedContent = this.escapeHtml(content);
-                }
+                formattedContent = MPCCUtils.formatMessageToHTML(content);
             } else {
                 // For user messages, just escape HTML
-                formattedContent = this.escapeHtml(content);
+                formattedContent = MPCCUtils.escapeHtml(content);
             }
             
             const messageHtml = `
@@ -470,12 +465,12 @@
                         // Auto-save conversation
                         this.saveConversation();
                     } else {
-                        mpccToast.error(response.data || 'An error occurred');
+                        MPCCUtils.showError(response.data || 'An error occurred');
                     }
                 },
                 error: () => {
                     $('#' + typingId).remove();
-                    mpccToast.error('Failed to communicate with the AI. Please try again.');
+                    MPCCUtils.showError('Failed to communicate with the AI. Please try again.');
                 },
                 complete: () => {
                     button.prop('disabled', false).html('<span class="dashicons dashicons-arrow-right-alt"></span> Send');
@@ -651,7 +646,7 @@
             
             // Prevent editing if course is published
             if (this.publishedCourseId) {
-                mpccToast.warning('This course has been published and cannot be edited.');
+                MPCCUtils.showWarning('This course has been published and cannot be edited.');
                 return;
             }
             
@@ -663,7 +658,7 @@
         editLesson: function(lessonId) {
             // Prevent editing if course is published
             if (this.publishedCourseId) {
-                mpccToast.warning('This course has been published and cannot be edited.');
+                MPCCUtils.showWarning('This course has been published and cannot be edited.');
                 return;
             }
             
@@ -714,7 +709,7 @@
         generateLessonContent: function() {
             // Prevent AI generation if course is published
             if (this.publishedCourseId) {
-                mpccToast.warning('This course has been published and cannot be edited.');
+                MPCCUtils.showWarning('This course has been published and cannot be edited.');
                 return;
             }
             
@@ -746,11 +741,11 @@
                         $('#mpcc-lesson-textarea').val(response.data.content);
                         this.autoSaveLesson();
                     } else {
-                        mpccToast.error(response.data || 'Failed to generate content');
+                        MPCCUtils.showError(response.data || 'Failed to generate content');
                     }
                 },
                 error: () => {
-                    mpccToast.error('Failed to generate content. Please try again.');
+                    MPCCUtils.showError('Failed to generate content. Please try again.');
                 },
                 complete: () => {
                     button.prop('disabled', false).html('<span class="dashicons dashicons-welcome-write-blog"></span> Generate with AI');
@@ -796,7 +791,7 @@
             
             if (isNaN(sectionIndex) || isNaN(lessonIndex)) {
                 console.error('Invalid lesson indices:', {sectionIndex, lessonIndex});
-                mpccToast.error('Invalid lesson selection');
+                MPCCUtils.showError('Invalid lesson selection');
                 return;
             }
             
@@ -821,7 +816,7 @@
                 data: saveData,
                 success: (response) => {
                     if (response.success) {
-                        $('.mpcc-save-indicator').text('Saved').removeClass('saving error').addClass('saved');
+                        MPCCUtils.ui.updateSaveIndicator('saved');
                         
                         // Update local structure
                         lesson.draft_content = content;
@@ -831,14 +826,14 @@
                         
                         if (callback) callback();
                     } else {
-                        $('.mpcc-save-indicator').text('Error saving').removeClass('saving saved').addClass('error');
-                        mpccToast.error(response.data || 'Failed to save');
+                        MPCCUtils.ui.updateSaveIndicator('error');
+                        MPCCUtils.showError(response.data || 'Failed to save');
                     }
                 },
                 error: (xhr, status, error) => {
                     console.error('Save lesson AJAX error:', {status, error, response: xhr.responseText});
-                    $('.mpcc-save-indicator').text('Error saving').removeClass('saving saved').addClass('error');
-                    mpccToast.error('Failed to save: ' + error);
+                    MPCCUtils.ui.updateSaveIndicator('error');
+                    MPCCUtils.showError('Failed to save: ' + error);
                 },
                 complete: () => {
                     this.isSaving = false;
@@ -906,7 +901,7 @@
         
         createCourse: function() {
             if (!this.courseStructure.title) {
-                mpccToast.warning('Please generate a course structure first.');
+                MPCCUtils.showWarning('Please generate a course structure first.');
                 return;
             }
             
@@ -934,18 +929,18 @@
                         // Update button state
                         button.html('<span class="dashicons dashicons-yes-alt"></span> Course Created').prop('disabled', true);
                         
-                        mpccToast.success('Course created successfully! Redirecting...');
+                        MPCCUtils.showSuccess('Course created successfully! Redirecting...');
                         
                         // Redirect to the created course after short delay
                         setTimeout(() => {
                             window.location.href = response.data.edit_url;
                         }, 2000);
                     } else {
-                        mpccToast.error(response.data || 'Failed to create course');
+                        MPCCUtils.showError(response.data || 'Failed to create course');
                     }
                 },
                 error: () => {
-                    mpccToast.error('Failed to create course. Please try again.');
+                    MPCCUtils.showError('Failed to create course. Please try again.');
                 },
                 complete: () => {
                     button.prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> Create Course');
@@ -1186,11 +1181,11 @@
                         // Scroll to bottom
                         this.scrollToBottom();
                     } else {
-                        mpccToast.error('Failed to load conversation');
+                        MPCCUtils.showError('Failed to load conversation');
                     }
                 },
                 error: () => {
-                    mpccToast.error('Failed to load conversation. Please try again.');
+                    MPCCUtils.showError('Failed to load conversation. Please try again.');
                 }
             });
         },
@@ -1260,7 +1255,7 @@
                             }
                         }.bind(this));
                         
-                        mpccToast.success('Conversation deleted successfully');
+                        MPCCUtils.showSuccess('Conversation deleted successfully');
                         
                         // If we deleted the current session, redirect to a new session
                         if (sessionId === this.sessionId) {
@@ -1269,13 +1264,13 @@
                             }, 1000);
                         }
                     } else {
-                        mpccToast.error(response.data || 'Failed to delete conversation');
+                        MPCCUtils.showError(response.data || 'Failed to delete conversation');
                         // Restore button
                         $deleteButton.html(originalHtml).prop('disabled', false);
                     }
                 },
                 error: () => {
-                    mpccToast.error('Failed to delete conversation. Please try again.');
+                    MPCCUtils.showError('Failed to delete conversation. Please try again.');
                     // Restore button
                     $deleteButton.html(originalHtml).prop('disabled', false);
                 }
@@ -1283,7 +1278,7 @@
         },
         
         showError: function(message) {
-            mpccToast.error(message);
+            MPCCUtils.showError(message);
         },
         
         updateViewCourseButton: function() {
@@ -1310,7 +1305,7 @@
         
         duplicateCourse: function() {
             if (!this.publishedCourseId || !this.courseStructure.title) {
-                mpccToast.warning('No published course available to duplicate.');
+                MPCCUtils.showWarning('No published course available to duplicate.');
                 return;
             }
             
@@ -1329,18 +1324,18 @@
                     },
                     success: (response) => {
                         if (response.success) {
-                            mpccToast.success('Course duplicated successfully! Redirecting to new session...');
+                            MPCCUtils.showSuccess('Course duplicated successfully! Redirecting to new session...');
                             
                             // Redirect to the new session
                             setTimeout(() => {
                                 window.location.href = window.location.pathname + '?page=mpcc-course-editor&session=' + response.data.new_session_id;
                             }, 1500);
                         } else {
-                            mpccToast.error(response.data || 'Failed to duplicate course');
+                            MPCCUtils.showError(response.data || 'Failed to duplicate course');
                         }
                     },
                     error: () => {
-                        mpccToast.error('Failed to duplicate course. Please try again.');
+                        MPCCUtils.showError('Failed to duplicate course. Please try again.');
                     },
                     complete: () => {
                         button.prop('disabled', false).html('<span class="dashicons dashicons-admin-page"></span> Duplicate Course');
@@ -1350,30 +1345,18 @@
         },
         
         escapeHtml: function(text) {
-            // Use shared utility if available
-            if (window.MPCCUtils && window.MPCCUtils.escapeHtml) {
-                return window.MPCCUtils.escapeHtml(text);
-            }
-            // Fallback
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
+            return MPCCUtils.escapeHtml(text);
         },
         
         handleEditSection: function(sectionIndex) {
             if (!this.courseStructure || !this.courseStructure.sections) {
-                mpccToast.error('No course structure found');
+                MPCCUtils.showError('No course structure found');
                 return;
             }
             
             const section = this.courseStructure.sections[sectionIndex];
             if (!section) {
-                mpccToast.error('Section not found');
+                MPCCUtils.showError('Section not found');
                 return;
             }
             
@@ -1382,19 +1365,19 @@
                 this.courseStructure.sections[sectionIndex].title = newTitle.trim();
                 this.renderCourseStructure();
                 this.saveConversation();
-                mpccToast.success('Section title updated');
+                MPCCUtils.showSuccess('Section title updated');
             }
         },
         
         handleDeleteSection: function(sectionIndex) {
             if (!this.courseStructure || !this.courseStructure.sections) {
-                mpccToast.error('No course structure found');
+                MPCCUtils.showError('No course structure found');
                 return;
             }
             
             const section = this.courseStructure.sections[sectionIndex];
             if (!section) {
-                mpccToast.error('Section not found');
+                MPCCUtils.showError('Section not found');
                 return;
             }
             
@@ -1407,14 +1390,14 @@
             this.renderCourseStructure();
             this.initializeSortable();
             this.saveConversation(); // This saves the entire updated structure
-            mpccToast.success('Section deleted');
+            MPCCUtils.showSuccess('Section deleted');
         },
         
         handleDeleteLesson: function(sectionIndex, lessonIndex) {
             if (!this.courseStructure || !this.courseStructure.sections || 
                 !this.courseStructure.sections[sectionIndex] || 
                 !this.courseStructure.sections[sectionIndex].lessons[lessonIndex]) {
-                mpccToast.error('Lesson not found');
+                MPCCUtils.showError('Lesson not found');
                 return;
             }
             
@@ -1429,7 +1412,7 @@
             this.renderCourseStructure();
             this.initializeSortable();
             this.saveConversation(); // This saves the entire updated structure
-            mpccToast.success('Lesson deleted');
+            MPCCUtils.showSuccess('Lesson deleted');
         }
     };
     

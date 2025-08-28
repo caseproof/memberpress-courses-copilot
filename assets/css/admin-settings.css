@@ -1,0 +1,125 @@
+/**
+ * Admin Settings Page Styles
+ * 
+ * @package MemberPressCoursesCopilot
+ * @since 1.0.0
+ */
+
+.mpcc-settings-container {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.mpcc-settings-main {
+    flex: 2;
+}
+
+.mpcc-settings-sidebar {
+    flex: 1;
+}
+
+.mpcc-settings-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.mpcc-settings-card h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.mpcc-settings-actions {
+    margin-top: 20px;
+}
+
+.mpcc-settings-actions .button + .button {
+    margin-left: 10px;
+}
+
+.mpcc-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.mpcc-status-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.mpcc-status-unknown {
+    background: #e2e3e5;
+    border: 1px solid #d1d3d4;
+    color: #383d41;
+}
+
+.mpcc-status-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.mpcc-status-error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.mpcc-provider {
+    margin-bottom: 15px;
+}
+
+.mpcc-provider:last-child {
+    margin-bottom: 0;
+}
+
+.mpcc-provider strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.mpcc-provider p {
+    margin: 0;
+    color: #666;
+    font-size: 13px;
+}
+
+.mpcc-requirement {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.mpcc-requirement:last-child {
+    margin-bottom: 0;
+}
+
+.mpcc-docs-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mpcc-docs-links li {
+    margin-bottom: 8px;
+}
+
+.mpcc-docs-links a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+}
+
+.mpcc-docs-links a:hover {
+    text-decoration: underline;
+}

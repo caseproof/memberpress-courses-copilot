@@ -87,6 +87,10 @@ final class Plugin
         $asset_manager = $this->container->get(\MemberPressCoursesCopilot\Services\AssetManager::class);
         $asset_manager->init();
         
+        // Initialize EditorAIIntegrationService early to register hooks before they fire
+        $editor_ai_integration = $this->container->get(\MemberPressCoursesCopilot\Services\EditorAIIntegrationService::class);
+        $editor_ai_integration->init();
+        
         // Hook into WordPress initialization
         add_action('init', [$this, 'initializeComponents']);
         add_action('admin_menu', [$this, 'initializeAdmin']); // Changed from admin_init to admin_menu
@@ -131,13 +135,12 @@ final class Plugin
         $simple_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\SimpleAjaxController::class);
         $course_integration_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseIntegrationService::class);
         $course_ajax_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseAjaxService::class);
-        $editor_ai_integration = $this->container->get(\MemberPressCoursesCopilot\Services\EditorAIIntegrationService::class);
         
         // Initialize services
         $simple_ajax_controller->init();
         $course_integration_service->init();
         $course_ajax_service->init();
-        $editor_ai_integration->init();
+        // Note: EditorAIIntegrationService is initialized early in init() method
         
         /**
          * Fires after plugin components are initialized

@@ -1,0 +1,95 @@
+/**
+ * Editor AI Modal Styles
+ * 
+ * @package MemberPressCoursesCopilot
+ * @since 1.0.0
+ */
+
+/* Override the CSS pseudo-element X */
+.mpcc-editor-ai-modal .mpcc-modal-close::before {
+    content: none !important;
+}
+
+/* Quick-start buttons styling */
+.mpcc-editor-ai-modal .mpcc-quick-start-section {
+    background: #f8f9fa !important;
+    border-top: 1px solid #e1e1e1 !important;
+    border-bottom: 1px solid #e1e1e1 !important;
+    padding: 15px 20px !important;
+}
+
+.mpcc-editor-ai-modal .mpcc-quick-start-buttons {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+}
+
+.mpcc-editor-ai-modal .mpcc-quick-start-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    border-radius: 3px !important;
+    border: 1px solid #c3c4c7 !important;
+    background: #fff !important;
+    color: #2c3338 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease-in-out !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04) !important;
+}
+
+.mpcc-editor-ai-modal .mpcc-quick-start-btn:hover {
+    background: #f6f7f7 !important;
+    border-color: #8c8f94 !important;
+    color: #1d2327 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.mpcc-editor-ai-modal .mpcc-quick-start-btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.mpcc-editor-ai-modal .mpcc-quick-start-btn .dashicons {
+    vertical-align: middle !important;
+    margin-right: 4px !important;
+    color: #50575e !important;
+}
+
+.mpcc-editor-ai-modal .mpcc-quick-start-btn:hover .dashicons {
+    color: #135e96 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 782px) {
+    .mpcc-editor-ai-modal .mpcc-quick-start-buttons {
+        flex-direction: column !important;
+    }
+    
+    .mpcc-editor-ai-modal .mpcc-quick-start-btn {
+        width: 100% !important;
+        justify-content: flex-start !important;
+        padding: 10px 12px !important;
+        font-size: 14px !important;
+    }
+    
+    .mpcc-editor-ai-modal .mpcc-quick-start-section {
+        padding: 12px 15px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .mpcc-editor-ai-modal .mpcc-quick-start-btn {
+        padding: 8px 10px !important;
+        font-size: 12px !important;
+    }
+    
+    .mpcc-editor-ai-modal .mpcc-quick-start-btn .dashicons {
+        font-size: 14px !important;
+        margin-right: 3px !important;
+    }
+}

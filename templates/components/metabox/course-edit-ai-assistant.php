@@ -39,19 +39,15 @@ $is_new = $is_new ?? false;
     </div>
 </div>
 
-<script type="text/javascript">
-jQuery(document).ready(function($) {
-    // Initialize course data for the AI chat
-    const courseData = {
-        id: <?php echo $post_id; ?>,
-        title: '<?php echo esc_js($post_title); ?>',
-        status: '<?php echo esc_js($post_status); ?>',
-        isNew: <?php echo $is_new ? 'true' : 'false'; ?>
-    };
-    
-    // Initialize the course edit AI chat
-    if (typeof CourseEditAIChat !== 'undefined') {
-        CourseEditAIChat.init(courseData);
-    }
-});
-</script>
+<?php
+// Enqueue the metabox AI assistant script
+wp_enqueue_script('mpcc-metabox-ai-assistant');
+
+// Pass data to JavaScript
+wp_localize_script('mpcc-metabox-ai-assistant', 'mpccMetaboxAI', [
+    'postId' => $post_id,
+    'postTitle' => $post_title,
+    'postStatus' => $post_status,
+    'isNew' => $is_new
+]);
+?>

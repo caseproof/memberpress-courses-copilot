@@ -77,6 +77,10 @@ class AssetManager extends BaseService
         $this->registerStyle('mpcc-course-edit-ai-chat', 'assets/css/course-edit-ai-chat.css', ['dashicons']);
         $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons']);
         
+        // Admin page styles
+        $this->registerStyle('mpcc-admin-settings', 'assets/css/admin-settings.css', ['dashicons']);
+        $this->registerStyle('mpcc-editor-ai-modal', 'assets/css/editor-ai-modal.css', ['mpcc-ai-copilot']);
+        
         // Component styles
         // Removed mpcc-modal-styles and mpcc-metabox-styles - files don't exist
     }
@@ -117,8 +121,50 @@ class AssetManager extends BaseService
             ['jquery', 'mpcc-toast']
         );
         
-        // Component scripts
-        // Removed mpcc-modal-component and mpcc-metabox-component - files don't exist
+        // Course Integration scripts (extracted from inline)
+        $this->registerScript(
+            'mpcc-course-integration-create-button',
+            'assets/js/course-integration-create-button.js',
+            ['jquery']
+        );
+        
+        $this->registerScript(
+            'mpcc-course-integration-metabox',
+            'assets/js/course-integration-metabox.js',
+            ['jquery']
+        );
+        
+        $this->registerScript(
+            'mpcc-course-integration-center-ai',
+            'assets/js/course-integration-center-ai.js',
+            ['jquery']
+        );
+        
+        // Editor AI Integration scripts (extracted from inline)
+        $this->registerScript(
+            'mpcc-editor-ai-button',
+            'assets/js/editor-ai-button.js',
+            ['jquery']
+        );
+        
+        $this->registerScript(
+            'mpcc-editor-ai-modal',
+            'assets/js/editor-ai-modal.js',
+            ['jquery']
+        );
+        
+        // Template scripts (extracted from inline)
+        $this->registerScript(
+            'mpcc-ai-chat-interface',
+            'assets/js/ai-chat-interface.js',
+            ['jquery']
+        );
+        
+        $this->registerScript(
+            'mpcc-metabox-ai-assistant',
+            'assets/js/metabox-ai-assistant.js',
+            ['jquery']
+        );
         
         // Add localizations
         $this->addScriptLocalizations();
@@ -229,6 +275,11 @@ class AssetManager extends BaseService
         // Status page
         if ($hook === 'mpcs-course_page_mpcc-status') {
             wp_enqueue_style('mpcc-courses-integration');
+        }
+        
+        // Settings page
+        if ($hook === 'mpcs-course_page_mpcc-settings' || $hook === 'settings_page_mpcc-settings') {
+            wp_enqueue_style('mpcc-admin-settings');
         }
         
         // Standalone editor page - check multiple possible hook formats

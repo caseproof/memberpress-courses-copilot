@@ -211,11 +211,11 @@
                         <div class="mpcc-modal-body">
                             <label>
                                 <span>Section Title</span>
-                                <input type="text" id="mpcc-section-title" value="${window.MPCCUtils.escapeHtml(section.title)}" />
+                                <input type="text" id="mpcc-section-title" value="${MPCCUtils.escapeHtml(section.title)}" />
                             </label>
                             <label>
                                 <span>Section Description</span>
-                                <textarea id="mpcc-section-description">${window.MPCCUtils.escapeHtml(section.description || '')}</textarea>
+                                <textarea id="mpcc-section-description">${MPCCUtils.escapeHtml(section.description || '')}</textarea>
                             </label>
                         </div>
                         <div class="mpcc-modal-footer">
@@ -251,7 +251,7 @@
                         <div class="mpcc-modal-body">
                             <label>
                                 <span>Lesson Title</span>
-                                <input type="text" id="mpcc-lesson-title" value="${window.MPCCUtils.escapeHtml(lesson.title)}" />
+                                <input type="text" id="mpcc-lesson-title" value="${MPCCUtils.escapeHtml(lesson.title)}" />
                             </label>
                             <label>
                                 <span>Lesson Type</span>
@@ -264,11 +264,11 @@
                             </label>
                             <label>
                                 <span>Duration (minutes)</span>
-                                <input type="number" id="mpcc-lesson-duration" value="${window.MPCCUtils.escapeHtml(lesson.duration || 10)}" />
+                                <input type="number" id="mpcc-lesson-duration" value="${MPCCUtils.escapeHtml(lesson.duration || 10)}" />
                             </label>
                             <label>
                                 <span>Lesson Content</span>
-                                <textarea id="mpcc-lesson-content" rows="6">${window.MPCCUtils.escapeHtml(lesson.content || '')}</textarea>
+                                <textarea id="mpcc-lesson-content" rows="6">${MPCCUtils.escapeHtml(lesson.content || '')}</textarea>
                             </label>
                         </div>
                         <div class="mpcc-modal-footer">
@@ -418,14 +418,9 @@
         saveDraft() {
             const courseData = window.mpccCopilot.currentCourse;
             
-            $.ajax({
-                url: mpccCoursesIntegration.ajaxUrl,
-                type: 'POST',
-                data: {
-                    action: 'mpcc_save_course_draft',
-                    nonce: mpccCoursesIntegration.nonce,
-                    course_data: courseData
-                },
+            MPCCUtils.ajax.request('mpcc_save_course_draft', {
+                course_data: courseData
+            }, {
                 success: (response) => {
                     if (response.success) {
                         console.log('Draft saved successfully');
@@ -442,7 +437,7 @@
                 <div class="mpcc-loading-overlay">
                     <div class="mpcc-loading-content">
                         <div class="spinner is-active"></div>
-                        <p>${window.MPCCUtils.escapeHtml(message)}</p>
+                        <p>${MPCCUtils.escapeHtml(message)}</p>
                     </div>
                 </div>
             `;
@@ -454,26 +449,15 @@
         }
 
         showSuccess(message) {
-            this.showNotification(message, 'success');
+            MPCCUtils.showSuccess(message);
         }
 
         showError(message) {
-            this.showNotification(message, 'error');
+            MPCCUtils.showError(message);
         }
 
         showNotification(message, type = 'info') {
-            const notificationHTML = `
-                <div class="mpcc-notification mpcc-notification-${window.MPCCUtils.escapeHtml(type)}">
-                    <p>${window.MPCCUtils.escapeHtml(message)}</p>
-                </div>
-            `;
-            
-            const $notification = $(notificationHTML);
-            $('body').append($notification);
-            
-            setTimeout(() => {
-                $notification.fadeOut(() => $notification.remove());
-            }, 5000);
+            MPCCUtils.showNotification(message, type);
         }
 
         retryLastMessage() {

@@ -144,6 +144,56 @@ class ConversationManager extends BaseService
     }
 
     /**
+     * Load multiple conversation sessions in a single query
+     * Batch loading to avoid N+1 queries
+     *
+     * @param array $sessionIds Array of session IDs to load
+     * @return array<string, ConversationSession> Array of sessions keyed by session_id
+     */
+    public function loadMultipleSessions(array $sessionIds): array
+    {
+        if (empty($sessionIds)) {
+            return [];
+        }
+        
+        $sessions = [];
+        $sessionIdsToLoad = [];
+        
+        // First check cache for any already loaded sessions
+        foreach ($sessionIds as $sessionId) {
+            if (isset($this->sessionCache[$sessionId])) {
+                $cached = $this->sessionCache[$sessionId];
+                if ($cached['expires'] > time()) {
+                    $sessions[$sessionId] = $cached['session'];
+                    continue;
+                } else {
+                    unset($this->sessionCache[$sessionId]);
+                }
+            }
+            $sessionIdsToLoad[] = $sessionId;
+        }
+        
+        // If all sessions were cached, return early
+        if (empty($sessionIdsToLoad)) {
+            return $sessions;
+        }
+        
+        // Load remaining sessions from database in a single query
+        $conversations = $this->databaseService->getConversationsBySessionIds($sessionIdsToLoad);
+        
+        // Create session objects from database records
+        foreach ($conversations as $sessionId => $conversationData) {
+            $session = $this->createSessionFromDatabaseRecord($conversationData);
+            $sessions[$sessionId] = $session;
+            
+            // Cache the session
+            $this->cacheSession($session);
+        }
+        
+        return $sessions;
+    }
+
+    /**
      * Save conversation session to database
      */
     public function saveSession(ConversationSession $session): bool
@@ -474,17 +524,21 @@ class ConversationManager extends BaseService
             // Get expired sessions
             $expiredSessions = $this->databaseService->getExpiredSessions($expiredTime);
             
+            // Collect active session IDs that need to be abandoned
+            $activeSessionIds = [];
             foreach ($expiredSessions as $sessionData) {
-                // Auto-save any unsaved data before cleanup
                 if ($sessionData->state === 'active') {
-                    $this->databaseService->updateConversation($sessionData->id, [
-                        'state' => 'abandoned',
-                        'metadata' => json_encode(array_merge(
-                            json_decode($sessionData->metadata, true) ?: [],
-                            ['auto_abandoned_at' => current_time('mysql')]
-                        ))
-                    ]);
+                    $activeSessionIds[] = $sessionData->id;
                 }
+            }
+            
+            // Batch update all active sessions to abandoned state (avoids N+1 queries)
+            if (!empty($activeSessionIds)) {
+                $abandonedCount = $this->databaseService->batchAbandonConversations(
+                    $activeSessionIds,
+                    current_time('mysql')
+                );
+                $this->log("Auto-abandoned {$abandonedCount} active sessions");
             }
             
             // Clean up cache

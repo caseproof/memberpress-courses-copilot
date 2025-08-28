@@ -20,7 +20,7 @@ class DatabaseService extends BaseService
     /**
      * Database version for migrations
      */
-    private const DB_VERSION = '1.0.0';
+    private const DB_VERSION = '1.1.0';
 
     /**
      * WordPress database instance
@@ -156,9 +156,9 @@ class DatabaseService extends BaseService
             KEY idx_type (type),
             KEY idx_is_active (is_active),
             KEY idx_is_system (is_system),
-            KEY idx_created_by (created_by),
             KEY idx_usage_count (usage_count),
-            KEY idx_created_at (created_at)
+            KEY idx_created_at (created_at),
+            KEY idx_created_by (created_by)
         ) {$this->getCharsetCollation()};";
 
         $this->executeQuery($sql, "Failed to create templates table");
@@ -289,6 +289,7 @@ class DatabaseService extends BaseService
             KEY idx_score (score),
             KEY idx_validated_by (validated_by),
             KEY idx_human_reviewed (human_reviewed),
+            KEY idx_human_reviewer_id (human_reviewer_id),
             KEY idx_created_at (created_at),
             FOREIGN KEY fk_quality_conversation (conversation_id) REFERENCES {$this->table_prefix}conversations(id) ON DELETE SET NULL,
             FOREIGN KEY fk_quality_pattern (pattern_id) REFERENCES {$this->table_prefix}course_patterns(id) ON DELETE SET NULL
@@ -371,8 +372,13 @@ class DatabaseService extends BaseService
         try {
             $this->log("Upgrading database from version {$from_version} to " . self::DB_VERSION);
             
-            // For now, just reinstall tables - can be extended for specific migrations
-            $this->installTables();
+            // Version-specific migrations
+            if (version_compare($from_version, '1.1.0', '<')) {
+                $this->migrateTo110();
+            }
+            
+            // Update database version
+            $this->updateOption('mpcc_db_version', self::DB_VERSION);
             
             $this->log('Database upgrade completed successfully');
             return true;
@@ -380,6 +386,67 @@ class DatabaseService extends BaseService
         } catch (\Exception $e) {
             $this->log('Database upgrade failed: ' . $e->getMessage(), 'error');
             return false;
+        }
+    }
+
+    /**
+     * Migrate database to version 1.1.0
+     * Adds missing indexes for foreign key columns
+     *
+     * @return void
+     * @throws \Exception
+     */
+    private function migrateTo110(): void
+    {
+        $this->log('Running migration to version 1.1.0 - Adding missing indexes');
+        
+        // Add index for created_by in templates table
+        $this->addIndexIfNotExists(
+            $this->table_prefix . 'templates',
+            'idx_created_by',
+            'created_by'
+        );
+        
+        // Add index for human_reviewer_id in quality_metrics table
+        $this->addIndexIfNotExists(
+            $this->table_prefix . 'quality_metrics',
+            'idx_human_reviewer_id',
+            'human_reviewer_id'
+        );
+        
+        $this->log('Migration to version 1.1.0 completed');
+    }
+
+    /**
+     * Add an index to a table if it doesn't already exist
+     *
+     * @param string $table_name
+     * @param string $index_name
+     * @param string $column_name
+     * @return void
+     * @throws \Exception
+     */
+    private function addIndexIfNotExists(string $table_name, string $index_name, string $column_name): void
+    {
+        // Check if index already exists
+        $index_exists = $this->wpdb->get_var(
+            $this->wpdb->prepare(
+                "SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS 
+                WHERE table_schema = %s 
+                AND table_name = %s 
+                AND index_name = %s",
+                DB_NAME,
+                $table_name,
+                $index_name
+            )
+        );
+        
+        if (!$index_exists) {
+            $sql = "ALTER TABLE {$table_name} ADD INDEX {$index_name} ({$column_name})";
+            $this->executeQuery($sql, "Failed to add index {$index_name} to table {$table_name}");
+            $this->log("Added index {$index_name} to table {$table_name}");
+        } else {
+            $this->log("Index {$index_name} already exists on table {$table_name}");
         }
     }
 
@@ -789,6 +856,106 @@ class DatabaseService extends BaseService
     }
 
     /**
+     * Get multiple conversations by session IDs
+     * Batch loading to avoid N+1 queries
+     *
+     * @param array $session_ids Array of session IDs
+     * @return array<string, object> Array keyed by session_id
+     */
+    public function getConversationsBySessionIds(array $session_ids): array
+    {
+        if (empty($session_ids)) {
+            return [];
+        }
+        
+        $table_name = $this->table_prefix . 'conversations';
+        
+        // Prepare placeholders for the IN clause
+        $placeholders = implode(',', array_fill(0, count($session_ids), '%s'));
+        
+        // Build and prepare the query
+        $sql = "SELECT * FROM {$table_name} WHERE session_id IN ({$placeholders})";
+        $prepared_sql = $this->wpdb->prepare($sql, ...$session_ids);
+        
+        $results = $this->wpdb->get_results($prepared_sql);
+        
+        // Key results by session_id for easy lookup
+        $conversations = [];
+        foreach ($results as $row) {
+            $conversations[$row->session_id] = $row;
+        }
+        
+        return $conversations;
+    }
+
+    /**
+     * Get multiple conversations by IDs
+     * Batch loading to avoid N+1 queries
+     *
+     * @param array $conversation_ids Array of conversation IDs
+     * @return array<int, object> Array keyed by conversation ID
+     */
+    public function getConversationsByIds(array $conversation_ids): array
+    {
+        if (empty($conversation_ids)) {
+            return [];
+        }
+        
+        $table_name = $this->table_prefix . 'conversations';
+        
+        // Prepare placeholders for the IN clause
+        $placeholders = implode(',', array_fill(0, count($conversation_ids), '%d'));
+        
+        // Build and prepare the query
+        $sql = "SELECT * FROM {$table_name} WHERE id IN ({$placeholders})";
+        $prepared_sql = $this->wpdb->prepare($sql, ...$conversation_ids);
+        
+        $results = $this->wpdb->get_results($prepared_sql);
+        
+        // Key results by ID for easy lookup
+        $conversations = [];
+        foreach ($results as $row) {
+            $conversations[$row->id] = $row;
+        }
+        
+        return $conversations;
+    }
+
+    /**
+     * Manually add missing indexes to existing tables
+     * This can be called to immediately update indexes without waiting for version check
+     *
+     * @return bool True if successful, false if any errors occurred
+     */
+    public function addMissingIndexes(): bool
+    {
+        try {
+            $this->log('Manually adding missing indexes to database tables');
+            
+            // Add index for created_by in templates table
+            $this->addIndexIfNotExists(
+                $this->table_prefix . 'templates',
+                'idx_created_by',
+                'created_by'
+            );
+            
+            // Add index for human_reviewer_id in quality_metrics table
+            $this->addIndexIfNotExists(
+                $this->table_prefix . 'quality_metrics',
+                'idx_human_reviewer_id',
+                'human_reviewer_id'
+            );
+            
+            $this->log('Successfully added missing indexes');
+            return true;
+            
+        } catch (\Exception $e) {
+            $this->log('Failed to add missing indexes: ' . $e->getMessage(), 'error');
+            return false;
+        }
+    }
+
+    /**
      * Get active session count for user
      *
      * @param int $user_id
@@ -865,5 +1032,75 @@ class DatabaseService extends BaseService
         );
         
         return $result !== false;
+    }
+
+    /**
+     * Get active sessions that need saving
+     * Returns session IDs for active sessions updated more than specified minutes ago
+     *
+     * @param int $minutes_since_update Sessions not updated in this many minutes
+     * @param int $limit Maximum number of sessions to return
+     * @return array<string> Array of session IDs
+     */
+    public function getActiveSessionsNeedingSave(int $minutes_since_update = 5, int $limit = 100): array
+    {
+        $table_name = $this->table_prefix . 'conversations';
+        
+        // Calculate the timestamp for comparison
+        $cutoff_time = date('Y-m-d H:i:s', time() - ($minutes_since_update * 60));
+        
+        $results = $this->wpdb->get_col(
+            $this->wpdb->prepare(
+                "SELECT session_id FROM {$table_name} 
+                WHERE state = 'active' 
+                AND updated_at < %s 
+                ORDER BY updated_at ASC 
+                LIMIT %d",
+                $cutoff_time,
+                $limit
+            )
+        );
+        
+        return $results ?: [];
+    }
+
+    /**
+     * Batch update conversations to abandoned state
+     * Avoids N+1 queries by updating all expired sessions in a single query
+     *
+     * @param array $conversation_ids Array of conversation IDs to update
+     * @param string $abandoned_at Timestamp when sessions were abandoned
+     * @return int Number of rows updated
+     */
+    public function batchAbandonConversations(array $conversation_ids, string $abandoned_at): int
+    {
+        if (empty($conversation_ids)) {
+            return 0;
+        }
+        
+        $table_name = $this->table_prefix . 'conversations';
+        
+        // Prepare placeholders for the IN clause
+        $placeholders = implode(',', array_fill(0, count($conversation_ids), '%d'));
+        
+        // Build the update query
+        $sql = "UPDATE {$table_name} 
+                SET state = 'abandoned',
+                    metadata = JSON_SET(
+                        COALESCE(metadata, '{}'),
+                        '$.auto_abandoned_at',
+                        %s
+                    ),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id IN ({$placeholders})
+                AND state = 'active'";
+        
+        // Prepare the query with all parameters
+        $params = array_merge([$abandoned_at], $conversation_ids);
+        $prepared_sql = $this->wpdb->prepare($sql, ...$params);
+        
+        $result = $this->wpdb->query($prepared_sql);
+        
+        return $result !== false ? $result : 0;
     }
 }

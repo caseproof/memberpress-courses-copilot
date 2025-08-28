@@ -229,33 +229,33 @@
         }
 
         saveLessonContent(sectionId, lessonId, content, isAutoSave = false) {
-            this.updateSaveIndicator('saving');
+            MPCCUtils.ui.updateSaveIndicator('saving');
             
             // Get session ID and create one if needed
-            let sessionId = sessionStorage.getItem('mpcc_current_session_id') || this.sessionId;
+            let sessionId = MPCCUtils.sessionManager.getCurrentSessionId() || this.sessionId;
             
             if (!sessionId) {
                 console.warn('No session ID available, creating temporary session');
                 // Create a temporary session ID
                 sessionId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                sessionStorage.setItem('mpcc_current_session_id', sessionId);
+                MPCCUtils.sessionManager.setCurrentSessionId(sessionId);
                 this.sessionId = sessionId;
             }
             
-            $.ajax({
-                url: window.mpccCoursesIntegration?.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php',
-                type: 'POST',
-                data: {
-                    action: 'mpcc_save_lesson_content',
-                    nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
-                    session_id: sessionId,
-                    section_id: sectionId,
-                    lesson_id: lessonId,
-                    content: content
-                },
-                success: (response) => {
+            // Get lesson title from element if available
+            const $lesson = $(`.mpcc-lesson-item[data-section-id="${sectionId}"][data-lesson-id="${lessonId}"]`);
+            const lessonTitle = $lesson.data('lesson-title') || $lesson.text().trim() || 'Lesson';
+            
+            MPCCUtils.ajax.saveLessonContent(
+                sessionId,
+                sectionId,
+                lessonId,
+                content,
+                lessonTitle,
+                {
+                    success: (response) => {
                     if (response.success) {
-                        this.updateSaveIndicator('saved');
+                        MPCCUtils.ui.updateSaveIndicator('saved');
                         
                         // Clear from unsaved changes
                         const key = `${sectionId}_${lessonId}`;
@@ -271,17 +271,17 @@
                             this.closeEditor();
                         }
                     } else {
-                        this.updateSaveIndicator('error');
+                        MPCCUtils.ui.updateSaveIndicator('error');
                         if (!isAutoSave) {
-                            alert('Failed to save: ' + (response.data || 'Unknown error'));
+                            MPCCUtils.showError('Failed to save: ' + (response.data || 'Unknown error'));
                         }
                     }
                 },
                 error: (xhr, status, error) => {
-                    this.updateSaveIndicator('error');
+                    MPCCUtils.ui.updateSaveIndicator('error');
                     console.error('Save failed:', error);
                     if (!isAutoSave) {
-                        alert('Failed to save lesson content. Please try again.');
+                        MPCCUtils.showError('Failed to save lesson content. Please try again.');
                     }
                 }
             });
@@ -334,8 +334,7 @@
             
             // Show loading state
             const $generateBtn = $('.mpcc-editor-generate');
-            const originalText = $generateBtn.html();
-            $generateBtn.prop('disabled', true).html('<span class="spinner is-active"></span> Generating...');
+            MPCCUtils.ui.setButtonLoading($generateBtn, true, 'Generating...');
             
             // Get session ID and create one if needed
             let sessionId = sessionStorage.getItem('mpcc_current_session_id') || this.sessionId;
@@ -430,12 +429,12 @@
                         console.error('Invalid response structure:', response);
                         this.showNotification('Failed to generate content: ' + (response.data?.message || 'Unknown error'), 'error');
                     }
-                    $generateBtn.prop('disabled', false).html(originalText);
+                    MPCCUtils.ui.setButtonLoading($generateBtn, false);
                 },
                 error: (xhr, status, error) => {
                     console.error('Generation failed:', error);
-                    this.showNotification('Failed to generate content. Please try again.', 'error');
-                    $generateBtn.prop('disabled', false).html(originalText);
+                    MPCCUtils.showError('Failed to generate content. Please try again.');
+                    MPCCUtils.ui.setButtonLoading($generateBtn, false);
                 }
             });
         }
@@ -488,41 +487,16 @@
         }
 
         updateSaveIndicator(status) {
-            const $indicator = $('.mpcc-save-indicator');
-            
-            switch (status) {
-                case 'editing':
-                    $indicator.html('<span class="dashicons dashicons-edit"></span> Editing');
-                    break;
-                case 'unsaved':
-                    $indicator.html('<span class="dashicons dashicons-warning"></span> Unsaved changes');
-                    break;
-                case 'saving':
-                    $indicator.html('<span class="spinner is-active"></span> Saving...');
-                    break;
-                case 'saved':
-                    $indicator.html('<span class="dashicons dashicons-yes"></span> Saved');
-                    setTimeout(() => {
-                        if ($indicator.text().includes('Saved')) {
-                            $indicator.empty();
-                        }
-                    }, 3000);
-                    break;
-                case 'error':
-                    $indicator.html('<span class="dashicons dashicons-no"></span> Save failed');
-                    break;
-                default:
-                    $indicator.empty();
-            }
+            MPCCUtils.ui.updateSaveIndicator(status);
         }
 
         showNotification(message, type = 'info') {
-            // Use global notification function if available
-            if (typeof window.showNotification === 'function') {
-                window.showNotification(message, type);
+            if (type === 'error') {
+                MPCCUtils.showError(message);
+            } else if (type === 'success') {
+                MPCCUtils.showSuccess(message);
             } else {
-                // Fallback to simple alert
-                alert(message);
+                MPCCUtils.showNotification(message, type);
             }
         }
 
@@ -544,14 +518,7 @@
         }
 
         escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
+            return MPCCUtils.escapeHtml(text);
         }
     }
 

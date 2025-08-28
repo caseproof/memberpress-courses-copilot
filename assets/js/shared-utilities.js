@@ -249,6 +249,265 @@ window.MPCCUtils = {
     },
     
     /**
+     * AJAX utilities
+     */
+    ajax: {
+        /**
+         * Make standardized AJAX request
+         */
+        request: function(action, data, callbacks) {
+            const settings = MPCCUtils.getAjaxSettings();
+            
+            // Ensure we have required data
+            data = data || {};
+            data.action = action;
+            data.nonce = data.nonce || settings.nonce;
+            
+            // Default callbacks
+            callbacks = callbacks || {};
+            const onSuccess = callbacks.success || function() {};
+            const onError = callbacks.error || function() {};
+            const onComplete = callbacks.complete || function() {};
+            
+            return jQuery.ajax({
+                url: settings.url,
+                type: 'POST',
+                data: data,
+                success: function(response) {
+                    if (response.success) {
+                        onSuccess(response);
+                    } else {
+                        MPCCUtils.showError(response.data || 'An error occurred');
+                        onError(response);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', status, error);
+                    MPCCUtils.showError('Request failed: ' + error);
+                    onError(xhr, status, error);
+                },
+                complete: onComplete
+            });
+        },
+        
+        /**
+         * Save lesson content
+         */
+        saveLessonContent: function(sessionId, sectionId, lessonId, content, lessonTitle, callbacks) {
+            return this.request('mpcc_save_lesson_content', {
+                session_id: sessionId,
+                section_id: String(sectionId),
+                lesson_id: String(lessonId),
+                lesson_title: lessonTitle,
+                content: content
+            }, callbacks);
+        },
+        
+        /**
+         * Generate lesson content
+         */
+        generateLessonContent: function(sessionId, sectionId, lessonId, lessonTitle, courseContext, callbacks) {
+            return this.request('mpcc_generate_lesson_content', {
+                session_id: sessionId,
+                section_id: String(sectionId),
+                lesson_id: String(lessonId),
+                lesson_title: lessonTitle,
+                course_context: courseContext
+            }, callbacks);
+        },
+        
+        /**
+         * Load session
+         */
+        loadSession: function(sessionId, callbacks) {
+            return this.request('mpcc_load_session', {
+                session_id: sessionId
+            }, callbacks);
+        },
+        
+        /**
+         * Save conversation
+         */
+        saveConversation: function(sessionId, conversationHistory, conversationState, callbacks) {
+            return this.request('mpcc_save_conversation', {
+                session_id: sessionId,
+                conversation_history: JSON.stringify(conversationHistory),
+                conversation_state: JSON.stringify(conversationState)
+            }, callbacks);
+        }
+    },
+    
+    /**
+     * UI utilities
+     */
+    ui: {
+        /**
+         * Show/hide loading state on button
+         */
+        setButtonLoading: function($button, isLoading, loadingText) {
+            if (isLoading) {
+                const originalText = $button.html();
+                $button.data('original-text', originalText);
+                $button.prop('disabled', true);
+                
+                if (loadingText) {
+                    $button.html('<span class="dashicons dashicons-update spin"></span> ' + loadingText);
+                } else {
+                    $button.html('<span class="spinner is-active"></span>');
+                }
+            } else {
+                const originalText = $button.data('original-text');
+                $button.prop('disabled', false);
+                if (originalText) {
+                    $button.html(originalText);
+                }
+            }
+        },
+        
+        /**
+         * Scroll element to bottom
+         */
+        scrollToBottom: function(selector) {
+            const element = jQuery(selector)[0];
+            if (element) {
+                element.scrollTop = element.scrollHeight;
+            }
+        },
+        
+        /**
+         * Add typing indicator
+         */
+        addTypingIndicator: function(container) {
+            const typingId = 'typing-' + Date.now();
+            const typingHtml = `
+                <div class="mpcc-chat-message assistant" id="${typingId}">
+                    <div class="message-content">
+                        <span class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </span>
+                    </div>
+                </div>
+            `;
+            jQuery(container).append(typingHtml);
+            this.scrollToBottom(container);
+            return typingId;
+        },
+        
+        /**
+         * Remove typing indicator
+         */
+        removeTypingIndicator: function(typingId) {
+            jQuery('#' + typingId).remove();
+        },
+        
+        /**
+         * Update save indicator
+         */
+        updateSaveIndicator: function(status) {
+            const $indicator = jQuery('.mpcc-save-indicator');
+            
+            switch (status) {
+                case 'editing':
+                    $indicator.html('<span class="dashicons dashicons-edit"></span> Editing');
+                    break;
+                case 'unsaved':
+                    $indicator.html('<span class="dashicons dashicons-warning"></span> Unsaved changes');
+                    break;
+                case 'saving':
+                    $indicator.html('<span class="spinner is-active"></span> Saving...');
+                    break;
+                case 'saved':
+                    $indicator.html('<span class="dashicons dashicons-yes"></span> Saved');
+                    setTimeout(() => {
+                        if ($indicator.text().includes('Saved')) {
+                            $indicator.empty();
+                        }
+                    }, 3000);
+                    break;
+                case 'error':
+                    $indicator.html('<span class="dashicons dashicons-no"></span> Save failed');
+                    break;
+                default:
+                    $indicator.empty();
+            }
+        }
+    },
+    
+    /**
+     * Error handling utilities
+     */
+    showError: function(message) {
+        this.showNotification(message, 'error');
+        if (window.mpccToast && window.mpccToast.error) {
+            window.mpccToast.error(message);
+        }
+    },
+    
+    showSuccess: function(message) {
+        this.showNotification(message, 'success');
+        if (window.mpccToast && window.mpccToast.success) {
+            window.mpccToast.success(message);
+        }
+    },
+    
+    showWarning: function(message) {
+        this.showNotification(message, 'warning');
+        if (window.mpccToast && window.mpccToast.warning) {
+            window.mpccToast.warning(message);
+        }
+    },
+    
+    /**
+     * Debounce function for auto-save
+     */
+    debounce: function(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+    
+    /**
+     * Format content with basic markdown support
+     */
+    formatContent: function(content) {
+        // Escape HTML first
+        let formatted = this.escapeHtml(content);
+        
+        // Basic markdown-like formatting
+        formatted = formatted
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/^/, '<p>')
+            .replace(/$/, '</p>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/^- (.+)$/gm, '<li>$1</li>')
+            .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+            .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
+            .replace(/(<li>.*<\/li>)/s, '<ol>$1</ol>');
+            
+        return formatted;
+    },
+    
+    /**
+     * Check for unsaved changes before unload
+     */
+    setupUnloadWarning: function(checkFunction) {
+        jQuery(window).on('beforeunload.mpcc', function(e) {
+            if (checkFunction && checkFunction()) {
+                const message = 'You have unsaved changes. Are you sure you want to leave?';
+                e.returnValue = message;
+                return message;
+            }
+        });
+    },
+    
+    /**
      * Initialize all shared utilities
      */
     init: function() {
@@ -257,6 +516,10 @@ window.MPCCUtils = {
         
         // Make showNotification globally available
         window.showNotification = this.showNotification;
+        
+        // Create global shortcuts
+        window.mpccAjax = this.ajax;
+        window.mpccUI = this.ui;
         
         console.log('MPCC Shared Utilities initialized');
     }
