@@ -8,7 +8,13 @@ use MemberPressCoursesCopilot\Services\BaseService;
 use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\LLMService;
+use MemberPressCoursesCopilot\Services\LessonDraftService;
 use MemberPressCoursesCopilot\Security\NonceConstants;
+use MemberPressCoursesCopilot\Interfaces\IConversationManager;
+use MemberPressCoursesCopilot\Interfaces\ILLMService;
+use MemberPressCoursesCopilot\Interfaces\ICourseGenerator;
+use MemberPressCoursesCopilot\Utilities\ApiResponse;
+use WP_Error;
 
 /**
  * Course AJAX Service
@@ -21,12 +27,86 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
  */
 class CourseAjaxService extends BaseService
 {
+    private ?ILLMService $llmService = null;
+    private ?IConversationManager $conversationManager = null;
+    private ?ICourseGenerator $courseGenerator = null;
+    private ?LessonDraftService $draftService = null;
+    
     /**
-     * Constructor - ensure logger is initialized
+     * Constructor with dependency injection
+     * 
+     * @param ILLMService|null $llmService
+     * @param IConversationManager|null $conversationManager
+     * @param ICourseGenerator|null $courseGenerator
+     * @param LessonDraftService|null $draftService
      */
-    public function __construct()
-    {
+    public function __construct(
+        ?ILLMService $llmService = null,
+        ?IConversationManager $conversationManager = null,
+        ?ICourseGenerator $courseGenerator = null,
+        ?LessonDraftService $draftService = null
+    ) {
         parent::__construct();
+        $this->llmService = $llmService;
+        $this->conversationManager = $conversationManager;
+        $this->courseGenerator = $courseGenerator;
+        $this->draftService = $draftService;
+    }
+    
+    /**
+     * Get LLM Service (lazy loaded from container if not injected)
+     *
+     * @return ILLMService
+     */
+    private function getLLMService(): ILLMService
+    {
+        if (!$this->llmService) {
+            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $this->llmService = $container->get(ILLMService::class);
+        }
+        return $this->llmService;
+    }
+    
+    /**
+     * Get Conversation Manager (lazy loaded from container if not injected)
+     *
+     * @return IConversationManager
+     */
+    private function getConversationManager(): IConversationManager
+    {
+        if (!$this->conversationManager) {
+            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $this->conversationManager = $container->get(IConversationManager::class);
+        }
+        return $this->conversationManager;
+    }
+    
+    /**
+     * Get Course Generator (lazy loaded from container if not injected)
+     *
+     * @return ICourseGenerator
+     */
+    private function getCourseGenerator(): ICourseGenerator
+    {
+        if (!$this->courseGenerator) {
+            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $this->courseGenerator = $container->get(ICourseGenerator::class);
+        }
+        return $this->courseGenerator;
+    }
+    
+    /**
+     * Get Lesson Draft Service (lazy loaded from container if not injected)
+     *
+     * @return LessonDraftService
+     */
+    private function getLessonDraftService(): LessonDraftService
+    {
+        if (!$this->draftService) {
+            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $this->draftService = $container->get(LessonDraftService::class);
+        }
+        return $this->draftService;
     }
     
     /**
@@ -105,7 +185,8 @@ class CourseAjaxService extends BaseService
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
             ]);
-            wp_die('Security check failed');
+            ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
+            return;
         }
         
         // Check user capabilities
@@ -114,7 +195,7 @@ class CourseAjaxService extends BaseService
                 'user_id' => get_current_user_id(),
                 'required_capability' => 'edit_posts'
             ]);
-            wp_send_json_error('Insufficient permissions');
+            ApiResponse::forbidden('Insufficient permissions to load AI interface');
             return;
         }
         
@@ -154,7 +235,8 @@ class CourseAjaxService extends BaseService
                 'error_file' => $e->getFile(),
                 'error_line' => $e->getLine()
             ]);
-            wp_send_json_error('Failed to load AI interface: ' . $e->getMessage());
+            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_AI_SERVICE);
+            ApiResponse::error($error);
         }
     }
 
@@ -249,7 +331,7 @@ class CourseAjaxService extends BaseService
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
             ]);
-            wp_send_json_error('Security check failed');
+            ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
             return;
         }
         
@@ -259,7 +341,7 @@ class CourseAjaxService extends BaseService
                 'user_id' => get_current_user_id(),
                 'required_capability' => 'edit_posts'
             ]);
-            wp_send_json_error('Insufficient permissions');
+            ApiResponse::forbidden('Insufficient permissions to use AI chat');
             return;
         }
         
@@ -279,7 +361,7 @@ class CourseAjaxService extends BaseService
         $conversationManager = null;
         if (!empty($sessionId)) {
             try {
-                $conversationManager = new ConversationManager();
+                $conversationManager = $this->getConversationManager();
                 $session = $conversationManager->loadSession($sessionId);
                 if ($session && $session->getUserId() === get_current_user_id()) {
                     // Update session state from conversation state
@@ -300,7 +382,7 @@ class CourseAjaxService extends BaseService
                 'context' => $context,
                 'post_id' => $post_id
             ]);
-            wp_send_json_error('Message is required');
+            ApiResponse::errorMessage('Message is required', ApiResponse::ERROR_MISSING_PARAMETER);
             return;
         }
         
@@ -316,7 +398,7 @@ class CourseAjaxService extends BaseService
             ]);
             
             // Use LLMService for AI requests
-            $llm_service = new LLMService();
+            $llm_service = $this->getLLMService();
             
             // Build conversation context
             $conversation_context = '';
@@ -371,7 +453,8 @@ class CourseAjaxService extends BaseService
                     'error_message' => $response['message'] ?? 'Unknown error',
                     'full_response' => $response
                 ]);
-                wp_send_json_error('AI service error: ' . $response['message']);
+                $error = new WP_Error(ApiResponse::ERROR_AI_SERVICE, 'AI service error: ' . ($response['message'] ?? 'Unknown error'));
+                ApiResponse::error($error);
                 return;
             }
             
@@ -461,7 +544,8 @@ class CourseAjaxService extends BaseService
                 'error_line' => $e->getLine(),
                 'stack_trace' => $e->getTraceAsString()
             ]);
-            wp_send_json_error('Failed to process AI request: ' . $e->getMessage());
+            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_AI_SERVICE);
+            ApiResponse::error($error);
         }
     }
 
@@ -479,7 +563,8 @@ class CourseAjaxService extends BaseService
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
                 'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
             ]);
-            wp_die('Security check failed');
+            ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
+            return;
         }
         
         // Check user capabilities
@@ -488,7 +573,7 @@ class CourseAjaxService extends BaseService
                 'user_id' => get_current_user_id(),
                 'required_capability' => 'publish_posts'
             ]);
-            wp_send_json_error('Insufficient permissions');
+            ApiResponse::forbidden('Insufficient permissions to create courses');
             return;
         }
         
@@ -560,9 +645,8 @@ class CourseAjaxService extends BaseService
                 'first_section' => isset($course_data['sections'][0]) ? json_encode($course_data['sections'][0]) : 'no sections'
             ]);
             
-            // Initialize the Course Generator Service
-            $logger = \MemberPressCoursesCopilot\Utilities\Logger::getInstance();
-            $generator = new CourseGeneratorService($logger);
+            // Get the Course Generator Service from container
+            $generator = $this->getCourseGenerator();
             
             // Validate course data
             $validation = $generator->validateCourseData($course_data);
@@ -587,8 +671,8 @@ class CourseAjaxService extends BaseService
                     'course_title' => $course_data['title'] ?? 'Unknown'
                 ]);
                 
-                // Initialize lesson draft service and map drafts to course structure
-                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                // Get lesson draft service and map drafts to course structure
+                $draftService = $this->getLessonDraftService();
                 $course_data = $draftService->mapDraftsToStructure($sessionId, $course_data);
                 
                 $this->logger->info('Drafts mapped to course structure', [
@@ -623,7 +707,7 @@ class CourseAjaxService extends BaseService
                 if (isset($_POST['session_id']) && !empty($_POST['session_id'])) {
                     try {
                         $sessionId = sanitize_text_field($_POST['session_id']);
-                        $conversationManager = new ConversationManager();
+                        $conversationManager = $this->getConversationManager();
                         $session = $conversationManager->loadSession($sessionId);
                         
                         if ($session && $session->getUserId() === get_current_user_id()) {
@@ -653,7 +737,7 @@ class CourseAjaxService extends BaseService
                     
                     // Clean up lesson drafts after successful course creation
                     try {
-                        $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                        $draftService = $this->getLessonDraftService();
                         $deletedCount = $draftService->deleteSessionDrafts($sessionId);
                         $this->logger->info('Cleaned up lesson drafts after course creation', [
                             'session_id' => $sessionId,
@@ -808,7 +892,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
         
         try {
-            $conversationManager = new ConversationManager();
+            $conversationManager = $this->getConversationManager();
             
             $session = $conversationManager->createSession([
                 'user_id' => get_current_user_id(),
@@ -862,7 +946,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
         
         try {
-            $conversationManager = new ConversationManager();
+            $conversationManager = $this->getConversationManager();
             $session = $conversationManager->loadSession($sessionId);
             
             if (!$session || $session->getUserId() !== get_current_user_id()) {
@@ -974,7 +1058,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
         
         try {
-            $conversationManager = new ConversationManager();
+            $conversationManager = $this->getConversationManager();
             $session = $conversationManager->loadSession($sessionId);
             
             if (!$session || $session->getUserId() !== get_current_user_id()) {
@@ -1053,7 +1137,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
         
         try {
-            $conversationManager = new ConversationManager();
+            $conversationManager = $this->getConversationManager();
             $sessions = $conversationManager->getUserSessions(
                 get_current_user_id(),
                 10, // limit
@@ -1140,8 +1224,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
         
         try {
-            // Initialize lesson draft service
-            $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+            // Get lesson draft service from container
+            $draftService = $this->getLessonDraftService();
             
             // Save draft
             $result = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex);
@@ -1209,8 +1293,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
         
         try {
-            // Initialize lesson draft service
-            $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+            // Get lesson draft service from container
+            $draftService = $this->getLessonDraftService();
             
             // Load specific lesson or all session drafts
             if ($sectionId !== '' && $lessonId !== '') {
@@ -1319,7 +1403,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         
         try {
             // Use LLMService for content generation
-            $llm_service = new LLMService();
+            $llm_service = $this->getLLMService();
             
             // Build prompt for lesson content generation
             $prompt = $this->buildLessonContentPrompt($courseTitle, $sectionTitle, $lessonTitle, $context);
@@ -1344,7 +1428,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             
             // Save generated content as draft if session ID provided
             if (!empty($sessionId) && !empty($_POST['section_id']) && !empty($_POST['lesson_id'])) {
-                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                $draftService = $this->getLessonDraftService();
                 
                 $sectionId = sanitize_text_field($_POST['section_id']);
                 $lessonId = sanitize_text_field($_POST['lesson_id']);
@@ -1422,7 +1506,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     return;
                 }
                 
-                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                $draftService = $this->getLessonDraftService();
                 
                 // Validate lesson order array
                 $lessonOrder = array_map('sanitize_text_field', $reorderData);
@@ -1446,7 +1530,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             } else if ($itemType === 'section') {
                 // Handle section reordering
                 // This would update the course structure in the conversation state
-                $conversationManager = new ConversationManager();
+                $conversationManager = $this->getConversationManager();
                 $session = $conversationManager->loadSession($sessionId);
                 
                 if (!$session || $session->getUserId() !== get_current_user_id()) {
@@ -1544,13 +1628,13 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 }
                 
                 // Delete lesson draft
-                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                $draftService = $this->getLessonDraftService();
                 
                 $success = $draftService->deleteDraft($sessionId, $sectionId, $lessonId);
                 
                 if ($success) {
                     // Also update the course structure in conversation state
-                    $conversationManager = new ConversationManager();
+                    $conversationManager = $this->getConversationManager();
                     $session = $conversationManager->loadSession($sessionId);
                     
                     if ($session && $session->getUserId() === get_current_user_id()) {
@@ -1592,7 +1676,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 }
                 
                 // Delete all lessons in the section
-                $draftService = new \MemberPressCoursesCopilot\Services\LessonDraftService();
+                $draftService = $this->getLessonDraftService();
                 
                 $deletedCount = $draftService->deleteSectionDrafts($sessionId, $sectionId);
                 
@@ -1778,7 +1862,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $messages[] = ['role' => 'user', 'content' => $message];
             
             // Get AI response
-            $llmResponse = $this->llmService->generateContent('', [
+            $llmResponse = $llmService->generateContent('', [
                 'messages' => $messages,
                 'max_tokens' => 2000
             ]);
@@ -1914,8 +1998,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
         
         try {
-            // Get LLM service
-            $llmService = new LLMService();
+            // Get LLM service from container
+            $llmService = $this->getLLMService();
             
             // Build comprehensive system prompt with course context
             $contextualPrompt = $this->buildCourseContextPrompt($courseData, $message);

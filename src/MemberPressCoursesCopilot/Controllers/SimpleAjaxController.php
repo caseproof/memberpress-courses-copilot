@@ -9,7 +9,9 @@ use MemberPressCoursesCopilot\Services\LessonDraftService;
 use MemberPressCoursesCopilot\Services\CourseGeneratorService;
 use MemberPressCoursesCopilot\Services\ConversationManager;
 use MemberPressCoursesCopilot\Utilities\Logger;
+use MemberPressCoursesCopilot\Utilities\ApiResponse;
 use MemberPressCoursesCopilot\Security\NonceConstants;
+use WP_Error;
 
 /**
  * Simple AJAX Controller for standalone course editor page
@@ -101,7 +103,8 @@ class SimpleAjaxController
         try {
             // Verify nonce
             if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
-                throw new \Exception('Security check failed');
+                ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
+                return;
             }
             
             $message = sanitize_textarea_field($_POST['message'] ?? '');
@@ -118,7 +121,8 @@ class SimpleAjaxController
             }
             
             if (empty($message)) {
-                throw new \Exception('Message is required');
+                ApiResponse::errorMessage('Message is required', ApiResponse::ERROR_MISSING_PARAMETER);
+                return;
             }
             
             // Generate AI response
@@ -164,6 +168,11 @@ class SimpleAjaxController
                 $displayMessage = "I've generated a course structure for you. You can preview it on the right side of the screen and make any adjustments needed.";
             }
             
+            // Ensure we always have a valid message
+            if (empty($displayMessage)) {
+                $displayMessage = "I've processed your request. Please let me know if you need any clarification or have additional questions.";
+            }
+            
             // Update session title when course structure is generated
             if ($extractedStructure && !empty($extractedStructure['title']) && $extractedStructure !== $courseStructure) {
                 $sessionTitle = 'Course: ' . $extractedStructure['title'];
@@ -192,10 +201,13 @@ class SimpleAjaxController
                 'course_structure' => $extractedStructure
             ];
             
+            // Send response directly to avoid double nesting
+            // The JavaScript expects response.data.message structure
             wp_send_json_success($responseData);
             
         } catch (\Exception $e) {
-            wp_send_json_error($e->getMessage());
+            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
+            ApiResponse::error($error);
         }
     }
     
@@ -207,13 +219,15 @@ class SimpleAjaxController
         try {
             // Verify nonce
             if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
-                throw new \Exception('Security check failed');
+                ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
+                return;
             }
             
             $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
             
             if (empty($sessionId)) {
-                throw new \Exception('Session ID is required');
+                ApiResponse::errorMessage('Session ID is required', ApiResponse::ERROR_MISSING_PARAMETER);
+                return;
             }
             
             // Log the incoming session ID for debugging
@@ -223,7 +237,7 @@ class SimpleAjaxController
             
             if ($session === null) {
                 $this->logger->warning('Session not found', ['session_id' => $sessionId]);
-                wp_send_json_error('Session not found');
+                ApiResponse::notFound('Session not found', ApiResponse::ERROR_SESSION_NOT_FOUND);
                 return;
             }
             
@@ -266,7 +280,8 @@ class SimpleAjaxController
             wp_send_json_success($sessionData);
             
         } catch (\Exception $e) {
-            wp_send_json_error($e->getMessage());
+            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
+            ApiResponse::error($error);
         }
     }
     
@@ -278,7 +293,8 @@ class SimpleAjaxController
         try {
             // Verify nonce
             if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
-                throw new \Exception('Security check failed');
+                ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
+                return;
             }
             
             $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
@@ -294,7 +310,8 @@ class SimpleAjaxController
             }
             
             if (empty($sessionId)) {
-                throw new \Exception('Session ID is required');
+                ApiResponse::errorMessage('Session ID is required', ApiResponse::ERROR_MISSING_PARAMETER);
+                return;
             }
             
             // Check if conversation has meaningful content
@@ -380,7 +397,8 @@ class SimpleAjaxController
             wp_send_json_success(['saved' => true]);
             
         } catch (\Exception $e) {
-            wp_send_json_error($e->getMessage());
+            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
+            ApiResponse::error($error);
         }
     }
     
@@ -392,7 +410,8 @@ class SimpleAjaxController
         try {
             // Verify nonce
             if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
-                throw new \Exception('Security check failed');
+                ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
+                return;
             }
             
             $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
@@ -404,7 +423,8 @@ class SimpleAjaxController
             }
             
             if (empty($courseData['title'])) {
-                throw new \Exception('Course title is required');
+                ApiResponse::errorMessage('Course title is required', ApiResponse::ERROR_MISSING_PARAMETER);
+                return;
             }
             
             // Get any drafted lesson content
@@ -414,7 +434,9 @@ class SimpleAjaxController
             $result = $this->courseGenerator->generateCourse($courseData);
             
             if (!$result['success']) {
-                throw new \Exception($result['error'] ?? 'Failed to create course');
+                $error = new WP_Error(ApiResponse::ERROR_COURSE_GENERATION, $result['error'] ?? 'Failed to create course');
+                ApiResponse::error($error);
+                return;
             }
             
             // Update session with course creation info
@@ -455,7 +477,8 @@ class SimpleAjaxController
             ]);
             
         } catch (\Exception $e) {
-            wp_send_json_error($e->getMessage());
+            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_COURSE_GENERATION);
+            ApiResponse::error($error);
         }
     }
     
