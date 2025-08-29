@@ -155,6 +155,7 @@ memberpress-courses-copilot/
 
 ### PHP Standards
 - **Standard**: Follow Caseproof-WP Standard (https://github.com/caseproof/coding-standards-php)
+- **Full Documentation**: See `/docs/caseproof-wp-standard.md` for complete coding standards reference
 - **PHPCS Integration**: Mandatory for all code
 - **Methods**: Use camelCase for methods, snake_case for WordPress hooks
 - **Constants**: UPPERCASE with underscores
