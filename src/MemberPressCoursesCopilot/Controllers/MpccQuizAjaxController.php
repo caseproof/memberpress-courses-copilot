@@ -346,12 +346,38 @@ class MpccQuizAjaxController
         error_log('MPCC Quiz: Post status: ' . $post->post_status);
         error_log('MPCC Quiz: Post content length (raw): ' . strlen($post->post_content));
         
+        // Also check post excerpt and title
+        error_log('MPCC Quiz: Post title: ' . $post->post_title);
+        error_log('MPCC Quiz: Post excerpt length: ' . strlen($post->post_excerpt));
+        
         if ($post->post_type !== 'mpcs-lesson') {
             error_log('MPCC Quiz: Post is not a lesson, it is: ' . $post->post_type);
             return '';
         }
         
+        // Try to get content from various sources
         $content = wp_strip_all_tags($post->post_content);
+        
+        // If no content, try using title and excerpt
+        if (empty($content) && !empty($post->post_title)) {
+            error_log('MPCC Quiz: No content found, using title and excerpt as fallback');
+            $content = $post->post_title;
+            if (!empty($post->post_excerpt)) {
+                $content .= "\n\n" . $post->post_excerpt;
+            }
+            
+            // Also try to get content from parent course
+            $course_id = get_post_meta($lessonId, '_mpcs_course_id', true);
+            if ($course_id) {
+                error_log('MPCC Quiz: Found parent course ID: ' . $course_id);
+                $course = get_post($course_id);
+                if ($course && !empty($course->post_content)) {
+                    $content .= "\n\nCourse Context: " . wp_strip_all_tags($course->post_content);
+                    error_log('MPCC Quiz: Added course content, new length: ' . strlen($content));
+                }
+            }
+        }
+        
         error_log('MPCC Quiz: Content length after stripping tags: ' . strlen($content));
         
         return $content;

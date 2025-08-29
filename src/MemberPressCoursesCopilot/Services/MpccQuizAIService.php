@@ -102,7 +102,9 @@ For each question, provide:
 3. The correct answer letter
 4. Brief explanation of why the answer is correct
 
-Format the output as JSON array with this structure:
+IMPORTANT: Return ONLY the JSON array, no introductory text or explanations outside the JSON structure.
+
+Format the output as a valid JSON array with this exact structure:
 [
     {
         \"question\": \"Question text here\",
@@ -129,6 +131,16 @@ Content to create questions from:
      */
     private function parseMultipleChoiceQuestions(string $response): array
     {
+        // Try to extract JSON array from the response
+        // Sometimes AI adds preamble text before the JSON
+        $jsonStart = strpos($response, '[');
+        if ($jsonStart !== false) {
+            $jsonEnd = strrpos($response, ']');
+            if ($jsonEnd !== false) {
+                $response = substr($response, $jsonStart, $jsonEnd - $jsonStart + 1);
+            }
+        }
+        
         $questions = json_decode($response, true);
         
         if (json_last_error() !== JSON_ERROR_NONE) {
