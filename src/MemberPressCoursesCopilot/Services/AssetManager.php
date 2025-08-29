@@ -183,6 +183,13 @@ class AssetManager extends BaseService
             ['jquery']
         );
         
+        // Quiz AI simple version
+        $this->registerScript(
+            'mpcc-quiz-ai-integration-simple',
+            'assets/js/quiz-ai-integration-simple.js',
+            ['jquery']
+        );
+        
         // Test scripts
         $this->registerScript(
             'mpcc-ai-response-test',
@@ -276,7 +283,7 @@ class AssetManager extends BaseService
         ]);
         
         // Quiz AI localizations
-        wp_localize_script('mpcc-quiz-ai-integration', 'mpcc_ajax', [
+        $quizAILocalization = [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => NonceConstants::create(NonceConstants::QUIZ_AI),
             'strings' => [
@@ -284,7 +291,10 @@ class AssetManager extends BaseService
                 'generating' => __('Generating questions...', 'memberpress-courses-copilot'),
                 'error' => __('Error generating questions', 'memberpress-courses-copilot')
             ]
-        ]);
+        ];
+        
+        wp_localize_script('mpcc-quiz-ai-integration', 'mpcc_ajax', $quizAILocalization);
+        wp_localize_script('mpcc-quiz-ai-integration-simple', 'mpcc_ajax', $quizAILocalization);
     }
     
     /**
@@ -392,7 +402,8 @@ class AssetManager extends BaseService
     private function enqueueQuizEditorAssets(): void
     {
         wp_enqueue_style('mpcc-quiz-ai');
-        wp_enqueue_script('mpcc-quiz-ai-integration');
+        // Use the simple version for now
+        wp_enqueue_script('mpcc-quiz-ai-integration-simple');
     }
     
     /**
