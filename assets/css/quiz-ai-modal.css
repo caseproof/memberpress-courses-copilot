@@ -361,6 +361,48 @@
     color: #64748b;
 }
 
+/* Auto-detection indicator */
+.mpcc-auto-detected {
+    display: flex !important;
+    align-items: center;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #d1fae5;
+    border: 1px solid #6ee7b7;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #065f46;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.mpcc-auto-detected .dashicons {
+    color: #10b981;
+    margin-right: 6px;
+    font-size: 16px;
+}
+
+.mpcc-auto-detected-text {
+    font-weight: 500;
+}
+
+/* Highlight animation for auto-detected fields */
+.mpcc-highlight {
+    animation: mpcc-field-highlight 2s ease-out;
+}
+
+@keyframes mpcc-field-highlight {
+    0% {
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 8px;
+    }
+    50% {
+        background: rgba(102, 126, 234, 0.05);
+    }
+    100% {
+        background: transparent;
+    }
+}
+
 /* Pulse animation for save button */
 @keyframes pulse {
     0% {

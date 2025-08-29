@@ -12,11 +12,22 @@ This guide explains how to use the AI-powered quiz generation feature to quickly
 2. You must have permission to edit quizzes
 3. At least one lesson or course with content must exist
 
-### Accessing the Quiz AI Feature
+### Two Ways to Create AI-Generated Quizzes
 
-1. Navigate to **Courses** → **Quizzes** in your WordPress admin
+#### Method 1: From a Lesson (Fastest - One Click!)
+
+1. Navigate to **Courses** → **Lessons**
+2. Edit any lesson
+3. Click the **"Create Quiz"** button in the editor toolbar
+4. You'll be redirected to the quiz editor and the AI Quiz Generator opens automatically!
+5. The lesson is pre-selected - just choose difficulty and generate
+
+#### Method 2: From Quiz Editor
+
+1. Navigate to **Courses** → **Quizzes**
 2. Click **Add New** to create a new quiz or edit an existing quiz
 3. Look for the **"Generate with AI"** button in the editor toolbar (purple gradient button with a gear icon)
+4. Click to open the AI Quiz Generator
 
 ![Generate with AI Button Location]
 The button appears next to the Publish/Update button in the quiz editor.
@@ -25,11 +36,14 @@ The button appears next to the Publish/Update button in the quiz editor.
 
 ### Step 1: Open the Modal
 
-Click the **"Generate with AI"** button to open the quiz generation modal.
+- If coming from a lesson: The modal opens automatically!
+- If starting from quiz editor: Click the **"Generate with AI"** button
 
 ### Step 2: Select Content Source
 
-**Select Lesson:** Choose the lesson you want to generate questions from. The dropdown shows all available lessons in your courses.
+**Select Lesson:** Choose the lesson you want to generate questions from. 
+- If you came from a lesson, it's already selected! Look for the green "Auto-detected" indicator.
+- Otherwise, use the dropdown to select from all available lessons.
 
 ### Step 3: Configure Options
 
@@ -61,6 +75,15 @@ If satisfied with the questions:
 3. Click **"Update"** or **"Publish"** to save the quiz
 
 ## Features
+
+### Auto-Detection (New!)
+
+The AI Quiz Generator intelligently detects lesson context:
+- **From URL**: When navigating with lesson parameters
+- **From Lesson Editor**: When using "Create Quiz" button
+- **From Quiz Form**: When lesson is already selected
+- **Visual Feedback**: Green indicator shows "Auto-detected from [source]"
+- **Dynamic Updates**: Changes are detected in real-time
 
 ### Question Preview
 

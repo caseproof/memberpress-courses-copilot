@@ -15,6 +15,14 @@ Simple AI-powered quiz generation that extends MemberPress Course Quizzes plugin
 - ✅ Full documentation suite created
 - ✅ Under 300 lines of core implementation code (as planned!)
 
+### UX Enhancements Added
+- ✅ Auto-detection of lesson context (multiple methods)
+- ✅ Visual feedback for auto-detected lessons
+- ✅ "Create Quiz" button on lesson editor
+- ✅ Auto-opening modal when coming from lesson
+- ✅ One-click workflow from lesson to AI quiz generation
+- ✅ Dynamic monitoring for lesson selection changes
+
 ### Lessons Learned
 1. **Block Creation Complexity**: MemberPress quiz blocks require proper store integration before creation
 2. **Save Process**: Questions are saved when the quiz post is updated, not immediately
