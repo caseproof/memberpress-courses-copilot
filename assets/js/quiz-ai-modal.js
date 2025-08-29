@@ -396,9 +396,57 @@
                     if (this.currentCourseId) {
                         console.log('MPCC Quiz AI: Filtering lessons for course ID:', this.currentCourseId);
                         
+                        // First try to get course sections to find lessons more efficiently
+                        $.ajax({
+                            url: mpcc_ajax.ajax_url,
+                            type: 'POST',
+                            data: {
+                                action: 'mpcc_get_course_lessons',
+                                course_id: this.currentCourseId,
+                                nonce: mpcc_ajax.nonce
+                            },
+                            success: (response) => {
+                                if (response.success && response.data && response.data.lessons) {
+                                    console.log('MPCC Quiz AI: Got course lessons directly:', response.data.lessons.length);
+                                    // Filter the loaded lessons to match the course lessons
+                                    const courseLessonIds = response.data.lessons.map(l => String(l.id));
+                                    filteredLessons = lessons.filter(lesson => 
+                                        courseLessonIds.includes(String(lesson.id))
+                                    );
+                                    this.populateLessonDropdown($select, filteredLessons);
+                                    return;
+                                }
+                                
+                                // Fallback to individual checks
+                                console.log('MPCC Quiz AI: Falling back to individual lesson checks');
+                                this.filterLessonsIndividually(lessons, $select);
+                            },
+                            error: () => {
+                                // Fallback to individual checks
+                                console.log('MPCC Quiz AI: Error getting course lessons, falling back to individual checks');
+                                this.filterLessonsIndividually(lessons, $select);
+                            }
+                        });
+                        
+                        return;
+                    }
+                    
+                    // No course filter, show all lessons
+                    this.populateLessonDropdown($select, filteredLessons);
+                })
+                .fail(() => {
+                    $('#mpcc-modal-lesson-select').html('<option value="">Failed to load lessons</option>');
+                });
+        }
+        
+        /**
+         * Filter lessons individually by checking course association
+         */
+        filterLessonsIndividually(lessons, $select) {
+                        const filteredLessons = [];
+                        
                         // Get lessons for this specific course by checking meta
                         const courseIdStr = String(this.currentCourseId);
-                        filteredLessons = [];
                         
                         // We need to check each lesson's course association
                         // Since the REST API might not expose meta directly, we'll make individual requests
@@ -413,11 +461,19 @@
                                     nonce: mpcc_ajax.nonce
                                 }
                             }).then(response => {
-                                if (response.success && response.data.course_id == this.currentCourseId) {
-                                    filteredLessons.push(lesson);
+                                if (response.success && response.data) {
+                                    // Debug logging
+                                    console.log('MPCC Quiz AI: Lesson', lesson.id, 'course_id:', response.data.course_id, 'current course:', this.currentCourseId);
+                                    
+                                    // Compare as strings to avoid type mismatch
+                                    if (String(response.data.course_id) === String(this.currentCourseId)) {
+                                        console.log('MPCC Quiz AI: Lesson', lesson.id, 'matches course!');
+                                        filteredLessons.push(lesson);
+                                    }
                                 }
-                            }).catch(() => {
-                                // Silently fail for individual lesson checks
+                            }).catch((error) => {
+                                // Log errors for debugging
+                                console.log('MPCC Quiz AI: Error checking lesson', lesson.id, error);
                             });
                         });
                         
@@ -426,16 +482,6 @@
                             console.log('MPCC Quiz AI: Found', filteredLessons.length, 'lessons for course');
                             this.populateLessonDropdown($select, filteredLessons);
                         });
-                        
-                        return;
-                    }
-                    
-                    // No course filter, show all lessons
-                    this.populateLessonDropdown($select, filteredLessons);
-                })
-                .fail(() => {
-                    $('#mpcc-modal-lesson-select').html('<option value="">Failed to load lessons</option>');
-                });
         }
         
         /**

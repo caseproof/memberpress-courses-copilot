@@ -61,6 +61,7 @@ class MpccQuizAjaxController
         add_action('wp_ajax_mpcc_validate_quiz', [$this, 'validate_quiz'], 10);
         add_action('wp_ajax_mpcc_create_quiz_from_lesson', [$this, 'create_quiz_from_lesson'], 10);
         add_action('wp_ajax_mpcc_get_lesson_course', [$this, 'get_lesson_course'], 10);
+        add_action('wp_ajax_mpcc_get_course_lessons', [$this, 'get_course_lessons'], 10);
         
         // Also register for non-logged-in users (though they shouldn't have access)
         add_action('wp_ajax_nopriv_mpcc_generate_quiz', function() {
@@ -674,6 +675,105 @@ class MpccQuizAjaxController
             $this->logger->error('Failed to get lesson course', [
                 'error' => $e->getMessage(),
                 'lesson_id' => $lessonId ?? 0
+            ]);
+            
+            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
+            ApiResponse::error($error);
+        }
+    }
+    
+    /**
+     * Get all lessons for a course
+     * 
+     * @return void
+     */
+    public function get_course_lessons(): void
+    {
+        try {
+            // Verify nonce
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::QUIZ_AI, false)) {
+                ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
+                return;
+            }
+            
+            // Check user capabilities
+            if (!current_user_can('edit_posts')) {
+                ApiResponse::errorMessage('Insufficient permissions', ApiResponse::ERROR_INSUFFICIENT_PERMISSIONS, 403);
+                return;
+            }
+            
+            // Get course ID
+            $courseId = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
+            
+            if (empty($courseId)) {
+                ApiResponse::errorMessage('Course ID is required', ApiResponse::ERROR_MISSING_PARAMETER);
+                return;
+            }
+            
+            // Get course data
+            $course = get_post($courseId);
+            
+            if (!$course || $course->post_type !== 'mpcs-course') {
+                ApiResponse::errorMessage('Invalid course ID', ApiResponse::ERROR_INVALID_PARAMETER);
+                return;
+            }
+            
+            // Get lessons for this course
+            $lessons = [];
+            
+            // Try to use MemberPress Courses API if available
+            if (class_exists('\\memberpress\\courses\\models\\Course')) {
+                $courseModel = new \memberpress\courses\models\Course($courseId);
+                $sections = $courseModel->sections();
+                
+                foreach ($sections as $section) {
+                    $sectionLessons = $section->lessons();
+                    foreach ($sectionLessons as $lesson) {
+                        if ($lesson->post_type === 'mpcs-lesson') {
+                            $lessons[] = [
+                                'id' => $lesson->ID,
+                                'title' => $lesson->post_title,
+                                'section_id' => $section->id
+                            ];
+                        }
+                    }
+                }
+            } else {
+                // Fallback: Get lessons by meta query
+                $lessonPosts = get_posts([
+                    'post_type' => 'mpcs-lesson',
+                    'meta_query' => [
+                        [
+                            'key' => '_mpcs_course_id',
+                            'value' => $courseId,
+                            'compare' => '='
+                        ]
+                    ],
+                    'numberposts' => -1,
+                    'orderby' => 'menu_order',
+                    'order' => 'ASC'
+                ]);
+                
+                foreach ($lessonPosts as $lesson) {
+                    $lessons[] = [
+                        'id' => $lesson->ID,
+                        'title' => $lesson->post_title,
+                        'section_id' => get_post_meta($lesson->ID, '_mpcs_lesson_section_id', true)
+                    ];
+                }
+            }
+            
+            wp_send_json_success([
+                'course_id' => $courseId,
+                'course_title' => $course->post_title,
+                'lessons' => $lessons,
+                'lesson_count' => count($lessons)
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to get course lessons', [
+                'error' => $e->getMessage(),
+                'course_id' => $courseId ?? 0
             ]);
             
             $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
