@@ -440,6 +440,28 @@
     }
 }
 
+/* Course context indicator */
+.mpcc-course-context {
+    background: #f0f8ff;
+    border-left: 4px solid #2196f3;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.mpcc-course-context .dashicons {
+    font-size: 20px;
+    color: #2196f3;
+    margin-right: 8px;
+}
+
+.mpcc-course-context strong {
+    color: #1976d2;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .mpcc-modal-container {
