@@ -139,11 +139,16 @@
                 },
                 success: (response) => {
                     if (response.success && response.data.quiz_id) {
-                        // Redirect to quiz editor with lesson context
-                        const quizUrl = response.data.edit_url || 
+                        // Redirect to quiz editor with lesson context and auto-open flag
+                        let quizUrl = response.data.edit_url || 
                                       `${mpcc_ajax.admin_url}post.php?post=${response.data.quiz_id}&action=edit&lesson_id=${lessonId}`;
                         
-                        this.showNotice('Quiz created! Redirecting to quiz editor...', 'success');
+                        // Add auto_open parameter to trigger modal
+                        if (!quizUrl.includes('auto_open=')) {
+                            quizUrl += '&auto_open=true';
+                        }
+                        
+                        this.showNotice('Quiz created! Opening AI generator...', 'success');
                         
                         setTimeout(() => {
                             window.location.href = quizUrl;

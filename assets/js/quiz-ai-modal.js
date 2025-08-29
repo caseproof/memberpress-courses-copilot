@@ -30,8 +30,41 @@
                 // Wait a bit for any dynamic fields to load
                 setTimeout(() => {
                     this.detectLessonContext();
+                    
+                    // Auto-open modal if coming from lesson context
+                    this.checkAutoOpenModal();
                 }, 500);
             });
+        }
+        
+        /**
+         * Check if we should auto-open the modal
+         */
+        checkAutoOpenModal() {
+            // Check if we have lesson context from URL and it's a new quiz
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasLessonContext = urlParams.get('lesson_id') || urlParams.get('from_lesson');
+            const isNewQuiz = $('body').hasClass('post-new-php') || urlParams.get('auto_open') === 'true';
+            
+            console.log('MPCC Quiz AI: Auto-open check - hasLessonContext:', hasLessonContext, 'isNewQuiz:', isNewQuiz);
+            
+            if (hasLessonContext && isNewQuiz) {
+                console.log('MPCC Quiz AI: Auto-opening modal from lesson context');
+                
+                // Show loading message
+                this.showNotice('Opening AI Quiz Generator...', 'info');
+                
+                // Small delay to ensure button is ready
+                setTimeout(() => {
+                    this.openModal();
+                    
+                    // Remove auto_open from URL to prevent reopening on refresh
+                    if (window.history.replaceState) {
+                        const newUrl = window.location.href.replace(/[?&]auto_open=true/, '');
+                        window.history.replaceState({}, document.title, newUrl);
+                    }
+                }, 1000);
+            }
         }
 
         /**

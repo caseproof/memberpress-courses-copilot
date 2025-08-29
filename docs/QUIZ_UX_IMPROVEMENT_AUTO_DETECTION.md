@@ -64,6 +64,7 @@ Added "Create Quiz" button to lesson editor that:
 - Creates a new quiz with lesson pre-associated
 - Names quiz as "Quiz: [Lesson Title]"
 - Redirects to quiz editor with lesson context preserved
+- **Automatically opens the AI Quiz Generator modal** upon arrival
 
 ### Files Modified
 
@@ -95,6 +96,8 @@ Added "Create Quiz" button to lesson editor that:
 2. **Clear Feedback**: Users know when and how lesson was detected
 3. **Seamless Workflow**: Natural progression from lesson to quiz creation
 4. **Error Prevention**: Reduces chance of selecting wrong lesson
+5. **Auto-Opening Modal**: When creating quiz from lesson, the AI generator opens automatically
+6. **One-Click Quiz Creation**: From lesson to AI quiz generation in a single click
 
 ## Technical Implementation
 

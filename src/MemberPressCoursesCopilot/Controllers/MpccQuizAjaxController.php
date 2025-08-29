@@ -577,11 +577,12 @@ class MpccQuizAjaxController
                 'user_id' => get_current_user_id()
             ]);
             
-            // Build edit URL with lesson context
+            // Build edit URL with lesson context and auto-open flag
             $editUrl = add_query_arg([
                 'post' => $quizId,
                 'action' => 'edit',
-                'lesson_id' => $lessonId
+                'lesson_id' => $lessonId,
+                'auto_open' => 'true'
             ], admin_url('post.php'));
             
             wp_send_json_success([
