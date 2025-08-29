@@ -563,7 +563,18 @@ class MpccQuizAjaxController
             // Set lesson association
             update_post_meta($quizId, '_mpcs_lesson_id', $lessonId);
             
-            // Get course ID from lesson
+            // Get section ID from lesson - THIS IS CRUCIAL for quiz to appear in course!
+            $sectionId = get_post_meta($lessonId, '_mpcs_lesson_section_id', true);
+            if ($sectionId) {
+                update_post_meta($quizId, '_mpcs_lesson_section_id', $sectionId);
+                
+                // Get the lesson's order and place quiz right after it
+                $lessonOrder = get_post_meta($lessonId, '_mpcs_lesson_lesson_order', true);
+                $quizOrder = $lessonOrder ? (int)$lessonOrder + 1 : 1;
+                update_post_meta($quizId, '_mpcs_lesson_lesson_order', $quizOrder);
+            }
+            
+            // Get course ID from lesson (optional but helpful)
             $courseId = get_post_meta($lessonId, '_mpcs_course_id', true);
             if ($courseId) {
                 update_post_meta($quizId, '_mpcs_course_id', $courseId);
@@ -573,7 +584,9 @@ class MpccQuizAjaxController
             $this->logger->info('Quiz created from lesson', [
                 'quiz_id' => $quizId,
                 'lesson_id' => $lessonId,
-                'course_id' => $courseId,
+                'section_id' => $sectionId ?? 'none',
+                'course_id' => $courseId ?? 'none',
+                'quiz_order' => $quizOrder ?? 'none',
                 'user_id' => get_current_user_id()
             ]);
             
