@@ -135,11 +135,13 @@ final class Plugin
         $simple_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\SimpleAjaxController::class);
         $course_integration_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseIntegrationService::class);
         $course_ajax_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseAjaxService::class);
+        $quiz_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\MpccQuizAjaxController::class);
         
         // Initialize services
         $simple_ajax_controller->init();
         $course_integration_service->init();
         $course_ajax_service->init();
+        $quiz_ajax_controller->init();
         // Note: EditorAIIntegrationService is initialized early in init() method
         
         /**

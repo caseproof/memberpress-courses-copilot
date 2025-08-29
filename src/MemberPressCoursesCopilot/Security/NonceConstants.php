@@ -41,6 +41,9 @@ class NonceConstants
     // Settings
     public const SAVE_SETTINGS = 'mpcc_save_settings';
     
+    // Quiz AI operations
+    public const QUIZ_AI = 'mpcc_quiz_ai_nonce';
+    
     /**
      * Session management nonces
      */

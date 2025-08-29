@@ -18,16 +18,19 @@ use MemberPressCoursesCopilot\Services\{
     CourseIntegrationService,
     CourseUIService,
     SessionFeaturesService,
-    EditorAIIntegrationService
+    EditorAIIntegrationService,
+    MpccQuizAIService
 };
 use MemberPressCoursesCopilot\Interfaces\{
     IDatabaseService,
     ILLMService,
     IConversationManager,
-    ICourseGenerator
+    ICourseGenerator,
+    IQuizAIService
 };
 use MemberPressCoursesCopilot\Controllers\{
-    SimpleAjaxController
+    SimpleAjaxController,
+    MpccQuizAjaxController
 };
 use MemberPressCoursesCopilot\Admin\{
     AdminMenu,
@@ -172,6 +175,12 @@ class ServiceProvider
         
         // Asset Manager (singleton)
         $container->register(AssetManager::class, AssetManager::class, true);
+        
+        // Quiz AI Service (singleton)
+        $container->register(MpccQuizAIService::class, function (Container $container) {
+            $llmService = $container->get(LLMService::class);
+            return new MpccQuizAIService($llmService);
+        }, true);
     }
 
     /**
@@ -205,6 +214,12 @@ class ServiceProvider
     {
         // Simple Ajax Controller (singleton)
         $container->register(SimpleAjaxController::class, SimpleAjaxController::class, true);
+        
+        // Quiz Ajax Controller (singleton)
+        $container->register(MpccQuizAjaxController::class, function (Container $container) {
+            $quizAIService = $container->get(MpccQuizAIService::class);
+            return new MpccQuizAjaxController($quizAIService);
+        }, true);
     }
 
     /**
@@ -238,5 +253,6 @@ class ServiceProvider
         $container->bind(ILLMService::class, LLMService::class);
         $container->bind(IConversationManager::class, ConversationManager::class);
         $container->bind(ICourseGenerator::class, CourseGeneratorService::class);
+        $container->bind(IQuizAIService::class, MpccQuizAIService::class);
     }
 }

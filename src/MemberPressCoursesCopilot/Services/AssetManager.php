@@ -84,6 +84,9 @@ class AssetManager extends BaseService
         
         // Component styles
         // Removed mpcc-modal-styles and mpcc-metabox-styles - files don't exist
+        
+        // Quiz AI styles
+        $this->registerStyle('mpcc-quiz-ai', 'assets/css/quiz-ai.css', ['dashicons']);
     }
     
     /**
@@ -170,6 +173,13 @@ class AssetManager extends BaseService
         $this->registerScript(
             'mpcc-metabox-ai-assistant',
             'assets/js/metabox-ai-assistant.js',
+            ['jquery']
+        );
+        
+        // Quiz AI scripts
+        $this->registerScript(
+            'mpcc-quiz-ai-integration',
+            'assets/js/quiz-ai-integration.js',
             ['jquery']
         );
         
@@ -264,6 +274,17 @@ class AssetManager extends BaseService
                 'chatCleared' => __('Chat history has been cleared. How can I help you today?', 'memberpress-courses-copilot')
             ]
         ]);
+        
+        // Quiz AI localizations
+        wp_localize_script('mpcc-quiz-ai-integration', 'mpcc_ajax', [
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => NonceConstants::create(NonceConstants::QUIZ_AI),
+            'strings' => [
+                'generate_button' => __('Generate with AI', 'memberpress-courses-copilot'),
+                'generating' => __('Generating questions...', 'memberpress-courses-copilot'),
+                'error' => __('Error generating questions', 'memberpress-courses-copilot')
+            ]
+        ]);
     }
     
     /**
@@ -292,6 +313,10 @@ class AssetManager extends BaseService
             global $post;
             if ($post && $post->post_type === 'mpcs-course') {
                 $this->enqueueCourseEditorAssets();
+            }
+            // Quiz editor page assets
+            if ($post && $post->post_type === 'mpcs-quiz') {
+                $this->enqueueQuizEditorAssets();
             }
         }
         
@@ -359,6 +384,15 @@ class AssetManager extends BaseService
         wp_enqueue_style('mpcc-courses-integration');
         
         wp_enqueue_script('mpcc-courses-integration');
+    }
+    
+    /**
+     * Enqueue assets for quiz editor
+     */
+    private function enqueueQuizEditorAssets(): void
+    {
+        wp_enqueue_style('mpcc-quiz-ai');
+        wp_enqueue_script('mpcc-quiz-ai-integration');
     }
     
     /**
