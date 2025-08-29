@@ -105,6 +105,15 @@ Security measures:
 #### Quiz AI Modal (quiz-ai-modal.js)
 ```javascript
 class MPCCQuizAIModal {
+    detectLessonContext() {
+        // 1. Check URL parameters
+        // 2. Check referrer
+        // 3. Check form fields
+        // 4. Check post meta
+        // 5. Check existing quiz meta
+        // 6. Return detected lesson ID
+    }
+    
     async applyQuestions() {
         // 1. Get current quiz ID
         // 2. Process each generated question
@@ -117,6 +126,9 @@ class MPCCQuizAIModal {
 ```
 
 Key implementation details:
+- Multi-method lesson detection with fallbacks
+- Auto-opening modal when coming from lesson
+- Real-time monitoring for lesson changes
 - Async/await pattern for API calls
 - Fallback handling for ID reservation failures
 - Visual feedback (save button highlighting)
@@ -201,6 +213,37 @@ Key implementation details:
     }
 }
 ```
+
+## UI/UX Enhancements
+
+### Auto-Detection System
+
+The quiz generator implements intelligent lesson context detection:
+
+1. **Detection Methods** (in priority order):
+   - URL parameters (`lesson_id`, `lesson`, `from_lesson`)
+   - Document referrer (when navigating from lesson)
+   - Form fields (`_mpcs_lesson_id`, etc.)
+   - Post meta fields
+   - Existing quiz associations
+
+2. **Visual Feedback**:
+   - Green indicator box with checkmark icon
+   - Contextual message: "Auto-detected from [source]"
+   - Subtle highlight animation on form field
+   - Real-time updates when lesson selection changes
+
+3. **Auto-Opening Behavior**:
+   - Modal opens automatically when `auto_open=true` in URL
+   - Shows loading notification before opening
+   - Removes parameter after opening to prevent re-triggers
+   - 1-second delay ensures all elements are loaded
+
+4. **Lesson-to-Quiz Workflow**:
+   - "Create Quiz" button added to lesson editor
+   - Creates quiz with pre-filled title: "Quiz: [Lesson Title]"
+   - Navigates to quiz editor with lesson context
+   - Modal opens automatically for immediate question generation
 
 ## Error Handling
 

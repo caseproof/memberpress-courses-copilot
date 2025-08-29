@@ -122,6 +122,40 @@ Generates AI-powered quiz questions from lesson or course content.
 }
 ```
 
+### Create Quiz from Lesson
+
+Creates a new quiz associated with a specific lesson.
+
+**Action:** `mpcc_create_quiz_from_lesson`  
+**Method:** POST (AJAX)  
+**Capability Required:** `edit_posts`  
+**Nonce:** `mpcc_quiz_ai_nonce`
+
+#### Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | Yes | Must be `mpcc_create_quiz_from_lesson` |
+| `nonce` | string | Yes | Security nonce |
+| `lesson_id` | int | Yes | ID of the lesson to create quiz for |
+
+#### Success Response
+
+```json
+{
+    "success": true,
+    "data": {
+        "quiz_id": 1970,
+        "edit_url": "http://localhost/wp-admin/post.php?post=1970&action=edit&lesson_id=1941&auto_open=true",
+        "message": "Quiz created successfully!"
+    }
+}
+```
+
+The `edit_url` includes:
+- `lesson_id`: Pre-selects the lesson in the AI generator
+- `auto_open=true`: Automatically opens the AI Quiz Generator modal
+
 ### Regenerate Question (Future)
 
 Regenerates a single question with new content.
@@ -301,6 +335,27 @@ tail -f wp-content/debug.log | grep "MPCC Quiz"
 4. Response formatting
 
 ## Examples
+
+### Create Quiz from Lesson
+
+```javascript
+// Create a new quiz from lesson edit page
+$.ajax({
+    url: mpcc_ajax.ajax_url,
+    type: 'POST',
+    data: {
+        action: 'mpcc_create_quiz_from_lesson',
+        lesson_id: 1941,
+        nonce: mpcc_ajax.nonce
+    },
+    success: function(response) {
+        if (response.success) {
+            // Redirect to quiz editor with AI modal auto-opening
+            window.location.href = response.data.edit_url;
+        }
+    }
+});
+```
 
 ### Generate from Lesson
 
