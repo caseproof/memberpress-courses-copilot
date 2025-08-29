@@ -340,23 +340,24 @@
             console.log('Current quiz ID:', quizId);
             
             // Show loading state
-            this.showNotice('Saving questions to database...', 'info');
+            this.showNotice('Adding questions to editor...', 'info');
             
             try {
-                // First, prepare all questions for saving
-                const questionsData = {};
-                const tempIds = [];
+                const dispatch = wp.data.dispatch('memberpress/course/question');
+                const blocks = [];
                 
-                this.generatedQuestions.forEach((question, index) => {
-                    const tempId = `temp-${Date.now()}-${index}`;
-                    tempIds.push(tempId);
+                // Process each question
+                for (let i = 0; i < this.generatedQuestions.length; i++) {
+                    const question = this.generatedQuestions[i];
                     
-                    // Prepare question data in the format expected by the API
-                    questionsData[tempId] = {
-                        questionId: tempId,
+                    // Generate a unique client ID for this block
+                    const clientId = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {}).clientId;
+                    
+                    // Prepare question data in the format expected by the quiz plugin
+                    const questionData = {
                         question: question.question || question.text,
                         type: 'multiple-choice',
-                        number: index + 1,
+                        number: i + 1,
                         required: true,
                         points: 1,
                         options: Object.entries(question.options).map(([key, value]) => ({
@@ -365,84 +366,68 @@
                         })),
                         feedback: question.explanation || ''
                     };
-                });
-                
-                // Save questions via REST API to get real IDs
-                const response = await wp.apiFetch({
-                    path: `/mpcs/courses/quiz/${quizId}/questions`,
-                    method: 'POST',
-                    data: {
-                        questions: questionsData,
-                        order: tempIds
+                    
+                    console.log(`Adding placeholder for question ${i + 1}:`, questionData);
+                    
+                    // Add placeholder to store with the client ID
+                    if (dispatch && dispatch.addPlaceholder) {
+                        dispatch.addPlaceholder(clientId, questionData);
                     }
-                });
-                
-                console.log('Save questions response:', response);
-                
-                // Check if we have the ID mappings
-                if (response && response.ids) {
-                    const blocks = [];
                     
-                    // Create blocks with the real question IDs
-                    response.ids.forEach(({ oldId, newId }) => {
-                        console.log(`Creating block for question ${newId} (was ${oldId})`);
-                        
-                        // Create the block with the real question ID
-                        const block = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {
-                            questionId: newId
-                        });
-                        
-                        blocks.push(block);
-                    });
-                    
-                    // Insert all blocks at once
-                    if (blocks.length > 0) {
-                        wp.data.dispatch('core/block-editor').insertBlocks(blocks);
-                        this.showNotice(`Successfully added ${blocks.length} questions to your quiz!`, 'success');
-                    }
-                } else {
-                    // Fallback: Create blocks without IDs and let the save process handle it
-                    console.log('No ID mappings returned, using fallback method');
-                    
-                    const blocks = this.generatedQuestions.map((question, index) => {
-                        // First add placeholder to store
-                        const clientId = `client-${Date.now()}-${index}`;
-                        const questionData = {
-                            question: question.question || question.text,
-                            type: 'multiple-choice',
-                            number: index + 1,
-                            required: true,
-                            points: 1,
-                            options: Object.entries(question.options).map(([key, value]) => ({
-                                value: value,
-                                isCorrect: key === question.correct_answer
-                            })),
-                            feedback: question.explanation || ''
-                        };
-                        
-                        // Add placeholder to store first
-                        if (wp.data.dispatch('memberpress/course/question')) {
-                            wp.data.dispatch('memberpress/course/question').addPlaceholder(clientId, questionData);
+                    // Now reserve a real question ID from the API
+                    let questionId = 0;
+                    if (dispatch && dispatch.getNextQuestionId) {
+                        try {
+                            const result = await dispatch.getNextQuestionId(quizId, clientId);
+                            if (result && result.id) {
+                                questionId = result.id;
+                                console.log(`Reserved question ID ${questionId} for client ${clientId}`);
+                            }
+                        } catch (err) {
+                            console.warn('Could not reserve question ID:', err);
                         }
-                        
-                        // Create block with questionId: 0 to trigger placeholder creation
-                        const block = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {
-                            questionId: 0
-                        });
-                        
-                        // Override the clientId to match our placeholder
-                        block.clientId = clientId;
-                        
-                        return block;
+                    }
+                    
+                    // Create the block with the reserved question ID
+                    const block = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {
+                        questionId: questionId
                     });
                     
+                    // If we didn't get a reserved ID, ensure the block uses our clientId
+                    // so it matches the placeholder we added to the store
+                    if (questionId === 0) {
+                        block.clientId = clientId;
+                    }
+                    
+                    blocks.push(block);
+                }
+                
+                // Insert all blocks at once
+                if (blocks.length > 0) {
                     wp.data.dispatch('core/block-editor').insertBlocks(blocks);
-                    this.showNotice('Questions added! Save the quiz to persist them.', 'success');
+                    
+                    // Mark the post as dirty to enable the save button
+                    wp.data.dispatch('core/editor').editPost({ meta: { _edit_lock: Date.now() } });
+                    
+                    this.showNotice(`Successfully added ${blocks.length} questions! Click "Update" to save them.`, 'success');
+                    
+                    // Highlight the save button to draw user attention
+                    setTimeout(() => {
+                        const saveButton = document.querySelector('.editor-post-publish-button, .editor-post-publish-panel__toggle');
+                        if (saveButton) {
+                            saveButton.style.animation = 'pulse 2s ease-in-out 3';
+                            saveButton.style.boxShadow = '0 0 0 4px rgba(102, 126, 234, 0.5)';
+                            setTimeout(() => {
+                                saveButton.style.animation = '';
+                                saveButton.style.boxShadow = '';
+                            }, 6000);
+                        }
+                    }, 500);
                 }
                 
             } catch (error) {
-                console.error('Error saving questions:', error);
-                this.showNotice('Error saving questions. Please try again.', 'error');
+                console.error('Error adding questions:', error);
+                this.showNotice('Error adding questions. Please try again.', 'error');
             }
             
             // Close modal
