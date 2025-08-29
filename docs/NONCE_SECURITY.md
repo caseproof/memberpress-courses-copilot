@@ -138,3 +138,77 @@ jQuery.post(ajaxurl, {
 ## Migration Status
 
 Most of the codebase has been migrated to use the NonceConstants class. Any remaining direct nonce strings should be updated to use the constants for consistency.
+
+## Quiz AI Integration Security
+
+### Overview
+The Quiz AI integration uses nonce security to protect AJAX endpoints for quiz generation.
+
+### Implementation
+
+#### Nonce Definition
+In `NonceConstants.php`:
+```php
+// Quiz AI operations
+public const QUIZ_AI = 'mpcc_quiz_ai_nonce';
+```
+
+#### JavaScript Localization
+In `AssetManager.php`:
+```php
+$quizAILocalization = [
+    'ajax_url' => admin_url('admin-ajax.php'),
+    'nonce' => NonceConstants::create(NonceConstants::QUIZ_AI),
+    'strings' => [/* ... */]
+];
+wp_localize_script('mpcc-quiz-ai-integration-copilot', 'mpcc_ajax', $quizAILocalization);
+```
+
+#### AJAX Request
+```javascript
+$.ajax({
+    url: mpcc_ajax.ajax_url,
+    type: 'POST',
+    data: {
+        action: 'mpcc_generate_quiz',
+        lesson_id: lessonId,
+        nonce: mpcc_ajax.nonce,
+        options: { num_questions: 10 }
+    }
+});
+```
+
+#### Server-Side Verification
+In `MpccQuizAjaxController.php`:
+```php
+public function generate_quiz(): void {
+    // Verify nonce
+    if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::QUIZ_AI, false)) {
+        ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
+        return;
+    }
+    
+    // Check capabilities
+    if (!current_user_can('edit_courses')) {
+        ApiResponse::errorMessage('Insufficient permissions', ApiResponse::ERROR_UNAUTHORIZED, 403);
+        return;
+    }
+    
+    // Process request...
+}
+```
+
+### Troubleshooting 403 Errors
+
+1. **Check nonce consistency**: Ensure the nonce action matches between creation and verification
+2. **Verify user capabilities**: User must have 'edit_courses' capability
+3. **Check nonce expiration**: WordPress nonces expire after 24 hours
+4. **Enable debug logging**: Check `/wp-content/debug.log` for security messages
+
+### Security Best Practices for Quiz AI
+
+1. Always verify nonces before processing requests
+2. Check user capabilities after nonce verification
+3. Sanitize all input data (lesson_id, options, etc.)
+4. Use ApiResponse for consistent error handling
+5. Log security events for audit trails

@@ -91,6 +91,10 @@ final class Plugin
         $editor_ai_integration = $this->container->get(\MemberPressCoursesCopilot\Services\EditorAIIntegrationService::class);
         $editor_ai_integration->init();
         
+        // Initialize Quiz AJAX controller early for AJAX hooks
+        $quiz_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\MpccQuizAjaxController::class);
+        $quiz_ajax_controller->init();
+        
         // Hook into WordPress initialization
         add_action('init', [$this, 'initializeComponents']);
         add_action('admin_menu', [$this, 'initializeAdmin']); // Changed from admin_init to admin_menu
@@ -135,13 +139,12 @@ final class Plugin
         $simple_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\SimpleAjaxController::class);
         $course_integration_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseIntegrationService::class);
         $course_ajax_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseAjaxService::class);
-        $quiz_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\MpccQuizAjaxController::class);
         
         // Initialize services
         $simple_ajax_controller->init();
         $course_integration_service->init();
         $course_ajax_service->init();
-        $quiz_ajax_controller->init();
+        // Quiz AJAX controller is already initialized early in init() method
         // Note: EditorAIIntegrationService is initialized early in init() method
         
         /**

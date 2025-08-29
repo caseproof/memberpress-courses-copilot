@@ -3,8 +3,11 @@
  * Styles for AI-powered quiz generation interface
  *
  * @package MemberPressCoursesCopilot
- * @version 1.0.0
+ * @version 2.0.0
  */
+
+/* Import common styles for design system consistency */
+@import url('mpcc-common.css');
 
 /* Quiz AI button wrapper */
 .mpcc-quiz-ai-wrapper {
@@ -173,4 +176,80 @@
     padding: 10px;
     margin: 10px 0;
     border-radius: 4px;
+}
+
+/* ==========================================================================
+   Quiz AI Metabox Styles
+   ========================================================================== */
+
+#mpcc-quiz-ai-metabox {
+    margin-top: 20px;
+}
+
+#mpcc-quiz-ai-metabox .postbox-header {
+    cursor: move;
+}
+
+#mpcc-quiz-ai-metabox .dashicons {
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.mpcc-quiz-ai-content {
+    padding: 15px;
+}
+
+.mpcc-quiz-ai-content .mpcc-form-group {
+    margin-bottom: 15px;
+}
+
+.mpcc-quiz-ai-content .mpcc-form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.mpcc-quiz-ai-content select.mpcc-form-input,
+.mpcc-quiz-ai-content input.mpcc-form-input {
+    display: block;
+    width: 100%;
+}
+
+#mpcc-quiz-results {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--mpcc-bg-secondary);
+    border-radius: var(--mpcc-radius-md);
+    border: 1px solid var(--mpcc-border-secondary);
+}
+
+#mpcc-quiz-results h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--mpcc-text-primary);
+}
+
+.mpcc-quiz-questions .mpcc-card {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.mpcc-quiz-questions .mpcc-card:nth-child(1) { animation-delay: 0.1s; }
+.mpcc-quiz-questions .mpcc-card:nth-child(2) { animation-delay: 0.2s; }
+.mpcc-quiz-questions .mpcc-card:nth-child(3) { animation-delay: 0.3s; }
+.mpcc-quiz-questions .mpcc-card:nth-child(4) { animation-delay: 0.4s; }
+.mpcc-quiz-questions .mpcc-card:nth-child(5) { animation-delay: 0.5s; }
+
+/* Quiz AI Toolbar Button */
+.mpcc-quiz-ai-toolbar-wrapper {
+    display: inline-flex;
+    align-items: center;
+}
+
+.mpcc-quiz-ai-toolbar-wrapper .components-button {
+    height: 36px;
+}
+
+/* Quiz Insert Button */
+.mpcc-insert-question {
+    margin-top: 10px;
 }

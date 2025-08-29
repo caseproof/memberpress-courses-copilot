@@ -1,7 +1,7 @@
-# MemberPress Courses Copilot - Quiz Integration Plan (REVISED)
+# MemberPress Courses Copilot - Quiz Integration Plan (REVISED v3)
 
 ## Overview
-Simple AI-powered quiz generation that extends MemberPress Course Quizzes plugin following KISS, DRY, and YAGNI principles.
+Simple AI-powered quiz generation that extends MemberPress Course Quizzes plugin following KISS, DRY, and YAGNI principles, matching existing UI patterns.
 
 ## Core Principle: SIMPLICITY
 - Start with multiple-choice questions only
@@ -97,34 +97,45 @@ class MpccQuizAjaxController extends MpccBaseAjaxController {
 }
 ```
 
-### Phase 4: Minimal UI Integration (Week 4)
+### Phase 4: UI Integration Matching Course/Lesson Pattern (Week 4)
+
+#### Key Discovery: Quiz Editor Uses Gutenberg Blocks
+The quiz editor uses Gutenberg blocks for questions:
+- `wp:memberpress-courses/multiple-choice-question`
+- `wp:memberpress-courses/true-false-question`
+- `wp:memberpress-courses/fill-blank-question`
+
+#### UI Pattern: Modal Like Courses/Lessons
 ```javascript
-// assets/js/quiz-ai-integration.js
-jQuery(document).ready(function($) {
-    // Add ONE button to quiz editor
-    $('.mpcs-quiz-editor').append(
-        '<button id="mpcc-generate-quiz" class="button">' +
-        '<span class="dashicons dashicons-admin-generic"></span> Generate with AI</button>'
-    );
-    
-    $('#mpcc-generate-quiz').on('click', function(e) {
-        e.preventDefault();
-        
-        // Simple AJAX call
-        $.post(mpcc_ajax.ajax_url, {
-            action: 'mpcc_generate_quiz',
-            lesson_id: $('#lesson_id').val(),
-            nonce: mpcc_ajax.nonce
-        }, function(response) {
-            if (response.success) {
-                // Add questions to editor
-                response.data.questions.forEach(function(question) {
-                    addQuestionToEditor(question);
-                });
-            }
+// assets/js/quiz-ai-modal.js
+// Match the existing "Generate with AI" button style and modal pattern
+$('.editor-header__settings').prepend(
+    '<button class="is-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">' +
+    'Generate with AI</button>'
+);
+
+// Modal interface matching course/lesson AI pattern
+function openQuizAIModal() {
+    // Full-screen modal with:
+    // - Lesson selector
+    // - Question count
+    // - Quick action buttons
+    // - Apply/Cancel options
+}
+
+// Insert questions as Gutenberg blocks
+function applyQuestions(questions) {
+    questions.forEach((question) => {
+        const block = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {
+            question: question.text,
+            answers: question.options.map((opt, i) => ({
+                answer: opt,
+                isCorrect: i === question.answer_index
+            }))
         });
+        wp.data.dispatch('core/block-editor').insertBlocks([block]);
     });
-});
+}
 ```
 
 ## What We're NOT Building (YAGNI)

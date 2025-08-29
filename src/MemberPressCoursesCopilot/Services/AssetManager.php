@@ -87,6 +87,9 @@ class AssetManager extends BaseService
         
         // Quiz AI styles
         $this->registerStyle('mpcc-quiz-ai', 'assets/css/quiz-ai.css', ['dashicons']);
+        
+        // Quiz AI modal styles (matches course/lesson pattern)
+        $this->registerStyle('mpcc-quiz-ai-modal', 'assets/css/quiz-ai-modal.css', ['dashicons', 'wp-components']);
     }
     
     /**
@@ -190,6 +193,20 @@ class AssetManager extends BaseService
             ['jquery']
         );
         
+        // Quiz AI Copilot version (matches design system)
+        $this->registerScript(
+            'mpcc-quiz-ai-integration-copilot',
+            'assets/js/quiz-ai-integration-copilot.js',
+            ['jquery', 'wp-api']
+        );
+        
+        // Quiz AI Modal version (matches course/lesson pattern)
+        $this->registerScript(
+            'mpcc-quiz-ai-modal',
+            'assets/js/quiz-ai-modal.js',
+            ['jquery', 'wp-blocks', 'wp-data', 'wp-element', 'wp-block-editor']
+        );
+        
         // Test scripts
         $this->registerScript(
             'mpcc-ai-response-test',
@@ -274,6 +291,18 @@ class AssetManager extends BaseService
             'strings' => $this->getCourseEditChatStrings()
         ]);
         
+        // Quiz AI Modal localizations
+        wp_localize_script('mpcc-quiz-ai-modal', 'mpcc_ajax', [
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => NonceConstants::create(NonceConstants::QUIZ_AI)
+        ]);
+        
+        // Quiz AI Simple localizations
+        wp_localize_script('mpcc-quiz-ai-integration-simple', 'mpcc_ajax', [
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => NonceConstants::create(NonceConstants::QUIZ_AI)
+        ]);
+        
         // AI chat interface localizations
         wp_localize_script('mpcc-ai-chat-interface', 'mpccChatInterface', [
             'strings' => [
@@ -295,6 +324,8 @@ class AssetManager extends BaseService
         
         wp_localize_script('mpcc-quiz-ai-integration', 'mpcc_ajax', $quizAILocalization);
         wp_localize_script('mpcc-quiz-ai-integration-simple', 'mpcc_ajax', $quizAILocalization);
+        wp_localize_script('mpcc-quiz-ai-integration-copilot', 'mpcc_ajax', $quizAILocalization);
+        wp_localize_script('mpcc-quiz-ai-modal', 'mpcc_ajax', $quizAILocalization);
     }
     
     /**
@@ -401,9 +432,20 @@ class AssetManager extends BaseService
      */
     private function enqueueQuizEditorAssets(): void
     {
-        wp_enqueue_style('mpcc-quiz-ai');
-        // Use the simple version for now
-        wp_enqueue_script('mpcc-quiz-ai-integration-simple');
+        // Check if we're in Gutenberg editor or classic
+        global $pagenow;
+        $is_gutenberg = $pagenow === 'post-new.php' || 
+                       ($pagenow === 'post.php' && function_exists('use_block_editor_for_post') && use_block_editor_for_post(get_post()));
+        
+        if ($is_gutenberg) {
+            // Use modal version for Gutenberg
+            wp_enqueue_style('mpcc-quiz-ai-modal');
+            wp_enqueue_script('mpcc-quiz-ai-modal');
+        } else {
+            // Use simple version for classic editor
+            wp_enqueue_style('mpcc-quiz-ai');
+            wp_enqueue_script('mpcc-quiz-ai-integration-simple');
+        }
     }
     
     /**
