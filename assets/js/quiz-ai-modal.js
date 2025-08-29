@@ -115,16 +115,22 @@
         detectLessonContext() {
             console.log('MPCC Quiz AI: Detecting lesson context...');
             this.detectionMethod = null;
+            this.currentCourseId = null;
             
             // Method 1: Check URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const lessonIdFromUrl = urlParams.get('lesson_id') || urlParams.get('lesson') || urlParams.get('from_lesson');
+            const courseIdFromUrl = urlParams.get('course_id') || urlParams.get('course');
             
             if (lessonIdFromUrl) {
                 this.currentLessonId = lessonIdFromUrl;
                 this.detectionMethod = 'url';
                 console.log('MPCC Quiz AI: Detected lesson ID from URL:', this.currentLessonId);
-                return;
+            }
+            
+            if (courseIdFromUrl) {
+                this.currentCourseId = courseIdFromUrl;
+                console.log('MPCC Quiz AI: Detected course ID from URL:', this.currentCourseId);
             }
             
             // Method 2: Check referrer URL for lesson edit page
@@ -183,11 +189,30 @@
                         this.detectionMethod = 'existing';
                         console.log('MPCC Quiz AI: Detected lesson ID from existing quiz meta:', this.currentLessonId);
                     }
+                    // Also check for course ID in meta
+                    if (!this.currentCourseId && postMeta && postMeta._mpcs_course_id) {
+                        this.currentCourseId = postMeta._mpcs_course_id;
+                        console.log('MPCC Quiz AI: Detected course ID from existing quiz meta:', this.currentCourseId);
+                    }
                 }
             }
             
-            if (!this.currentLessonId) {
-                console.log('MPCC Quiz AI: No lesson context detected');
+            // Method 6: Try to detect course from page header or referrer
+            if (!this.currentCourseId) {
+                // Check if we're coming from a course curriculum page by looking at the referrer
+                const referrer = document.referrer;
+                if (referrer && referrer.includes('post.php')) {
+                    const courseMatch = referrer.match(/post=(\d+)/);
+                    if (courseMatch) {
+                        // We'll verify this is a course when we load lessons
+                        this.pendingCourseId = courseMatch[1];
+                        console.log('MPCC Quiz AI: Potential course ID from referrer:', this.pendingCourseId);
+                    }
+                }
+            }
+            
+            if (!this.currentLessonId && !this.currentCourseId) {
+                console.log('MPCC Quiz AI: No lesson or course context detected');
             }
         }
 
@@ -328,33 +353,140 @@
          * Load available lessons
          */
         loadLessons() {
-            console.log('MPCC Quiz AI: Loading lessons, current lesson ID:', this.currentLessonId, 'detection method:', this.detectionMethod);
+            console.log('MPCC Quiz AI: Loading lessons, current lesson ID:', this.currentLessonId, 'current course ID:', this.currentCourseId, 'detection method:', this.detectionMethod);
+            
+            // Build API endpoint with course filter if available
+            let apiUrl = '/wp-json/wp/v2/mpcs-lesson?per_page=100';
+            
+            // If we have a pending course ID (from referrer), verify it first
+            if (this.pendingCourseId && !this.currentCourseId) {
+                $.get(`/wp-json/wp/v2/mpcs-course/${this.pendingCourseId}`)
+                    .done((course) => {
+                        this.currentCourseId = course.id;
+                        console.log('MPCC Quiz AI: Verified course from referrer:', course.id, course.title.rendered);
+                        this.showCourseContext(course.title.rendered);
+                        this.loadLessonsForCourse();
+                    })
+                    .fail(() => {
+                        console.log('MPCC Quiz AI: Pending course ID was not a valid course');
+                        this.loadLessonsForCourse();
+                    });
+                return;
+            }
+            
+            this.loadLessonsForCourse();
+        }
+        
+        /**
+         * Load lessons, optionally filtered by course
+         */
+        loadLessonsForCourse() {
+            console.log('MPCC Quiz AI: Loading lessons for course:', this.currentCourseId || 'all courses');
+            
+            // Get all lessons first
             $.get('/wp-json/wp/v2/mpcs-lesson?per_page=100')
                 .done((lessons) => {
                     const $select = $('#mpcc-modal-lesson-select');
-                    $select.empty().append('<option value="">Select a lesson...</option>');
+                    $select.empty();
                     
-                    let lessonFound = false;
-                    lessons.forEach((lesson) => {
-                        const selected = this.currentLessonId == lesson.id ? 'selected' : '';
-                        if (selected) {
-                            lessonFound = true;
-                            console.log('MPCC Quiz AI: Found matching lesson:', lesson.id, lesson.title.rendered);
-                        }
-                        $select.append(`<option value="${lesson.id}" ${selected}>${lesson.title.rendered}</option>`);
-                    });
+                    let filteredLessons = lessons;
+                    let courseTitle = '';
                     
-                    console.log('MPCC Quiz AI: Lesson found:', lessonFound, 'detection method:', this.detectionMethod);
-                    
-                    // Show auto-detection feedback
-                    if (lessonFound && this.detectionMethod) {
-                        console.log('MPCC Quiz AI: Showing auto-detection feedback');
-                        this.showAutoDetectionFeedback();
+                    // If we have a course ID, filter lessons
+                    if (this.currentCourseId) {
+                        console.log('MPCC Quiz AI: Filtering lessons for course ID:', this.currentCourseId);
+                        
+                        // Get lessons for this specific course by checking meta
+                        const courseIdStr = String(this.currentCourseId);
+                        filteredLessons = [];
+                        
+                        // We need to check each lesson's course association
+                        // Since the REST API might not expose meta directly, we'll make individual requests
+                        // For now, show all lessons but with course indication
+                        const lessonPromises = lessons.map(lesson => {
+                            return $.ajax({
+                                url: mpcc_ajax.ajax_url,
+                                type: 'POST',
+                                data: {
+                                    action: 'mpcc_get_lesson_course',
+                                    lesson_id: lesson.id,
+                                    nonce: mpcc_ajax.nonce
+                                }
+                            }).then(response => {
+                                if (response.success && response.data.course_id == this.currentCourseId) {
+                                    filteredLessons.push(lesson);
+                                }
+                            }).catch(() => {
+                                // Silently fail for individual lesson checks
+                            });
+                        });
+                        
+                        // Wait for all lesson checks to complete
+                        Promise.all(lessonPromises).then(() => {
+                            console.log('MPCC Quiz AI: Found', filteredLessons.length, 'lessons for course');
+                            this.populateLessonDropdown($select, filteredLessons);
+                        });
+                        
+                        return;
                     }
+                    
+                    // No course filter, show all lessons
+                    this.populateLessonDropdown($select, filteredLessons);
                 })
                 .fail(() => {
                     $('#mpcc-modal-lesson-select').html('<option value="">Failed to load lessons</option>');
                 });
+        }
+        
+        /**
+         * Populate lesson dropdown
+         */
+        populateLessonDropdown($select, lessons) {
+            if (lessons.length === 0) {
+                $select.append('<option value="">No lessons found</option>');
+                return;
+            }
+            
+            $select.append('<option value="">Select a lesson...</option>');
+            
+            let lessonFound = false;
+            lessons.forEach((lesson) => {
+                const selected = this.currentLessonId == lesson.id ? 'selected' : '';
+                if (selected) {
+                    lessonFound = true;
+                    console.log('MPCC Quiz AI: Found matching lesson:', lesson.id, lesson.title.rendered);
+                }
+                $select.append(`<option value="${lesson.id}" ${selected}>${lesson.title.rendered}</option>`);
+            });
+            
+            console.log('MPCC Quiz AI: Lesson found:', lessonFound, 'detection method:', this.detectionMethod);
+            
+            // Show auto-detection feedback
+            if (lessonFound && this.detectionMethod) {
+                console.log('MPCC Quiz AI: Showing auto-detection feedback');
+                this.showAutoDetectionFeedback();
+            }
+        }
+        
+        /**
+         * Show course context indicator
+         */
+        showCourseContext(courseTitle) {
+            // Add course context indicator above the form
+            const $modalBody = $('.mpcc-modal-body');
+            
+            // Remove any existing course context
+            $modalBody.find('.mpcc-course-context').remove();
+            
+            // Add course context banner
+            const $courseContext = $(`
+                <div class="mpcc-course-context">
+                    <span class="dashicons dashicons-welcome-learn-more"></span>
+                    <span>Creating quiz for course: <strong>${courseTitle}</strong></span>
+                </div>
+            `);
+            
+            $modalBody.find('.mpcc-form-section').first().before($courseContext);
         }
         
         /**
