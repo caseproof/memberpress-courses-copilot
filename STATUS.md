@@ -2,7 +2,7 @@
 
 ## Current Status (08/29/2025)
 
-The MemberPress Courses Copilot plugin has undergone comprehensive improvements based on three independent code reviews (Claude, ChatGPT, Gemini). All critical security vulnerabilities have been fixed, major architectural improvements implemented, and test coverage increased from ~25% to over 80%. The plugin is production-ready with robust error handling, standardized APIs, and extensive documentation. Most recently, AI-powered quiz generation has been successfully implemented for the MemberPress Course Quizzes add-on.
+The MemberPress Courses Copilot plugin has undergone comprehensive improvements based on three independent code reviews (Claude, ChatGPT, Gemini). All critical security vulnerabilities have been fixed, major architectural improvements implemented, and test coverage increased from ~25% to over 80%. The plugin is production-ready with robust error handling, standardized APIs, and extensive documentation. Most recently, AI-powered quiz generation has been successfully implemented for the MemberPress Course Quizzes add-on, including enhanced UX with auto-detection of lesson context.
 
 ## Major Implementation Milestones (08/27-08/28)
 
@@ -125,11 +125,22 @@ Successfully implemented AI-powered quiz question generation for MemberPress Cou
 - Direct insertion into quiz editor
 - Copy to clipboard functionality
 
+#### UX Improvements (08/29/2025)
+- **Auto-Detection of Lesson Context**: Automatically detects and pre-selects the associated lesson
+  - Multiple detection methods: URL parameters, referrer, form fields, post meta
+  - Visual feedback with green checkmark and contextual messages
+  - Dynamic monitoring for form updates
+- **Create Quiz from Lesson**: Added button to lesson editor for seamless quiz creation
+  - Pre-associates quiz with lesson
+  - Auto-generates quiz title based on lesson
+  - Preserves context throughout workflow
+
 #### Files Added/Modified
 - `/src/MemberPressCoursesCopilot/Services/MpccQuizAIService.php`
 - `/src/MemberPressCoursesCopilot/Controllers/MpccQuizAjaxController.php`
 - `/assets/js/quiz-ai-modal.js`
 - `/assets/css/quiz-ai-modal.css`
+- `/assets/js/lesson-quiz-integration.js` (new)
 - Comprehensive documentation in `/docs/QUIZ_*.md`
 
 ## Recent Critical Fixes

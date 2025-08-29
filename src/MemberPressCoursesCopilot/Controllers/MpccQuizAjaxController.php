@@ -59,6 +59,7 @@ class MpccQuizAjaxController
         add_action('wp_ajax_mpcc_generate_quiz', [$this, 'generate_quiz'], 10);
         add_action('wp_ajax_mpcc_regenerate_question', [$this, 'regenerate_question'], 10);
         add_action('wp_ajax_mpcc_validate_quiz', [$this, 'validate_quiz'], 10);
+        add_action('wp_ajax_mpcc_create_quiz_from_lesson', [$this, 'create_quiz_from_lesson'], 10);
         
         // Also register for non-logged-in users (though they shouldn't have access)
         add_action('wp_ajax_nopriv_mpcc_generate_quiz', function() {
@@ -504,5 +505,99 @@ class MpccQuizAjaxController
         ];
         
         return $results;
+    }
+    
+    /**
+     * Handle create quiz from lesson AJAX request
+     * 
+     * @return void
+     */
+    public function create_quiz_from_lesson(): void
+    {
+        try {
+            // Verify nonce
+            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::QUIZ_AI, false)) {
+                ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
+                return;
+            }
+            
+            // Check user capabilities
+            if (!current_user_can('edit_posts')) {
+                ApiResponse::errorMessage('Insufficient permissions', ApiResponse::ERROR_INSUFFICIENT_PERMISSIONS, 403);
+                return;
+            }
+            
+            // Get lesson ID
+            $lessonId = isset($_POST['lesson_id']) ? absint($_POST['lesson_id']) : 0;
+            
+            if (empty($lessonId)) {
+                ApiResponse::errorMessage('Lesson ID is required', ApiResponse::ERROR_MISSING_PARAMETER);
+                return;
+            }
+            
+            // Get lesson data
+            $lesson = get_post($lessonId);
+            
+            if (!$lesson || $lesson->post_type !== 'mpcs-lesson') {
+                ApiResponse::errorMessage('Invalid lesson ID', ApiResponse::ERROR_INVALID_PARAMETER);
+                return;
+            }
+            
+            // Create quiz post
+            $quizTitle = sprintf(__('Quiz: %s', 'memberpress-courses-copilot'), $lesson->post_title);
+            
+            $quizData = [
+                'post_title' => $quizTitle,
+                'post_content' => '',
+                'post_status' => 'draft',
+                'post_type' => 'mpcs-quiz',
+                'post_author' => get_current_user_id()
+            ];
+            
+            $quizId = wp_insert_post($quizData);
+            
+            if (is_wp_error($quizId)) {
+                throw new \Exception('Failed to create quiz: ' . $quizId->get_error_message());
+            }
+            
+            // Set lesson association
+            update_post_meta($quizId, '_mpcs_lesson_id', $lessonId);
+            
+            // Get course ID from lesson
+            $courseId = get_post_meta($lessonId, '_mpcs_course_id', true);
+            if ($courseId) {
+                update_post_meta($quizId, '_mpcs_course_id', $courseId);
+            }
+            
+            // Log the creation
+            $this->logger->info('Quiz created from lesson', [
+                'quiz_id' => $quizId,
+                'lesson_id' => $lessonId,
+                'course_id' => $courseId,
+                'user_id' => get_current_user_id()
+            ]);
+            
+            // Build edit URL with lesson context
+            $editUrl = add_query_arg([
+                'post' => $quizId,
+                'action' => 'edit',
+                'lesson_id' => $lessonId
+            ], admin_url('post.php'));
+            
+            wp_send_json_success([
+                'quiz_id' => $quizId,
+                'edit_url' => $editUrl,
+                'message' => __('Quiz created successfully!', 'memberpress-courses-copilot')
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to create quiz from lesson', [
+                'error' => $e->getMessage(),
+                'lesson_id' => $lessonId ?? 0
+            ]);
+            
+            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
+            ApiResponse::error($error);
+        }
     }
 }
