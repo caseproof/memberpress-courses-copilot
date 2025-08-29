@@ -27,7 +27,10 @@
             
             $(document).ready(() => {
                 this.addGenerateButton();
-                this.detectLessonContext();
+                // Wait a bit for any dynamic fields to load
+                setTimeout(() => {
+                    this.detectLessonContext();
+                }, 500);
             });
         }
 
@@ -104,6 +107,10 @@
                             this.currentLessonId = lesson.id;
                             this.detectionMethod = 'referrer';
                             console.log('MPCC Quiz AI: Detected lesson ID from referrer:', this.currentLessonId);
+                        },
+                        error: () => {
+                            // Silently fail - referrer might not be a lesson
+                            console.log('MPCC Quiz AI: Referrer post is not a lesson');
                         }
                     });
                 }
@@ -112,10 +119,14 @@
             // Method 3: Check for lesson selector in the quiz form
             if (!this.currentLessonId) {
                 const $lessonSelect = $('select[name="_mpcs_lesson_id"], select[name="lesson_id"], #lesson_id, .lesson-selector');
-                if ($lessonSelect.length && $lessonSelect.val()) {
-                    this.currentLessonId = $lessonSelect.val();
-                    this.detectionMethod = 'form';
-                    console.log('MPCC Quiz AI: Detected lesson ID from form field:', this.currentLessonId);
+                console.log('MPCC Quiz AI: Looking for lesson selectors, found:', $lessonSelect.length);
+                if ($lessonSelect.length) {
+                    console.log('MPCC Quiz AI: Lesson selector value:', $lessonSelect.val());
+                    if ($lessonSelect.val()) {
+                        this.currentLessonId = $lessonSelect.val();
+                        this.detectionMethod = 'form';
+                        console.log('MPCC Quiz AI: Detected lesson ID from form field:', this.currentLessonId);
+                    }
                 }
             }
             
@@ -284,6 +295,7 @@
          * Load available lessons
          */
         loadLessons() {
+            console.log('MPCC Quiz AI: Loading lessons, current lesson ID:', this.currentLessonId, 'detection method:', this.detectionMethod);
             $.get('/wp-json/wp/v2/mpcs-lesson?per_page=100')
                 .done((lessons) => {
                     const $select = $('#mpcc-modal-lesson-select');
@@ -292,12 +304,18 @@
                     let lessonFound = false;
                     lessons.forEach((lesson) => {
                         const selected = this.currentLessonId == lesson.id ? 'selected' : '';
-                        if (selected) lessonFound = true;
+                        if (selected) {
+                            lessonFound = true;
+                            console.log('MPCC Quiz AI: Found matching lesson:', lesson.id, lesson.title.rendered);
+                        }
                         $select.append(`<option value="${lesson.id}" ${selected}>${lesson.title.rendered}</option>`);
                     });
                     
+                    console.log('MPCC Quiz AI: Lesson found:', lessonFound, 'detection method:', this.detectionMethod);
+                    
                     // Show auto-detection feedback
                     if (lessonFound && this.detectionMethod) {
+                        console.log('MPCC Quiz AI: Showing auto-detection feedback');
                         this.showAutoDetectionFeedback();
                     }
                 })
