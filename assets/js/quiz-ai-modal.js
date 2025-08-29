@@ -332,61 +332,27 @@
         /**
          * Apply questions to the editor
          */
-        applyQuestions() {
+        async applyQuestions() {
             if (!this.generatedQuestions.length) return;
             
             // Get the current post ID (quiz ID)
             const quizId = wp.data.select('core/editor').getCurrentPostId();
             console.log('Current quiz ID:', quizId);
             
-            // Prepare questions in the format expected by the quiz plugin
-            const questionsToSave = {};
-            const blocks = [];
+            // Show loading state
+            this.showNotice('Saving questions to database...', 'info');
             
-            this.generatedQuestions.forEach((question, index) => {
-                // Use the quiz plugin's API to reserve a question ID
-                const store = wp.data.select('memberpress/course/question');
-                const dispatch = wp.data.dispatch('memberpress/course/question');
+            try {
+                // First, prepare all questions for saving
+                const questionsData = {};
+                const tempIds = [];
                 
-                if (dispatch && dispatch.getNextQuestionId) {
-                    // This will reserve a real question ID in the database
-                    dispatch.getNextQuestionId(quizId, 'temp-' + index).then(action => {
-                        const realQuestionId = action.id;
-                        console.log('Reserved question ID:', realQuestionId);
-                        
-                        // Prepare question data in the expected format
-                        const questionData = {
-                            questionId: realQuestionId,
-                            question: question.question || question.text,
-                            type: 'multiple-choice',
-                            number: index + 1,
-                            required: true,
-                            points: 1,
-                            options: Object.entries(question.options).map(([key, value]) => ({
-                                value: value,
-                                isCorrect: key === question.correct_answer
-                            })),
-                            feedback: question.explanation || ''
-                        };
-                        
-                        // Add to the questions store
-                        dispatch.addPlaceholder('block-' + realQuestionId, questionData);
-                        
-                        // Create the block with the real question ID
-                        const block = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {
-                            questionId: realQuestionId
-                        });
-                        
-                        // Insert block into editor
-                        wp.data.dispatch('core/block-editor').insertBlocks([block]);
-                    });
-                } else {
-                    // Fallback: Create blocks with temporary IDs
-                    // The quiz plugin will assign real IDs when the post is saved
-                    const tempId = 'ai-' + Date.now() + '-' + index;
+                this.generatedQuestions.forEach((question, index) => {
+                    const tempId = `temp-${Date.now()}-${index}`;
+                    tempIds.push(tempId);
                     
-                    // Prepare question data
-                    const questionData = {
+                    // Prepare question data in the format expected by the API
+                    questionsData[tempId] = {
                         questionId: tempId,
                         question: question.question || question.text,
                         type: 'multiple-choice',
@@ -399,37 +365,88 @@
                         })),
                         feedback: question.explanation || ''
                     };
+                });
+                
+                // Save questions via REST API to get real IDs
+                const response = await wp.apiFetch({
+                    path: `/mpcs/courses/quiz/${quizId}/questions`,
+                    method: 'POST',
+                    data: {
+                        questions: questionsData,
+                        order: tempIds
+                    }
+                });
+                
+                console.log('Save questions response:', response);
+                
+                // Check if we have the ID mappings
+                if (response && response.ids) {
+                    const blocks = [];
                     
-                    // Add to questions object for saving
-                    questionsToSave[tempId] = questionData;
-                    
-                    // Create block
-                    const block = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {
-                        questionId: 0 // Use 0 to trigger placeholder creation
+                    // Create blocks with the real question IDs
+                    response.ids.forEach(({ oldId, newId }) => {
+                        console.log(`Creating block for question ${newId} (was ${oldId})`);
+                        
+                        // Create the block with the real question ID
+                        const block = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {
+                            questionId: newId
+                        });
+                        
+                        blocks.push(block);
                     });
                     
-                    blocks.push(block);
-                    
-                    // Add placeholder data to the store
-                    if (wp.data.dispatch('memberpress/course/question')) {
-                        wp.data.dispatch('memberpress/course/question').addPlaceholder(block.clientId, questionData);
+                    // Insert all blocks at once
+                    if (blocks.length > 0) {
+                        wp.data.dispatch('core/block-editor').insertBlocks(blocks);
+                        this.showNotice(`Successfully added ${blocks.length} questions to your quiz!`, 'success');
                     }
+                } else {
+                    // Fallback: Create blocks without IDs and let the save process handle it
+                    console.log('No ID mappings returned, using fallback method');
+                    
+                    const blocks = this.generatedQuestions.map((question, index) => {
+                        // First add placeholder to store
+                        const clientId = `client-${Date.now()}-${index}`;
+                        const questionData = {
+                            question: question.question || question.text,
+                            type: 'multiple-choice',
+                            number: index + 1,
+                            required: true,
+                            points: 1,
+                            options: Object.entries(question.options).map(([key, value]) => ({
+                                value: value,
+                                isCorrect: key === question.correct_answer
+                            })),
+                            feedback: question.explanation || ''
+                        };
+                        
+                        // Add placeholder to store first
+                        if (wp.data.dispatch('memberpress/course/question')) {
+                            wp.data.dispatch('memberpress/course/question').addPlaceholder(clientId, questionData);
+                        }
+                        
+                        // Create block with questionId: 0 to trigger placeholder creation
+                        const block = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {
+                            questionId: 0
+                        });
+                        
+                        // Override the clientId to match our placeholder
+                        block.clientId = clientId;
+                        
+                        return block;
+                    });
+                    
+                    wp.data.dispatch('core/block-editor').insertBlocks(blocks);
+                    this.showNotice('Questions added! Save the quiz to persist them.', 'success');
                 }
-            });
-            
-            // If using fallback method, insert all blocks at once
-            if (blocks.length > 0) {
-                wp.data.dispatch('core/block-editor').insertBlocks(blocks);
                 
-                // Try to trigger a save to persist the questions
-                setTimeout(() => {
-                    wp.data.dispatch('core/editor').savePost();
-                }, 1000);
+            } catch (error) {
+                console.error('Error saving questions:', error);
+                this.showNotice('Error saving questions. Please try again.', 'error');
             }
             
             // Close modal
             this.closeModal();
-            this.showNotice('Questions added to your quiz! Save the quiz to persist them.', 'success');
         }
 
         /**
