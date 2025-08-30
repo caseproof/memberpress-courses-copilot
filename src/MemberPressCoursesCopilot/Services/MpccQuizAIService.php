@@ -333,14 +333,20 @@ Content to create questions from:
                 break;
                 
             case 'multiple_select':
-                // Check if content has lists or multiple related items
-                if (!preg_match('/(include|such as|following|types|categories|examples|features)/i', $content)) {
+                // For multiple select, we just need enough content to work with
+                // The AI can determine if there are multiple items to select from
+                if ($contentLength < 200) {
                     return [
                         'suitable' => false,
-                        'reason' => 'Multiple select questions work best with content that includes lists, categories, or multiple related items',
-                        'suggestion' => 'Provide content that discusses multiple features, types, or characteristics of a topic'
+                        'reason' => 'Multiple select questions require more detailed content to identify multiple correct answers',
+                        'suggestion' => 'Provide content with at least 200 characters that covers various aspects or elements of the topic'
                     ];
                 }
+                
+                // Log for debugging
+                $this->logger->info('Multiple select validation passed', [
+                    'content_length' => $contentLength
+                ]);
                 break;
         }
         

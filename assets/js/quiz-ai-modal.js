@@ -685,7 +685,7 @@
                     
                     // Try to extract error message from response
                     if (xhr.responseJSON) {
-                        // Check for the new error structure
+                        // Check for the new error structure with nested data
                         if (xhr.responseJSON.data && xhr.responseJSON.data.error) {
                             const errorObj = xhr.responseJSON.data.error;
                             errorMessage = errorObj.message || errorMessage;
@@ -695,6 +695,16 @@
                                 suggestion = errorObj.data.suggestion;
                             }
                         } 
+                        // Check for WordPress error structure
+                        else if (xhr.responseJSON.error) {
+                            const errorObj = xhr.responseJSON.error;
+                            errorMessage = errorObj.message || errorMessage;
+                            
+                            // Extract suggestion from error data
+                            if (errorObj.data && errorObj.data.suggestion) {
+                                suggestion = errorObj.data.suggestion;
+                            }
+                        }
                         // Fall back to old structure
                         else if (xhr.responseJSON.data) {
                             if (xhr.responseJSON.data.message) {
