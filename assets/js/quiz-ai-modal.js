@@ -259,10 +259,10 @@
                             <div class="mpcc-form-section">
                                 <label>Question Type:</label>
                                 <select id="mpcc-modal-question-type" class="components-select-control__input">
-                                    <option value="multiple-choice" selected>Multiple Choice</option>
-                                    <option value="true-false">True/False</option>
-                                    <option value="text-answer">Text Answer</option>
-                                    <option value="multiple-select">Multiple Select</option>
+                                    <option value="multiple_choice" selected>Multiple Choice</option>
+                                    <option value="true_false">True/False</option>
+                                    <option value="text_answer">Text Answer</option>
+                                    <option value="multiple_select">Multiple Select</option>
                                 </select>
                             </div>
                             
@@ -629,15 +629,22 @@
         generateQuestions(difficulty = 'medium') {
             const lessonId = $('#mpcc-modal-lesson-select').val();
             if (!lessonId) {
-                this.showNotice('Please select a lesson first', 'warning');
+                const errorMessage = 'Please select a lesson to generate questions from';
+                const suggestion = 'Choose a lesson from the dropdown above to provide content for quiz generation';
+                
+                this.showNotice(errorMessage, 'warning');
+                this.showModalError(errorMessage, suggestion);
                 return;
             }
             
             const questionCount = parseInt($('#mpcc-modal-question-count').val()) || 10;
-            const questionType = $('#mpcc-modal-question-type').val() || 'multiple-choice';
+            const questionType = $('#mpcc-modal-question-type').val() || 'multiple_choice';
             const customPrompt = $('#mpcc-quiz-prompt').val();
             
             console.log('MPCC Quiz AI: Generating questions with type:', questionType);
+            
+            // Clear any previous errors
+            $('#mpcc-modal-error').hide().empty();
             
             $('#mpcc-quiz-results').hide();
             $('#mpcc-quiz-loading').show();
@@ -658,12 +665,51 @@
                     if (response.success && response.data.questions) {
                         this.generatedQuestions = response.data.questions;
                         this.displayQuestions();
+                        
+                        // Clear any previous errors
+                        $('#mpcc-modal-error').hide();
                     } else {
-                        this.showNotice(response.data?.message || 'Failed to generate questions', 'error');
+                        // Handle validation errors that come back as success response
+                        const errorMessage = response.data?.message || 'Failed to generate questions';
+                        const suggestion = response.data?.suggestion || '';
+                        
+                        this.showNotice(errorMessage, 'error');
+                        this.showModalError(errorMessage, suggestion);
                     }
                 },
                 error: (xhr, status, error) => {
-                    this.showNotice(`Error: ${error}`, 'error');
+                    console.error('MPCC Quiz AI: AJAX error', { xhr, status, error });
+                    
+                    let errorMessage = 'Failed to generate questions';
+                    let suggestion = '';
+                    
+                    // Try to extract error message from response
+                    if (xhr.responseJSON && xhr.responseJSON.data) {
+                        if (xhr.responseJSON.data.message) {
+                            errorMessage = xhr.responseJSON.data.message;
+                        }
+                        if (xhr.responseJSON.data.suggestion) {
+                            suggestion = xhr.responseJSON.data.suggestion;
+                        }
+                    } else if (xhr.responseText) {
+                        // Try to parse response text if JSON parsing failed
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.data && response.data.message) {
+                                errorMessage = response.data.message;
+                            }
+                        } catch (e) {
+                            // If all else fails, show the status text
+                            errorMessage = xhr.statusText || error || 'Unknown error occurred';
+                        }
+                    }
+                    
+                    // Show the error notice with suggestion if available
+                    const fullMessage = suggestion ? `${errorMessage}\n\n${suggestion}` : errorMessage;
+                    this.showNotice(fullMessage, 'error');
+                    
+                    // Also show error in the modal for better visibility
+                    this.showModalError(errorMessage, suggestion);
                 },
                 complete: () => {
                     $('#mpcc-quiz-loading').hide();
@@ -686,20 +732,20 @@
                 `;
                 
                 // Handle different question types
-                if (question.type === 'true-false') {
+                if (question.type === 'true_false') {
                     questionHtml += `
                         <ul class="mpcc-question-options">
                             <li class="${question.correct_answer === 'true' ? 'correct' : ''}">True</li>
                             <li class="${question.correct_answer === 'false' ? 'correct' : ''}">False</li>
                         </ul>
                     `;
-                } else if (question.type === 'text-answer') {
+                } else if (question.type === 'text_answer') {
                     questionHtml += `
                         <div class="mpcc-text-answer">
                             <p><strong>Expected Answer:</strong> ${question.correct_answer || question.expected_answer || 'Open-ended response'}</p>
                         </div>
                     `;
-                } else if (question.type === 'multiple-select') {
+                } else if (question.type === 'multiple_select') {
                     questionHtml += `
                         <ul class="mpcc-question-options">
                             ${Object.entries(question.options).map(([key, value]) => {
@@ -754,17 +800,17 @@
                     const question = this.generatedQuestions[i];
                     
                     // Determine the block type based on question type
-                    const questionType = question.type || 'multiple-choice';
+                    const questionType = question.type || 'multiple_choice';
                     let blockType = 'memberpress-courses/multiple-choice-question';
                     
                     switch (questionType) {
-                        case 'true-false':
+                        case 'true_false':
                             blockType = 'memberpress-courses/true-false-question';
                             break;
-                        case 'text-answer':
+                        case 'text_answer':
                             blockType = 'memberpress-courses/text-answer-question';
                             break;
-                        case 'multiple-select':
+                        case 'multiple_select':
                             blockType = 'memberpress-courses/multiple-select-question';
                             break;
                     }
@@ -783,11 +829,11 @@
                     };
                     
                     // Add type-specific data
-                    if (questionType === 'true-false') {
+                    if (questionType === 'true_false') {
                         questionData.correctAnswer = question.correct_answer === 'true';
-                    } else if (questionType === 'text-answer') {
+                    } else if (questionType === 'text_answer') {
                         questionData.expectedAnswer = question.correct_answer || question.expected_answer || '';
-                    } else if (questionType === 'multiple-select') {
+                    } else if (questionType === 'multiple_select') {
                         questionData.options = Object.entries(question.options).map(([key, value]) => ({
                             value: value,
                             isCorrect: question.correct_answers ? question.correct_answers.includes(key) : false
@@ -875,11 +921,11 @@
                 let text = `Question ${i + 1}: ${q.question || q.text}\n`;
                 
                 // Handle different question types
-                if (q.type === 'true-false') {
+                if (q.type === 'true_false') {
                     text += `Answer: ${q.correct_answer === 'true' ? 'True' : 'False'}`;
-                } else if (q.type === 'text-answer') {
+                } else if (q.type === 'text_answer') {
                     text += `Expected Answer: ${q.correct_answer || q.expected_answer || 'Open-ended response'}`;
-                } else if (q.type === 'multiple-select') {
+                } else if (q.type === 'multiple_select') {
                     text += Object.entries(q.options).map(([key, value]) => {
                         const isCorrect = q.correct_answers ? q.correct_answers.includes(key) : false;
                         return `${key}) ${value} ${isCorrect ? '(Correct)' : ''}`;
@@ -929,6 +975,37 @@
                     isDismissible: true
                 }
             );
+        }
+
+        /**
+         * Show error directly in the modal
+         */
+        showModalError(errorMessage, suggestion = '') {
+            // Hide loading state
+            $('#mpcc-quiz-loading').hide();
+            
+            // Check if error container exists, if not create it
+            let $errorContainer = $('#mpcc-modal-error');
+            if (!$errorContainer.length) {
+                $errorContainer = $('<div id="mpcc-modal-error" class="mpcc-modal-error"></div>');
+                $('.mpcc-modal-body').prepend($errorContainer);
+            }
+            
+            // Build error HTML
+            let errorHtml = `
+                <div class="notice notice-error">
+                    <p><strong>Error:</strong> ${errorMessage}</p>
+                    ${suggestion ? `<p><em>${suggestion}</em></p>` : ''}
+                </div>
+            `;
+            
+            // Show error
+            $errorContainer.html(errorHtml).show();
+            
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                $errorContainer.fadeOut();
+            }, 10000);
         }
     }
 
