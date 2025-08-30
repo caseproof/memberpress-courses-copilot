@@ -725,18 +725,28 @@
             $container.empty();
             
             this.generatedQuestions.forEach((question, index) => {
+                // Get the question text based on question type
+                let questionText = '';
+                if (question.type === 'true_false') {
+                    questionText = question.statement || question.question || '';
+                } else {
+                    questionText = question.question || question.text || '';
+                }
+                
                 let questionHtml = `
                     <div class="mpcc-question-preview">
                         <h4>Question ${index + 1}</h4>
-                        <p class="mpcc-question-text">${question.question || question.text}</p>
+                        <p class="mpcc-question-text">${questionText}</p>
                 `;
                 
                 // Handle different question types
                 if (question.type === 'true_false') {
+                    // Convert boolean to string for comparison
+                    const correctAnswer = String(question.correct_answer);
                     questionHtml += `
                         <ul class="mpcc-question-options">
-                            <li class="${question.correct_answer === 'true' ? 'correct' : ''}">True</li>
-                            <li class="${question.correct_answer === 'false' ? 'correct' : ''}">False</li>
+                            <li class="${correctAnswer === 'true' ? 'correct' : ''}">True</li>
+                            <li class="${correctAnswer === 'false' ? 'correct' : ''}">False</li>
                         </ul>
                     `;
                 } else if (question.type === 'text_answer') {
@@ -819,8 +829,15 @@
                     const clientId = wp.blocks.createBlock(blockType, {}).clientId;
                     
                     // Prepare question data based on type
+                    let questionText = '';
+                    if (questionType === 'true_false') {
+                        questionText = question.statement || question.question || '';
+                    } else {
+                        questionText = question.question || question.text || '';
+                    }
+                    
                     let questionData = {
-                        question: question.question || question.text,
+                        question: questionText,
                         type: questionType,
                         number: i + 1,
                         required: true,
@@ -830,7 +847,8 @@
                     
                     // Add type-specific data
                     if (questionType === 'true_false') {
-                        questionData.correctAnswer = question.correct_answer === 'true';
+                        // Convert to boolean - handle both string and boolean values
+                        questionData.correctAnswer = String(question.correct_answer) === 'true';
                     } else if (questionType === 'text_answer') {
                         questionData.expectedAnswer = question.correct_answer || question.expected_answer || '';
                     } else if (questionType === 'multiple_select') {
@@ -918,11 +936,20 @@
          */
         copyQuestions() {
             const questionsText = this.generatedQuestions.map((q, i) => {
-                let text = `Question ${i + 1}: ${q.question || q.text}\n`;
+                // Get question text based on type
+                let questionText = '';
+                if (q.type === 'true_false') {
+                    questionText = q.statement || q.question || '';
+                } else {
+                    questionText = q.question || q.text || '';
+                }
+                
+                let text = `Question ${i + 1}: ${questionText}\n`;
                 
                 // Handle different question types
                 if (q.type === 'true_false') {
-                    text += `Answer: ${q.correct_answer === 'true' ? 'True' : 'False'}`;
+                    // Convert to string for comparison
+                    text += `Answer: ${String(q.correct_answer) === 'true' ? 'True' : 'False'}`;
                 } else if (q.type === 'text_answer') {
                     text += `Expected Answer: ${q.correct_answer || q.expected_answer || 'Open-ended response'}`;
                 } else if (q.type === 'multiple_select') {
