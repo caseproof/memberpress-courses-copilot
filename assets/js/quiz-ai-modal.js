@@ -841,10 +841,10 @@
                             blockType = 'memberpress-courses/true-false-question';
                             break;
                         case 'text_answer':
-                            blockType = 'memberpress-courses/text-answer-question';
+                            blockType = 'memberpress-courses/short-answer-question';
                             break;
                         case 'multiple_select':
-                            blockType = 'memberpress-courses/multiple-select-question';
+                            blockType = 'memberpress-courses/multiple-answer-question';
                             break;
                     }
                     

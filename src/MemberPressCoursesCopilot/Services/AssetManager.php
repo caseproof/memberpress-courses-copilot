@@ -40,7 +40,7 @@ class AssetManager extends BaseService
     {
         $this->version = defined('MEMBERPRESS_COURSES_COPILOT_VERSION') 
             ? MEMBERPRESS_COURSES_COPILOT_VERSION 
-            : '1.0.13';
+            : '1.0.14';
             
         $this->pluginUrl = defined('MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL') 
             ? MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL 
