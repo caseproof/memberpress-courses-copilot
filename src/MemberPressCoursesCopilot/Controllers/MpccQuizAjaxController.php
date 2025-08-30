@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MemberPressCoursesCopilot\Controllers;
 
 use MemberPressCoursesCopilot\Services\MpccQuizAIService;
+use MemberPressCoursesCopilot\Services\LLMService;
 use MemberPressCoursesCopilot\Utilities\Logger;
 use MemberPressCoursesCopilot\Utilities\ApiResponse;
 use MemberPressCoursesCopilot\Security\NonceConstants;
@@ -32,7 +33,12 @@ class MpccQuizAjaxController
         ?Logger $logger = null
     ) {
         // Use injected dependencies or create new instances
-        $this->quizAIService = $quizAIService ?? new MpccQuizAIService();
+        if ($quizAIService === null) {
+            $llmService = new LLMService();
+            $this->quizAIService = new MpccQuizAIService($llmService);
+        } else {
+            $this->quizAIService = $quizAIService;
+        }
         $this->logger = $logger ?? Logger::getInstance();
     }
     
@@ -137,6 +143,10 @@ class MpccQuizAjaxController
                 $options = [];
             }
             
+            // Extract question type from options
+            $questionType = $options['type'] ?? 'multiple_choice';
+            error_log('MPCC Quiz: Question type requested: ' . $questionType);
+            
             error_log('MPCC Quiz: Options: ' . print_r($options, true));
             
             // Validate input
@@ -163,11 +173,31 @@ class MpccQuizAjaxController
                 return;
             }
             
-            // Set default count (focusing on multiple-choice only for MVP)
+            // Set default count
             $count = intval($options['num_questions'] ?? 10);
             
-            // Generate quiz using the Quiz AI Service
-            $questions = $this->quizAIService->generateMultipleChoiceQuestions($content, $count);
+            // Prepare options for quiz generation
+            $generationOptions = [
+                'type' => $questionType,
+                'count' => $count
+            ];
+            
+            // Generate quiz using the Quiz AI Service with the specified type
+            $result = $this->quizAIService->generateQuestions($content, $generationOptions);
+            
+            // Check if there was an error from content validation
+            if (isset($result['error']) && $result['error']) {
+                error_log('MPCC Quiz: Content validation failed - ' . ($result['message'] ?? 'Unknown error'));
+                ApiResponse::errorMessage(
+                    $result['message'] ?? 'Failed to generate questions',
+                    ApiResponse::ERROR_INVALID_PARAMETER,
+                    400
+                );
+                return;
+            }
+            
+            // For backward compatibility, if the result is directly an array of questions
+            $questions = isset($result['questions']) ? $result['questions'] : $result;
             
             if (empty($questions)) {
                 throw new \Exception('Failed to generate quiz questions');
@@ -177,13 +207,15 @@ class MpccQuizAjaxController
             $quizData = [
                 'questions' => $questions,
                 'total' => count($questions),
-                'type' => 'multiple-choice'
+                'type' => $questionType,
+                'suggestion' => $result['suggestion'] ?? null
             ];
             
             // Log successful quiz generation
             $this->logger->info('Quiz generated successfully', [
                 'lesson_id' => $lessonId,
                 'course_id' => $courseId,
+                'question_type' => $questionType,
                 'num_questions' => count($quizData['questions']),
                 'user_id' => get_current_user_id()
             ]);
@@ -237,9 +269,36 @@ class MpccQuizAjaxController
                 return;
             }
             
-            // For MVP, regenerate by getting a new set of questions and picking one
-            // In future, could implement specific question regeneration
-            $questions = $this->quizAIService->generateMultipleChoiceQuestions($content, 5);
+            // Get question type from the existing question or options
+            $questionType = $question['type'] ?? $options['type'] ?? 'multiple_choice';
+            
+            // Log regeneration request
+            $this->logger->info('Regenerating question', [
+                'question_type' => $questionType,
+                'content_length' => strlen($content)
+            ]);
+            
+            // Prepare options for regeneration
+            $generationOptions = [
+                'type' => $questionType,
+                'count' => 5  // Generate 5 to pick from
+            ];
+            
+            // Generate new questions of the same type
+            $result = $this->quizAIService->generateQuestions($content, $generationOptions);
+            
+            // Check if there was an error from content validation
+            if (isset($result['error']) && $result['error']) {
+                ApiResponse::errorMessage(
+                    $result['message'] ?? 'Failed to regenerate question',
+                    ApiResponse::ERROR_INVALID_PARAMETER,
+                    400
+                );
+                return;
+            }
+            
+            // For backward compatibility, if the result is directly an array of questions
+            $questions = isset($result['questions']) ? $result['questions'] : $result;
             
             if (empty($questions)) {
                 throw new \Exception('Failed to regenerate question');
@@ -467,27 +526,83 @@ class MpccQuizAjaxController
             }
             
             // Validate based on question type
-            if ($question['type'] === 'multiple_choice' || $question['type'] === 'true_false') {
-                if (empty($question['options']) || !is_array($question['options'])) {
-                    $results['errors'][] = "Question {$questionNum}: Options are missing or invalid";
-                    $results['valid'] = false;
-                } elseif (count($question['options']) < 2) {
-                    $results['errors'][] = "Question {$questionNum}: At least 2 options are required";
-                    $results['valid'] = false;
-                }
-                
-                if (empty($question['correct_answer'])) {
-                    $results['errors'][] = "Question {$questionNum}: Correct answer is missing";
-                    $results['valid'] = false;
-                } elseif (!in_array($question['correct_answer'], $question['options'] ?? [])) {
-                    $results['errors'][] = "Question {$questionNum}: Correct answer is not in options";
-                    $results['valid'] = false;
-                }
-            } elseif ($question['type'] === 'short_answer') {
-                if (empty($question['correct_answer'])) {
-                    $results['errors'][] = "Question {$questionNum}: Correct answer is missing";
-                    $results['valid'] = false;
-                }
+            switch ($question['type']) {
+                case 'multiple_choice':
+                    if (empty($question['options']) || !is_array($question['options'])) {
+                        $results['errors'][] = "Question {$questionNum}: Options are missing or invalid";
+                        $results['valid'] = false;
+                    } elseif (count($question['options']) < 2) {
+                        $results['errors'][] = "Question {$questionNum}: At least 2 options are required";
+                        $results['valid'] = false;
+                    }
+                    
+                    if (empty($question['correct_answer'])) {
+                        $results['errors'][] = "Question {$questionNum}: Correct answer is missing";
+                        $results['valid'] = false;
+                    } elseif (!in_array($question['correct_answer'], array_values($question['options'] ?? []))) {
+                        // Check if correct answer is in the values of options (for associative arrays)
+                        $results['errors'][] = "Question {$questionNum}: Correct answer is not in options";
+                        $results['valid'] = false;
+                    }
+                    break;
+                    
+                case 'true_false':
+                    if (!isset($question['statement']) || empty($question['statement'])) {
+                        $results['errors'][] = "Question {$questionNum}: Statement is missing";
+                        $results['valid'] = false;
+                    }
+                    
+                    if (!isset($question['correct_answer'])) {
+                        $results['errors'][] = "Question {$questionNum}: Correct answer is missing";
+                        $results['valid'] = false;
+                    } elseif (!is_bool($question['correct_answer'])) {
+                        $results['warnings'][] = "Question {$questionNum}: Correct answer should be boolean";
+                    }
+                    break;
+                    
+                case 'text_answer':
+                    if (empty($question['correct_answer'])) {
+                        $results['errors'][] = "Question {$questionNum}: Correct answer is missing";
+                        $results['valid'] = false;
+                    }
+                    
+                    // Alternative answers are optional but should be an array if present
+                    if (isset($question['alternative_answers']) && !is_array($question['alternative_answers'])) {
+                        $results['warnings'][] = "Question {$questionNum}: Alternative answers should be an array";
+                    }
+                    break;
+                    
+                case 'multiple_select':
+                    if (empty($question['options']) || !is_array($question['options'])) {
+                        $results['errors'][] = "Question {$questionNum}: Options are missing or invalid";
+                        $results['valid'] = false;
+                    } elseif (count($question['options']) < 3) {
+                        $results['errors'][] = "Question {$questionNum}: At least 3 options are required for multiple select";
+                        $results['valid'] = false;
+                    }
+                    
+                    if (empty($question['correct_answers']) || !is_array($question['correct_answers'])) {
+                        $results['errors'][] = "Question {$questionNum}: Correct answers are missing or not an array";
+                        $results['valid'] = false;
+                    } elseif (count($question['correct_answers']) < 2) {
+                        $results['errors'][] = "Question {$questionNum}: At least 2 correct answers are required for multiple select";
+                        $results['valid'] = false;
+                    } else {
+                        // Validate all correct answers are in options
+                        $optionKeys = array_keys($question['options'] ?? []);
+                        foreach ($question['correct_answers'] as $answer) {
+                            if (!in_array($answer, $optionKeys)) {
+                                $results['errors'][] = "Question {$questionNum}: Correct answer '{$answer}' is not in options";
+                                $results['valid'] = false;
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                    
+                default:
+                    $results['warnings'][] = "Question {$questionNum}: Unknown question type '{$question['type']}'";
+                    break;
             }
             
             // Check points
