@@ -872,19 +872,35 @@
                     if (questionType === 'true_false') {
                         // Convert to boolean - handle both string and boolean values
                         questionData.correctAnswer = String(question.correct_answer) === 'true';
+                        questionData.type = 'true-false';
                     } else if (questionType === 'text_answer') {
                         questionData.expectedAnswer = question.correct_answer || question.expected_answer || '';
+                        questionData.type = 'short-answer';
                     } else if (questionType === 'multiple_select') {
-                        questionData.options = Object.entries(question.options).map(([key, value]) => ({
+                        // For multiple select, we need answers array with indices of correct answers
+                        const options = Object.entries(question.options);
+                        questionData.options = options.map(([key, value]) => ({
                             value: value,
                             isCorrect: question.correct_answers ? question.correct_answers.includes(key) : false
                         }));
+                        // Create answer array with indices of correct options
+                        questionData.answer = [];
+                        options.forEach(([key, value], index) => {
+                            if (question.correct_answers && question.correct_answers.includes(key)) {
+                                questionData.answer.push(index);
+                            }
+                        });
+                        questionData.type = 'multiple-answer';
                     } else {
-                        // Multiple choice
-                        questionData.options = Object.entries(question.options).map(([key, value]) => ({
+                        // Multiple choice - single correct answer
+                        const options = Object.entries(question.options);
+                        questionData.options = options.map(([key, value]) => ({
                             value: value,
                             isCorrect: key === question.correct_answer
                         }));
+                        // Find the index of the correct answer
+                        questionData.answer = options.findIndex(([key, value]) => key === question.correct_answer);
+                        questionData.type = 'multiple-choice';
                     }
                     
                     console.log(`Adding placeholder for question ${i + 1}:`, questionData);
@@ -908,9 +924,10 @@
                         }
                     }
                     
-                    // Create the block with the reserved question ID
+                    // Create the block with just the question ID
+                    // The actual question data is stored in the Redux store via addPlaceholder
                     const block = wp.blocks.createBlock(blockType, {
-                        questionId: questionId
+                        questionId: questionId || 0
                     });
                     
                     // If we didn't get a reserved ID, ensure the block uses our clientId
@@ -928,6 +945,57 @@
                     
                     // Mark the post as dirty to enable the save button
                     wp.data.dispatch('core/editor').editPost({ meta: { _edit_lock: Date.now() } });
+                    
+                    // Log inserted blocks for debugging
+                    console.log('MPCC Quiz AI: Inserted blocks:', blocks);
+                    
+                    // Check if blocks were actually inserted and their current state
+                    setTimeout(() => {
+                        const allBlocks = wp.data.select('core/block-editor').getBlocks();
+                        console.log('MPCC Quiz AI: All blocks after insertion:', allBlocks);
+                        
+                        // Check specifically for our question blocks
+                        const questionBlocks = allBlocks.filter(block => 
+                            block.name && block.name.includes('question')
+                        );
+                        console.log('MPCC Quiz AI: Question blocks found:', questionBlocks);
+                        
+                        // Log the attributes of each question block
+                        questionBlocks.forEach((block, index) => {
+                            console.log(`MPCC Quiz AI: Question ${index + 1} attributes:`, block.attributes);
+                        });
+                        
+                        // Also check the question store state
+                        if (wp.data.select('memberpress/course/question')) {
+                            const questionStore = wp.data.select('memberpress/course/question');
+                            console.log('MPCC Quiz AI: Question store state:', {
+                                placeholders: questionStore.getPlaceholders ? questionStore.getPlaceholders() : 'No getPlaceholders method',
+                                questions: questionStore.getQuestions ? questionStore.getQuestions() : 'No getQuestions method'
+                            });
+                        }
+                        
+                        // Add a save listener to see what happens when saving
+                        const saveListener = wp.data.subscribe(() => {
+                            const isSaving = wp.data.select('core/editor').isSavingPost();
+                            const isAutosaving = wp.data.select('core/editor').isAutosavingPost();
+                            
+                            if (isSaving && !isAutosaving) {
+                                console.log('MPCC Quiz AI: Saving post, checking question blocks...');
+                                const blocksBeforeSave = wp.data.select('core/block-editor').getBlocks()
+                                    .filter(block => block.name && block.name.includes('question'));
+                                
+                                blocksBeforeSave.forEach((block, index) => {
+                                    console.log(`MPCC Quiz AI: Block ${index + 1} before save:`, {
+                                        name: block.name,
+                                        attributes: block.attributes
+                                    });
+                                });
+                                
+                                // Unsubscribe after logging once
+                                saveListener();
+                            }
+                        });
+                    }, 500);
                     
                     this.showNotice(`Successfully added ${blocks.length} questions! Click "Update" to save them.`, 'success');
                     
