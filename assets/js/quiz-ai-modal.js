@@ -684,12 +684,25 @@
                     let suggestion = '';
                     
                     // Try to extract error message from response
-                    if (xhr.responseJSON && xhr.responseJSON.data) {
-                        if (xhr.responseJSON.data.message) {
-                            errorMessage = xhr.responseJSON.data.message;
-                        }
-                        if (xhr.responseJSON.data.suggestion) {
-                            suggestion = xhr.responseJSON.data.suggestion;
+                    if (xhr.responseJSON) {
+                        // Check for the new error structure
+                        if (xhr.responseJSON.data && xhr.responseJSON.data.error) {
+                            const errorObj = xhr.responseJSON.data.error;
+                            errorMessage = errorObj.message || errorMessage;
+                            
+                            // Extract suggestion from error data
+                            if (errorObj.data && errorObj.data.suggestion) {
+                                suggestion = errorObj.data.suggestion;
+                            }
+                        } 
+                        // Fall back to old structure
+                        else if (xhr.responseJSON.data) {
+                            if (xhr.responseJSON.data.message) {
+                                errorMessage = xhr.responseJSON.data.message;
+                            }
+                            if (xhr.responseJSON.data.suggestion) {
+                                suggestion = xhr.responseJSON.data.suggestion;
+                            }
                         }
                     } else if (xhr.responseText) {
                         // Try to parse response text if JSON parsing failed

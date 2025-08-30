@@ -190,11 +190,19 @@ class MpccQuizAjaxController
             // Check if there was an error from content validation
             if (isset($result['error']) && $result['error']) {
                 error_log('MPCC Quiz: Content validation failed - ' . ($result['message'] ?? 'Unknown error'));
-                ApiResponse::errorMessage(
-                    $result['message'] ?? 'Failed to generate questions',
+                
+                // Create WP_Error with suggestion as additional data
+                $error = new \WP_Error(
                     ApiResponse::ERROR_INVALID_PARAMETER,
-                    400
+                    $result['message'] ?? 'Failed to generate questions'
                 );
+                
+                // Add suggestion as error data if available
+                if (!empty($result['suggestion'])) {
+                    $error->add_data(['suggestion' => $result['suggestion']], ApiResponse::ERROR_INVALID_PARAMETER);
+                }
+                
+                ApiResponse::error($error, 400);
                 return;
             }
             
@@ -291,11 +299,18 @@ class MpccQuizAjaxController
             
             // Check if there was an error from content validation
             if (isset($result['error']) && $result['error']) {
-                ApiResponse::errorMessage(
-                    $result['message'] ?? 'Failed to regenerate question',
+                // Create WP_Error with suggestion as additional data
+                $error = new \WP_Error(
                     ApiResponse::ERROR_INVALID_PARAMETER,
-                    400
+                    $result['message'] ?? 'Failed to regenerate question'
                 );
+                
+                // Add suggestion as error data if available
+                if (!empty($result['suggestion'])) {
+                    $error->add_data(['suggestion' => $result['suggestion']], ApiResponse::ERROR_INVALID_PARAMETER);
+                }
+                
+                ApiResponse::error($error, 400);
                 return;
             }
             
