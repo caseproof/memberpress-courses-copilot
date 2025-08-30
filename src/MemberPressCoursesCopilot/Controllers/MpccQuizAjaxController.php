@@ -144,7 +144,7 @@ class MpccQuizAjaxController
             }
             
             // Extract question type from options
-            $questionType = $options['type'] ?? 'multiple_choice';
+            $questionType = $options['question_type'] ?? 'multiple_choice';
             error_log('MPCC Quiz: Question type requested: ' . $questionType);
             
             error_log('MPCC Quiz: Options: ' . print_r($options, true));
@@ -179,7 +179,9 @@ class MpccQuizAjaxController
             // Prepare options for quiz generation
             $generationOptions = [
                 'type' => $questionType,
-                'count' => $count
+                'count' => $count,
+                'difficulty' => $options['difficulty'] ?? 'medium',
+                'custom_prompt' => $options['custom_prompt'] ?? ''
             ];
             
             // Generate quiz using the Quiz AI Service with the specified type
