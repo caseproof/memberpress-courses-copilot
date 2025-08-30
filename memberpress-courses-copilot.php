@@ -3,7 +3,7 @@
  * Plugin Name: MemberPress Courses Copilot
  * Plugin URI: https://memberpress.com/
  * Description: AI-powered course creation assistant for MemberPress Courses
- * Version: 1.0.14
+ * Version: 1.0.19
  * Author: MemberPress
  * Author URI: https://memberpress.com/
  * License: GPL v2 or later
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use MemberPressCoursesCopilot\Security\NonceConstants;
 
 // Plugin constants
-define( 'MEMBERPRESS_COURSES_COPILOT_VERSION', '1.0.14' );
+define( 'MEMBERPRESS_COURSES_COPILOT_VERSION', '1.0.19' );
 define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_FILE', __FILE__ );
 define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
