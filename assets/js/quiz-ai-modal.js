@@ -240,7 +240,9 @@
                                 <p>Hi! I'm here to help you create quiz questions. I can:</p>
                                 <ul>
                                     <li>Generate multiple-choice questions from lesson content</li>
-                                    <li>Create questions with varying difficulty levels</li>
+                                    <li>Create true/false questions for quick assessment</li>
+                                    <li>Generate text answer questions for deeper understanding</li>
+                                    <li>Create multiple select questions for complex topics</li>
                                     <li>Add explanations for correct answers</li>
                                     <li>Insert questions directly into your quiz</li>
                                 </ul>
@@ -251,6 +253,16 @@
                                 <label>Select Lesson:</label>
                                 <select id="mpcc-modal-lesson-select" class="components-select-control__input">
                                     <option value="">Loading lessons...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mpcc-form-section">
+                                <label>Question Type:</label>
+                                <select id="mpcc-modal-question-type" class="components-select-control__input">
+                                    <option value="multiple_choice" selected>Multiple Choice</option>
+                                    <option value="true_false">True/False</option>
+                                    <option value="text_answer">Text Answer</option>
+                                    <option value="multiple_select">Multiple Select</option>
                                 </select>
                             </div>
                             
@@ -617,12 +629,22 @@
         generateQuestions(difficulty = 'medium') {
             const lessonId = $('#mpcc-modal-lesson-select').val();
             if (!lessonId) {
-                this.showNotice('Please select a lesson first', 'warning');
+                const errorMessage = 'Please select a lesson to generate questions from';
+                const suggestion = 'Choose a lesson from the dropdown above to provide content for quiz generation';
+                
+                this.showNotice(errorMessage, 'warning');
+                this.showModalError(errorMessage, suggestion);
                 return;
             }
             
             const questionCount = parseInt($('#mpcc-modal-question-count').val()) || 10;
+            const questionType = $('#mpcc-modal-question-type').val() || 'multiple_choice';
             const customPrompt = $('#mpcc-quiz-prompt').val();
+            
+            console.log('MPCC Quiz AI: Generating questions with type:', questionType);
+            
+            // Clear any previous errors
+            $('#mpcc-modal-error').hide().empty();
             
             $('#mpcc-quiz-results').hide();
             $('#mpcc-quiz-loading').show();
@@ -634,22 +656,83 @@
                     action: 'mpcc_generate_quiz',
                     lesson_id: parseInt(lessonId),
                     nonce: mpcc_ajax.nonce,
-                    options: {
-                        num_questions: questionCount,
-                        difficulty: difficulty,
-                        custom_prompt: customPrompt
-                    }
+                    'options[num_questions]': questionCount,
+                    'options[question_type]': questionType,
+                    'options[difficulty]': difficulty,
+                    'options[custom_prompt]': customPrompt
                 },
                 success: (response) => {
                     if (response.success && response.data.questions) {
                         this.generatedQuestions = response.data.questions;
                         this.displayQuestions();
+                        
+                        // Clear any previous errors
+                        $('#mpcc-modal-error').hide();
                     } else {
-                        this.showNotice(response.data?.message || 'Failed to generate questions', 'error');
+                        // Handle validation errors that come back as success response
+                        const errorMessage = response.data?.message || 'Failed to generate questions';
+                        const suggestion = response.data?.suggestion || '';
+                        
+                        this.showNotice(errorMessage, 'error');
+                        this.showModalError(errorMessage, suggestion);
                     }
                 },
                 error: (xhr, status, error) => {
-                    this.showNotice(`Error: ${error}`, 'error');
+                    console.error('MPCC Quiz AI: AJAX error', { xhr, status, error });
+                    
+                    let errorMessage = 'Failed to generate questions';
+                    let suggestion = '';
+                    
+                    // Try to extract error message from response
+                    if (xhr.responseJSON) {
+                        // Check for the new error structure with nested data
+                        if (xhr.responseJSON.data && xhr.responseJSON.data.error) {
+                            const errorObj = xhr.responseJSON.data.error;
+                            errorMessage = errorObj.message || errorMessage;
+                            
+                            // Extract suggestion from error data
+                            if (errorObj.data && errorObj.data.suggestion) {
+                                suggestion = errorObj.data.suggestion;
+                            }
+                        } 
+                        // Check for WordPress error structure
+                        else if (xhr.responseJSON.error) {
+                            const errorObj = xhr.responseJSON.error;
+                            errorMessage = errorObj.message || errorMessage;
+                            
+                            // Extract suggestion from error data
+                            if (errorObj.data && errorObj.data.suggestion) {
+                                suggestion = errorObj.data.suggestion;
+                            }
+                        }
+                        // Fall back to old structure
+                        else if (xhr.responseJSON.data) {
+                            if (xhr.responseJSON.data.message) {
+                                errorMessage = xhr.responseJSON.data.message;
+                            }
+                            if (xhr.responseJSON.data.suggestion) {
+                                suggestion = xhr.responseJSON.data.suggestion;
+                            }
+                        }
+                    } else if (xhr.responseText) {
+                        // Try to parse response text if JSON parsing failed
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.data && response.data.message) {
+                                errorMessage = response.data.message;
+                            }
+                        } catch (e) {
+                            // If all else fails, show the status text
+                            errorMessage = xhr.statusText || error || 'Unknown error occurred';
+                        }
+                    }
+                    
+                    // Show the error notice with suggestion if available
+                    const fullMessage = suggestion ? `${errorMessage}\n\n${suggestion}` : errorMessage;
+                    this.showNotice(fullMessage, 'error');
+                    
+                    // Also show error in the modal for better visibility
+                    this.showModalError(errorMessage, suggestion);
                 },
                 complete: () => {
                     $('#mpcc-quiz-loading').hide();
@@ -665,10 +748,48 @@
             $container.empty();
             
             this.generatedQuestions.forEach((question, index) => {
-                const questionHtml = `
+                // Get the question text based on question type
+                let questionText = '';
+                if (question.type === 'true_false') {
+                    questionText = question.statement || question.question || '';
+                } else {
+                    questionText = question.question || question.text || '';
+                }
+                
+                let questionHtml = `
                     <div class="mpcc-question-preview">
                         <h4>Question ${index + 1}</h4>
-                        <p class="mpcc-question-text">${question.question || question.text}</p>
+                        <p class="mpcc-question-text">${questionText}</p>
+                `;
+                
+                // Handle different question types
+                if (question.type === 'true_false') {
+                    // Convert boolean to string for comparison
+                    const correctAnswer = String(question.correct_answer);
+                    questionHtml += `
+                        <ul class="mpcc-question-options">
+                            <li class="${correctAnswer === 'true' ? 'correct' : ''}">True</li>
+                            <li class="${correctAnswer === 'false' ? 'correct' : ''}">False</li>
+                        </ul>
+                    `;
+                } else if (question.type === 'text_answer') {
+                    questionHtml += `
+                        <div class="mpcc-text-answer">
+                            <p><strong>Expected Answer:</strong> ${question.correct_answer || question.expected_answer || 'Open-ended response'}</p>
+                        </div>
+                    `;
+                } else if (question.type === 'multiple_select') {
+                    questionHtml += `
+                        <ul class="mpcc-question-options">
+                            ${Object.entries(question.options).map(([key, value]) => {
+                                const isCorrect = question.correct_answers ? question.correct_answers.includes(key) : false;
+                                return `<li class="${isCorrect ? 'correct' : ''}">${key}) ${value}</li>`;
+                            }).join('')}
+                        </ul>
+                    `;
+                } else {
+                    // Default to multiple-choice display
+                    questionHtml += `
                         <ul class="mpcc-question-options">
                             ${Object.entries(question.options).map(([key, value]) => `
                                 <li class="${key === question.correct_answer ? 'correct' : ''}">
@@ -676,9 +797,14 @@
                                 </li>
                             `).join('')}
                         </ul>
+                    `;
+                }
+                
+                questionHtml += `
                         ${question.explanation ? `<p class="mpcc-explanation"><em>Explanation: ${question.explanation}</em></p>` : ''}
                     </div>
                 `;
+                
                 $container.append(questionHtml);
             });
             
@@ -706,22 +832,60 @@
                 for (let i = 0; i < this.generatedQuestions.length; i++) {
                     const question = this.generatedQuestions[i];
                     
-                    // Generate a unique client ID for this block
-                    const clientId = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {}).clientId;
+                    // Determine the block type based on question type
+                    const questionType = question.type || 'multiple_choice';
+                    let blockType = 'memberpress-courses/multiple-choice-question';
                     
-                    // Prepare question data in the format expected by the quiz plugin
-                    const questionData = {
-                        question: question.question || question.text,
-                        type: 'multiple-choice',
+                    switch (questionType) {
+                        case 'true_false':
+                            blockType = 'memberpress-courses/true-false-question';
+                            break;
+                        case 'text_answer':
+                            blockType = 'memberpress-courses/short-answer-question';
+                            break;
+                        case 'multiple_select':
+                            blockType = 'memberpress-courses/multiple-answer-question';
+                            break;
+                    }
+                    
+                    // Generate a unique client ID for this block
+                    const clientId = wp.blocks.createBlock(blockType, {}).clientId;
+                    
+                    // Prepare question data based on type
+                    let questionText = '';
+                    if (questionType === 'true_false') {
+                        questionText = question.statement || question.question || '';
+                    } else {
+                        questionText = question.question || question.text || '';
+                    }
+                    
+                    let questionData = {
+                        question: questionText,
+                        type: questionType,
                         number: i + 1,
                         required: true,
                         points: 1,
-                        options: Object.entries(question.options).map(([key, value]) => ({
-                            value: value,
-                            isCorrect: key === question.correct_answer
-                        })),
                         feedback: question.explanation || ''
                     };
+                    
+                    // Add type-specific data
+                    if (questionType === 'true_false') {
+                        // Convert to boolean - handle both string and boolean values
+                        questionData.correctAnswer = String(question.correct_answer) === 'true';
+                    } else if (questionType === 'text_answer') {
+                        questionData.expectedAnswer = question.correct_answer || question.expected_answer || '';
+                    } else if (questionType === 'multiple_select') {
+                        questionData.options = Object.entries(question.options).map(([key, value]) => ({
+                            value: value,
+                            isCorrect: question.correct_answers ? question.correct_answers.includes(key) : false
+                        }));
+                    } else {
+                        // Multiple choice
+                        questionData.options = Object.entries(question.options).map(([key, value]) => ({
+                            value: value,
+                            isCorrect: key === question.correct_answer
+                        }));
+                    }
                     
                     console.log(`Adding placeholder for question ${i + 1}:`, questionData);
                     
@@ -745,7 +909,7 @@
                     }
                     
                     // Create the block with the reserved question ID
-                    const block = wp.blocks.createBlock('memberpress-courses/multiple-choice-question', {
+                    const block = wp.blocks.createBlock(blockType, {
                         questionId: questionId
                     });
                     
@@ -795,11 +959,39 @@
          */
         copyQuestions() {
             const questionsText = this.generatedQuestions.map((q, i) => {
-                return `Question ${i + 1}: ${q.question || q.text}\n` +
-                       Object.entries(q.options).map(([key, value]) => 
-                           `${key}) ${value} ${key === q.correct_answer ? '(Correct)' : ''}`
-                       ).join('\n') +
-                       (q.explanation ? `\nExplanation: ${q.explanation}` : '');
+                // Get question text based on type
+                let questionText = '';
+                if (q.type === 'true_false') {
+                    questionText = q.statement || q.question || '';
+                } else {
+                    questionText = q.question || q.text || '';
+                }
+                
+                let text = `Question ${i + 1}: ${questionText}\n`;
+                
+                // Handle different question types
+                if (q.type === 'true_false') {
+                    // Convert to string for comparison
+                    text += `Answer: ${String(q.correct_answer) === 'true' ? 'True' : 'False'}`;
+                } else if (q.type === 'text_answer') {
+                    text += `Expected Answer: ${q.correct_answer || q.expected_answer || 'Open-ended response'}`;
+                } else if (q.type === 'multiple_select') {
+                    text += Object.entries(q.options).map(([key, value]) => {
+                        const isCorrect = q.correct_answers ? q.correct_answers.includes(key) : false;
+                        return `${key}) ${value} ${isCorrect ? '(Correct)' : ''}`;
+                    }).join('\n');
+                } else {
+                    // Multiple choice
+                    text += Object.entries(q.options).map(([key, value]) => 
+                        `${key}) ${value} ${key === q.correct_answer ? '(Correct)' : ''}`
+                    ).join('\n');
+                }
+                
+                if (q.explanation) {
+                    text += `\nExplanation: ${q.explanation}`;
+                }
+                
+                return text;
             }).join('\n\n');
             
             navigator.clipboard.writeText(questionsText).then(() => {
@@ -833,6 +1025,37 @@
                     isDismissible: true
                 }
             );
+        }
+
+        /**
+         * Show error directly in the modal
+         */
+        showModalError(errorMessage, suggestion = '') {
+            // Hide loading state
+            $('#mpcc-quiz-loading').hide();
+            
+            // Check if error container exists, if not create it
+            let $errorContainer = $('#mpcc-modal-error');
+            if (!$errorContainer.length) {
+                $errorContainer = $('<div id="mpcc-modal-error" class="mpcc-modal-error"></div>');
+                $('.mpcc-modal-body').prepend($errorContainer);
+            }
+            
+            // Build error HTML
+            let errorHtml = `
+                <div class="notice notice-error">
+                    <p><strong>Error:</strong> ${errorMessage}</p>
+                    ${suggestion ? `<p><em>${suggestion}</em></p>` : ''}
+                </div>
+            `;
+            
+            // Show error
+            $errorContainer.html(errorHtml).show();
+            
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                $errorContainer.fadeOut();
+            }, 10000);
         }
     }
 
