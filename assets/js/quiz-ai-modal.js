@@ -637,6 +637,8 @@
             const questionType = $('#mpcc-modal-question-type').val() || 'multiple-choice';
             const customPrompt = $('#mpcc-quiz-prompt').val();
             
+            console.log('MPCC Quiz AI: Generating questions with type:', questionType);
+            
             $('#mpcc-quiz-results').hide();
             $('#mpcc-quiz-loading').show();
             
@@ -647,12 +649,10 @@
                     action: 'mpcc_generate_quiz',
                     lesson_id: parseInt(lessonId),
                     nonce: mpcc_ajax.nonce,
-                    options: {
-                        num_questions: questionCount,
-                        question_type: questionType,
-                        difficulty: difficulty,
-                        custom_prompt: customPrompt
-                    }
+                    'options[num_questions]': questionCount,
+                    'options[question_type]': questionType,
+                    'options[difficulty]': difficulty,
+                    'options[custom_prompt]': customPrompt
                 },
                 success: (response) => {
                     if (response.success && response.data.questions) {
