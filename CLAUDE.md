@@ -1,5 +1,16 @@
 # MemberPress Courses Copilot Development Guidelines
 
+## CRITICAL: Check Parent Plugins First
+Before making ANY assumptions about capabilities, permissions, hooks, or functionality:
+1. **ALWAYS check the parent MemberPress plugins first:**
+   - `../memberpress/` - Core MemberPress plugin
+   - `../memberpress-courses/` - MemberPress Courses addon
+   - `../memberpress-course-quizzes/` - MemberPress Course Quizzes addon
+2. **Search for existing implementations** before assuming how things work
+3. **Look for registered capabilities** in the parent plugins
+4. **Check for existing hooks and filters** you can use
+5. **Never assume standard WordPress capabilities** - MemberPress may use custom ones
+
 ## CRITICAL: File Organization Rules
 
 ### Documentation Files
