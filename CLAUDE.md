@@ -171,6 +171,7 @@ memberpress-courses-copilot/
 - **Methods**: Use camelCase for methods, snake_case for WordPress hooks
 - **Constants**: UPPERCASE with underscores
 - **Properties**: camelCase for class properties
+- **Local Variables**: camelCase (following MemberPress parent plugin conventions)
 
 ### Security Best Practices (Selective ABSPATH)
 - **ABSPATH Checks**: Only use `defined('ABSPATH') || exit;` where actually needed:
