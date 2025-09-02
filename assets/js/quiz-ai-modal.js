@@ -124,14 +124,14 @@
             const courseIdFromUrl = urlParams.get('course_id') || urlParams.get('course');
             
             if (lessonIdFromUrl) {
-                this.currentLessonId = lessonIdFromUrl;
+                this.currentLessonId = parseInt(lessonIdFromUrl, 10);
                 this.detectionMethod = 'url';
-                this.logger?.log('Detected lesson ID from URL:', this.currentLessonId);
+                this.logger?.log('Detected lesson ID from URL:', this.currentLessonId, 'Type:', typeof this.currentLessonId);
             }
             
             if (courseIdFromUrl) {
-                this.currentCourseId = courseIdFromUrl;
-                this.logger?.log('Detected course ID from URL:', this.currentCourseId);
+                this.currentCourseId = parseInt(courseIdFromUrl, 10);
+                this.logger?.log('Detected course ID from URL:', this.currentCourseId, 'Type:', typeof this.currentCourseId);
             }
             
             // Method 2: Check referrer URL for lesson edit page
@@ -144,7 +144,7 @@
                         url: '/wp-json/wp/v2/mpcs-lesson/' + referrerMatch[1],
                         async: false,
                         success: (lesson) => {
-                            this.currentLessonId = lesson.id;
+                            this.currentLessonId = parseInt(lesson.id, 10);
                             this.detectionMethod = 'referrer';
                             this.logger?.log('Detected lesson ID from referrer:', this.currentLessonId);
                         },
@@ -163,7 +163,7 @@
                 if ($lessonSelect.length) {
                     this.logger?.debug('Lesson selector value:', $lessonSelect.val());
                     if ($lessonSelect.val()) {
-                        this.currentLessonId = $lessonSelect.val();
+                        this.currentLessonId = parseInt($lessonSelect.val(), 10);
                         this.detectionMethod = 'form';
                         this.logger?.log('Detected lesson ID from form field:', this.currentLessonId);
                     }
@@ -174,7 +174,7 @@
             if (!this.currentLessonId) {
                 const $metaInput = $('input[name="_lesson_id"], input[name="mpcs_lesson_id"]');
                 if ($metaInput.length && $metaInput.val()) {
-                    this.currentLessonId = $metaInput.val();
+                    this.currentLessonId = parseInt($metaInput.val(), 10);
                     this.detectionMethod = 'meta';
                     this.logger?.log('Detected lesson ID from meta field:', this.currentLessonId);
                 }
@@ -186,13 +186,13 @@
                 if (postId) {
                     const postMeta = wp.data.select('core/editor').getEditedPostAttribute('meta');
                     if (postMeta && postMeta._mpcs_lesson_id) {
-                        this.currentLessonId = postMeta._mpcs_lesson_id;
+                        this.currentLessonId = parseInt(postMeta._mpcs_lesson_id, 10);
                         this.detectionMethod = 'existing';
                         this.logger?.log('Detected lesson ID from existing quiz meta:', this.currentLessonId);
                     }
                     // Also check for course ID in meta
                     if (!this.currentCourseId && postMeta && postMeta._mpcs_course_id) {
-                        this.currentCourseId = postMeta._mpcs_course_id;
+                        this.currentCourseId = parseInt(postMeta._mpcs_course_id, 10);
                         this.logger?.log('Detected course ID from existing quiz meta:', this.currentCourseId);
                     }
                 }
@@ -428,12 +428,17 @@
                             success: (response) => {
                                 if (response.success && response.data && response.data.lessons) {
                                     this.logger?.log('Got course lessons directly:', response.data.lessons.length);
-                                    // Filter the loaded lessons to match the course lessons
-                                    const courseLessonIds = response.data.lessons.map(l => String(l.id));
-                                    filteredLessons = lessons.filter(lesson => 
-                                        courseLessonIds.includes(String(lesson.id))
-                                    );
-                                    this.populateLessonDropdown($select, filteredLessons);
+                                    
+                                    // Use the course lessons directly instead of filtering
+                                    // Convert to the format expected by populateLessonDropdown
+                                    const courseLessons = response.data.lessons.map(lesson => ({
+                                        id: lesson.id,
+                                        title: {
+                                            rendered: lesson.title
+                                        }
+                                    }));
+                                    
+                                    this.populateLessonDropdown($select, courseLessons);
                                     return;
                                 }
                                 
@@ -520,12 +525,38 @@
             $select.append('<option value="">Select a lesson...</option>');
             
             let lessonFound = false;
+            
+            // If we have a current lesson ID but it's not in the list, fetch it separately
+            if (this.currentLessonId && !lessons.find(l => l.id == this.currentLessonId)) {
+                this.logger?.log('Current lesson not in loaded list, fetching separately', this.currentLessonId);
+                
+                // Add the current lesson first if we can fetch it
+                $.ajax({
+                    url: `/wp-json/wp/v2/mpcs-lesson/${this.currentLessonId}`,
+                    async: false,
+                    success: (lesson) => {
+                        $select.append(`<option value="${lesson.id}" selected>${lesson.title.rendered} *</option>`);
+                        lessonFound = true;
+                        this.logger?.log('Added current lesson from separate fetch', lesson);
+                    },
+                    error: () => {
+                        this.logger?.error('Failed to fetch current lesson', this.currentLessonId);
+                    }
+                });
+            }
+            
+            // Add all the loaded lessons
             lessons.forEach((lesson) => {
-                const selected = this.currentLessonId == lesson.id ? 'selected' : '';
-                if (selected) {
+                // Convert both to strings for comparison to handle type mismatches
+                const isSelected = String(this.currentLessonId) === String(lesson.id);
+                const selected = isSelected ? 'selected' : '';
+                if (isSelected) {
                     lessonFound = true;
                     this.logger?.log('Found matching lesson', {
-                        id: lesson.id,
+                        currentLessonId: this.currentLessonId,
+                        currentLessonIdType: typeof this.currentLessonId,
+                        lessonId: lesson.id,
+                        lessonIdType: typeof lesson.id,
                         title: lesson.title.rendered
                     });
                 }
