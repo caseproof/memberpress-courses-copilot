@@ -677,6 +677,16 @@ class MpccQuizAjaxController
                 return;
             }
             
+            // Get course ID from request or from lesson metadata
+            $courseId = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
+            if (empty($courseId)) {
+                $courseId = get_post_meta($lessonId, '_mpcs_course_id', true);
+                $this->logger->info('Retrieved course ID from lesson metadata', [
+                    'lesson_id' => $lessonId,
+                    'course_id' => $courseId
+                ]);
+            }
+            
             // Create quiz post
             $quizTitle = sprintf(__('Quiz: %s', 'memberpress-courses-copilot'), $lesson->post_title);
             
@@ -708,8 +718,7 @@ class MpccQuizAjaxController
                 update_post_meta($quizId, '_mpcs_lesson_lesson_order', $quizOrder);
             }
             
-            // Get course ID from lesson (optional but helpful)
-            $courseId = get_post_meta($lessonId, '_mpcs_course_id', true);
+            // Store course ID if we have it (already retrieved above)
             if ($courseId) {
                 update_post_meta($quizId, '_mpcs_course_id', $courseId);
             }
@@ -724,18 +733,27 @@ class MpccQuizAjaxController
                 'user_id' => get_current_user_id()
             ]);
             
-            // Build edit URL with lesson context and auto-open flag
-            $editUrl = add_query_arg([
+            // Build edit URL with lesson context, course ID, and auto-open flag
+            $editUrlArgs = [
                 'post' => $quizId,
                 'action' => 'edit',
                 'lesson_id' => $lessonId,
                 'auto_open' => 'true'
-            ], admin_url('post.php'));
+            ];
+            
+            // Include course ID in the URL if available
+            if ($courseId) {
+                $editUrlArgs['course_id'] = $courseId;
+            }
+            
+            $editUrl = add_query_arg($editUrlArgs, admin_url('post.php'));
             
             wp_send_json_success([
                 'quiz_id' => $quizId,
                 'edit_url' => $editUrl,
-                'message' => __('Quiz created successfully!', 'memberpress-courses-copilot')
+                'message' => __('Quiz created successfully!', 'memberpress-courses-copilot'),
+                'course_id' => $courseId,
+                'lesson_id' => $lessonId
             ]);
             
         } catch (\Exception $e) {
