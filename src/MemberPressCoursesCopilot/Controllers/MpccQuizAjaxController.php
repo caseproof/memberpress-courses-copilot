@@ -59,7 +59,6 @@ class MpccQuizAjaxController
      */
     public function load_hooks(): void
     {
-        error_log('MPCC Quiz: load_hooks() called - registering AJAX actions');
         
         // Register AJAX handlers for quiz generation
         add_action('wp_ajax_mpcc_generate_quiz', [$this, 'generate_quiz'], 10);
@@ -73,8 +72,6 @@ class MpccQuizAjaxController
         add_action('wp_ajax_nopriv_mpcc_generate_quiz', function() {
             wp_send_json_error('Not authorized', 401);
         });
-        
-        error_log('MPCC Quiz: AJAX actions registered');
     }
     
     /**
@@ -84,50 +81,34 @@ class MpccQuizAjaxController
      */
     public function generate_quiz(): void
     {
-        error_log('MPCC Quiz: generate_quiz method started');
         
         try {
-            // Debug logging
-            error_log('MPCC Quiz: generate_quiz called');
-            error_log('MPCC Quiz: POST data: ' . print_r($_POST, true));
-            error_log('MPCC Quiz: Expected nonce action: ' . NonceConstants::QUIZ_AI);
             
             // Try manual nonce verification for debugging
             $nonce = isset($_POST['nonce']) ? sanitize_text_field($_POST['nonce']) : '';
             $action = NonceConstants::QUIZ_AI;
-            error_log('MPCC Quiz: About to verify nonce - nonce: ' . $nonce . ', action: ' . $action);
             
             $valid = false;
             if (!empty($nonce)) {
                 $valid = wp_verify_nonce($nonce, $action);
             }
             
-            error_log('MPCC Quiz: Manual nonce check - nonce: ' . $nonce . ', action: ' . $action . ', valid: ' . ($valid ? 'true' : 'false'));
-            
             // Verify nonce
             if (!$valid) {
-                error_log('MPCC Quiz: Nonce verification failed');
                 ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
                 return;
             }
             
-            error_log('MPCC Quiz: Nonce verification passed');
-            
             // Check user capabilities - use edit_posts which is more standard
             if (!current_user_can('edit_posts')) {
-                error_log('MPCC Quiz: User does not have edit_posts capability');
                 ApiResponse::errorMessage('Insufficient permissions', ApiResponse::ERROR_INSUFFICIENT_PERMISSIONS, 403);
                 return;
             }
-            
-            error_log('MPCC Quiz: User capability check passed');
             
             // Sanitize and validate input
             $lessonId = isset($_POST['lesson_id']) ? absint($_POST['lesson_id']) : 0;
             $courseId = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
             $content = sanitize_textarea_field($_POST['content'] ?? '');
-            
-            error_log('MPCC Quiz: Input - lessonId: ' . $lessonId . ', courseId: ' . $courseId . ', content length: ' . strlen($content));
             
             // Options might come as array or JSON string
             if (isset($_POST['options']) && is_array($_POST['options'])) {
@@ -145,30 +126,21 @@ class MpccQuizAjaxController
             
             // Extract question type from options
             $questionType = $options['question_type'] ?? 'multiple_choice';
-            error_log('MPCC Quiz: Question type requested: ' . $questionType);
-            
-            error_log('MPCC Quiz: Options: ' . print_r($options, true));
             
             // Validate input
             if (empty($content) && empty($lessonId) && empty($courseId)) {
-                error_log('MPCC Quiz: Validation failed - no content, lesson ID, or course ID');
                 ApiResponse::errorMessage('Content, lesson ID, or course ID is required', ApiResponse::ERROR_MISSING_PARAMETER);
                 return;
             }
             
             // Get content if lesson or course ID provided
             if ($lessonId > 0) {
-                error_log('MPCC Quiz: Getting content for lesson ID: ' . $lessonId);
                 $content = $this->getLessonContent($lessonId);
-                error_log('MPCC Quiz: Retrieved lesson content length: ' . strlen($content));
             } elseif ($courseId > 0) {
-                error_log('MPCC Quiz: Getting content for course ID: ' . $courseId);
                 $content = $this->getCourseContent($courseId);
-                error_log('MPCC Quiz: Retrieved course content length: ' . strlen($content));
             }
             
             if (empty($content)) {
-                error_log('MPCC Quiz: No content available - returning 400 error');
                 ApiResponse::errorMessage('No content available to generate quiz from', ApiResponse::ERROR_MISSING_PARAMETER);
                 return;
             }
@@ -189,7 +161,6 @@ class MpccQuizAjaxController
             
             // Check if there was an error from content validation
             if (isset($result['error']) && $result['error']) {
-                error_log('MPCC Quiz: Content validation failed - ' . ($result['message'] ?? 'Unknown error'));
                 
                 // Create WP_Error with suggestion as additional data
                 $error = new \WP_Error(
@@ -233,7 +204,6 @@ class MpccQuizAjaxController
             wp_send_json_success($quizData);
             
         } catch (\Exception $e) {
-            error_log('MPCC Quiz: Exception caught - ' . $e->getMessage());
             $this->logger->error('Quiz generation failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -242,7 +212,6 @@ class MpccQuizAjaxController
             $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
             ApiResponse::error($error);
         } catch (\Throwable $t) {
-            error_log('MPCC Quiz: Throwable caught - ' . $t->getMessage());
             wp_send_json_error([
                 'message' => 'Fatal error: ' . $t->getMessage()
             ], 500);
@@ -413,24 +382,13 @@ class MpccQuizAjaxController
      */
     private function getLessonContent(int $lessonId): string
     {
-        error_log('MPCC Quiz: getLessonContent called with ID: ' . $lessonId);
         $post = get_post($lessonId);
         
         if (!$post) {
-            error_log('MPCC Quiz: No post found with ID: ' . $lessonId);
             return '';
         }
         
-        error_log('MPCC Quiz: Post type: ' . $post->post_type);
-        error_log('MPCC Quiz: Post status: ' . $post->post_status);
-        error_log('MPCC Quiz: Post content length (raw): ' . strlen($post->post_content));
-        
-        // Also check post excerpt and title
-        error_log('MPCC Quiz: Post title: ' . $post->post_title);
-        error_log('MPCC Quiz: Post excerpt length: ' . strlen($post->post_excerpt));
-        
         if ($post->post_type !== 'mpcs-lesson') {
-            error_log('MPCC Quiz: Post is not a lesson, it is: ' . $post->post_type);
             return '';
         }
         
@@ -439,7 +397,6 @@ class MpccQuizAjaxController
         
         // If no content, try using title and excerpt
         if (empty($content) && !empty($post->post_title)) {
-            error_log('MPCC Quiz: No content found, using title and excerpt as fallback');
             $content = $post->post_title;
             if (!empty($post->post_excerpt)) {
                 $content .= "\n\n" . $post->post_excerpt;
@@ -448,16 +405,12 @@ class MpccQuizAjaxController
             // Also try to get content from parent course
             $course_id = get_post_meta($lessonId, '_mpcs_course_id', true);
             if ($course_id) {
-                error_log('MPCC Quiz: Found parent course ID: ' . $course_id);
                 $course = get_post($course_id);
                 if ($course && !empty($course->post_content)) {
                     $content .= "\n\nCourse Context: " . wp_strip_all_tags($course->post_content);
-                    error_log('MPCC Quiz: Added course content, new length: ' . strlen($content));
                 }
             }
         }
-        
-        error_log('MPCC Quiz: Content length after stripping tags: ' . strlen($content));
         
         return $content;
     }
