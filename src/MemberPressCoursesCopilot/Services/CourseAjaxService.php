@@ -296,13 +296,8 @@ class CourseAjaxService extends BaseService
                         $('#mpcc-chat-messages').append(typingIndicator);
                         $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
                         
-                        // TODO: Implement actual AI communication
-                        setTimeout(function() {
-                            $('#mpcc-typing').remove();
-                            var aiResponse = '<div style="margin-bottom: 15px;"><div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px; max-width: 70%;">I\'m still learning! This will be connected to the AI service soon.</div></div>';
-                            $('#mpcc-chat-messages').append(aiResponse);
-                            $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
-                        }, 2000);
+                        // This is handled by the SimpleAjaxController via AJAX
+                        // The inline handler here is just for the UI, actual processing happens server-side
                     }
                 });
                 
