@@ -81,87 +81,45 @@ class MpccQuizAjaxController
      */
     public function generate_quiz(): void
     {
-        
         try {
-            
-            // Try manual nonce verification for debugging
-            $nonce = isset($_POST['nonce']) ? sanitize_text_field($_POST['nonce']) : '';
-            $action = NonceConstants::QUIZ_AI;
-            
-            $valid = false;
-            if (!empty($nonce)) {
-                $valid = wp_verify_nonce($nonce, $action);
-            }
-            
             // Verify nonce
-            if (!$valid) {
+            if (!$this->verifyQuizNonce()) {
                 ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
                 return;
             }
             
-            // Check user capabilities - use edit_posts which is more standard
-            if (!current_user_can('edit_posts')) {
+            // Check user permissions
+            if (!$this->verifyUserPermissions()) {
                 ApiResponse::errorMessage('Insufficient permissions', ApiResponse::ERROR_INSUFFICIENT_PERMISSIONS, 403);
                 return;
             }
             
-            // Sanitize and validate input
-            $lessonId = isset($_POST['lesson_id']) ? absint($_POST['lesson_id']) : 0;
-            $courseId = isset($_POST['course_id']) ? absint($_POST['course_id']) : 0;
-            $content = sanitize_textarea_field($_POST['content'] ?? '');
+            // Extract and sanitize input data
+            $inputData = $this->extractAndSanitizeInput();
             
-            // Options might come as array or JSON string
-            if (isset($_POST['options']) && is_array($_POST['options'])) {
-                $options = $_POST['options'];
-            } else {
-                $options = json_decode(stripslashes($_POST['options'] ?? '{}'), true);
-            }
+            // Parse quiz options
+            $options = $this->parseQuizOptions($inputData['options']);
             
-            // Sanitize options array
-            if (is_array($options)) {
-                $options = $this->sanitizeArray($options);
-            } else {
-                $options = [];
-            }
-            
-            // Extract question type from options
-            $questionType = $options['question_type'] ?? 'multiple_choice';
-            
-            // Validate input
-            if (empty($content) && empty($lessonId) && empty($courseId)) {
-                ApiResponse::errorMessage('Content, lesson ID, or course ID is required', ApiResponse::ERROR_MISSING_PARAMETER);
-                return;
-            }
-            
-            // Get content if lesson or course ID provided
-            if ($lessonId > 0) {
-                $content = $this->getLessonContent($lessonId);
-            } elseif ($courseId > 0) {
-                $content = $this->getCourseContent($courseId);
-            }
+            // Get quiz content
+            $content = $this->getQuizContent(
+                $inputData['content'], 
+                $inputData['lessonId'], 
+                $inputData['courseId']
+            );
             
             if (empty($content)) {
                 ApiResponse::errorMessage('No content available to generate quiz from', ApiResponse::ERROR_MISSING_PARAMETER);
                 return;
             }
             
-            // Set default count
-            $count = intval($options['num_questions'] ?? 10);
-            
             // Prepare options for quiz generation
-            $generationOptions = [
-                'type' => $questionType,
-                'count' => $count,
-                'difficulty' => $options['difficulty'] ?? 'medium',
-                'custom_prompt' => $options['custom_prompt'] ?? ''
-            ];
+            $generationOptions = $this->prepareGenerationOptions($options);
             
-            // Generate quiz using the Quiz AI Service with the specified type
+            // Generate quiz using the Quiz AI Service
             $result = $this->quizAIService->generateQuestions($content, $generationOptions);
             
             // Check if there was an error from content validation
             if (isset($result['error']) && $result['error']) {
-                
                 // Create WP_Error with suggestion as additional data
                 $error = new \WP_Error(
                     ApiResponse::ERROR_INVALID_PARAMETER,
@@ -177,45 +135,167 @@ class MpccQuizAjaxController
                 return;
             }
             
-            // For backward compatibility, if the result is directly an array of questions
-            $questions = isset($result['questions']) ? $result['questions'] : $result;
+            // Format and send successful response
+            $response = $this->formatSuccessfulQuizResponse(
+                $result, 
+                $generationOptions['type'], 
+                $inputData['lessonId'], 
+                $inputData['courseId']
+            );
             
-            if (empty($questions)) {
-                throw new \Exception('Failed to generate quiz questions');
-            }
-            
-            // Format quiz data for response
-            $quizData = [
-                'questions' => $questions,
-                'total' => count($questions),
-                'type' => $questionType,
-                'suggestion' => $result['suggestion'] ?? null
-            ];
-            
-            // Log successful quiz generation
-            $this->logger->info('Quiz generated successfully', [
-                'lesson_id' => $lessonId,
-                'course_id' => $courseId,
-                'question_type' => $questionType,
-                'num_questions' => count($quizData['questions']),
-                'user_id' => get_current_user_id()
-            ]);
-            
-            wp_send_json_success($quizData);
+            wp_send_json_success($response);
             
         } catch (\Exception $e) {
-            $this->logger->error('Quiz generation failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
-            ApiResponse::error($error);
+            $this->handleAjaxError($e, 'Quiz generation failed');
         } catch (\Throwable $t) {
             wp_send_json_error([
                 'message' => 'Fatal error: ' . $t->getMessage()
             ], 500);
         }
+    }
+    
+    /**
+     * Verify quiz nonce
+     * 
+     * @return bool
+     */
+    private function verifyQuizNonce(): bool
+    {
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field($_POST['nonce']) : '';
+        $action = NonceConstants::QUIZ_AI;
+        
+        if (!empty($nonce)) {
+            return wp_verify_nonce($nonce, $action) !== false;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Verify user permissions
+     * 
+     * @return bool
+     */
+    private function verifyUserPermissions(): bool
+    {
+        return current_user_can('edit_posts');
+    }
+    
+    /**
+     * Extract and sanitize input data
+     * 
+     * @return array
+     */
+    private function extractAndSanitizeInput(): array
+    {
+        return [
+            'lessonId' => isset($_POST['lesson_id']) ? absint($_POST['lesson_id']) : 0,
+            'courseId' => isset($_POST['course_id']) ? absint($_POST['course_id']) : 0,
+            'content' => sanitize_textarea_field($_POST['content'] ?? ''),
+            'options' => $_POST['options'] ?? []
+        ];
+    }
+    
+    /**
+     * Parse quiz options from request
+     * 
+     * @param mixed $options Raw options from request
+     * @return array Parsed and sanitized options
+     */
+    private function parseQuizOptions($options): array
+    {
+        // Options might come as array or JSON string
+        if (is_array($options)) {
+            $parsedOptions = $options;
+        } else {
+            $parsedOptions = json_decode(stripslashes((string)$options), true);
+        }
+        
+        // Sanitize options array
+        if (is_array($parsedOptions)) {
+            return $this->sanitizeArray($parsedOptions);
+        }
+        
+        return [];
+    }
+    
+    /**
+     * Get quiz content from lesson, course, or provided content
+     * 
+     * @param string $content Direct content
+     * @param int $lessonId Lesson ID
+     * @param int $courseId Course ID
+     * @return string Quiz content
+     */
+    private function getQuizContent(string $content, int $lessonId, int $courseId): string
+    {
+        // Validate input
+        if (empty($content) && empty($lessonId) && empty($courseId)) {
+            return '';
+        }
+        
+        // Get content if lesson or course ID provided
+        if ($lessonId > 0) {
+            return $this->getLessonContent($lessonId);
+        } elseif ($courseId > 0) {
+            return $this->getCourseContent($courseId);
+        }
+        
+        return $content;
+    }
+    
+    /**
+     * Prepare options for quiz generation
+     * 
+     * @param array $options Parsed options
+     * @return array Generation options
+     */
+    private function prepareGenerationOptions(array $options): array
+    {
+        return [
+            'type' => $options['question_type'] ?? 'multiple_choice',
+            'count' => intval($options['num_questions'] ?? 10),
+            'difficulty' => $options['difficulty'] ?? 'medium',
+            'custom_prompt' => $options['custom_prompt'] ?? ''
+        ];
+    }
+    
+    /**
+     * Format successful quiz response
+     * 
+     * @param array $result Quiz generation result
+     * @param string $questionType Question type
+     * @param int $lessonId Lesson ID
+     * @param int $courseId Course ID
+     * @return array Formatted response data
+     */
+    private function formatSuccessfulQuizResponse(array $result, string $questionType, int $lessonId, int $courseId): array
+    {
+        // For backward compatibility, if the result is directly an array of questions
+        $questions = isset($result['questions']) ? $result['questions'] : $result;
+        
+        if (empty($questions)) {
+            throw new \Exception('Failed to generate quiz questions');
+        }
+        
+        // Format quiz data for response
+        $quizData = [
+            'questions' => $questions,
+            'total' => count($questions),
+            'type' => $questionType,
+            'suggestion' => $result['suggestion'] ?? null
+        ];
+        
+        // Log successful quiz generation
+        $this->logger->info('Quiz generated successfully', [
+            'lesson_id' => $lessonId,
+            'course_id' => $courseId,
+            'question_type' => $questionType,
+            'num_questions' => count($quizData['questions']),
+            'user_id' => get_current_user_id()
+        ]);
+        
+        return $quizData;
     }
     
     /**
@@ -233,7 +313,7 @@ class MpccQuizAjaxController
             }
             
             // Check user capabilities
-            if (!current_user_can('edit_courses')) {
+            if (!current_user_can('edit_posts')) {
                 ApiResponse::errorMessage('Insufficient permissions', ApiResponse::ERROR_INSUFFICIENT_PERMISSIONS, 403);
                 return;
             }
@@ -296,12 +376,7 @@ class MpccQuizAjaxController
             wp_send_json_success($newQuestion);
             
         } catch (\Exception $e) {
-            $this->logger->error('Question regeneration failed', [
-                'error' => $e->getMessage()
-            ]);
-            
-            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
-            ApiResponse::error($error);
+            $this->handleAjaxError($e, 'Question regeneration failed');
         }
     }
     
@@ -320,7 +395,7 @@ class MpccQuizAjaxController
             }
             
             // Check user capabilities
-            if (!current_user_can('edit_courses')) {
+            if (!current_user_can('edit_posts')) {
                 ApiResponse::errorMessage('Insufficient permissions', ApiResponse::ERROR_INSUFFICIENT_PERMISSIONS, 403);
                 return;
             }
@@ -339,12 +414,7 @@ class MpccQuizAjaxController
             wp_send_json_success($validationResults);
             
         } catch (\Exception $e) {
-            $this->logger->error('Quiz validation failed', [
-                'error' => $e->getMessage()
-            ]);
-            
-            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
-            ApiResponse::error($error);
+            $this->handleAjaxError($e, 'Quiz validation failed');
         }
     }
     
@@ -710,13 +780,7 @@ class MpccQuizAjaxController
             ]);
             
         } catch (\Exception $e) {
-            $this->logger->error('Failed to create quiz from lesson', [
-                'error' => $e->getMessage(),
-                'lesson_id' => $lessonId ?? 0
-            ]);
-            
-            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
-            ApiResponse::error($error);
+            $this->handleAjaxError($e, 'Failed to create quiz from lesson');
         }
     }
     
@@ -775,13 +839,7 @@ class MpccQuizAjaxController
             ]);
             
         } catch (\Exception $e) {
-            $this->logger->error('Failed to get lesson course', [
-                'error' => $e->getMessage(),
-                'lesson_id' => $lessonId ?? 0
-            ]);
-            
-            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
-            ApiResponse::error($error);
+            $this->handleAjaxError($e, 'Failed to get lesson course');
         }
     }
     
@@ -874,13 +932,25 @@ class MpccQuizAjaxController
             ]);
             
         } catch (\Exception $e) {
-            $this->logger->error('Failed to get course lessons', [
-                'error' => $e->getMessage(),
-                'course_id' => $courseId ?? 0
-            ]);
-            
-            $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
-            ApiResponse::error($error);
+            $this->handleAjaxError($e, 'Failed to get course lessons');
         }
+    }
+    
+    /**
+     * Handle AJAX errors consistently
+     * 
+     * @param \Exception $e The exception to handle
+     * @param string $context Context description for logging
+     * @return void
+     */
+    private function handleAjaxError(\Exception $e, string $context): void
+    {
+        $this->logger->error($context, [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_GENERAL);
+        ApiResponse::error($error);
     }
 }

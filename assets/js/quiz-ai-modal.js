@@ -969,189 +969,15 @@
                 
                 // Process each question
                 for (let i = 0; i < this.generatedQuestions.length; i++) {
-                    const question = this.generatedQuestions[i];
-                    
-                    // Determine the block type based on question type
-                    const questionType = question.type || 'multiple_choice';
-                    let blockType = 'memberpress-courses/multiple-choice-question';
-                    
-                    switch (questionType) {
-                        case 'true_false':
-                            blockType = 'memberpress-courses/true-false-question';
-                            break;
-                        case 'text_answer':
-                            blockType = 'memberpress-courses/short-answer-question';
-                            break;
-                        case 'multiple_select':
-                            blockType = 'memberpress-courses/multiple-answer-question';
-                            break;
+                    const block = await this.createQuestionBlock(this.generatedQuestions[i], i, quizId, dispatch);
+                    if (block) {
+                        blocks.push(block);
                     }
-                    
-                    // Generate a unique client ID for this block
-                    const clientId = wp.blocks.createBlock(blockType, {}).clientId;
-                    
-                    // Prepare question data based on type
-                    let questionText = '';
-                    if (questionType === 'true_false') {
-                        questionText = question.statement || question.question || '';
-                    } else {
-                        questionText = question.question || question.text || '';
-                    }
-                    
-                    let questionData = {
-                        question: questionText,
-                        type: questionType,
-                        number: i + 1,
-                        required: true,
-                        points: 1,
-                        feedback: question.explanation || ''
-                    };
-                    
-                    // Add type-specific data
-                    if (questionType === 'true_false') {
-                        // Convert to boolean - handle both string and boolean values
-                        questionData.correctAnswer = String(question.correct_answer) === 'true';
-                        questionData.type = 'true-false';
-                    } else if (questionType === 'text_answer') {
-                        questionData.expectedAnswer = question.correct_answer || question.expected_answer || '';
-                        questionData.type = 'short-answer';
-                    } else if (questionType === 'multiple_select') {
-                        // For multiple select, we need answers array with indices of correct answers
-                        const options = Object.entries(question.options);
-                        questionData.options = options.map(([key, value]) => ({
-                            value: value,
-                            isCorrect: question.correct_answers ? question.correct_answers.includes(key) : false
-                        }));
-                        // Create answer array with indices of correct options
-                        questionData.answer = [];
-                        options.forEach(([key, value], index) => {
-                            if (question.correct_answers && question.correct_answers.includes(key)) {
-                                questionData.answer.push(index);
-                            }
-                        });
-                        questionData.type = 'multiple-answer';
-                    } else {
-                        // Multiple choice - single correct answer
-                        const options = Object.entries(question.options);
-                        questionData.options = options.map(([key, value]) => ({
-                            value: value,
-                            isCorrect: key === question.correct_answer
-                        }));
-                        // Find the index of the correct answer
-                        questionData.answer = options.findIndex(([key, value]) => key === question.correct_answer);
-                        questionData.type = 'multiple-choice';
-                    }
-                    
-                    this.logger?.debug(`Adding placeholder for question ${i + 1}:`, questionData);
-                    
-                    // Add placeholder to store with the client ID
-                    if (dispatch && dispatch.addPlaceholder) {
-                        dispatch.addPlaceholder(clientId, questionData);
-                    }
-                    
-                    // Now reserve a real question ID from the API
-                    let questionId = 0;
-                    if (dispatch && dispatch.getNextQuestionId) {
-                        try {
-                            const result = await dispatch.getNextQuestionId(quizId, clientId);
-                            if (result && result.id) {
-                                questionId = result.id;
-                                this.logger?.log(`Reserved question ID ${questionId} for client ${clientId}`);
-                            }
-                        } catch (err) {
-                            this.logger?.warn('Could not reserve question ID:', err);
-                        }
-                    }
-                    
-                    // Create the block with just the question ID
-                    // The actual question data is stored in the Redux store via addPlaceholder
-                    const block = wp.blocks.createBlock(blockType, {
-                        questionId: questionId || 0
-                    });
-                    
-                    // If we didn't get a reserved ID, ensure the block uses our clientId
-                    // so it matches the placeholder we added to the store
-                    if (questionId === 0) {
-                        block.clientId = clientId;
-                    }
-                    
-                    blocks.push(block);
                 }
                 
                 // Insert all blocks at once
                 if (blocks.length > 0) {
-                    wp.data.dispatch('core/block-editor').insertBlocks(blocks);
-                    
-                    // Mark the post as dirty to enable the save button
-                    wp.data.dispatch('core/editor').editPost({ meta: { _edit_lock: Date.now() } });
-                    
-                    // Log inserted blocks for debugging
-                    this.logger?.debug('Inserted blocks:', blocks);
-                    
-                    // Check if blocks were actually inserted and their current state
-                    if (this.logger?.isEnabled()) {
-                        setTimeout(() => {
-                            const allBlocks = wp.data.select('core/block-editor').getBlocks();
-                            this.logger?.debug('All blocks after insertion:', allBlocks);
-                            
-                            // Check specifically for our question blocks
-                            const questionBlocks = allBlocks.filter(block => 
-                                block.name && block.name.includes('question')
-                            );
-                            this.logger?.debug('Question blocks found:', questionBlocks);
-                            
-                            // Log the attributes of each question block
-                            questionBlocks.forEach((block, index) => {
-                                this.logger?.debug(`Question ${index + 1} attributes:`, block.attributes);
-                            });
-                            
-                            // Also check the question store state
-                            if (wp.data.select('memberpress/course/question')) {
-                                const questionStore = wp.data.select('memberpress/course/question');
-                                this.logger?.debug('Question store state:', {
-                                    placeholders: questionStore.getPlaceholders ? questionStore.getPlaceholders() : 'No getPlaceholders method',
-                                    questions: questionStore.getQuestions ? questionStore.getQuestions() : 'No getQuestions method'
-                                });
-                            }
-                            
-                            // Add a save listener to see what happens when saving
-                            const saveListener = wp.data.subscribe(() => {
-                                const isSaving = wp.data.select('core/editor').isSavingPost();
-                                const isAutosaving = wp.data.select('core/editor').isAutosavingPost();
-                                
-                                if (isSaving && !isAutosaving) {
-                                    this.logger?.debug('Saving post, checking question blocks...');
-                                    const blocksBeforeSave = wp.data.select('core/block-editor').getBlocks()
-                                        .filter(block => block.name && block.name.includes('question'));
-                                    
-                                    blocksBeforeSave.forEach((block, index) => {
-                                        this.logger?.debug(`Block ${index + 1} before save:`, {
-                                            name: block.name,
-                                            attributes: block.attributes
-                                        });
-                                    });
-                                    
-                                    // Unsubscribe after logging once
-                                    saveListener();
-                                }
-                            });
-                        }, 500);
-                    }
-                    
-                    this.showNotice(`Successfully added ${blocks.length} questions! Click "Update" to save them.`, 'success');
-                    
-                    // Highlight the save button to draw user attention
-                    setTimeout(() => {
-                        const saveButton = document.querySelector('.editor-post-publish-button, .editor-post-publish-panel__toggle');
-                        if (saveButton) {
-                            saveButton.style.animation = 'pulse 2s ease-in-out 3';
-                            saveButton.style.boxShadow = '0 0 0 4px rgba(102, 126, 234, 0.5)';
-                            setTimeout(() => {
-                                saveButton.style.animation = '';
-                                saveButton.style.boxShadow = '';
-                            }, 6000);
-                        }
-                    }, 500);
+                    this.insertBlocksAndUpdateUI(blocks);
                 }
                 
             } catch (error) {
@@ -1161,6 +987,266 @@
             
             // Close modal
             this.closeModal();
+        }
+        
+        /**
+         * Create a question block from question data
+         */
+        async createQuestionBlock(question, index, quizId, dispatch) {
+            // Determine the block type
+            const blockType = this.getBlockTypeForQuestion(question.type);
+            
+            // Generate a unique client ID for this block
+            const clientId = wp.blocks.createBlock(blockType, {}).clientId;
+            
+            // Prepare question data
+            const questionData = this.prepareQuestionData(question, index);
+            
+            this.logger?.debug(`Adding placeholder for question ${index + 1}:`, questionData);
+            
+            // Add placeholder to store with the client ID
+            if (dispatch && dispatch.addPlaceholder) {
+                dispatch.addPlaceholder(clientId, questionData);
+            }
+            
+            // Reserve a real question ID from the API
+            const questionId = await this.reserveQuestionId(quizId, clientId, dispatch);
+            
+            // Create the block with just the question ID
+            // The actual question data is stored in the Redux store via addPlaceholder
+            const block = wp.blocks.createBlock(blockType, {
+                questionId: questionId || 0
+            });
+            
+            // If we didn't get a reserved ID, ensure the block uses our clientId
+            // so it matches the placeholder we added to the store
+            if (questionId === 0) {
+                block.clientId = clientId;
+            }
+            
+            return block;
+        }
+        
+        /**
+         * Get the block type for a question type
+         */
+        getBlockTypeForQuestion(questionType) {
+            const type = questionType || 'multiple_choice';
+            
+            switch (type) {
+                case 'true_false':
+                    return 'memberpress-courses/true-false-question';
+                case 'text_answer':
+                    return 'memberpress-courses/short-answer-question';
+                case 'multiple_select':
+                    return 'memberpress-courses/multiple-answer-question';
+                default:
+                    return 'memberpress-courses/multiple-choice-question';
+            }
+        }
+        
+        /**
+         * Prepare question data based on type
+         */
+        prepareQuestionData(question, index) {
+            const questionType = question.type || 'multiple_choice';
+            
+            // Get question text based on type
+            let questionText = '';
+            if (questionType === 'true_false') {
+                questionText = question.statement || question.question || '';
+            } else {
+                questionText = question.question || question.text || '';
+            }
+            
+            // Base question data
+            let questionData = {
+                question: questionText,
+                type: questionType,
+                number: index + 1,
+                required: true,
+                points: 1,
+                feedback: question.explanation || ''
+            };
+            
+            // Add type-specific data
+            switch (questionType) {
+                case 'true_false':
+                    return this.prepareTrueFalseData(question, questionData);
+                case 'text_answer':
+                    return this.prepareTextAnswerData(question, questionData);
+                case 'multiple_select':
+                    return this.prepareMultipleSelectData(question, questionData);
+                default:
+                    return this.prepareMultipleChoiceData(question, questionData);
+            }
+        }
+        
+        /**
+         * Prepare true/false question data
+         */
+        prepareTrueFalseData(question, baseData) {
+            // Convert to boolean - handle both string and boolean values
+            baseData.correctAnswer = String(question.correct_answer) === 'true';
+            baseData.type = 'true-false';
+            return baseData;
+        }
+        
+        /**
+         * Prepare text answer question data
+         */
+        prepareTextAnswerData(question, baseData) {
+            baseData.expectedAnswer = question.correct_answer || question.expected_answer || '';
+            baseData.type = 'short-answer';
+            return baseData;
+        }
+        
+        /**
+         * Prepare multiple select question data
+         */
+        prepareMultipleSelectData(question, baseData) {
+            // For multiple select, we need answers array with indices of correct answers
+            const options = Object.entries(question.options);
+            baseData.options = options.map(([key, value]) => ({
+                value: value,
+                isCorrect: question.correct_answers ? question.correct_answers.includes(key) : false
+            }));
+            // Create answer array with indices of correct options
+            baseData.answer = [];
+            options.forEach(([key, value], index) => {
+                if (question.correct_answers && question.correct_answers.includes(key)) {
+                    baseData.answer.push(index);
+                }
+            });
+            baseData.type = 'multiple-answer';
+            return baseData;
+        }
+        
+        /**
+         * Prepare multiple choice question data
+         */
+        prepareMultipleChoiceData(question, baseData) {
+            // Multiple choice - single correct answer
+            const options = Object.entries(question.options);
+            baseData.options = options.map(([key, value]) => ({
+                value: value,
+                isCorrect: key === question.correct_answer
+            }));
+            // Find the index of the correct answer
+            baseData.answer = options.findIndex(([key, value]) => key === question.correct_answer);
+            baseData.type = 'multiple-choice';
+            return baseData;
+        }
+        
+        /**
+         * Reserve a question ID from the API
+         */
+        async reserveQuestionId(quizId, clientId, dispatch) {
+            let questionId = 0;
+            if (dispatch && dispatch.getNextQuestionId) {
+                try {
+                    const result = await dispatch.getNextQuestionId(quizId, clientId);
+                    if (result && result.id) {
+                        questionId = result.id;
+                        this.logger?.log(`Reserved question ID ${questionId} for client ${clientId}`);
+                    }
+                } catch (err) {
+                    this.logger?.warn('Could not reserve question ID:', err);
+                }
+            }
+            return questionId;
+        }
+        
+        /**
+         * Insert blocks into editor and update UI
+         */
+        insertBlocksAndUpdateUI(blocks) {
+            wp.data.dispatch('core/block-editor').insertBlocks(blocks);
+            
+            // Mark the post as dirty to enable the save button
+            wp.data.dispatch('core/editor').editPost({ meta: { _edit_lock: Date.now() } });
+            
+            // Log inserted blocks for debugging
+            this.logger?.debug('Inserted blocks:', blocks);
+            
+            // Debug logging if enabled
+            if (this.logger?.isEnabled()) {
+                this.logDebugInfo();
+            }
+            
+            this.showNotice(`Successfully added ${blocks.length} questions! Click "Update" to save them.`, 'success');
+            
+            // Highlight the save button to draw user attention
+            this.highlightSaveButton();
+        }
+        
+        /**
+         * Log debug information about inserted blocks
+         */
+        logDebugInfo() {
+            setTimeout(() => {
+                const allBlocks = wp.data.select('core/block-editor').getBlocks();
+                this.logger?.debug('All blocks after insertion:', allBlocks);
+                
+                // Check specifically for our question blocks
+                const questionBlocks = allBlocks.filter(block => 
+                    block.name && block.name.includes('question')
+                );
+                this.logger?.debug('Question blocks found:', questionBlocks);
+                
+                // Log the attributes of each question block
+                questionBlocks.forEach((block, index) => {
+                    this.logger?.debug(`Question ${index + 1} attributes:`, block.attributes);
+                });
+                
+                // Also check the question store state
+                if (wp.data.select('memberpress/course/question')) {
+                    const questionStore = wp.data.select('memberpress/course/question');
+                    this.logger?.debug('Question store state:', {
+                        placeholders: questionStore.getPlaceholders ? questionStore.getPlaceholders() : 'No getPlaceholders method',
+                        questions: questionStore.getQuestions ? questionStore.getQuestions() : 'No getQuestions method'
+                    });
+                }
+                
+                // Add a save listener to see what happens when saving
+                const saveListener = wp.data.subscribe(() => {
+                    const isSaving = wp.data.select('core/editor').isSavingPost();
+                    const isAutosaving = wp.data.select('core/editor').isAutosavingPost();
+                    
+                    if (isSaving && !isAutosaving) {
+                        this.logger?.debug('Saving post, checking question blocks...');
+                        const blocksBeforeSave = wp.data.select('core/block-editor').getBlocks()
+                            .filter(block => block.name && block.name.includes('question'));
+                        
+                        blocksBeforeSave.forEach((block, index) => {
+                            this.logger?.debug(`Block ${index + 1} before save:`, {
+                                name: block.name,
+                                attributes: block.attributes
+                            });
+                        });
+                        
+                        // Unsubscribe after logging once
+                        saveListener();
+                    }
+                });
+            }, 500);
+        }
+        
+        /**
+         * Highlight the save button to draw user attention
+         */
+        highlightSaveButton() {
+            setTimeout(() => {
+                const saveButton = document.querySelector('.editor-post-publish-button, .editor-post-publish-panel__toggle');
+                if (saveButton) {
+                    saveButton.style.animation = 'pulse 2s ease-in-out 3';
+                    saveButton.style.boxShadow = '0 0 0 4px rgba(102, 126, 234, 0.5)';
+                    setTimeout(() => {
+                        saveButton.style.animation = '';
+                        saveButton.style.boxShadow = '';
+                    }, 6000);
+                }
+            }, 500);
         }
 
         /**
