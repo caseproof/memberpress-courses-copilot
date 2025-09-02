@@ -128,7 +128,81 @@
                 lessonTitle = wp.data.select('core/editor').getEditedPostAttribute('title');
             }
             
-            // Create quiz with lesson context
+            // First, get the course ID from the lesson
+            this.getLessonCourseId(lessonId).then(courseId => {
+                // Create quiz with lesson and course context
+                $.ajax({
+                    url: mpcc_ajax.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'mpcc_create_quiz_from_lesson',
+                        lesson_id: lessonId,
+                        course_id: courseId || 0, // Pass course ID if available
+                        nonce: mpcc_ajax.nonce
+                    },
+                    success: (response) => {
+                        if (response.success && response.data.quiz_id) {
+                            // Redirect to quiz editor with lesson context and auto-open flag
+                            let quizUrl = response.data.edit_url || 
+                                          `${mpcc_ajax.admin_url}post.php?post=${response.data.quiz_id}&action=edit&lesson_id=${lessonId}`;
+                            
+                            // Add auto_open parameter to trigger modal
+                            if (!quizUrl.includes('auto_open=')) {
+                                quizUrl += '&auto_open=true';
+                            }
+                            
+                            this.showNotice('Quiz created! Opening AI generator...', 'success');
+                            
+                            setTimeout(() => {
+                                window.location.href = quizUrl;
+                            }, 1500);
+                        } else {
+                            this.showNotice(response.data?.message || 'Failed to create quiz', 'error');
+                        }
+                    },
+                    error: (xhr, status, error) => {
+                        this.showNotice(`Error creating quiz: ${error}`, 'error');
+                    }
+                });
+            }).catch(error => {
+                console.error('Failed to get course ID:', error);
+                // Continue without course ID - backend will try to get it from lesson meta
+                this.createQuizWithoutCourseId(lessonId);
+            });
+        }
+
+        /**
+         * Get course ID from lesson metadata
+         */
+        getLessonCourseId(lessonId) {
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    url: mpcc_ajax.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'mpcc_get_lesson_course',
+                        lesson_id: lessonId,
+                        nonce: mpcc_ajax.nonce
+                    },
+                    success: (response) => {
+                        if (response.success && response.data) {
+                            console.log('MPCC Lesson Quiz Integration: Got course ID:', response.data.course_id);
+                            resolve(response.data.course_id);
+                        } else {
+                            reject('No course ID found');
+                        }
+                    },
+                    error: (xhr, status, error) => {
+                        reject(error);
+                    }
+                });
+            });
+        }
+
+        /**
+         * Create quiz without explicit course ID (fallback)
+         */
+        createQuizWithoutCourseId(lessonId) {
             $.ajax({
                 url: mpcc_ajax.ajax_url,
                 type: 'POST',

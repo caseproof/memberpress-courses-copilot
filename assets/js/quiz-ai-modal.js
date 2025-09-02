@@ -14,11 +14,12 @@
             this.modalOpen = false;
             this.generatedQuestions = [];
             this.currentLessonId = null;
+            this.logger = window.MPCCDebug ? window.MPCCDebug.createLogger('Quiz AI Modal') : null;
             this.init();
         }
 
         init() {
-            console.log('MPCC Quiz AI Modal: Initializing...');
+            this.logger?.log('Initializing...');
             
             // Only run on quiz edit pages
             if (!$('body').hasClass('post-type-mpcs-quiz')) {
@@ -46,10 +47,10 @@
             const hasLessonContext = urlParams.get('lesson_id') || urlParams.get('from_lesson');
             const isNewQuiz = $('body').hasClass('post-new-php') || urlParams.get('auto_open') === 'true';
             
-            console.log('MPCC Quiz AI: Auto-open check - hasLessonContext:', hasLessonContext, 'isNewQuiz:', isNewQuiz);
+            this.logger?.debug('Auto-open check', { hasLessonContext, isNewQuiz });
             
             if (hasLessonContext && isNewQuiz) {
-                console.log('MPCC Quiz AI: Auto-opening modal from lesson context');
+                this.logger?.log('Auto-opening modal from lesson context');
                 
                 // Show loading message
                 this.showNotice('Opening AI Quiz Generator...', 'info');
@@ -113,7 +114,7 @@
          * Detect lesson context from various sources
          */
         detectLessonContext() {
-            console.log('MPCC Quiz AI: Detecting lesson context...');
+            this.logger?.log('Detecting lesson context...');
             this.detectionMethod = null;
             this.currentCourseId = null;
             
@@ -125,12 +126,12 @@
             if (lessonIdFromUrl) {
                 this.currentLessonId = lessonIdFromUrl;
                 this.detectionMethod = 'url';
-                console.log('MPCC Quiz AI: Detected lesson ID from URL:', this.currentLessonId);
+                this.logger?.log('Detected lesson ID from URL:', this.currentLessonId);
             }
             
             if (courseIdFromUrl) {
                 this.currentCourseId = courseIdFromUrl;
-                console.log('MPCC Quiz AI: Detected course ID from URL:', this.currentCourseId);
+                this.logger?.log('Detected course ID from URL:', this.currentCourseId);
             }
             
             // Method 2: Check referrer URL for lesson edit page
@@ -145,11 +146,11 @@
                         success: (lesson) => {
                             this.currentLessonId = lesson.id;
                             this.detectionMethod = 'referrer';
-                            console.log('MPCC Quiz AI: Detected lesson ID from referrer:', this.currentLessonId);
+                            this.logger?.log('Detected lesson ID from referrer:', this.currentLessonId);
                         },
                         error: () => {
                             // Silently fail - referrer might not be a lesson
-                            console.log('MPCC Quiz AI: Referrer post is not a lesson');
+                            this.logger?.debug('Referrer post is not a lesson');
                         }
                     });
                 }
@@ -158,13 +159,13 @@
             // Method 3: Check for lesson selector in the quiz form
             if (!this.currentLessonId) {
                 const $lessonSelect = $('select[name="_mpcs_lesson_id"], select[name="lesson_id"], #lesson_id, .lesson-selector');
-                console.log('MPCC Quiz AI: Looking for lesson selectors, found:', $lessonSelect.length);
+                this.logger?.debug('Looking for lesson selectors, found:', $lessonSelect.length);
                 if ($lessonSelect.length) {
-                    console.log('MPCC Quiz AI: Lesson selector value:', $lessonSelect.val());
+                    this.logger?.debug('Lesson selector value:', $lessonSelect.val());
                     if ($lessonSelect.val()) {
                         this.currentLessonId = $lessonSelect.val();
                         this.detectionMethod = 'form';
-                        console.log('MPCC Quiz AI: Detected lesson ID from form field:', this.currentLessonId);
+                        this.logger?.log('Detected lesson ID from form field:', this.currentLessonId);
                     }
                 }
             }
@@ -175,7 +176,7 @@
                 if ($metaInput.length && $metaInput.val()) {
                     this.currentLessonId = $metaInput.val();
                     this.detectionMethod = 'meta';
-                    console.log('MPCC Quiz AI: Detected lesson ID from meta field:', this.currentLessonId);
+                    this.logger?.log('Detected lesson ID from meta field:', this.currentLessonId);
                 }
             }
             
@@ -187,12 +188,12 @@
                     if (postMeta && postMeta._mpcs_lesson_id) {
                         this.currentLessonId = postMeta._mpcs_lesson_id;
                         this.detectionMethod = 'existing';
-                        console.log('MPCC Quiz AI: Detected lesson ID from existing quiz meta:', this.currentLessonId);
+                        this.logger?.log('Detected lesson ID from existing quiz meta:', this.currentLessonId);
                     }
                     // Also check for course ID in meta
                     if (!this.currentCourseId && postMeta && postMeta._mpcs_course_id) {
                         this.currentCourseId = postMeta._mpcs_course_id;
-                        console.log('MPCC Quiz AI: Detected course ID from existing quiz meta:', this.currentCourseId);
+                        this.logger?.log('Detected course ID from existing quiz meta:', this.currentCourseId);
                     }
                 }
             }
@@ -206,13 +207,13 @@
                     if (courseMatch) {
                         // We'll verify this is a course when we load lessons
                         this.pendingCourseId = courseMatch[1];
-                        console.log('MPCC Quiz AI: Potential course ID from referrer:', this.pendingCourseId);
+                        this.logger?.log('Potential course ID from referrer:', this.pendingCourseId);
                     }
                 }
             }
             
             if (!this.currentLessonId && !this.currentCourseId) {
-                console.log('MPCC Quiz AI: No lesson or course context detected');
+                this.logger?.log('No lesson or course context detected');
             }
         }
 
@@ -351,7 +352,7 @@
                 if ($lessonSelect.length) {
                     const newLessonId = $lessonSelect.val();
                     if (newLessonId && newLessonId !== this.currentLessonId) {
-                        console.log('MPCC Quiz AI: Lesson changed to:', newLessonId);
+                        this.logger?.log('Lesson changed to:', newLessonId);
                         this.currentLessonId = newLessonId;
                         this.detectionMethod = 'form-update';
                         $('#mpcc-modal-lesson-select').val(newLessonId);
@@ -365,7 +366,11 @@
          * Load available lessons
          */
         loadLessons() {
-            console.log('MPCC Quiz AI: Loading lessons, current lesson ID:', this.currentLessonId, 'current course ID:', this.currentCourseId, 'detection method:', this.detectionMethod);
+            this.logger?.log('Loading lessons', {
+                currentLessonId: this.currentLessonId,
+                currentCourseId: this.currentCourseId,
+                detectionMethod: this.detectionMethod
+            });
             
             // Build API endpoint with course filter if available
             let apiUrl = '/wp-json/wp/v2/mpcs-lesson?per_page=100';
@@ -375,12 +380,15 @@
                 $.get(`/wp-json/wp/v2/mpcs-course/${this.pendingCourseId}`)
                     .done((course) => {
                         this.currentCourseId = course.id;
-                        console.log('MPCC Quiz AI: Verified course from referrer:', course.id, course.title.rendered);
+                        this.logger?.log('Verified course from referrer', {
+                            id: course.id,
+                            title: course.title.rendered
+                        });
                         this.showCourseContext(course.title.rendered);
                         this.loadLessonsForCourse();
                     })
                     .fail(() => {
-                        console.log('MPCC Quiz AI: Pending course ID was not a valid course');
+                        this.logger?.debug('Pending course ID was not a valid course');
                         this.loadLessonsForCourse();
                     });
                 return;
@@ -393,7 +401,7 @@
          * Load lessons, optionally filtered by course
          */
         loadLessonsForCourse() {
-            console.log('MPCC Quiz AI: Loading lessons for course:', this.currentCourseId || 'all courses');
+            this.logger?.log('Loading lessons for course:', this.currentCourseId || 'all courses');
             
             // Get all lessons first
             $.get('/wp-json/wp/v2/mpcs-lesson?per_page=100')
@@ -406,7 +414,7 @@
                     
                     // If we have a course ID, filter lessons
                     if (this.currentCourseId) {
-                        console.log('MPCC Quiz AI: Filtering lessons for course ID:', this.currentCourseId);
+                        this.logger?.log('Filtering lessons for course ID:', this.currentCourseId);
                         
                         // First try to get course sections to find lessons more efficiently
                         $.ajax({
@@ -419,7 +427,7 @@
                             },
                             success: (response) => {
                                 if (response.success && response.data && response.data.lessons) {
-                                    console.log('MPCC Quiz AI: Got course lessons directly:', response.data.lessons.length);
+                                    this.logger?.log('Got course lessons directly:', response.data.lessons.length);
                                     // Filter the loaded lessons to match the course lessons
                                     const courseLessonIds = response.data.lessons.map(l => String(l.id));
                                     filteredLessons = lessons.filter(lesson => 
@@ -430,12 +438,12 @@
                                 }
                                 
                                 // Fallback to individual checks
-                                console.log('MPCC Quiz AI: Falling back to individual lesson checks');
+                                this.logger?.debug('Falling back to individual lesson checks');
                                 this.filterLessonsIndividually(lessons, $select);
                             },
                             error: () => {
                                 // Fallback to individual checks
-                                console.log('MPCC Quiz AI: Error getting course lessons, falling back to individual checks');
+                                this.logger?.warn('Error getting course lessons, falling back to individual checks');
                                 this.filterLessonsIndividually(lessons, $select);
                             }
                         });
@@ -475,23 +483,27 @@
                             }).then(response => {
                                 if (response.success && response.data) {
                                     // Debug logging
-                                    console.log('MPCC Quiz AI: Lesson', lesson.id, 'course_id:', response.data.course_id, 'current course:', this.currentCourseId);
+                                    this.logger?.debug('Lesson course check', {
+                                        lessonId: lesson.id,
+                                        courseid: response.data.course_id,
+                                        currentCourse: this.currentCourseId
+                                    });
                                     
                                     // Compare as strings to avoid type mismatch
                                     if (String(response.data.course_id) === String(this.currentCourseId)) {
-                                        console.log('MPCC Quiz AI: Lesson', lesson.id, 'matches course!');
+                                        this.logger?.debug('Lesson matches course!', { lessonId: lesson.id });
                                         filteredLessons.push(lesson);
                                     }
                                 }
                             }).catch((error) => {
                                 // Log errors for debugging
-                                console.log('MPCC Quiz AI: Error checking lesson', lesson.id, error);
+                                this.logger?.error('Error checking lesson', { lessonId: lesson.id, error });
                             });
                         });
                         
                         // Wait for all lesson checks to complete
                         Promise.all(lessonPromises).then(() => {
-                            console.log('MPCC Quiz AI: Found', filteredLessons.length, 'lessons for course');
+                            this.logger?.log(`Found ${filteredLessons.length} lessons for course`);
                             this.populateLessonDropdown($select, filteredLessons);
                         });
         }
@@ -512,16 +524,19 @@
                 const selected = this.currentLessonId == lesson.id ? 'selected' : '';
                 if (selected) {
                     lessonFound = true;
-                    console.log('MPCC Quiz AI: Found matching lesson:', lesson.id, lesson.title.rendered);
+                    this.logger?.log('Found matching lesson', {
+                        id: lesson.id,
+                        title: lesson.title.rendered
+                    });
                 }
                 $select.append(`<option value="${lesson.id}" ${selected}>${lesson.title.rendered}</option>`);
             });
             
-            console.log('MPCC Quiz AI: Lesson found:', lessonFound, 'detection method:', this.detectionMethod);
+            this.logger?.debug('Lesson selection status', { lessonFound, detectionMethod: this.detectionMethod });
             
             // Show auto-detection feedback
             if (lessonFound && this.detectionMethod) {
-                console.log('MPCC Quiz AI: Showing auto-detection feedback');
+                this.logger?.debug('Showing auto-detection feedback');
                 this.showAutoDetectionFeedback();
             }
         }
@@ -641,7 +656,7 @@
             const questionType = $('#mpcc-modal-question-type').val() || 'multiple_choice';
             const customPrompt = $('#mpcc-quiz-prompt').val();
             
-            console.log('MPCC Quiz AI: Generating questions with type:', questionType);
+            this.logger?.log('Generating questions', { type: questionType, count: questionCount, difficulty });
             
             // Clear any previous errors
             $('#mpcc-modal-error').hide().empty();
@@ -678,7 +693,7 @@
                     }
                 },
                 error: (xhr, status, error) => {
-                    console.error('MPCC Quiz AI: AJAX error', { xhr, status, error });
+                    this.logger?.error('AJAX error', { status, error });
                     
                     let errorMessage = 'Failed to generate questions';
                     let suggestion = '';
@@ -819,7 +834,7 @@
             
             // Get the current post ID (quiz ID)
             const quizId = wp.data.select('core/editor').getCurrentPostId();
-            console.log('Current quiz ID:', quizId);
+            this.logger?.log('Current quiz ID:', quizId);
             
             // Show loading state
             this.showNotice('Adding questions to editor...', 'info');
@@ -903,7 +918,7 @@
                         questionData.type = 'multiple-choice';
                     }
                     
-                    console.log(`Adding placeholder for question ${i + 1}:`, questionData);
+                    this.logger?.debug(`Adding placeholder for question ${i + 1}:`, questionData);
                     
                     // Add placeholder to store with the client ID
                     if (dispatch && dispatch.addPlaceholder) {
@@ -917,10 +932,10 @@
                             const result = await dispatch.getNextQuestionId(quizId, clientId);
                             if (result && result.id) {
                                 questionId = result.id;
-                                console.log(`Reserved question ID ${questionId} for client ${clientId}`);
+                                this.logger?.log(`Reserved question ID ${questionId} for client ${clientId}`);
                             }
                         } catch (err) {
-                            console.warn('Could not reserve question ID:', err);
+                            this.logger?.warn('Could not reserve question ID:', err);
                         }
                     }
                     
@@ -947,55 +962,57 @@
                     wp.data.dispatch('core/editor').editPost({ meta: { _edit_lock: Date.now() } });
                     
                     // Log inserted blocks for debugging
-                    console.log('MPCC Quiz AI: Inserted blocks:', blocks);
+                    this.logger?.debug('Inserted blocks:', blocks);
                     
                     // Check if blocks were actually inserted and their current state
-                    setTimeout(() => {
-                        const allBlocks = wp.data.select('core/block-editor').getBlocks();
-                        console.log('MPCC Quiz AI: All blocks after insertion:', allBlocks);
-                        
-                        // Check specifically for our question blocks
-                        const questionBlocks = allBlocks.filter(block => 
-                            block.name && block.name.includes('question')
-                        );
-                        console.log('MPCC Quiz AI: Question blocks found:', questionBlocks);
-                        
-                        // Log the attributes of each question block
-                        questionBlocks.forEach((block, index) => {
-                            console.log(`MPCC Quiz AI: Question ${index + 1} attributes:`, block.attributes);
-                        });
-                        
-                        // Also check the question store state
-                        if (wp.data.select('memberpress/course/question')) {
-                            const questionStore = wp.data.select('memberpress/course/question');
-                            console.log('MPCC Quiz AI: Question store state:', {
-                                placeholders: questionStore.getPlaceholders ? questionStore.getPlaceholders() : 'No getPlaceholders method',
-                                questions: questionStore.getQuestions ? questionStore.getQuestions() : 'No getQuestions method'
-                            });
-                        }
-                        
-                        // Add a save listener to see what happens when saving
-                        const saveListener = wp.data.subscribe(() => {
-                            const isSaving = wp.data.select('core/editor').isSavingPost();
-                            const isAutosaving = wp.data.select('core/editor').isAutosavingPost();
+                    if (this.logger?.isEnabled()) {
+                        setTimeout(() => {
+                            const allBlocks = wp.data.select('core/block-editor').getBlocks();
+                            this.logger?.debug('All blocks after insertion:', allBlocks);
                             
-                            if (isSaving && !isAutosaving) {
-                                console.log('MPCC Quiz AI: Saving post, checking question blocks...');
-                                const blocksBeforeSave = wp.data.select('core/block-editor').getBlocks()
-                                    .filter(block => block.name && block.name.includes('question'));
-                                
-                                blocksBeforeSave.forEach((block, index) => {
-                                    console.log(`MPCC Quiz AI: Block ${index + 1} before save:`, {
-                                        name: block.name,
-                                        attributes: block.attributes
-                                    });
+                            // Check specifically for our question blocks
+                            const questionBlocks = allBlocks.filter(block => 
+                                block.name && block.name.includes('question')
+                            );
+                            this.logger?.debug('Question blocks found:', questionBlocks);
+                            
+                            // Log the attributes of each question block
+                            questionBlocks.forEach((block, index) => {
+                                this.logger?.debug(`Question ${index + 1} attributes:`, block.attributes);
+                            });
+                            
+                            // Also check the question store state
+                            if (wp.data.select('memberpress/course/question')) {
+                                const questionStore = wp.data.select('memberpress/course/question');
+                                this.logger?.debug('Question store state:', {
+                                    placeholders: questionStore.getPlaceholders ? questionStore.getPlaceholders() : 'No getPlaceholders method',
+                                    questions: questionStore.getQuestions ? questionStore.getQuestions() : 'No getQuestions method'
                                 });
-                                
-                                // Unsubscribe after logging once
-                                saveListener();
                             }
-                        });
-                    }, 500);
+                            
+                            // Add a save listener to see what happens when saving
+                            const saveListener = wp.data.subscribe(() => {
+                                const isSaving = wp.data.select('core/editor').isSavingPost();
+                                const isAutosaving = wp.data.select('core/editor').isAutosavingPost();
+                                
+                                if (isSaving && !isAutosaving) {
+                                    this.logger?.debug('Saving post, checking question blocks...');
+                                    const blocksBeforeSave = wp.data.select('core/block-editor').getBlocks()
+                                        .filter(block => block.name && block.name.includes('question'));
+                                    
+                                    blocksBeforeSave.forEach((block, index) => {
+                                        this.logger?.debug(`Block ${index + 1} before save:`, {
+                                            name: block.name,
+                                            attributes: block.attributes
+                                        });
+                                    });
+                                    
+                                    // Unsubscribe after logging once
+                                    saveListener();
+                                }
+                            });
+                        }, 500);
+                    }
                     
                     this.showNotice(`Successfully added ${blocks.length} questions! Click "Update" to save them.`, 'success');
                     
@@ -1014,7 +1031,7 @@
                 }
                 
             } catch (error) {
-                console.error('Error adding questions:', error);
+                this.logger?.error('Error adding questions:', error);
                 this.showNotice('Error adding questions. Please try again.', 'error');
             }
             
