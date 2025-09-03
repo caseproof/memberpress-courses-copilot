@@ -107,7 +107,7 @@ class CourseEditorPage
 
         // Auto-cleanup expired sessions on page load (runs occasionally)
         // Only run if we don't have an active session to avoid interfering with current work
-        if (rand(1, 10) === 1 && empty($_GET['session'])) { // 10% chance to run cleanup
+        if (wp_rand(1, 10) === 1 && empty($_GET['session'])) { // 10% chance to run cleanup.
             $conversationManager = new \MemberPressCoursesCopilot\Services\ConversationManager();
             $conversationManager->cleanupExpiredSessions();
         }

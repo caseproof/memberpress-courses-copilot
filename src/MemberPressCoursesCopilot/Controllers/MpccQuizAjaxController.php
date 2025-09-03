@@ -1223,6 +1223,7 @@ class MpccQuizAjaxController
             }
 
             // Create quiz post
+            // translators: %s: Lesson title
             $quizTitle = sprintf(__('Quiz: %s', 'memberpress-courses-copilot'), $lesson->post_title);
 
             $quizData = [

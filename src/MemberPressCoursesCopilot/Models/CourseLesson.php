@@ -189,7 +189,7 @@ class CourseLesson
      */
     public function estimateReadingTime(): int
     {
-        $wordCount      = str_word_count(strip_tags($this->content));
+        $wordCount      = str_word_count(wp_strip_all_tags($this->content));
         $wordsPerMinute = 200; // Average reading speed
         return max(1, ceil($wordCount / $wordsPerMinute));
     }

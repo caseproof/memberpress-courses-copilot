@@ -669,7 +669,7 @@ Format the content with clear headings and sections.";
 
         // Include current course structure if available
         if (!empty($courseStructure['title'])) {
-            $prompt .= "\n\nCurrent course structure:\n```json\n" . json_encode($courseStructure, JSON_PRETTY_PRINT) . "\n```\n";
+            $prompt .= "\n\nCurrent course structure:\n```json\n" . wp_json_encode($courseStructure, JSON_PRETTY_PRINT) . "\n```\n";
         }
 
         if (!empty($conversationHistory)) {

@@ -162,7 +162,7 @@ class LLMService extends BaseService implements ILLMService
                 'Authorization' => 'Bearer ' . self::LICENSE_KEY,
                 'Content-Type'  => 'application/json',
             ],
-            'body'    => json_encode($payload),
+            'body'    => wp_json_encode($payload),
             'timeout' => $options['timeout'] ?? 60,
         ]);
 
@@ -1015,7 +1015,7 @@ class LLMService extends BaseService implements ILLMService
         }
 
         // Validate content length
-        $wordCount = str_word_count(strip_tags($content));
+        $wordCount = str_word_count(wp_strip_all_tags($content));
         if ($wordCount < 200) {
             $this->logger->warning('Generated lesson content is too short', [
                 'word_count'   => $wordCount,
@@ -1103,7 +1103,7 @@ class LLMService extends BaseService implements ILLMService
                 'Authorization' => 'Bearer ' . self::LICENSE_KEY,
                 'Content-Type'  => 'application/json',
             ],
-            'body'    => json_encode($payload),
+            'body'    => wp_json_encode($payload),
             'timeout' => 60,
         ]);
 

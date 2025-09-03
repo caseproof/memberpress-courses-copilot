@@ -426,7 +426,7 @@ class CourseAjaxService extends BaseService
 
             // Add current state context for course creation
             if ($context === 'course_creation' && !empty($collected_data)) {
-                $full_prompt .= "\n\nCurrent collected course data: " . json_encode($collected_data);
+                $full_prompt .= "\n\nCurrent collected course data: " . wp_json_encode($collected_data);
             }
 
             $this->logger->debug('Preparing LLM service call', [
@@ -612,14 +612,14 @@ class CourseAjaxService extends BaseService
 
         // Log the raw POST data to debug
         $this->logger->info('Raw course_data received', [
-            'raw_data'          => json_encode($_POST['course_data'] ?? 'empty'),
+            'raw_data'          => wp_json_encode($_POST['course_data'] ?? 'empty'),
             'is_array'          => is_array($course_data),
             'is_empty'          => empty($course_data),
             'course_data_type'  => gettype($course_data),
             'course_data_keys'  => is_array($course_data) ? array_keys($course_data) : 'not an array',
             'has_title_at_root' => isset($course_data['title']),
             'title_at_root'     => $course_data['title'] ?? 'no title at root',
-            'full_structure'    => json_encode($course_data),
+            'full_structure'    => wp_json_encode($course_data),
         ]);
 
         // Check if course data is nested under 'course_structure' key
@@ -655,7 +655,7 @@ class CourseAjaxService extends BaseService
                 'course_title'     => $course_data['title'] ?? 'Unknown',
                 'sections_count'   => count($course_data['sections'] ?? []),
                 'course_data_keys' => array_keys($course_data),
-                'first_section'    => isset($course_data['sections'][0]) ? json_encode($course_data['sections'][0]) : 'no sections',
+                'first_section'    => isset($course_data['sections'][0]) ? wp_json_encode($course_data['sections'][0]) : 'no sections',
             ]);
 
             // Get the Course Generator Service from container
@@ -2124,7 +2124,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
 
         if (!empty($courseData['content'])) {
-            $content = strip_tags($courseData['content']);
+            $content = wp_strip_all_tags($courseData['content']);
             $prompt .= 'Course Description: ' . substr($content, 0, 300) . (strlen($content) > 300 ? '...' : '') . "\n";
         }
 

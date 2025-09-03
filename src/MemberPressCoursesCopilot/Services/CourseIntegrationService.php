@@ -313,7 +313,7 @@ class CourseIntegrationService extends BaseService
         ]);
 
         // Make course data available globally
-        wp_add_inline_script('mpcc-course-integration-center-ai', 'window.courseData = ' . json_encode($courseData) . ';', 'before');
+        wp_add_inline_script('mpcc-course-integration-center-ai', 'window.courseData = ' . wp_json_encode($courseData) . ';', 'before');
         ?>
         <?php
     }

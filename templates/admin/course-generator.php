@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Course Generator Admin Template
  *
- * @package MemberPressCoursesCopilot
+ * @package    MemberPressCoursesCopilot
  * @subpackage Templates
  */
 

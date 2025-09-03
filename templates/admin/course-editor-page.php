@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Course Editor Page Template
  *
- * @package MemberPressCoursesCopilot
+ * @package    MemberPressCoursesCopilot
  * @subpackage Templates/Admin
  */
 
