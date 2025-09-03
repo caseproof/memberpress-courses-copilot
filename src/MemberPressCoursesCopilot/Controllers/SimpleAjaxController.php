@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace MemberPressCoursesCopilot\Controllers;
 
 use MemberPressCoursesCopilot\Services\LLMService;
@@ -408,7 +406,7 @@ class SimpleAjaxController
             if ($session === null) {
                 // Create new session
                 $sessionData = [
-                    'user_id'      => get_current_user_id(),
+                    'user_id'      => (int) get_current_user_id(),
                     'context'      => 'course_creation',
                     'state'        => 'initial',
                     'initial_data' => $conversationState,
@@ -731,7 +729,7 @@ If modifying an existing course, include ALL sections and lessons (both existing
                 throw new \Exception('Security check failed');
             }
 
-            $userId   = get_current_user_id();
+            $userId   = (int) get_current_user_id();
             $sessions = [];
 
             // Get sessions from ConversationManager

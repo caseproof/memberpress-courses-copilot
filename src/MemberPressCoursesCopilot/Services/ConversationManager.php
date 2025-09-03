@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Models\ConversationSession;
@@ -129,7 +127,7 @@ class ConversationManager extends BaseService implements IConversationManager
      */
     public function createSession(array $sessionData): ConversationSession
     {
-        $userId = $sessionData['user_id'] ?? get_current_user_id();
+        $userId = (int) ($sessionData['user_id'] ?? get_current_user_id());
 
         // Validate user session limits
         $this->enforceSessionLimits($userId);
@@ -417,7 +415,7 @@ class ConversationManager extends BaseService implements IConversationManager
     {
         $session = new ConversationSession(
             $sessionData['session_id'],
-            $sessionData['user_id'],
+            (int) $sessionData['user_id'],
             $sessionData['context']
         );
 
@@ -840,11 +838,11 @@ class ConversationManager extends BaseService implements IConversationManager
 
         $session = new ConversationSession(
             $record->session_id,
-            $record->user_id,
+            (int) $record->user_id,
             $record->context
         );
 
-        $session->setDatabaseId($record->id);
+        $session->setDatabaseId((int) $record->id);
         $session->setTitle($record->title);
         $session->restoreState($stepData['current_state'] ?? 'initial');
         $session->restoreContext($stepData['context'] ?? []);
@@ -852,7 +850,7 @@ class ConversationManager extends BaseService implements IConversationManager
         $session->restoreProgress($stepData['progress'] ?? 0.0);
         $session->restoreConfidenceScore($stepData['confidence_score'] ?? 0.0);
         $session->restoreMetadata($metadata);
-        $session->setTotalTokens($record->total_tokens ?? 0);
+        $session->setTotalTokens((int) ($record->total_tokens ?? 0));
         $session->setTotalCost($record->total_cost ?? 0.0);
         $session->setCreatedAt(strtotime($record->created_at));
         $session->setLastUpdated(strtotime($record->updated_at));
