@@ -15,20 +15,20 @@ interface IQuizAIService
     /**
      * Generate a quiz based on lesson content
      *
-     * @param  integer $lesson_id The lesson ID to generate quiz from
+     * @param  integer $lessonId The lesson ID to generate quiz from
      * @param  array   $options   Quiz generation options
      * @return array Generated quiz data
      */
-    public function generateQuizFromLesson(int $lesson_id, array $options = []): array;
+    public function generateQuizFromLesson(int $lessonId, array $options = []): array;
 
     /**
      * Generate a quiz based on course content
      *
-     * @param  integer $course_id The course ID to generate quiz from
+     * @param  integer $courseId The course ID to generate quiz from
      * @param  array   $options   Quiz generation options
      * @return array Generated quiz data
      */
-    public function generateQuizFromCourse(int $course_id, array $options = []): array;
+    public function generateQuizFromCourse(int $courseId, array $options = []): array;
 
     /**
      * Generate quiz questions based on provided content
@@ -43,11 +43,11 @@ interface IQuizAIService
      * Generate a single question of a specific type
      *
      * @param  string $content       The content to base question on
-     * @param  string $question_type The type of question to generate
+     * @param  string $questionType The type of question to generate
      * @param  array  $options       Additional options
      * @return array Generated question data
      */
-    public function generateQuestion(string $content, string $question_type, array $options = []): array;
+    public function generateQuestion(string $content, string $questionType, array $options = []): array;
 
     /**
      * Regenerate a specific question
@@ -85,28 +85,28 @@ interface IQuizAIService
     /**
      * Generate quiz analytics and insights
      *
-     * @param  integer $quiz_id The quiz ID to analyze
+     * @param  integer $quizId The quiz ID to analyze
      * @return array Analytics data
      */
-    public function generateQuizAnalytics(int $quiz_id): array;
+    public function generateQuizAnalytics(int $quizId): array;
 
     /**
      * Optimize quiz based on performance data
      *
-     * @param  integer $quiz_id          The quiz to optimize
-     * @param  array   $performance_data Student performance data
+     * @param  integer $quizId          The quiz to optimize
+     * @param  array   $performanceData Student performance data
      * @return array Optimization suggestions
      */
-    public function optimizeQuiz(int $quiz_id, array $performance_data): array;
+    public function optimizeQuiz(int $quizId, array $performanceData): array;
 
     /**
      * Generate feedback for quiz answers
      *
      * @param  array  $question    The question data
-     * @param  string $user_answer The user's answer
+     * @param  string $userAnswer The user's answer
      * @return string Generated feedback
      */
-    public function generateFeedback(array $question, string $user_answer): string;
+    public function generateFeedback(array $question, string $userAnswer): string;
 
     /**
      * Get supported question types

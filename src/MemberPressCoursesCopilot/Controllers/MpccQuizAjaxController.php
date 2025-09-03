@@ -431,10 +431,10 @@ class MpccQuizAjaxController
     private function prepareGenerationOptions(array $options): array
     {
         return [
-            'type'          => $options['question_type'] ?? 'multiple_choice',
-            'count'         => intval($options['num_questions'] ?? 10),
+            'type'          => $options['questionType'] ?? $options['question_type'] ?? 'multiple_choice',
+            'count'         => intval($options['numQuestions'] ?? $options['num_questions'] ?? 10),
             'difficulty'    => $options['difficulty'] ?? 'medium',
-            'custom_prompt' => $options['custom_prompt'] ?? '',
+            'customPrompt'  => $options['customPrompt'] ?? $options['custom_prompt'] ?? '',
         ];
     }
 
@@ -466,11 +466,11 @@ class MpccQuizAjaxController
 
         // Log successful quiz generation
         $this->logger->info('Quiz generated successfully', [
-            'lesson_id'     => $lessonId,
-            'course_id'     => $courseId,
-            'question_type' => $questionType,
-            'num_questions' => count($quizData['questions']),
-            'user_id'       => get_current_user_id(),
+            'lessonId'      => $lessonId,
+            'courseId'      => $courseId,
+            'questionType'  => $questionType,
+            'numQuestions'  => count($quizData['questions']),
+            'userId'        => get_current_user_id(),
         ]);
 
         return $quizData;
@@ -553,8 +553,8 @@ class MpccQuizAjaxController
 
             // Log regeneration request
             $this->logger->info('Regenerating question', [
-                'question_type'  => $questionType,
-                'content_length' => strlen($content),
+                'questionType'  => $questionType,
+                'contentLength' => strlen($content),
             ]);
 
             // Prepare options for regeneration
@@ -852,9 +852,9 @@ class MpccQuizAjaxController
             }
 
             // Also try to get content from parent course
-            $course_id = get_post_meta($lessonId, '_mpcs_course_id', true);
-            if ($course_id) {
-                $course = get_post($course_id);
+            $courseId = get_post_meta($lessonId, '_mpcs_course_id', true);
+            if ($courseId) {
+                $course = get_post($courseId);
                 if ($course && !empty($course->post_content)) {
                     $content .= "\n\nCourse Context: " . wp_strip_all_tags($course->post_content);
                 }
@@ -1125,9 +1125,9 @@ class MpccQuizAjaxController
 
         // Generate comprehensive summary for quiz analysis
         $results['summary'] = [
-            'total_questions' => count($quizData['questions']),
-            'total_points'    => $totalPoints,
-            'question_types'  => $questionTypes,
+            'totalQuestions' => count($quizData['questions']),
+            'totalPoints'    => $totalPoints,
+            'questionTypes'  => $questionTypes,
         ];
 
         return $results;
@@ -1217,8 +1217,8 @@ class MpccQuizAjaxController
             if (empty($courseId)) {
                 $courseId = get_post_meta($lessonId, '_mpcs_course_id', true);
                 $this->logger->info('Retrieved course ID from lesson metadata', [
-                    'lesson_id' => $lessonId,
-                    'course_id' => $courseId,
+                    'lessonId' => $lessonId,
+                    'courseId' => $courseId,
                 ]);
             }
 
@@ -1261,12 +1261,12 @@ class MpccQuizAjaxController
 
             // Log the creation
             $this->logger->info('Quiz created from lesson', [
-                'quiz_id'    => $quizId,
-                'lesson_id'  => $lessonId,
-                'section_id' => $sectionId ?? 'none',
-                'course_id'  => $courseId ?? 'none',
-                'quiz_order' => $quizOrder ?? 'none',
-                'user_id'    => get_current_user_id(),
+                'quizId'     => $quizId,
+                'lessonId'   => $lessonId,
+                'sectionId'  => $sectionId ?? 'none',
+                'courseId'   => $courseId ?? 'none',
+                'quizOrder'  => $quizOrder ?? 'none',
+                'userId'     => get_current_user_id(),
             ]);
 
             // Build edit URL with lesson context, course ID, and auto-open flag
@@ -1285,11 +1285,11 @@ class MpccQuizAjaxController
             $editUrl = add_query_arg($editUrlArgs, admin_url('post.php'));
 
             wp_send_json_success([
-                'quiz_id'   => $quizId,
-                'edit_url'  => $editUrl,
+                'quizId'    => $quizId,
+                'editUrl'   => $editUrl,
                 'message'   => __('Quiz created successfully!', 'memberpress-courses-copilot'),
-                'course_id' => $courseId,
-                'lesson_id' => $lessonId,
+                'courseId'  => $courseId,
+                'lessonId'  => $lessonId,
             ]);
         } catch (\Exception $e) {
             $this->handleAjaxError($e, 'Failed to create quiz from lesson');
@@ -1397,9 +1397,9 @@ class MpccQuizAjaxController
             }
 
             wp_send_json_success([
-                'lesson_id'    => $lessonId,
-                'course_id'    => $courseId,
-                'course_title' => $courseTitle,
+                'lessonId'     => $lessonId,
+                'courseId'     => $courseId,
+                'courseTitle'  => $courseTitle,
             ]);
         } catch (\Exception $e) {
             $this->handleAjaxError($e, 'Failed to get lesson course');
@@ -1511,7 +1511,7 @@ class MpccQuizAjaxController
                             $lessons[] = [
                                 'id'         => $lesson->ID,
                                 'title'      => $lesson->post_title,
-                                'section_id' => $section->id,
+                                'sectionId'  => $section->id,
                             ];
                         }
                     }
@@ -1536,16 +1536,16 @@ class MpccQuizAjaxController
                     $lessons[] = [
                         'id'         => $lesson->ID,
                         'title'      => $lesson->post_title,
-                        'section_id' => get_post_meta($lesson->ID, '_mpcs_lesson_section_id', true),
+                        'sectionId'  => get_post_meta($lesson->ID, '_mpcs_lesson_section_id', true),
                     ];
                 }
             }
 
             wp_send_json_success([
-                'course_id'    => $courseId,
-                'course_title' => $course->post_title,
+                'courseId'     => $courseId,
+                'courseTitle'  => $course->post_title,
                 'lessons'      => $lessons,
-                'lesson_count' => count($lessons),
+                'lessonCount'  => count($lessons),
             ]);
         } catch (\Exception $e) {
             $this->handleAjaxError($e, 'Failed to get course lessons');
