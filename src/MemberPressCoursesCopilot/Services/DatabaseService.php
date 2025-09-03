@@ -42,7 +42,7 @@ class DatabaseService extends BaseService implements IDatabaseService
     {
         parent::__construct();
         global $wpdb;
-        $this->wpdb         = $wpdb;
+        $this->wpdb        = $wpdb;
         $this->tablePrefix = $wpdb->prefix . 'mpcc_';
     }
 

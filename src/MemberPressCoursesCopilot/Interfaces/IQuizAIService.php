@@ -16,7 +16,7 @@ interface IQuizAIService
      * Generate a quiz based on lesson content
      *
      * @param  integer $lessonId The lesson ID to generate quiz from
-     * @param  array   $options   Quiz generation options
+     * @param  array   $options  Quiz generation options
      * @return array Generated quiz data
      */
     public function generateQuizFromLesson(int $lessonId, array $options = []): array;
@@ -25,7 +25,7 @@ interface IQuizAIService
      * Generate a quiz based on course content
      *
      * @param  integer $courseId The course ID to generate quiz from
-     * @param  array   $options   Quiz generation options
+     * @param  array   $options  Quiz generation options
      * @return array Generated quiz data
      */
     public function generateQuizFromCourse(int $courseId, array $options = []): array;
@@ -42,9 +42,9 @@ interface IQuizAIService
     /**
      * Generate a single question of a specific type
      *
-     * @param  string $content       The content to base question on
+     * @param  string $content      The content to base question on
      * @param  string $questionType The type of question to generate
-     * @param  array  $options       Additional options
+     * @param  array  $options      Additional options
      * @return array Generated question data
      */
     public function generateQuestion(string $content, string $questionType, array $options = []): array;
@@ -102,7 +102,7 @@ interface IQuizAIService
     /**
      * Generate feedback for quiz answers
      *
-     * @param  array  $question    The question data
+     * @param  array  $question   The question data
      * @param  string $userAnswer The user's answer
      * @return string Generated feedback
      */
