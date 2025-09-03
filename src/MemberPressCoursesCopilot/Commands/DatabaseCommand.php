@@ -45,7 +45,10 @@ class DatabaseCommand
             return is_super_admin();
         }
 
-        return current_user_can('manage_options');
+        $meprCap = function_exists('MeprUtils::get_mepr_admin_capability') 
+            ? \MeprUtils::get_mepr_admin_capability() 
+            : 'remove_users';
+        return current_user_can($meprCap);
     }
 
     /**
