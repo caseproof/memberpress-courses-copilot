@@ -201,13 +201,14 @@
                 this.logger?.log('Detected course ID from URL:', this.currentCourseId);
             }
             
-            // If we have curriculum parameter, try to get course ID from referrer
+            // If we have curriculum parameter, get course ID from referrer
+            // This ONLY applies when curriculum=1, meaning we came from course curriculum tab
             if (fromCurriculum && !this.currentCourseId && document.referrer) {
                 const referrerMatch = document.referrer.match(/post=(\d+)/);
                 if (referrerMatch) {
                     this.currentCourseId = parseInt(referrerMatch[1], 10);
                     this.detectionMethod = 'curriculum-referrer';
-                    this.logger?.log('Detected course ID from curriculum referrer:', this.currentCourseId);
+                    this.logger?.log('Detected course ID from curriculum referrer:', this.currentCourseId, 'from URL:', document.referrer);
                 }
             }
             
@@ -657,10 +658,10 @@
             }
             
             // Case 1: We have a course ID - load only that course's lessons
-            if (this.currentCourseId) {
+            if (this.currentCourseId && this.currentCourseId > 0) {
                 this.logger?.log('Loading lessons for course:', this.currentCourseId);
                 this.loadCourseLessonsOnly();
-            } else if (this.currentLessonId) {
+            } else if (this.currentLessonId && this.currentLessonId > 0) {
                 this.logger?.log('Loading lesson with siblings:', this.currentLessonId);
                 this.loadLessonWithSiblings();
             } else {
@@ -678,11 +679,28 @@
          */
         loadCourseLessonsOnly() {
             const $select = $('#mpcc-modal-lesson-select');
+            
+            // Validate course ID before making AJAX call
+            if (!this.currentCourseId || this.currentCourseId <= 0) {
+                this.logger?.error('Invalid course ID for loading lessons:', this.currentCourseId);
+                $select.html('<option value="">No course selected</option>');
+                this.showModalError('No course context available for lesson filtering');
+                return;
+            }
+            
             $select.html('<option value="">Loading course lessons...</option>');
+            
+            // Check if mpcc_ajax is defined
+            if (typeof mpcc_ajax === 'undefined') {
+                this.logger?.error('mpcc_ajax is not defined');
+                this.showModalError('Configuration error: AJAX settings not loaded');
+                return;
+            }
             
             $.ajax({
                 url: mpcc_ajax.ajax_url,
                 type: 'POST',
+                dataType: 'json',
                 data: {
                     action: 'mpcc_get_course_lessons',
                     course_id: this.currentCourseId,
@@ -709,9 +727,19 @@
                         this.loadRecentLessons();
                     }
                 },
-                error: () => {
-                    this.logger?.error('Failed to load course lessons');
-                    this.loadRecentLessons();
+                error: (xhr, status, error) => {
+                    this.logger?.error('Failed to load course lessons', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        error: error,
+                        responseText: xhr.responseText
+                    });
+                    
+                    if (xhr.status === 400) {
+                        this.showModalError('Invalid request to server. Please refresh the page and try again.');
+                    } else {
+                        this.loadRecentLessons();
+                    }
                 }
             });
         }
@@ -1068,16 +1096,17 @@
             $.ajax({
                 url: mpcc_ajax.ajax_url,
                 type: 'POST',
+                dataType: 'json',
                 data: {
                     action: 'mpcc_generate_quiz',
                     lesson_id: lessonId,
                     nonce: mpcc_ajax.nonce,
-                    options: {
+                    options: JSON.stringify({
                         num_questions: questionCount,
                         difficulty: difficulty,
                         custom_prompt: customPrompt,
                         question_type: questionType
-                    }
+                    })
                 },
                 success: (response) => {
                     if (response.success && response.data.questions) {
@@ -1094,11 +1123,25 @@
                         this.showModalError(errorMsg, suggestion);
                     }
                 },
-                error: (xhr) => {
+                error: (xhr, status, error) => {
+                    this.logger?.error('Quiz generation failed', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        error: error,
+                        responseText: xhr.responseText,
+                        responseJSON: xhr.responseJSON
+                    });
+                    
                     let errorMsg = 'An error occurred while generating questions';
                     let suggestion = null;
                     
-                    if (xhr.responseJSON && xhr.responseJSON.data) {
+                    if (xhr.status === 400) {
+                        errorMsg = 'Invalid request. The server rejected the request.';
+                        suggestion = 'Please check the browser console for details and contact support if this persists.';
+                    } else if (xhr.status === 403) {
+                        errorMsg = 'Security check failed.';
+                        suggestion = 'Please refresh the page and try again.';
+                    } else if (xhr.responseJSON && xhr.responseJSON.data) {
                         errorMsg = xhr.responseJSON.data.message || errorMsg;
                         suggestion = xhr.responseJSON.data.data?.suggestion || xhr.responseJSON.data.suggestion || null;
                     }

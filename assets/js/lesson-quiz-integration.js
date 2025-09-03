@@ -19,9 +19,11 @@
             
             // Only run on lesson edit pages
             if (!this.isLessonEditPage()) {
+                console.log('MPCC Lesson Quiz Integration: Not on lesson edit page, exiting');
                 return;
             }
             
+            console.log('MPCC Lesson Quiz Integration: On lesson edit page, setting up button...');
             $(document).ready(() => {
                 this.addCreateQuizButton();
             });
