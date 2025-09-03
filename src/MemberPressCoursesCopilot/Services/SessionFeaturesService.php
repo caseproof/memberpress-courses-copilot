@@ -17,22 +17,22 @@ class SessionFeaturesService extends BaseService
     private ConversationManager $conversationManager;
     private DatabaseService $databaseService;
 
-    // Auto-save configuration
-    private const AUTO_SAVE_INTERVAL       = 30; // seconds
-    private const AUTO_SAVE_BATCH_SIZE     = 10; // sessions
+    // Auto-save configuration.
+    private const AUTO_SAVE_INTERVAL       = 30; // seconds.
+    private const AUTO_SAVE_BATCH_SIZE     = 10; // sessions.
     private const AUTO_SAVE_RETRY_ATTEMPTS = 3;
 
-    // Timeout configuration
+    // Timeout configuration.
     private const DEFAULT_TIMEOUT_MINUTES   = 60;
     private const WARNING_THRESHOLD_MINUTES = 50;
-    private const IDLE_CHECK_INTERVAL       = 300; // 5 minutes
+    private const IDLE_CHECK_INTERVAL       = 300; // 5 minutes.
 
-    // Sync configuration
-    private const SYNC_CONFLICT_RESOLUTION = 'server_wins'; // 'server_wins', 'client_wins', 'merge'
+    // Sync configuration.
+    private const SYNC_CONFLICT_RESOLUTION = 'server_wins'; // 'server_wins', 'client_wins', 'merge'.
     private const MAX_SYNC_RETRIES         = 3;
     private const SYNC_BATCH_SIZE          = 5;
 
-    // Export/Import configuration
+    // Export/Import configuration.
     private const EXPORT_FORMAT_VERSION = '2.0';
     private const MAX_EXPORT_SIZE_MB    = 50;
     private const COMPRESSION_ENABLED   = true;
@@ -44,7 +44,7 @@ class SessionFeaturesService extends BaseService
         $this->conversationManager = $conversationManager;
         $this->databaseService     = $databaseService;
 
-        // Initialize auto-save and timeout monitoring
+        // Initialize auto-save and timeout monitoring.
         $this->initializeAutoSave();
         $this->initializeTimeoutMonitoring();
     }
@@ -54,14 +54,14 @@ class SessionFeaturesService extends BaseService
      */
     public function initializeAutoSave(): void
     {
-        // Schedule auto-save tasks
+        // Schedule auto-save tasks.
         add_action('init', [$this, 'scheduleAutoSaveTasks']);
         add_action('mpcc_auto_save_sessions', [$this, 'performAutoSave']);
 
-        // Hook into session modifications for immediate auto-save triggers
+        // Hook into session modifications for immediate auto-save triggers.
         add_action('mpcc_session_modified', [$this, 'handleSessionModification'], 10, 2);
 
-        // Client-side auto-save via AJAX (logged-in users only)
+        // Client-side auto-save via AJAX (logged-in users only).
         add_action('wp_ajax_mpcc_auto_save_session', [$this, 'handleAjaxAutoSave']);
     }
 
@@ -73,7 +73,7 @@ class SessionFeaturesService extends BaseService
         add_action('init', [$this, 'scheduleTimeoutChecks']);
         add_action('mpcc_check_session_timeouts', [$this, 'performTimeoutCheck']);
 
-        // Client-side heartbeat integration
+        // Client-side heartbeat integration.
         add_filter('heartbeat_received', [$this, 'handleHeartbeatTimeout'], 10, 2);
         add_action('wp_ajax_mpcc_extend_session', [$this, 'handleSessionExtension']);
     }
@@ -92,7 +92,7 @@ class SessionFeaturesService extends BaseService
                 return;
             }
 
-            // Batch load all sessions in a single query to avoid N+1 queries
+            // Batch load all sessions in a single query to avoid N+1 queries.
             $sessions = $this->conversationManager->loadMultipleSessions($activeSessionIds);
 
             foreach ($sessions as $sessionId => $session) {
@@ -111,13 +111,13 @@ class SessionFeaturesService extends BaseService
                     $errors[] = "Auto-save error for session {$sessionId}: " . $e->getMessage();
                 }
 
-                // Prevent memory issues with large batches
+                // Prevent memory issues with large batches.
                 if ($savedCount >= self::AUTO_SAVE_BATCH_SIZE) {
                     break;
                 }
             }
 
-            // Log auto-save summary
+            // Log auto-save summary.
             $this->log("Auto-save completed: {$savedCount} sessions saved, " . count($errors) . ' errors');
 
             if (!empty($errors)) {
@@ -133,13 +133,13 @@ class SessionFeaturesService extends BaseService
      */
     public function handleAjaxAutoSave(): void
     {
-        // Verify nonce and permissions
+        // Verify nonce and permissions.
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AUTO_SAVE_SESSION, false)) {
             wp_send_json_error('Security check failed');
             return;
         }
 
-        // Check user permissions
+        // Check user permissions.
         if (!current_user_can('edit_posts')) {
             wp_send_json_error('Insufficient permissions');
             return;
@@ -161,10 +161,10 @@ class SessionFeaturesService extends BaseService
                 return;
             }
 
-            // Update session with client data
+            // Update session with client data.
             $this->updateSessionFromClientData($session, $sessionData);
 
-            // Save session
+            // Save session.
             $success = $this->conversationManager->saveSession($session);
 
             if ($success) {
@@ -190,16 +190,16 @@ class SessionFeaturesService extends BaseService
             $timeoutThreshold = time() - (self::DEFAULT_TIMEOUT_MINUTES * 60);
             $warningThreshold = time() - (self::WARNING_THRESHOLD_MINUTES * 60);
 
-            // Get sessions approaching timeout
+            // Get sessions approaching timeout.
             $warningSessions = $this->getSessionsNearTimeout($warningThreshold);
             $expiredSessions = $this->getExpiredSessions($timeoutThreshold);
 
-            // Send timeout warnings
+            // Send timeout warnings.
             foreach ($warningSessions as $sessionData) {
                 $this->sendTimeoutWarning($sessionData);
             }
 
-            // Handle expired sessions
+            // Handle expired sessions.
             foreach ($expiredSessions as $sessionData) {
                 $this->handleSessionTimeout($sessionData);
             }
@@ -246,7 +246,7 @@ class SessionFeaturesService extends BaseService
             return;
         }
 
-        // Check user permissions
+        // Check user permissions.
         if (!current_user_can('edit_posts')) {
             wp_send_json_error('Insufficient permissions');
             return;
@@ -262,7 +262,7 @@ class SessionFeaturesService extends BaseService
                 return;
             }
 
-            // Extend session by updating last activity
+            // Extend session by updating last activity.
             $session->markAsModified();
             $this->conversationManager->saveSession($session);
 
@@ -287,12 +287,12 @@ class SessionFeaturesService extends BaseService
             throw new \Exception('Session not found for export');
         }
 
-        // Check export permissions
+        // Check export permissions.
         if (!$this->canUserExportSession($session->getUserId(), get_current_user_id())) {
             throw new \Exception('Insufficient permissions to export this session');
         }
 
-        // Prepare export data
+        // Prepare export data.
         $exportData = [
             'export_info'            => [
                 'version'           => self::EXPORT_FORMAT_VERSION,
@@ -308,11 +308,11 @@ class SessionFeaturesService extends BaseService
                 'total_messages'       => count($session->getMessages()),
                 'session_duration'     => $session->getLastUpdated() - $session->getCreatedAt(),
                 'states_visited'       => array_unique(array_column($session->getStateHistory(), 'state')),
-                'export_size_estimate' => 0, // Will be calculated
+                'export_size_estimate' => 0, // Will be calculated.
             ],
         ];
 
-        // Add optional data based on export options
+        // Add optional data based on export options.
         if ($options['include_analytics'] ?? true) {
             $exportData['analytics'] = $this->generateExportAnalytics($session);
         }
@@ -325,20 +325,20 @@ class SessionFeaturesService extends BaseService
             $exportData['related_data'] = $this->getRelatedSessionData($session);
         }
 
-        // Calculate actual export size
+        // Calculate actual export size.
         $exportData['metadata']['export_size_estimate'] = $this->calculateExportSize($exportData);
 
-        // Check size limits
+        // Check size limits.
         if ($exportData['metadata']['export_size_estimate'] > (self::MAX_EXPORT_SIZE_MB * 1024 * 1024)) {
             throw new \Exception('Export data exceeds maximum size limit');
         }
 
-        // Compress if enabled and beneficial
+        // Compress if enabled and beneficial.
         if (self::COMPRESSION_ENABLED && $exportData['metadata']['export_size_estimate'] > 1024) {
             $exportData = $this->compressExportData($exportData);
         }
 
-        // Log export activity
+        // Log export activity.
         $this->log("Session exported: {$sessionId} by user " . get_current_user_id());
 
         return $exportData;
@@ -349,28 +349,28 @@ class SessionFeaturesService extends BaseService
      */
     public function importSession(array $importData, array $options = []): ConversationSession
     {
-        // Validate import data
+        // Validate import data.
         $validation = $this->validateImportData($importData);
         if (!$validation['valid']) {
             throw new \Exception('Import data validation failed: ' . implode(', ', $validation['errors']));
         }
 
-        // Check import permissions
+        // Check import permissions.
         if (!current_user_can('manage_options') && !($options['allow_user_import'] ?? false)) {
             throw new \Exception('Insufficient permissions to import sessions');
         }
 
-        // Decompress if needed
+        // Decompress if needed.
         if (isset($importData['compressed']) && $importData['compressed']) {
             $importData = $this->decompressImportData($importData);
         }
 
         $sessionData = $importData['session_data'];
 
-        // Handle session ID conflicts
+        // Handle session ID conflicts.
         $originalSessionId = $sessionData['session_id'];
         if ($options['preserve_session_id'] ?? false) {
-            // Check if session ID already exists
+            // Check if session ID already exists.
             $existing = $this->conversationManager->loadSession($originalSessionId);
             if ($existing) {
                 if (!($options['overwrite_existing'] ?? false)) {
@@ -378,19 +378,19 @@ class SessionFeaturesService extends BaseService
                 }
             }
         } else {
-            // Generate new session ID
+            // Generate new session ID.
             $sessionData['session_id'] = $this->generateNewSessionId();
         }
 
-        // Update user ID if importing for different user
+        // Update user ID if importing for different user.
         if (isset($options['target_user_id'])) {
             $sessionData['user_id'] = $options['target_user_id'];
         }
 
-        // Create session from imported data
+        // Create session from imported data.
         $session = $this->conversationManager->createSessionFromData($sessionData);
 
-        // Add import metadata
+        // Add import metadata.
         $session->setMetadata('import_info', [
             'imported_at'         => time(),
             'imported_by'         => get_current_user_id(),
@@ -399,13 +399,13 @@ class SessionFeaturesService extends BaseService
             'import_options'      => $options,
         ]);
 
-        // Save imported session
+        // Save imported session.
         $success = $this->conversationManager->saveSession($session);
         if (!$success) {
             throw new \Exception('Failed to save imported session');
         }
 
-        // Log import activity
+        // Log import activity.
         $this->log("Session imported: {$session->getSessionId()} from {$originalSessionId} by user " . get_current_user_id());
 
         return $session;
@@ -422,7 +422,7 @@ class SessionFeaturesService extends BaseService
             throw new \Exception('Session not found for synchronization');
         }
 
-        // Check sync permissions
+        // Check sync permissions.
         if (!$this->canUserSyncSession($session->getUserId(), get_current_user_id())) {
             throw new \Exception('Insufficient permissions to sync this session');
         }
@@ -441,29 +441,29 @@ class SessionFeaturesService extends BaseService
             'sync_actions'       => [],
         ];
 
-        // Detect conflicts
+        // Detect conflicts.
         if ($this->detectSyncConflict($serverState, $clientState)) {
             $syncResult['conflict_detected']  = true;
             $resolution                       = $this->resolveSyncConflict($session, $serverState, $clientState, $options);
             $syncResult['resolution_applied'] = $resolution;
         }
 
-        // Determine sync direction
+        // Determine sync direction.
         if ($serverTimestamp > $clientTimestamp && !$syncResult['conflict_detected']) {
-            // Server is newer, send updates to client
+            // Server is newer, send updates to client.
             $syncResult['sync_direction']     = 'server_to_client';
             $syncResult['updates_for_client'] = $this->generateClientUpdates($session, $clientState);
         } elseif ($clientTimestamp > $serverTimestamp && !$syncResult['conflict_detected']) {
-            // Client is newer, apply client updates to server
+            // Client is newer, apply client updates to server.
             $syncResult['sync_direction'] = 'client_to_server';
             $this->applyClientUpdates($session, $clientState);
             $this->conversationManager->saveSession($session);
         } else {
-            // States are in sync
+            // States are in sync.
             $syncResult['sync_direction'] = 'in_sync';
         }
 
-        // Add sync metadata to session
+        // Add sync metadata to session.
         $session->setMetadata('last_sync', [
             'timestamp'         => time(),
             'client_id'         => $clientState['client_id'] ?? 'unknown',
@@ -473,7 +473,7 @@ class SessionFeaturesService extends BaseService
 
         $this->conversationManager->saveSession($session);
 
-        // Log sync activity
+        // Log sync activity.
         $this->log("Session synchronized: {$sessionId}, direction: {$syncResult['sync_direction']}");
 
         return $syncResult;
@@ -490,12 +490,12 @@ class SessionFeaturesService extends BaseService
             throw new \Exception('Session not found for collaboration setup');
         }
 
-        // Check collaboration permissions
+        // Check collaboration permissions.
         if (!$this->canUserEnableCollaboration($session->getUserId(), get_current_user_id())) {
             throw new \Exception('Insufficient permissions to enable collaboration');
         }
 
-        // Set up collaboration metadata
+        // Set up collaboration metadata.
         $collaborationData = [
             'enabled'             => true,
             'owner_user_id'       => $session->getUserId(),
@@ -504,7 +504,7 @@ class SessionFeaturesService extends BaseService
                 'can_edit_requirements' => true,
                 'can_modify_structure'  => true,
                 'can_review_content'    => true,
-                'can_create_course'     => false, // Only owner by default
+                'can_create_course'     => false, // Only owner by default.
                 'requires_approval'     => false,
             ],
             'enabled_at'          => time(),
@@ -513,15 +513,15 @@ class SessionFeaturesService extends BaseService
 
         $session->setMetadata('collaboration', $collaborationData);
 
-        // Create collaboration channels/locks
+        // Create collaboration channels/locks.
         $channels = $this->createCollaborationChannels($sessionId, $collaborationData);
 
-        // Initialize real-time sync
+        // Initialize real-time sync.
         $this->initializeRealTimeSync($sessionId);
 
         $this->conversationManager->saveSession($session);
 
-        // Log collaboration setup
+        // Log collaboration setup.
         $this->log("Collaborative editing enabled for session: {$sessionId}");
 
         return [
@@ -533,14 +533,14 @@ class SessionFeaturesService extends BaseService
         ];
     }
 
-    // PRIVATE HELPER METHODS
+    // PRIVATE HELPER METHODS.
     private function scheduleAutoSaveTasks(): void
     {
         if (!wp_next_scheduled('mpcc_auto_save_sessions')) {
             wp_schedule_event(time(), 'mpcc_auto_save_interval', 'mpcc_auto_save_sessions');
         }
 
-        // Add custom cron interval if it doesn't exist
+        // Add custom cron interval if it doesn't exist.
         add_filter('cron_schedules', function ($schedules) {
             $schedules['mpcc_auto_save_interval'] = [
                 'interval' => self::AUTO_SAVE_INTERVAL,
@@ -567,14 +567,14 @@ class SessionFeaturesService extends BaseService
 
     private function getActiveSessionsNeedingSave(): array
     {
-        // Use database service to get active sessions that need saving
-        // Sessions not updated in the last 5 minutes are candidates for auto-save
+        // Use database service to get active sessions that need saving.
+        // Sessions not updated in the last 5 minutes are candidates for auto-save.
         return $this->databaseService->getActiveSessionsNeedingSave(5, self::AUTO_SAVE_BATCH_SIZE);
     }
 
     private function handleSessionModification(string $sessionId, ConversationSession $session): void
     {
-        // Trigger immediate auto-save if threshold reached
+        // Trigger immediate auto-save if threshold reached.
         if ($session->shouldAutoSave(self::AUTO_SAVE_INTERVAL)) {
             $this->conversationManager->saveSession($session);
         }
@@ -582,7 +582,7 @@ class SessionFeaturesService extends BaseService
 
     private function updateSessionFromClientData(ConversationSession $session, array $clientData): void
     {
-        // Update session with client-side changes
+        // Update session with client-side changes.
         if (isset($clientData['current_state'])) {
             $session->setCurrentState($clientData['current_state']);
         }
@@ -595,7 +595,7 @@ class SessionFeaturesService extends BaseService
             $session->updateProgress($clientData['progress']);
         }
 
-        // Add any new messages
+        // Add any new messages.
         if (isset($clientData['new_messages'])) {
             foreach ($clientData['new_messages'] as $message) {
                 $session->addMessage($message['type'], $message['content'], $message['metadata'] ?? []);
@@ -604,7 +604,7 @@ class SessionFeaturesService extends BaseService
     }
 
     // Additional helper methods would be implemented here...
-    // For brevity, including key method signatures
+    // For brevity, including key method signatures.
 
     /**
      * @throws \RuntimeException

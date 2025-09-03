@@ -25,7 +25,7 @@ class ContentGenerationService
      */
     public function __construct(?ILLMService $llmService = null, ?Logger $logger = null)
     {
-        // Use injected services or get from container as fallback
+        // Use injected services or get from container as fallback.
         if ($llmService) {
             $this->llmService = $llmService;
         } else {
@@ -44,23 +44,23 @@ class ContentGenerationService
     {
         $content = new LessonContent();
 
-        // Generate main lesson content
+        // Generate main lesson content.
         $textContent = $this->generateTextContent($lessonSpec);
         $content->setTextContent($textContent);
 
-        // Generate interactive elements
+        // Generate interactive elements.
         $interactiveElements = $this->generateInteractiveElements($lessonSpec);
         $content->setInteractiveElements($interactiveElements);
 
-        // Generate multimedia suggestions
+        // Generate multimedia suggestions.
         $multimediaElements = $this->multimediaService->generateMultimediaSuggestions($lessonSpec);
         $content->setMultimediaElements($multimediaElements);
 
-        // Generate assessments
+        // Generate assessments.
         $assessments = $this->generateAssessments($lessonSpec);
         $content->setAssessments($assessments);
 
-        // Generate learning activities
+        // Generate learning activities.
         $activities = $this->generateLearningActivities($lessonSpec);
         $content->setActivities($activities);
 
@@ -91,16 +91,16 @@ class ContentGenerationService
     {
         $elements = [];
 
-        // Generate discussion prompts
+        // Generate discussion prompts.
         $elements['discussions'] = $this->generateDiscussionPrompts($lessonSpec);
 
-        // Generate group activities
+        // Generate group activities.
         $elements['group_work'] = $this->generateGroupActivities($lessonSpec);
 
-        // Generate simulations/scenarios
+        // Generate simulations/scenarios.
         $elements['simulations'] = $this->generateSimulations($lessonSpec);
 
-        // Generate polls and quick checks
+        // Generate polls and quick checks.
         $elements['polls'] = $this->generatePolls($lessonSpec);
 
         return $elements;
@@ -113,22 +113,22 @@ class ContentGenerationService
     {
         $assessments = [];
 
-        // Multiple choice questions
+        // Multiple choice questions.
         $assessments['multiple_choice'] = $this->generateMultipleChoiceQuestions($lessonSpec);
 
-        // True/false questions
+        // True/false questions.
         $assessments['true_false'] = $this->generateTrueFalseQuestions($lessonSpec);
 
-        // Essay questions
+        // Essay questions.
         $assessments['essay'] = $this->generateEssayQuestions($lessonSpec);
 
-        // Matching exercises
+        // Matching exercises.
         $assessments['matching'] = $this->generateMatchingExercises($lessonSpec);
 
-        // Fill in the blank
+        // Fill in the blank.
         $assessments['fill_blank'] = $this->generateFillInBlankQuestions($lessonSpec);
 
-        // Practical exercises
+        // Practical exercises.
         $assessments['practical'] = $this->generatePracticalExercises($lessonSpec);
 
         return $assessments;
@@ -141,16 +141,16 @@ class ContentGenerationService
     {
         $activities = [];
 
-        // Case studies
+        // Case studies.
         $activities['case_studies'] = $this->generateCaseStudies($lessonSpec);
 
-        // Projects
+        // Projects.
         $activities['projects'] = $this->generateProjects($lessonSpec);
 
-        // Peer review activities
+        // Peer review activities.
         $activities['peer_reviews'] = $this->generatePeerReviewActivities($lessonSpec);
 
-        // Research assignments
+        // Research assignments.
         $activities['research'] = $this->generateResearchAssignments($lessonSpec);
 
         return $activities;
@@ -217,13 +217,13 @@ class ContentGenerationService
      */
     public function optimizeContentForAudience(LessonContent $content, array $audienceProfile): LessonContent
     {
-        // Adjust reading level
+        // Adjust reading level.
         $content = $this->adjustReadingLevel($content, $audienceProfile['reading_level']);
 
-        // Customize examples
+        // Customize examples.
         $content = $this->customizeExamples($content, $audienceProfile['industry']);
 
-        // Adjust complexity
+        // Adjust complexity.
         $content = $this->adjustComplexity($content, $audienceProfile['expertise_level']);
 
         return $content;
@@ -236,7 +236,7 @@ class ContentGenerationService
     {
         $personalizedContent = clone $baseContent;
 
-        // Adjust based on learning style
+        // Adjust based on learning style.
         if ($learnerProfile['learning_style'] === 'visual') {
             $personalizedContent = $this->enhanceVisualElements($personalizedContent);
         } elseif ($learnerProfile['learning_style'] === 'auditory') {
@@ -245,7 +245,7 @@ class ContentGenerationService
             $personalizedContent = $this->enhanceInteractiveElements($personalizedContent);
         }
 
-        // Adjust pace based on progress
+        // Adjust pace based on progress.
         if ($learnerProfile['progress_rate'] === 'fast') {
             $personalizedContent = $this->addAdvancedContent($personalizedContent);
         } elseif ($learnerProfile['progress_rate'] === 'slow') {
@@ -262,25 +262,25 @@ class ContentGenerationService
     {
         $validationResults = [];
 
-        // Check objective alignment
+        // Check objective alignment.
         $validationResults['objective_alignment'] = $this->checkObjectiveAlignment($content, $qualityCriteria['objectives']);
 
-        // Check reading level
+        // Check reading level.
         $validationResults['reading_level'] = $this->checkReadingLevel($content, $qualityCriteria['target_reading_level']);
 
-        // Check engagement level
+        // Check engagement level.
         $validationResults['engagement'] = $this->assessEngagementLevel($content);
 
-        // Check accessibility
+        // Check accessibility.
         $validationResults['accessibility'] = $this->checkAccessibility($content);
 
-        // Calculate overall score
+        // Calculate overall score.
         $validationResults['overall_score'] = $this->calculateContentScore($validationResults);
 
         return $validationResults;
     }
 
-    // Helper methods for content generation
+    // Helper methods for content generation.
     private function buildTextContentPrompt(array $lessonSpec): string
     {
         return "Create comprehensive lesson content for: {$lessonSpec['topic']}
@@ -299,7 +299,7 @@ class ContentGenerationService
 
     private function parseTextContentResponse(array $response): array
     {
-        // Parse AI response into structured content
+        // Parse AI response into structured content.
         return [
             'introduction' => $response['introduction'] ?? '',
             'main_content' => $response['main_content'] ?? [],
@@ -311,19 +311,19 @@ class ContentGenerationService
 
     private function parseListResponse(array $response): array
     {
-        // Parse response into array of items
+        // Parse response into array of items.
         return explode('\n', $response['content'] ?? '');
     }
 
     private function parseMultipleChoiceResponse(array $response): array
     {
-        // Parse multiple choice questions from response
-        return []; // Implementation would parse formatted questions
+        // Parse multiple choice questions from response.
+        return []; // Implementation would parse formatted questions.
     }
 
     private function parseCaseStudyResponse(array $response): array
     {
-        // Parse case study structure from response
+        // Parse case study structure from response.
         return [
             'scenario'   => $response['scenario'] ?? '',
             'challenges' => $response['challenges'] ?? [],
@@ -332,29 +332,29 @@ class ContentGenerationService
         ];
     }
 
-    // Content optimization methods
+    // Content optimization methods.
     private function adjustReadingLevel(LessonContent $content, string $targetLevel): LessonContent
     {
-        // Implementation for reading level adjustment
+        // Implementation for reading level adjustment.
         return $content;
     }
 
     private function customizeExamples(LessonContent $content, string $industry): LessonContent
     {
-        // Implementation for industry-specific examples
+        // Implementation for industry-specific examples.
         return $content;
     }
 
     private function adjustComplexity(LessonContent $content, string $expertiseLevel): LessonContent
     {
-        // Implementation for complexity adjustment
+        // Implementation for complexity adjustment.
         return $content;
     }
 
-    // Content validation methods
+    // Content validation methods.
     private function checkObjectiveAlignment(LessonContent $content, array $objectives): float
     {
-        return 0.85; // Placeholder score
+        return 0.85; // Placeholder score.
     }
 
     private function checkReadingLevel(LessonContent $content, string $targetLevel): array
@@ -368,7 +368,7 @@ class ContentGenerationService
 
     private function assessEngagementLevel(LessonContent $content): float
     {
-        return 0.75; // Placeholder engagement score
+        return 0.75; // Placeholder engagement score.
     }
 
     private function checkAccessibility(LessonContent $content): array
@@ -382,10 +382,10 @@ class ContentGenerationService
 
     private function calculateContentScore(array $validationResults): float
     {
-        return 0.82; // Weighted average of validation scores
+        return 0.82; // Weighted average of validation scores.
     }
 
-    // Placeholder methods for content generation
+    // Placeholder methods for content generation.
     private function generateGroupActivities(array $lessonSpec): array
     {
         return [];

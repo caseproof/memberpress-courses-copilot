@@ -16,10 +16,29 @@ use WP_Error;
  */
 class SimpleAjaxController
 {
+    /**
+     * @var LLMService Service for Language Learning Model interactions and content generation
+     */
     private LLMService $llmService;
+
+    /**
+     * @var LessonDraftService Service for managing lesson drafts during course editing
+     */
     private LessonDraftService $lessonDraftService;
+
+    /**
+     * @var ConversationManager Service for managing and persisting conversation sessions
+     */
     private ConversationManager $conversationManager;
+
+    /**
+     * @var CourseGeneratorService Service for generating complete course structures
+     */
     private CourseGeneratorService $courseGenerator;
+
+    /**
+     * @var Logger Logging service for debugging and monitoring
+     */
     private Logger $logger;
 
     /**
@@ -45,11 +64,11 @@ class SimpleAjaxController
     /**
      * Constructor - dependencies can be injected
      *
-     * @param LLMService|null             $llmService
-     * @param LessonDraftService|null     $lessonDraftService
-     * @param ConversationManager|null    $conversationManager
-     * @param CourseGeneratorService|null $courseGenerator
-     * @param Logger|null                 $logger
+     * @param LLMService|null             $llmService          The language model service for AI content generation.
+     * @param LessonDraftService|null     $lessonDraftService  The service for managing lesson drafts and content.
+     * @param ConversationManager|null    $conversationManager The service for managing conversation sessions.
+     * @param CourseGeneratorService|null $courseGenerator     The service for generating course structures.
+     * @param Logger|null                 $logger              The logger instance for debugging and monitoring.
      */
     public function __construct(
         ?LLMService $llmService = null,

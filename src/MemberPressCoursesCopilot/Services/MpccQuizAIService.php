@@ -55,7 +55,7 @@ class MpccQuizAIService extends BaseService implements IQuizAIService
             'contentLength' => strlen($content),
         ]);
 
-        // Validate content suitability
+        // Validate content suitability.
         $validation = $this->validateContentForType($content, $type);
         if (!$validation['suitable']) {
             $this->logger->warning('Content not suitable for question type', [
@@ -344,8 +344,8 @@ Content to create questions from:
     {
         $contentLength = strlen($content);
 
-        // Universal Content Length Validation
-        // 100 characters is the minimum for AI to understand context and generate meaningful questions
+        // Universal Content Length Validation.
+        // 100 characters is the minimum for AI to understand context and generate meaningful questions.
         if ($contentLength < 100) {
             return [
                 'suitable'   => false,
@@ -354,12 +354,12 @@ Content to create questions from:
             ];
         }
 
-        // Apply question type-specific validation rules
-        // Each type has unique requirements based on pedagogical best practices
+        // Apply question type-specific validation rules.
+        // Each type has unique requirements based on pedagogical best practices.
         switch ($type) {
             case 'true_false':
-                // True/False questions need substantial content to create unambiguous statements
-                // 200 characters ensures enough context for clear fact verification
+                // True/False questions need substantial content to create unambiguous statements.
+                // 200 characters ensures enough context for clear fact verification.
                 if ($contentLength < 200) {
                     return [
                         'suitable'   => false,
@@ -370,12 +370,12 @@ Content to create questions from:
                 break;
 
             case 'text_answer':
-                // Text answer questions require specific, factual content with concrete answers
-                // Complex regex pattern detects presence of:
-                // - Numbers: \d+ (dates, quantities, measurements, statistics)
-                // - Proper nouns: [A-Z][a-z]+ (names, places, technical terms)
-                // - Factual statement indicators: is|are|was|were (definitions, descriptions)
-                // - Naming/definition indicators: called|named (terminology, classifications)
+                // Text answer questions require specific, factual content with concrete answers.
+                // Complex regex pattern detects presence of:.
+                // - Numbers: \d+ (dates, quantities, measurements, statistics).
+                // - Proper nouns: [A-Z][a-z]+ (names, places, technical terms).
+                // - Factual statement indicators: is|are|was|were (definitions, descriptions).
+                // - Naming/definition indicators: called|named (terminology, classifications).
                 if (!preg_match('/(\d+|[A-Z][a-z]+|\b(?:is|are|was|were|called|named)\b)/i', $content)) {
                     return [
                         'suitable'   => false,
@@ -386,8 +386,8 @@ Content to create questions from:
                 break;
 
             case 'multiple_select':
-                // Multiple select questions need comprehensive content covering multiple aspects
-                // 200+ characters typically contain enough variety for multiple correct answers
+                // Multiple select questions need comprehensive content covering multiple aspects.
+                // 200+ characters typically contain enough variety for multiple correct answers.
                 if ($contentLength < 200) {
                     return [
                         'suitable'   => false,
@@ -396,17 +396,17 @@ Content to create questions from:
                     ];
                 }
 
-                // Debug logging for multiple select validation (complex question type)
+                // Debug logging for multiple select validation (complex question type).
                 $this->logger->info('Multiple select validation passed', [
                     'contentLength' => $contentLength,
                 ]);
                 break;
 
-            // Multiple choice questions (default case) have the most flexible requirements
-            // They can work with shorter content and don't need specific patterns
+            // Multiple choice questions (default case) have the most flexible requirements.
+            // They can work with shorter content and don't need specific patterns.
         }
 
-        // Content is suitable for the requested question type
+        // Content is suitable for the requested question type.
         return ['suitable' => true];
     }
 
@@ -645,40 +645,40 @@ Content to create questions from:
      */
     private function extractJsonFromResponse(string $response): ?array
     {
-        // Locate JSON array boundaries within the AI response
-        // AI models often include explanatory text before/after the actual JSON
+        // Locate JSON array boundaries within the AI response.
+        // AI models often include explanatory text before/after the actual JSON.
         $jsonStart = strpos($response, '[');
         if ($jsonStart !== false) {
-            // Find the matching closing bracket (last occurrence handles nested arrays)
+            // Find the matching closing bracket (last occurrence handles nested arrays).
             $jsonEnd = strrpos($response, ']');
             if ($jsonEnd !== false) {
-                // Extract only the JSON portion, including the brackets
-                // This removes any AI commentary or instructions
+                // Extract only the JSON portion, including the brackets.
+                // This removes any AI commentary or instructions.
                 $response = substr($response, $jsonStart, $jsonEnd - $jsonStart + 1);
             }
         }
 
-        // Attempt to parse the extracted JSON
-        // associative=true ensures we get PHP arrays, not objects
+        // Attempt to parse the extracted JSON.
+        // associative=true ensures we get PHP arrays, not objects.
         $data = json_decode($response, true);
 
-        // Validate JSON parsing was successful
-        // json_last_error() provides specific error codes for different failure types
+        // Validate JSON parsing was successful.
+        // json_last_error() provides specific error codes for different failure types.
         if (json_last_error() !== JSON_ERROR_NONE) {
-            // Log parsing failure with context for debugging AI response issues
+            // Log parsing failure with context for debugging AI response issues.
             $this->logger->warning('Failed to parse JSON response', [
-                'error'      => json_last_error_msg(),           // Specific JSON error description
-                'error_code' => json_last_error(),          // Numeric error code for analysis
-                'response'   => substr($response, 0, 500),     // First 500 chars for context (prevents log bloat)
+                'error'      => json_last_error_msg(),           // Specific JSON error description.
+                'error_code' => json_last_error(),          // Numeric error code for analysis.
+                'response'   => substr($response, 0, 500),     // First 500 chars for context (prevents log bloat).
             ]);
             return null;
         }
 
-        // Return successfully parsed and validated JSON data
+        // Return successfully parsed and validated JSON data.
         return $data;
     }
 
-    // Stub implementations for interface methods
+    // Stub implementations for interface methods.
     /**
      * @throws \BadMethodCallException
      */
