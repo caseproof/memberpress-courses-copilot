@@ -863,35 +863,56 @@ case 'course_creation':
                     . 'Your conversation should be natural and helpful. If you need clarification, '
                     . 'ask only 1-2 specific questions. Once you have the basic information above, '
                     . 'generate the course structure in the following JSON format wrapped in ```json``` code blocks:'
-
-```json
-{
-  "title": "Course Title",
-  "description": "Course description",
-  "sections": [
-    {
-      "title": "Section 1 Title",
-      "description": "Section description",
-      "lessons": [
-        {
-          "title": "Lesson Title",
-          "content": "Lesson content (can be HTML)",
-          "type": "text",
-          "duration": "15"
-        }
-      ]
-    }
-  ],
-  "settings": {
-    "course_progress": "enabled",
-    "auto_advance": "enabled"
-  },
-  "categories": ["Category 1"],
-  "tags": ["tag1", "tag2"]
-}
-```
-
-Be conversational and guide the user through the process naturally . '
+                    . "\n\n```json\n"
+                    . '{'
+                    . "\n"
+                    . '  "title": "Course Title",'
+                    . "\n"
+                    . '  "description": "Course description",'
+                    . "\n"
+                    . '  "sections": ['
+                    . "\n"
+                    . '    {'
+                    . "\n"
+                    . '      "title": "Section 1 Title",'
+                    . "\n"
+                    . '      "description": "Section description",'
+                    . "\n"
+                    . '      "lessons": ['
+                    . "\n"
+                    . '        {'
+                    . "\n"
+                    . '          "title": "Lesson Title",'
+                    . "\n"
+                    . '          "content": "Lesson content (can be HTML)",'
+                    . "\n"
+                    . '          "type": "text",'
+                    . "\n"
+                    . '          "duration": "15"'
+                    . "\n"
+                    . '        }'
+                    . "\n"
+                    . '      ]'
+                    . "\n"
+                    . '    }'
+                    . "\n"
+                    . '  ],'
+                    . "\n"
+                    . '  "settings": {'
+                    . "\n"
+                    . '    "course_progress": "enabled",'
+                    . "\n"
+                    . '    "auto_advance": "enabled"'
+                    . "\n"
+                    . '  },'
+                    . "\n"
+                    . '  "categories": ["Category 1"],'
+                    . "\n"
+                    . '  "tags": ["tag1", "tag2"]'
+                    . "\n"
+                    . '}'
+                    . "\n```\n\n"
+                    . 'Be conversational and guide the user through the process naturally . '
                     . 'When you have the 5 key pieces of information listed above, immediately generate '
                     . 'the complete course structure . do not continue asking questions . \n\n'
                     . 'Example: if a user says they want to create a PHP course for people with HTML / CSS '
