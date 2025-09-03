@@ -76,6 +76,50 @@ class ConversationManager extends BaseService implements IConversationManager
 
     /**
      * Create a new conversation session
+     * 
+     * @param array $sessionData Session initialization data
+     * @return ConversationSession Created session object
+     * @throws \Exception When session creation fails
+     * 
+     * @example
+     * // Create a basic course creation session
+     * $conversationManager = new ConversationManager();
+     * $session = $conversationManager->createSession([
+     *     'user_id' => 123,
+     *     'context' => 'course_creation',
+     *     'title' => 'New PHP Course',
+     *     'state' => 'initial',
+     *     'initial_data' => [
+     *         'course_type' => 'technical',
+     *         'difficulty' => 'beginner'
+     *     ]
+     * ]);
+     * echo "Created session: " . $session->getSessionId();
+     * 
+     * @example
+     * // Create session with custom ID
+     * $session = $conversationManager->createSession([
+     *     'session_id' => 'custom_session_' . time(),
+     *     'user_id' => get_current_user_id(),
+     *     'context' => 'lesson_editing',
+     *     'title' => 'Edit JavaScript Lesson',
+     *     'initial_data' => [
+     *         'lesson_id' => 456,
+     *         'edit_mode' => 'ai_assisted'
+     *     ]
+     * ]);
+     * 
+     * @example
+     * // Handle session limit enforcement
+     * try {
+     *     $session = $conversationManager->createSession($sessionData);
+     *     // Session created successfully
+     * } catch (Exception $e) {
+     *     if (strpos($e->getMessage(), 'session limit') !== false) {
+     *         // User has too many active sessions
+     *         echo 'Please close some existing sessions first';
+     *     }
+     * }
      */
     public function createSession(array $sessionData): ConversationSession
     {
@@ -133,6 +177,43 @@ class ConversationManager extends BaseService implements IConversationManager
 
     /**
      * Load an existing conversation session
+     * 
+     * @param string $sessionId Session ID to load
+     * @return ConversationSession|null Loaded session or null if not found
+     * 
+     * @example
+     * // Load a session by ID
+     * $conversationManager = new ConversationManager();
+     * $session = $conversationManager->loadSession('mpcc_session_abc123_1234567890');
+     * 
+     * if ($session) {
+     *     echo "Loaded session: " . $session->getTitle();
+     *     echo "Current state: " . $session->getCurrentState();
+     *     echo "Progress: " . ($session->getProgress() * 100) . "%";
+     * } else {
+     *     echo "Session not found or expired";
+     * }
+     * 
+     * @example
+     * // Load and continue conversation
+     * $session = $conversationManager->loadSession($sessionId);
+     * if ($session && $session->isActive()) {
+     *     $messages = $session->getMessages();
+     *     $lastMessage = end($messages);
+     *     echo "Last message: " . $lastMessage['content'];
+     *     
+     *     // Add new message
+     *     $session->addMessage('user', 'Continue with the next lesson');
+     *     $conversationManager->saveSession($session);
+     * }
+     * 
+     * @example
+     * // Load with caching benefit
+     * // First call - loads from database
+     * $session1 = $conversationManager->loadSession($sessionId);
+     * // Second call - loads from memory cache (faster)
+     * $session2 = $conversationManager->loadSession($sessionId);
+     * // Both return the same session object
      */
     public function loadSession(string $sessionId): ?ConversationSession
     {
@@ -175,6 +256,30 @@ class ConversationManager extends BaseService implements IConversationManager
      *
      * @param array $sessionIds Array of session IDs to load
      * @return array<string, ConversationSession> Array of sessions keyed by session_id
+     * 
+     * @example
+     * // Load multiple sessions efficiently
+     * $conversationManager = new ConversationManager();
+     * $sessionIds = ['session_1', 'session_2', 'session_3'];
+     * $sessions = $conversationManager->loadMultipleSessions($sessionIds);
+     * 
+     * foreach ($sessions as $sessionId => $session) {
+     *     echo "Session {$sessionId}: " . $session->getTitle();
+     *     echo "Progress: " . ($session->getProgress() * 100) . "%";
+     * }
+     * 
+     * @example
+     * // Load user's recent sessions
+     * $userSessions = $conversationManager->getUserSessions($userId, 10);
+     * $sessionIds = array_map(fn($s) => $s->getSessionId(), $userSessions);
+     * $fullSessions = $conversationManager->loadMultipleSessions($sessionIds);
+     * 
+     * @example
+     * // Handle mixed cached and uncached sessions
+     * $sessionIds = ['cached_session', 'new_session_1', 'new_session_2'];
+     * $sessions = $conversationManager->loadMultipleSessions($sessionIds);
+     * // Only uncached sessions are loaded from database, cached ones from memory
+     * echo "Loaded " . count($sessions) . " sessions";
      */
     public function loadMultipleSessions(array $sessionIds): array
     {
@@ -221,6 +326,49 @@ class ConversationManager extends BaseService implements IConversationManager
 
     /**
      * Save conversation session to database
+     * 
+     * @param ConversationSession $session Session to save
+     * @return bool Success status
+     * 
+     * @example
+     * // Save a modified session
+     * $conversationManager = new ConversationManager();
+     * $session = $conversationManager->loadSession($sessionId);
+     * $session->addMessage('user', 'Add another lesson about arrays');
+     * $session->setProgress(0.75);
+     * 
+     * if ($conversationManager->saveSession($session)) {
+     *     echo "Session saved successfully";
+     * } else {
+     *     echo "Failed to save session";
+     * }
+     * 
+     * @example
+     * // Auto-save during conversation
+     * $messageCount = 0;
+     * $session->addMessage('user', $userMessage);
+     * $session->addMessage('assistant', $aiResponse);
+     * $messageCount += 2;
+     * 
+     * // Auto-save every 10 messages
+     * if ($messageCount % 10 === 0) {
+     *     $conversationManager->saveSession($session);
+     * }
+     * 
+     * @example
+     * // Save with error handling
+     * try {
+     *     $success = $conversationManager->saveSession($session);
+     *     if (!$success) {
+     *         throw new Exception('Database save failed');
+     *     }
+     *     
+     *     // Session saved and cached
+     *     echo "Session synchronized";
+     * } catch (Exception $e) {
+     *     error_log('Session save error: ' . $e->getMessage());
+     *     // Session changes are preserved in memory until next save attempt
+     * }
      */
     public function saveSession(ConversationSession $session): bool
     {
@@ -303,6 +451,45 @@ class ConversationManager extends BaseService implements IConversationManager
 
     /**
      * Get all active sessions for a user
+     * 
+     * @param int $userId User ID
+     * @param int $limit Maximum number of sessions to return
+     * @param int $offset Offset for pagination
+     * @return array Array of ConversationSession objects
+     * 
+     * @example
+     * // Get user's recent sessions
+     * $conversationManager = new ConversationManager();
+     * $sessions = $conversationManager->getUserSessions(123, 10, 0);
+     * 
+     * foreach ($sessions as $session) {
+     *     echo "Session: " . $session->getTitle();
+     *     echo "State: " . $session->getCurrentState();
+     *     echo "Last updated: " . date('Y-m-d H:i:s', $session->getLastUpdated());
+     * }
+     * 
+     * @example
+     * // Paginate through user sessions
+     * $page = 0;
+     * $limit = 5;
+     * 
+     * do {
+     *     $sessions = $conversationManager->getUserSessions($userId, $limit, $page * $limit);
+     *     
+     *     foreach ($sessions as $session) {
+     *         echo "Session: " . $session->getTitle();
+     *     }
+     *     
+     *     $page++;
+     * } while (count($sessions) === $limit);
+     * 
+     * @example
+     * // Filter user sessions by context
+     * $allSessions = $conversationManager->getUserSessions($userId, 100);
+     * $courseSessions = array_filter($allSessions, function($session) {
+     *     return $session->getContextType() === 'course_creation';
+     * });
+     * echo "Course creation sessions: " . count($courseSessions);
      */
     public function getUserSessions(int $userId, int $limit = 20, int $offset = 0): array
     {
@@ -465,6 +652,46 @@ class ConversationManager extends BaseService implements IConversationManager
 
     /**
      * Export session data for backup or transfer
+     * 
+     * @param string $sessionId Session ID to export
+     * @return array Complete session data for export
+     * @throws \Exception When session not found
+     * 
+     * @example
+     * // Export a session for backup
+     * $conversationManager = new ConversationManager();
+     * $exportData = $conversationManager->exportSession('mpcc_session_abc123');
+     * 
+     * // Save to file
+     * $filename = 'session_backup_' . date('Y-m-d_H-i-s') . '.json';
+     * file_put_contents($filename, json_encode($exportData, JSON_PRETTY_PRINT));
+     * echo "Session exported to: " . $filename;
+     * 
+     * @example
+     * // Export and analyze session data
+     * $exportData = $conversationManager->exportSession($sessionId);
+     * 
+     * echo "Export info:";
+     * echo "- Version: " . $exportData['export_version'];
+     * echo "- Session ID: " . $exportData['session_id'];
+     * echo "- User ID: " . $exportData['user_id'];
+     * echo "- Total messages: " . count($exportData['messages']);
+     * echo "- Progress: " . ($exportData['progress'] * 100) . "%";
+     * echo "- Tokens used: " . $exportData['total_tokens'];
+     * echo "- Total cost: $" . number_format($exportData['total_cost'], 4);
+     * 
+     * @example
+     * // Export for session migration
+     * try {
+     *     $exportData = $conversationManager->exportSession($oldSessionId);
+     *     
+     *     // Create new session from exported data
+     *     $newSession = $conversationManager->createSessionFromData($exportData);
+     *     echo "Session migrated: " . $newSession->getSessionId();
+     *     
+     * } catch (Exception $e) {
+     *     error_log('Session export failed: ' . $e->getMessage());
+     * }
      */
     public function exportSession(string $sessionId): array
     {

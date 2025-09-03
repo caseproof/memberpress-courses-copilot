@@ -118,49 +118,251 @@ interface IDatabaseService {
 
 ## Key Services
 
-### LLMService
-**File:** `Services/LLMService.php`
+### Core Services
 
-Communicates with the authentication gateway for AI operations:
-- Manages API requests to the auth gateway
-- Handles response parsing and error handling
-- Implements retry logic and timeouts
-- Routes requests to appropriate AI models
+#### LLMService
+**File:** `Services/LLMService.php`  
+**Interface:** `ILLMService`  
+**Singleton:** Yes
 
-### ConversationManager
-**File:** `Services/ConversationManager.php`
+Handles all communication with AI providers through authentication gateway.
 
-Handles all conversation-related operations:
-- Creates and manages conversation sessions
-- Persists conversations to database
-- Manages conversation state and history
-- Handles session lifecycle (create, load, save, delete)
+**Responsibilities:**
+- API requests to external authentication gateway
+- Response parsing and error handling
+- Retry logic and timeout management
+- AI model routing and configuration
+- Token management and validation
 
-### CourseGeneratorService
-**File:** `Services/CourseGeneratorService.php`
+**Key Methods:**
+```php
+public function sendMessage(string $message, array $conversationHistory = []): array
+public function generateCourse(array $courseData): array
+public function getModelCapabilities(): array
+public function validateConnection(): bool
+```
 
-Transforms AI-generated course structures into WordPress entities:
-- Creates course custom post types
-- Generates section hierarchies
-- Creates individual lessons with content
-- Manages course metadata and relationships
+**Dependencies:**
+- Authentication Gateway (external service)
+- Logger utility for request/response logging
 
-### LessonDraftService
-**File:** `Services/LessonDraftService.php`
+#### ConversationManager
+**File:** `Services/ConversationManager.php`  
+**Interface:** `IConversationManager`  
+**Singleton:** Yes
 
-Manages lesson content drafts before course creation:
-- Saves lesson content during preview editing
-- Maps drafts to course structure during creation
-- Handles draft cleanup after course creation
+Manages conversation sessions and state persistence.
 
-### CourseAjaxService & SimpleAjaxController
-**Files:** `Services/CourseAjaxService.php`, `Controllers/SimpleAjaxController.php`
+**Responsibilities:**
+- Session creation and lifecycle management
+- Conversation history persistence
+- State management across requests
+- Session cleanup and optimization
+- Multi-user session isolation
 
-Handle AJAX requests from the frontend:
-- Process chat messages
-- Manage conversation persistence
-- Handle course creation requests
-- Coordinate between services
+**Key Methods:**
+```php
+public function createSession(array $data): ConversationSession
+public function loadSession(string $sessionId): ?ConversationSession
+public function saveSession(ConversationSession $session): bool
+public function deleteSession(string $sessionId): bool
+public function getUserSessions(int $userId, int $limit = 10): array
+public function cleanupExpiredSessions(): int
+```
+
+**Dependencies:**
+- DatabaseService for persistence
+- Logger for operation tracking
+
+#### CourseGeneratorService
+**File:** `Services/CourseGeneratorService.php`  
+**Interface:** `ICourseGenerator`  
+**Singleton:** Yes
+
+Transforms AI-generated course structures into WordPress entities.
+
+**Responsibilities:**
+- WordPress course post creation
+- Section hierarchy generation
+- Lesson content creation and ordering
+- Course metadata management
+- MemberPress Courses integration
+- Draft to published workflow
+
+**Key Methods:**
+```php
+public function generateCourse(array $courseData): array
+public function validateCourseData(array $courseData): array
+public function generateSection(array $sectionData, int $courseId): int
+public function generateLesson(array $lessonData, int $sectionId): int
+public function updateCourseStructure(int $courseId, array $structure): bool
+```
+
+**Dependencies:**
+- Logger for operation tracking
+- WordPress post/meta APIs
+
+#### MpccQuizAIService
+**File:** `Services/MpccQuizAIService.php`  
+**Interface:** `IQuizAIService`  
+**Singleton:** Yes
+
+Specialized AI service for quiz generation and management.
+
+**Responsibilities:**
+- Quiz question generation from content
+- Multiple question type support
+- Content analysis and validation
+- Question quality assessment
+- Quiz structure optimization
+
+**Key Methods:**
+```php
+public function generateQuestions(string $content, array $options = []): array
+public function generateQuizFromLesson(int $lesson_id, array $options = []): array
+public function validateQuestions(array $questions): array
+public function regenerateQuestion(array $question, array $options = []): array
+public function getSupportedQuestionTypes(): array
+```
+
+**Dependencies:**
+- LLMService for AI communication
+- Logger for generation tracking
+
+### Support Services
+
+#### DatabaseService
+**File:** `Services/DatabaseService.php`  
+**Interface:** `IDatabaseService`  
+**Singleton:** Yes
+
+Provides database operations abstraction and custom table management.
+
+**Responsibilities:**
+- Custom table creation and management
+- CRUD operations with proper sanitization
+- Database schema versioning
+- Migration handling
+- Query optimization
+
+#### LessonDraftService
+**File:** `Services/LessonDraftService.php`  
+**Singleton:** Yes
+
+Manages lesson content drafts during course creation workflow.
+
+**Responsibilities:**
+- Draft content storage and retrieval
+- Session-based draft management
+- Draft to lesson conversion
+- Cleanup of unused drafts
+
+#### AssetManager
+**File:** `Services/AssetManager.php`  
+**Singleton:** Yes
+
+Handles asset loading and management across the plugin.
+
+**Responsibilities:**
+- Script and stylesheet registration
+- Conditional asset loading based on page context
+- Asset dependency management
+- Localization of JavaScript variables
+
+### Integration Services
+
+#### CourseIntegrationService
+**File:** `Services/CourseIntegrationService.php`  
+**Singleton:** Yes
+
+Integrates AI functionality into MemberPress Courses listing pages.
+
+**Responsibilities:**
+- "Create with AI" button injection
+- Modal interface management
+- Course listing page modifications
+- Context-aware AI integration
+
+#### EditorAIIntegrationService
+**File:** `Services/EditorAIIntegrationService.php`  
+**Singleton:** Yes
+
+Provides AI assistance within WordPress post editors.
+
+**Responsibilities:**
+- Metabox registration for courses and lessons
+- Editor-specific AI chat interface
+- Content improvement suggestions
+- Context-aware assistance
+
+#### CourseUIService
+**File:** `Services/CourseUIService.php`  
+**Singleton:** Yes
+
+Manages UI components and frontend integration.
+
+**Responsibilities:**
+- UI component rendering
+- Template loading and processing
+- Frontend state management
+- User interface consistency
+
+### Utility Services
+
+#### ContentGenerationService
+**File:** `Services/ContentGenerationService.php`  
+**Singleton:** Yes
+
+Handles various content generation tasks beyond courses.
+
+#### EnhancedTemplateEngine
+**File:** `Services/EnhancedTemplateEngine.php`  
+**Singleton:** Yes
+
+Provides template management for course creation.
+
+#### SessionFeaturesService
+**File:** `Services/SessionFeaturesService.php`  
+**Singleton:** Yes
+
+Manages advanced session features like auto-save and extension.
+
+### Controllers
+
+#### SimpleAjaxController
+**File:** `Controllers/SimpleAjaxController.php`  
+**Handles:** Course Editor Page endpoints
+
+**Registered Actions:**
+- `mpcc_chat_message` - Main chat interface
+- `mpcc_load_session` - Session loading
+- `mpcc_create_course` - Course creation
+- `mpcc_get_sessions` - Session listing
+- `mpcc_save_conversation` - Session persistence
+- `mpcc_save_lesson_content` - Lesson draft management
+- `mpcc_generate_lesson_content` - AI lesson generation
+
+#### MpccQuizAjaxController
+**File:** `Controllers/MpccQuizAjaxController.php`  
+**Handles:** Quiz-related endpoints
+
+**Registered Actions:**
+- `mpcc_generate_quiz` - Quiz question generation
+- `mpcc_create_quiz_from_lesson` - Quiz creation from lesson
+- `mpcc_regenerate_question` - Single question regeneration
+- `mpcc_validate_quiz` - Quiz validation
+- `mpcc_get_lesson_course` - Lesson course lookup
+- `mpcc_get_course_lessons` - Course lesson listing
+
+#### CourseAjaxService
+**File:** `Services/CourseAjaxService.php`  
+**Handles:** Course integration endpoints
+
+**Registered Actions:**
+- `mpcc_load_ai_interface` - AI modal loading
+- `mpcc_create_course_with_ai` - Modal course creation
+- `mpcc_ai_chat` - Modal chat interface
+- `mpcc_course_chat_message` - Course edit chat
 
 ## Data Models
 

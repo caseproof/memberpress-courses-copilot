@@ -4,6 +4,8 @@
 
 This document details the AJAX API endpoints for the Quiz AI integration feature.
 
+**Note:** For complete API documentation including all endpoints, detailed examples, and comprehensive error handling, see [API_REFERENCE.md](API_REFERENCE.md). This document focuses specifically on quiz-related endpoints.
+
 ## Endpoints
 
 ### Generate Quiz Questions

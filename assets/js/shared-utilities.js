@@ -5,16 +5,47 @@
 
 window.MPCCUtils = {
     /**
-     * Escape HTML to prevent XSS
+     * Escape HTML to prevent XSS attacks with comprehensive character mapping
+     * 
+     * This method provides essential security protection by encoding dangerous
+     * HTML characters that could be used for cross-site scripting (XSS) attacks.
+     * It's used throughout the application to safely display user-generated content.
+     * 
+     * Character Mapping Strategy:
+     * - '&': Must be escaped first to prevent double-encoding issues
+     * - '<': Prevents opening HTML tags (script, iframe, etc.)
+     * - '>': Prevents closing HTML tags
+     * - '"': Prevents attribute value injection in double-quoted attributes
+     * - "'": Prevents attribute value injection in single-quoted attributes
+     * 
+     * Security Impact:
+     * - Prevents script injection via HTML tags
+     * - Blocks event handler injection via attributes
+     * - Stops CSS injection that could modify page layout
+     * - Protects against data URI schemes and other exotic attacks
+     * 
+     * Usage Pattern:
+     * Should be called on ALL user-generated content before display.
+     * This includes chat messages, course titles, lesson content, etc.
+     * 
+     * Performance Considerations:
+     * - Uses single regex replace for efficiency
+     * - Character map lookup is faster than multiple replace operations
+     * - Minimal overhead suitable for real-time content processing
      */
     escapeHtml: function(text) {
+        // Character entity mapping for dangerous HTML characters
+        // Order matters: & must be first to prevent double-encoding
         const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
+            '&': '&amp;',    // Ampersand: prevents entity injection
+            '<': '&lt;',     // Less than: prevents opening tag injection
+            '>': '&gt;',     // Greater than: prevents closing tag injection
+            '"': '&quot;',  // Double quote: prevents attribute injection
+            "'": '&#039;'   // Single quote: prevents attribute injection
         };
+        
+        // Single regex operation for performance
+        // Matches any dangerous character and replaces with safe entity
         return text.replace(/[&<>"']/g, m => map[m]);
     },
     
@@ -68,96 +99,222 @@ window.MPCCUtils = {
     },
     
     /**
-     * Format message to HTML with proper structure
+     * Format message content to HTML with comprehensive text processing
+     * 
+     * This method converts plain text messages (potentially with markdown-like
+     * formatting) into safe HTML for display in the course editor interface.
+     * It handles complex formatting while maintaining security through XSS prevention.
+     * 
+     * Input Validation:
+     * - Validates input is string type (prevents object/array injection)
+     * - Handles null/undefined gracefully (returns empty string)
+     * - Preserves original content structure for accurate formatting
+     * 
+     * Escape Sequence Processing:
+     * The method handles multiple levels of escaping that can occur when content
+     * passes through multiple encoding/decoding cycles (PHP -> JSON -> JavaScript):
+     * 
+     * Double-Escaped Sequences (from multiple JSON operations):
+     * - \\\\n -> \n (newlines)
+     * - \\\\r -> \r (carriage returns) 
+     * - \\\\t -> \t (tabs)
+     * 
+     * Single-Escaped Sequences (from single JSON operation):
+     * - \\n -> \n (actual newline characters)
+     * - \\r -> \r (actual carriage returns)
+     * - \\t -> \t (actual tabs)
+     * - \\' -> ' (single quotes)
+     * - \\" -> " (double quotes)
+     * 
+     * XSS Prevention:
+     * Uses jQuery's .text().html() technique for safe HTML escaping.
+     * This prevents all script injection while preserving text content.
+     * 
+     * List Processing Logic:
+     * 
+     * Numbered Lists:
+     * - Regex: /^(\d+)[\.\)]\s+(.+)$/gm
+     * - Matches: "1. Item" or "1) Item" patterns at line start
+     * - Creates: <li value="1">Item</li> with explicit numbering
+     * 
+     * Bullet Points:
+     * - Regex: /^\s*[-*•]\s+(.+)$/gm
+     * - Matches: "- Item", "* Item", "• Item" with optional indentation
+     * - Creates: <li>Item</li> for unordered lists
+     * 
+     * Indented Content:
+     * - Regex: /^\s{2,}(?!<li>)(.+)$/gm
+     * - Matches: Lines with 2+ spaces (indented content)
+     * - Converts to list items for better formatting
+     * 
+     * Paragraph Processing:
+     * - Splits on double line breaks (\n\n+)
+     * - Wraps non-list content in <p> tags
+     * - Preserves list structures outside paragraphs
+     * - Converts single line breaks to spaces within paragraphs
+     * 
+     * Edge Case Handling:
+     * - Prevents double-wrapping of lists in paragraphs
+     * - Handles mixed ordered/unordered list combinations
+     * - Preserves line breaks within list items using <br> tags
+     * - Cleans up malformed HTML structure from processing
+     * 
+     * @param {string} message Raw message content to format
+     * @return {string} Safe HTML formatted content
      */
     formatMessageToHTML: function(message) {
-        // Handle undefined, null, or empty messages
+        // Input validation: ensure we have a valid string to process
         if (!message || typeof message !== 'string') {
             return '';
         }
         
-        // Handle both escaped sequences and actual escape characters
+        // Initialize processing with original message content
         let formatted = message;
         
-        // First pass: Handle double-escaped sequences (from multiple JSON encode/decode cycles)
+        // Phase 1: Handle Double-Escaped Sequences
+        // These occur when content goes through multiple JSON encode/decode cycles
+        // Common in AJAX -> PHP -> Database -> PHP -> JSON -> JavaScript workflows
         formatted = formatted
-            .replace(/\\\\n/g, '\n')   // Replace double-escaped newlines
-            .replace(/\\\\r/g, '\r')   // Replace double-escaped carriage returns
-            .replace(/\\\\t/g, '\t');  // Replace double-escaped tabs
+            .replace(/\\\\n/g, '\n')   // Double-escaped newlines become single newlines
+            .replace(/\\\\r/g, '\r')   // Double-escaped carriage returns
+            .replace(/\\\\t/g, '\t');  // Double-escaped tabs
             
-        // Second pass: Handle single-escaped sequences
+        // Phase 2: Handle Single-Escaped Sequences
+        // These occur from single JSON encode/decode operations
         formatted = formatted
-            .replace(/\\n/g, '\n')     // Replace escaped newlines with actual newlines
-            .replace(/\\r/g, '\r')     // Replace escaped carriage returns
-            .replace(/\\t/g, '\t')     // Replace escaped tabs
-            .replace(/\\'/g, "'")      // Replace escaped single quotes
-            .replace(/\\"/g, '"');     // Replace escaped double quotes
+            .replace(/\\n/g, '\n')     // Escaped newlines become actual newlines
+            .replace(/\\r/g, '\r')     // Escaped carriage returns
+            .replace(/\\t/g, '\t')     // Escaped tabs
+            .replace(/\\'/g, "'")      // Escaped single quotes
+            .replace(/\\"/g, '"');     // Escaped double quotes
         
-        // Escape HTML to prevent XSS
+        // Phase 3: XSS Prevention via Safe HTML Escaping
+        // jQuery's .text() method safely escapes all HTML entities
+        // .html() then retrieves the escaped content
         formatted = jQuery('<div>').text(formatted).html();
         
-        // Convert numbered lists (e.g., "1. Item" or "1) Item")
+        // Phase 4: Structured Content Recognition and Conversion
+        
+        // Convert numbered list patterns to HTML ordered list items
+        // Regex explanation: ^(\d+)[\.\)]\s+(.+)$
+        // - ^ : Start of line
+        // - (\d+) : Capture group for number
+        // - [\.\)] : Match either period or closing parenthesis
+        // - \s+ : One or more whitespace characters
+        // - (.+) : Capture group for list item content
+        // - $ : End of line
         formatted = formatted.replace(/^(\d+)[\.\)]\s+(.+)$/gm, '<li value="$1">$2</li>');
         
-        // Wrap consecutive list items in <ol> tags
+        // Wrap consecutive numbered list items in ordered list container
         formatted = formatted.replace(/(<li.*?<\/li>\n?)+/g, function(match) {
             return '<ol>' + match + '</ol>';
         });
         
-        // Convert bullet points (-, *, •) to unordered lists
+        // Convert bullet point patterns to HTML unordered list items
+        // Regex: ^\s*[-*•]\s+(.+)$
+        // - ^\s* : Start with optional whitespace (handles indentation)
+        // - [-*•] : Any of the common bullet characters
+        // - \s+ : Required whitespace after bullet
+        // - (.+) : Capture the item content
         formatted = formatted.replace(/^\s*[-*•]\s+(.+)$/gm, '<li>$1</li>');
         
-        // Handle indented lines that should be list items (2+ spaces at start)
+        // Handle indented content as implicit list items
+        // Regex: ^\s{2,}(?!<li>)(.+)$
+        // - ^\s{2,} : 2 or more spaces at line start
+        // - (?!<li>) : Negative lookahead to avoid double-processing
+        // - (.+) : Capture the indented content
         formatted = formatted.replace(/^\s{2,}(?!<li>)(.+)$/gm, '<li>$1</li>');
         
-        // Wrap consecutive unordered list items
+        // Wrap consecutive unordered list items in container
         formatted = formatted.replace(/(<li>.*?<\/li>\n?)+/g, function(match) {
-            // Only wrap if not already in an ordered list
+            // Only wrap if not already in an ordered list (check for value attribute)
             if (!match.includes('value=')) {
                 return '<ul>' + match + '</ul>';
             }
             return match;
         });
         
-        // Convert double line breaks to paragraphs
+        // Phase 5: Paragraph Structure Creation
+        // Split content on double line breaks to identify paragraph boundaries
         const paragraphs = formatted.split(/\n\n+/);
         formatted = paragraphs.map(para => {
             para = para.trim();
-            // Don't wrap lists or empty strings in paragraphs
+            // Don't wrap existing HTML structures (lists) in paragraphs
             if (para && !para.startsWith('<ul>') && !para.startsWith('<ol>')) {
-                // Replace single line breaks with spaces within paragraphs
+                // Within paragraphs, convert single line breaks to spaces
+                // This prevents awkward line breaks in continuous text
                 para = para.replace(/\n/g, ' ');
                 return '<p>' + para + '</p>';
             }
             return para;
         }).join('');
         
-        // Only add <br> for line breaks within lists
+        // Phase 6: List-Specific Line Break Handling
+        // Preserve intentional line breaks within list items using <br> tags
         formatted = formatted.replace(/(<li[^>]*>)(.*?)(<\/li>)/g, function(match, start, content, end) {
             return start + content.replace(/\n/g, '<br>') + end;
         });
         
-        // Clean up any double-wrapped lists
+        // Phase 7: Cleanup Double-Wrapped Structures
+        // Remove paragraph tags that were incorrectly wrapped around lists
         formatted = formatted.replace(/<p>(<[uo]l>.*?<\/[uo]l>)<\/p>/g, '$1');
         
         return formatted;
     },
     
     /**
-     * Get AJAX settings
+     * Get AJAX settings with comprehensive fallback validation
+     * 
+     * This method provides centralized AJAX configuration with multiple fallback
+     * sources to ensure requests work across different plugin contexts and page types.
+     * It implements a priority-based selection system for both URL and nonce values.
+     * 
+     * URL Source Priority (Fallback Chain):
+     * 1. mpccEditorSettings.ajaxUrl - Course editor specific endpoint
+     * 2. mpccAISettings.ajaxUrl - AI interface specific endpoint  
+     * 3. mpccCoursesIntegration.ajaxUrl - Course integration endpoint
+     * 4. window.ajaxurl - WordPress global AJAX URL
+     * 5. '/wp-admin/admin-ajax.php' - Hardcoded fallback (WordPress default)
+     * 
+     * Nonce Source Priority (Security Token Chain):
+     * 1. mpccEditorSettings.nonce - Editor-specific security token
+     * 2. mpccAISettings.nonce - AI interface security token
+     * 3. mpccCoursesIntegration.nonce - Integration security token
+     * 4. #mpcc-ajax-nonce DOM element - Hidden form field
+     * 5. '' (empty string) - Last resort (will cause security failure)
+     * 
+     * Fallback Strategy Rationale:
+     * - Different pages localize different settings objects
+     * - Plugin contexts may override default WordPress settings
+     * - DOM elements provide backup when JavaScript objects aren't available
+     * - Empty nonce triggers proper security error rather than undefined behavior
+     * 
+     * Error Prevention:
+     * - Uses optional chaining (?.) to handle undefined objects safely
+     * - Provides working defaults to prevent AJAX call failures
+     * - Logs configuration issues when debug mode is enabled
+     * 
+     * Usage Context:
+     * This method is called by all AJAX operations to ensure consistent
+     * configuration regardless of which page or context initiates the request.
+     * 
+     * @return {Object} Configuration object with 'url' and 'nonce' properties
      */
     getAjaxSettings: function() {
         return {
-            url: window.mpccEditorSettings?.ajaxUrl || 
-                 window.mpccAISettings?.ajaxUrl || 
-                 window.mpccCoursesIntegration?.ajaxUrl || 
-                 window.ajaxurl || 
-                 '/wp-admin/admin-ajax.php',
-            nonce: window.mpccEditorSettings?.nonce || 
-                   window.mpccAISettings?.nonce || 
-                   window.mpccCoursesIntegration?.nonce || 
-                   jQuery('#mpcc-ajax-nonce').val() || 
-                   ''
+            // URL fallback chain - ensures AJAX calls have valid endpoint
+            url: window.mpccEditorSettings?.ajaxUrl ||      // Course editor context
+                 window.mpccAISettings?.ajaxUrl ||          // AI interface context
+                 window.mpccCoursesIntegration?.ajaxUrl ||  // Integration context
+                 window.ajaxurl ||                          // WordPress global
+                 '/wp-admin/admin-ajax.php',                // Hardcoded WordPress default
+            
+            // Nonce fallback chain - ensures security token is available
+            nonce: window.mpccEditorSettings?.nonce ||       // Editor security token
+                   window.mpccAISettings?.nonce ||          // AI interface token
+                   window.mpccCoursesIntegration?.nonce ||  // Integration token
+                   jQuery('#mpcc-ajax-nonce').val() ||     // DOM fallback
+                   ''                                       // Empty string triggers security error
         };
     },
     

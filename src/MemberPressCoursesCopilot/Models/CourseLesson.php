@@ -34,35 +34,90 @@ class CourseLesson
     }
 
     /**
-     * Validate lesson data
+     * Comprehensive lesson data validation with business rule enforcement
+     * 
+     * This method validates all lesson properties to ensure data integrity
+     * and compliance with business rules before lesson creation or updates.
+     * It checks both required fields and field-specific constraints.
+     * 
+     * Validation Categories:
+     * 
+     * Title Validation:
+     * - Required field: Every lesson must have an identifying title
+     * - Length constraint: 255 characters max (WordPress post_title limit)
+     * - Content validation: Must contain actual text (not just whitespace)
+     * - trim() removes leading/trailing whitespace before validation
+     * 
+     * Duration Validation:
+     * - Optional field: null values are allowed (lessons may not have set duration)
+     * - Positive constraint: Duration must be >= 0 if specified
+     * - Business rule: Negative durations don't make pedagogical sense
+     * - Supports both integer and float values for precise timing
+     * 
+     * Order Validation:
+     * - Sequence constraint: Must be non-negative integer
+     * - Business rule: Lesson order determines display sequence in course
+     * - Zero is valid (allows flexible ordering schemes)
+     * - Negative values would break sorting algorithms
+     * 
+     * Objectives Validation:
+     * - Array element validation: Each objective must be valid string
+     * - Content validation: Objectives cannot be empty or whitespace-only
+     * - Type safety: Ensures objectives are strings (not numbers or objects)
+     * - Educational standard: Learning objectives must be meaningful text
+     * 
+     * Error Reporting:
+     * - Descriptive messages for user-facing display
+     * - Specific field identification for form validation
+     * - Index-based error reporting for array fields
+     * - Aggregated error collection for batch validation
+     * 
+     * Business Rule Enforcement:
+     * - Ensures lessons meet minimum quality standards
+     * - Prevents creation of invalid course content
+     * - Maintains database integrity constraints
+     * - Supports educational best practices
+     * 
+     * @return array Array of validation error messages (empty if valid)
      */
     public function validate(): array
     {
         $errors = [];
 
+        // Title Validation: Essential for lesson identification and navigation
         if (empty(trim($this->title))) {
+            // trim() ensures whitespace-only titles are caught as invalid
             $errors[] = 'Lesson title is required';
         }
 
+        // Title Length Validation: WordPress database constraint
         if (strlen($this->title) > 255) {
+            // WordPress post_title field has 255 character limit
             $errors[] = 'Lesson title must be 255 characters or less';
         }
 
+        // Duration Validation: Optional but must be valid if provided
         if ($this->duration !== null && $this->duration < 0) {
+            // Negative durations are logically invalid for educational content
             $errors[] = 'Duration must be a positive number';
         }
 
+        // Order Validation: Sequence positioning constraint
         if ($this->order < 0) {
+            // Negative order values break lesson sequencing logic
             $errors[] = 'Order must be a positive number';
         }
 
-        // Validate objectives format
+        // Objectives Array Validation: Learning objectives quality control
         foreach ($this->objectives as $index => $objective) {
+            // Each objective must be a meaningful string
             if (!is_string($objective) || empty(trim($objective))) {
+                // Index-based error for specific objective identification
                 $errors[] = "Objective {$index} must be a non-empty string";
             }
         }
 
+        // Return all validation errors found (empty array indicates valid lesson)
         return $errors;
     }
 
