@@ -11,7 +11,7 @@ use MemberPressCoursesCopilot\Plugin;
  * This is a helper function for backward compatibility
  * It provides easy access to services from anywhere in the codebase
  *
- * @param string $service Service class name or alias
+ * @param  string $service Service class name or alias
  * @return object
  * @throws Exception If service not found
  */
@@ -35,8 +35,8 @@ function mpcc_container(): Container
 /**
  * Check if a service is registered in the container
  *
- * @param string $service Service class name or alias
- * @return bool
+ * @param  string $service Service class name or alias
+ * @return boolean
  */
 function mpcc_has_service(string $service): bool
 {

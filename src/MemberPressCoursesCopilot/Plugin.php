@@ -9,11 +9,11 @@ use MemberPressCoursesCopilot\Container\ServiceProvider;
 
 /**
  * Main Plugin class
- * 
+ *
  * Singleton pattern implementation for the MemberPress Courses Copilot plugin
- * 
+ *
  * @package MemberPressCoursesCopilot
- * @since 1.0.0
+ * @since   1.0.0
  */
 final class Plugin
 {
@@ -86,24 +86,24 @@ final class Plugin
         // Initialize AssetManager early so assets are registered before enqueuing
         $asset_manager = $this->container->get(\MemberPressCoursesCopilot\Services\AssetManager::class);
         $asset_manager->init();
-        
+
         // Initialize EditorAIIntegrationService early to register hooks before they fire
         $editor_ai_integration = $this->container->get(\MemberPressCoursesCopilot\Services\EditorAIIntegrationService::class);
         $editor_ai_integration->init();
-        
+
         // Initialize Quiz AJAX controller early for AJAX hooks
         $quiz_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\MpccQuizAjaxController::class);
         $quiz_ajax_controller->init();
-        
+
         // Hook into WordPress initialization
         add_action('init', [$this, 'initializeComponents']);
         add_action('admin_menu', [$this, 'initializeAdmin']); // Changed from admin_init to admin_menu
         add_action('wp_enqueue_scripts', [$this, 'enqueueScripts']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminScripts']);
-        
+
         // Add plugin action links
         add_filter('plugin_action_links_' . MEMBERPRESS_COURSES_COPILOT_PLUGIN_BASENAME, [$this, 'addActionLinks']);
-        
+
         // Show activation notice
         add_action('admin_notices', [$this, 'showActivationNotice']);
     }
@@ -136,17 +136,17 @@ final class Plugin
     public function initializeComponents(): void
     {
         // Get services from container
-        $simple_ajax_controller = $this->container->get(\MemberPressCoursesCopilot\Controllers\SimpleAjaxController::class);
+        $simple_ajax_controller     = $this->container->get(\MemberPressCoursesCopilot\Controllers\SimpleAjaxController::class);
         $course_integration_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseIntegrationService::class);
-        $course_ajax_service = $this->container->get(\MemberPressCoursesCopilot\Services\CourseAjaxService::class);
-        
+        $course_ajax_service        = $this->container->get(\MemberPressCoursesCopilot\Services\CourseAjaxService::class);
+
         // Initialize services
         $simple_ajax_controller->init();
         $course_integration_service->init();
         $course_ajax_service->init();
         // Quiz AJAX controller is already initialized early in init() method
         // Note: EditorAIIntegrationService is initialized early in init() method
-        
+
         /**
          * Fires after plugin components are initialized
          *
@@ -167,16 +167,16 @@ final class Plugin
         }
 
         // Get services from container
-        $settings_page = $this->container->get(\MemberPressCoursesCopilot\Admin\SettingsPage::class);
-        $admin_menu = $this->container->get(\MemberPressCoursesCopilot\Admin\AdminMenu::class);
+        $settings_page      = $this->container->get(\MemberPressCoursesCopilot\Admin\SettingsPage::class);
+        $admin_menu         = $this->container->get(\MemberPressCoursesCopilot\Admin\AdminMenu::class);
         $course_editor_page = $this->container->get(\MemberPressCoursesCopilot\Admin\CourseEditorPage::class);
-        
+
         // Initialize services
         $settings_page->init();
         $admin_menu->init();
         $course_editor_page->init();
         $course_editor_page->addMenuPage(); // Register the menu page
-        
+
         /**
          * Fires after admin components are initialized
          *
@@ -198,7 +198,7 @@ final class Plugin
     /**
      * Enqueue admin scripts and styles
      *
-     * @param string $hook_suffix Current admin page hook suffix
+     * @param  string $hook_suffix Current admin page hook suffix
      * @return void
      */
     public function enqueueAdminScripts(string $hook_suffix): void
@@ -209,13 +209,13 @@ final class Plugin
     /**
      * Add plugin action links
      *
-     * @param array<string> $links Existing action links
+     * @param  array<string> $links Existing action links
      * @return array<string> Modified action links
      */
     public function addActionLinks(array $links): array
     {
         $plugin_links = [
-            '<a href="' . esc_url(admin_url('admin.php?page=memberpress-courses-copilot')) . '">' . 
+            '<a href="' . esc_url(admin_url('admin.php?page=memberpress-courses-copilot')) . '">' .
             esc_html__('Settings', 'memberpress-courses-copilot') . '</a>',
         ];
 
@@ -233,9 +233,9 @@ final class Plugin
             return;
         }
 
-        $class = 'notice notice-success is-dismissible';
+        $class   = 'notice notice-success is-dismissible';
         $message = sprintf(
-            /* translators: %s: plugin name */
+            // translators: %s: plugin name
             esc_html__('%s has been activated successfully!', 'memberpress-courses-copilot'),
             '<strong>' . esc_html__('MemberPress Courses Copilot', 'memberpress-courses-copilot') . '</strong>'
         );
@@ -279,7 +279,7 @@ final class Plugin
     /**
      * Check if MemberPress version meets minimum requirements
      *
-     * @return bool
+     * @return boolean
      */
     public function isMemberPressVersionSupported(): bool
     {
@@ -293,7 +293,7 @@ final class Plugin
     /**
      * Check if MemberPress Courses version meets minimum requirements
      *
-     * @return bool
+     * @return boolean
      */
     public function isCoursesVersionSupported(): bool
     {

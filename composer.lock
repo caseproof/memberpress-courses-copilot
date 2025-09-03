@@ -4,9 +4,73 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "246683b3280cd487573e33ed2d134831",
+    "content-hash": "86a3c9a7d5e19bb631d1d71957f0c8bd",
     "packages": [],
     "packages-dev": [
+        {
+            "name": "caseproof/coding-standards-php",
+            "version": "0.7.2",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:caseproof/coding-standards-php.git",
+                "reference": "6195b1cf45cbfdc5abb74de0c6776706876fdefb"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/caseproof/coding-standards-php/zipball/6195b1cf45cbfdc5abb74de0c6776706876fdefb",
+                "reference": "6195b1cf45cbfdc5abb74de0c6776706876fdefb",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "phpcompatibility/php-compatibility": "^9.3",
+                "squizlabs/php_codesniffer": "^3.7",
+                "wp-coding-standards/wpcs": "^3.1.0"
+            },
+            "type": "phpcodesniffer-standard",
+            "scripts": {
+                "docgen": [
+                    "./bin/cspf-cs-docgen.php"
+                ],
+                "docgen:all": [
+                    "@docgen Caseproof-Standard",
+                    "@docgen Caseproof-WP-Standard",
+                    "@docgen Caseproof-WP-Legacy-Standard",
+                    "@docgen Caseproof-WishList-Member",
+                    "@docgen Caseproof-MemberMouse",
+                    "@docgen Caseproof-AccessAlly"
+                ],
+                "cs-check": [
+                    "./vendor/bin/phpcs"
+                ],
+                "ch-check-errors": [
+                    "@cs-check --error-severity=1 --warning-severity=6"
+                ],
+                "cs-fix": [
+                    "./vendor/bin/phpcbf"
+                ]
+            },
+            "license": [
+                "GPL-3.0"
+            ],
+            "authors": [
+                {
+                    "name": "Team Caseproof",
+                    "email": "development@caseproof.com"
+                }
+            ],
+            "description": "Caseproof PHP Coding Standards",
+            "keywords": [
+                "phpcs",
+                "standards",
+                "static analysis"
+            ],
+            "support": {
+                "source": "https://github.com/caseproof/coding-standards-php/tree/0.7.2",
+                "issues": "https://github.com/caseproof/coding-standards-php/issues"
+            },
+            "time": "2025-07-18T12:11:20+00:00"
+        },
         {
             "name": "dealerdirect/phpcodesniffer-composer-installer",
             "version": "v1.1.2",
@@ -1114,16 +1178,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "9.6.24",
+            "version": "9.6.25",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "ea49afa29aeea25ea7bf9de9fdd7cab163cc0701"
+                "reference": "049c011e01be805202d8eebedef49f769a8ec7b7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/ea49afa29aeea25ea7bf9de9fdd7cab163cc0701",
-                "reference": "ea49afa29aeea25ea7bf9de9fdd7cab163cc0701",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/049c011e01be805202d8eebedef49f769a8ec7b7",
+                "reference": "049c011e01be805202d8eebedef49f769a8ec7b7",
                 "shasum": ""
             },
             "require": {
@@ -1197,7 +1261,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/9.6.24"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/9.6.25"
             },
             "funding": [
                 {
@@ -1221,7 +1285,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-08-10T08:32:42+00:00"
+            "time": "2025-08-20T14:38:31+00:00"
         },
         {
             "name": "sebastian/cli-parser",

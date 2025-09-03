@@ -22,24 +22,8 @@
     <arg name="extensions" value="php"/>
     <arg name="parallel" value="8"/>
 
-    <!-- Use WordPress Coding Standards as base following Caseproof guidelines -->
-    <rule ref="WordPress">
-        <!-- Allow camelCase for class methods per our coding guidelines -->
-        <exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
-        <!-- Allow short array syntax per Caseproof standard -->
-        <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
-    </rule>
-    
-    <!-- Additional WordPress rules -->
-    <rule ref="WordPress-Extra"/>
-    <rule ref="WordPress-Docs"/>
-    
-    <!-- PSR compliance per Caseproof standard -->
-    <rule ref="PSR12"/>
-    
-    <!-- PHP compatibility -->
-    <rule ref="PHPCompatibilityWP"/>
-    <config name="testVersion" value="8.0-"/>
+    <!-- Use the official Caseproof-WP-Standard ruleset -->
+    <rule ref="Caseproof-WP-Standard"/>
 
     <!-- Text domain -->
     <rule ref="WordPress.WP.I18n">
@@ -65,11 +49,5 @@
         <properties>
             <property name="additionalWordDelimiters" value="-_"/>
         </properties>
-    </rule>
-
-
-    <!-- Custom overrides for this plugin -->
-    <rule ref="WordPress.PHP.YodaConditions">
-        <severity>0</severity>
     </rule>
 </ruleset>

@@ -4,7 +4,7 @@ namespace MemberPressCoursesCopilot\Models;
 
 /**
  * Conversation Session Model
- * 
+ *
  * Represents a conversation session with comprehensive state management,
  * context tracking, message history, progress calculation, and recovery mechanisms.
  * Supports auto-save functionality, session timeout management, and collaborative editing.
@@ -15,47 +15,47 @@ class ConversationSession
     private int $userId;
     private string $contextType;
     private ?int $databaseId = null;
-    private string $title = '';
-    
+    private string $title    = '';
+
     // Session state management
-    private string $currentState = 'initial';
-    private array $stateHistory = [];
+    private string $currentState     = 'initial';
+    private array $stateHistory      = [];
     private ?string $pausedFromState = null;
-    private bool $isActive = true;
-    
+    private bool $isActive           = true;
+
     // Context and data
-    private array $context = [];
+    private array $context  = [];
     private array $metadata = [];
     private array $messages = [];
-    
+
     // Progress tracking
-    private float $progress = 0.0;
+    private float $progress        = 0.0;
     private float $confidenceScore = 0.0;
-    
+
     // Timing and persistence
     private int $createdAt;
     private int $lastUpdated;
-    private int $lastSaved = 0;
-    private int $lastAutoSave = 0;
+    private int $lastSaved          = 0;
+    private int $lastAutoSave       = 0;
     private bool $hasUnsavedChanges = false;
-    
+
     // Resource tracking
     private int $totalTokens = 0;
     private float $totalCost = 0.0;
-    
+
     // Session configuration
     private const MAX_MESSAGE_HISTORY = 1000;
-    private const AUTO_SAVE_INTERVAL = 30; // seconds
-    private const MAX_STATE_HISTORY = 50;
+    private const AUTO_SAVE_INTERVAL  = 30; // seconds
+    private const MAX_STATE_HISTORY   = 50;
 
     public function __construct(string $sessionId, int $userId, string $contextType = 'course_creation')
     {
-        $this->sessionId = $sessionId;
-        $this->userId = $userId;
+        $this->sessionId   = $sessionId;
+        $this->userId      = $userId;
         $this->contextType = $contextType;
-        $this->createdAt = time();
+        $this->createdAt   = time();
         $this->lastUpdated = time();
-        $this->title = 'Course Creation Session - ' . date('Y-m-d H:i:s');
+        $this->title       = 'Course Creation Session - ' . date('Y-m-d H:i:s');
     }
 
     /**
@@ -64,28 +64,28 @@ class ConversationSession
     public function addMessage(string $type, string $content, array $metadata = []): void
     {
         $message = [
-            'id' => 'msg_' . wp_generate_uuid4(),
-            'type' => $type, // 'user', 'assistant', 'system'
-            'content' => $content,
-            'metadata' => $metadata,
+            'id'        => 'msg_' . wp_generate_uuid4(),
+            'type'      => $type, // 'user', 'assistant', 'system'
+            'content'   => $content,
+            'metadata'  => $metadata,
             'timestamp' => time(),
-            'state' => $this->currentState
+            'state'     => $this->currentState,
         ];
-        
+
         $this->messages[] = $message;
-        
+
         // Trim message history if it gets too long
         if (count($this->messages) > self::MAX_MESSAGE_HISTORY) {
             $this->messages = array_slice($this->messages, -self::MAX_MESSAGE_HISTORY);
         }
-        
+
         $this->markAsModified();
-        
+
         // Track tokens if provided in metadata
         if (isset($metadata['tokens_used'])) {
             $this->totalTokens += $metadata['tokens_used'];
         }
-        
+
         if (isset($metadata['cost'])) {
             $this->totalCost += $metadata['cost'];
         }
@@ -132,7 +132,7 @@ class ConversationSession
         if ($state !== $this->currentState) {
             $this->currentState = $state;
             $this->markAsModified();
-            
+
             // Auto-update progress based on state
             $this->updateProgressFromState($state);
         }
@@ -152,20 +152,20 @@ class ConversationSession
     public function saveStateToHistory(string $state, array $transitionData = []): void
     {
         $historyItem = [
-            'state' => $state,
-            'timestamp' => time(),
-            'context' => $this->context,
+            'state'           => $state,
+            'timestamp'       => time(),
+            'context'         => $this->context,
             'transition_data' => $transitionData,
-            'progress' => $this->progress
+            'progress'        => $this->progress,
         ];
-        
+
         $this->stateHistory[] = $historyItem;
-        
+
         // Trim state history if it gets too long
         if (count($this->stateHistory) > self::MAX_STATE_HISTORY) {
             $this->stateHistory = array_slice($this->stateHistory, -self::MAX_STATE_HISTORY);
         }
-        
+
         $this->markAsModified();
     }
 
@@ -198,7 +198,7 @@ class ConversationSession
             // Setting individual key-value pair
             $this->context[$key] = $value;
         }
-        
+
         $this->markAsModified();
     }
 
@@ -210,7 +210,7 @@ class ConversationSession
         if ($key === null) {
             return $this->context;
         }
-        
+
         return $this->context[$key] ?? $default;
     }
 
@@ -264,11 +264,11 @@ class ConversationSession
     public function pause(string $reason = ''): void
     {
         $this->pausedFromState = $this->currentState;
-        $this->isActive = false;
-        
+        $this->isActive        = false;
+
         $this->addMessage('system', 'Conversation paused', [
-            'reason' => $reason,
-            'paused_from_state' => $this->pausedFromState
+            'reason'            => $reason,
+            'paused_from_state' => $this->pausedFromState,
         ]);
     }
 
@@ -278,13 +278,13 @@ class ConversationSession
     public function resume(): void
     {
         $this->isActive = true;
-        
+
         $this->addMessage('system', 'Conversation resumed', [
-            'resumed_to_state' => $this->pausedFromState ?? $this->currentState
+            'resumed_to_state' => $this->pausedFromState ?? $this->currentState,
         ]);
-        
+
         if ($this->pausedFromState) {
-            $this->currentState = $this->pausedFromState;
+            $this->currentState    = $this->pausedFromState;
             $this->pausedFromState = null;
         }
     }
@@ -296,7 +296,7 @@ class ConversationSession
     {
         $this->isActive = false;
         $this->progress = 100.0;
-        
+
         $this->addMessage('system', 'Conversation completed', $completionData);
         $this->setMetadata('completed_at', time());
         $this->setMetadata('completion_data', $completionData);
@@ -308,7 +308,7 @@ class ConversationSession
     public function abandon(string $reason = ''): void
     {
         $this->isActive = false;
-        
+
         $this->addMessage('system', 'Conversation abandoned', ['reason' => $reason]);
         $this->setMetadata('abandoned_at', time());
         $this->setMetadata('abandon_reason', $reason);
@@ -347,7 +347,7 @@ class ConversationSession
         if ($this->isActive) {
             return 0;
         }
-        
+
         // Find the last pause message
         $pauseMessage = null;
         foreach (array_reverse($this->messages) as $message) {
@@ -356,7 +356,7 @@ class ConversationSession
                 break;
             }
         }
-        
+
         return $pauseMessage ? (time() - $pauseMessage['timestamp']) : 0;
     }
 
@@ -403,7 +403,7 @@ class ConversationSession
         if ($key === null) {
             return $this->metadata;
         }
-        
+
         return $this->metadata[$key] ?? null;
     }
 
@@ -422,8 +422,8 @@ class ConversationSession
     public function markAsSaved(): void
     {
         $this->hasUnsavedChanges = false;
-        $this->lastSaved = time();
-        $this->lastAutoSave = time();
+        $this->lastSaved         = time();
+        $this->lastAutoSave      = time();
     }
 
     /**
@@ -432,7 +432,7 @@ class ConversationSession
     public function markAsModified(): void
     {
         $this->hasUnsavedChanges = true;
-        $this->lastUpdated = time();
+        $this->lastUpdated       = time();
     }
 
     /**
@@ -511,27 +511,27 @@ class ConversationSession
      */
     public function getStatistics(): array
     {
-        $userMessages = $this->getMessagesByType('user');
+        $userMessages      = $this->getMessagesByType('user');
         $assistantMessages = $this->getMessagesByType('assistant');
-        $systemMessages = $this->getMessagesByType('system');
-        
-        $duration = $this->lastUpdated - $this->createdAt;
+        $systemMessages    = $this->getMessagesByType('system');
+
+        $duration        = $this->lastUpdated - $this->createdAt;
         $avgResponseTime = count($assistantMessages) > 0 ? $duration / count($assistantMessages) : 0;
-        
+
         return [
-            'total_messages' => count($this->messages),
-            'user_messages' => count($userMessages),
-            'assistant_messages' => count($assistantMessages),
-            'system_messages' => count($systemMessages),
-            'duration_seconds' => $duration,
+            'total_messages'        => count($this->messages),
+            'user_messages'         => count($userMessages),
+            'assistant_messages'    => count($assistantMessages),
+            'system_messages'       => count($systemMessages),
+            'duration_seconds'      => $duration,
             'average_response_time' => $avgResponseTime,
-            'state_transitions' => count($this->stateHistory),
-            'progress_percentage' => $this->progress,
-            'confidence_score' => $this->confidenceScore,
-            'total_tokens' => $this->totalTokens,
-            'total_cost' => $this->totalCost,
-            'is_active' => $this->isActive,
-            'has_unsaved_changes' => $this->hasUnsavedChanges
+            'state_transitions'     => count($this->stateHistory),
+            'progress_percentage'   => $this->progress,
+            'confidence_score'      => $this->confidenceScore,
+            'total_tokens'          => $this->totalTokens,
+            'total_cost'            => $this->totalCost,
+            'is_active'             => $this->isActive,
+            'has_unsaved_changes'   => $this->hasUnsavedChanges,
         ];
     }
 
@@ -541,27 +541,27 @@ class ConversationSession
     public function toArray(): array
     {
         return [
-            'session_id' => $this->sessionId,
-            'user_id' => $this->userId,
-            'context_type' => $this->contextType,
-            'database_id' => $this->databaseId,
-            'title' => $this->title,
-            'current_state' => $this->currentState,
-            'state_history' => $this->stateHistory,
-            'paused_from_state' => $this->pausedFromState,
-            'is_active' => $this->isActive,
-            'context' => $this->context,
-            'metadata' => $this->metadata,
-            'messages' => $this->messages,
-            'progress' => $this->progress,
-            'confidence_score' => $this->confidenceScore,
-            'created_at' => $this->createdAt,
-            'last_updated' => $this->lastUpdated,
-            'last_saved' => $this->lastSaved,
+            'session_id'          => $this->sessionId,
+            'user_id'             => $this->userId,
+            'context_type'        => $this->contextType,
+            'database_id'         => $this->databaseId,
+            'title'               => $this->title,
+            'current_state'       => $this->currentState,
+            'state_history'       => $this->stateHistory,
+            'paused_from_state'   => $this->pausedFromState,
+            'is_active'           => $this->isActive,
+            'context'             => $this->context,
+            'metadata'            => $this->metadata,
+            'messages'            => $this->messages,
+            'progress'            => $this->progress,
+            'confidence_score'    => $this->confidenceScore,
+            'created_at'          => $this->createdAt,
+            'last_updated'        => $this->lastUpdated,
+            'last_saved'          => $this->lastSaved,
             'has_unsaved_changes' => $this->hasUnsavedChanges,
-            'total_tokens' => $this->totalTokens,
-            'total_cost' => $this->totalCost,
-            'statistics' => $this->getStatistics()
+            'total_tokens'        => $this->totalTokens,
+            'total_cost'          => $this->totalCost,
+            'statistics'          => $this->getStatistics(),
         ];
     }
 
@@ -571,34 +571,33 @@ class ConversationSession
     public static function fromArray(array $data): self
     {
         $session = new self($data['session_id'], $data['user_id'], $data['context_type'] ?? 'course_creation');
-        
-        $session->databaseId = $data['database_id'] ?? null;
-        $session->title = $data['title'] ?? '';
-        $session->currentState = $data['current_state'] ?? 'initial';
-        $session->stateHistory = $data['state_history'] ?? [];
-        $session->pausedFromState = $data['paused_from_state'] ?? null;
-        $session->isActive = $data['is_active'] ?? true;
-        $session->context = $data['context'] ?? [];
-        $session->metadata = $data['metadata'] ?? [];
-        $session->progress = $data['progress'] ?? 0.0;
-        $session->confidenceScore = $data['confidence_score'] ?? 0.0;
-        $session->createdAt = $data['created_at'] ?? time();
-        $session->lastUpdated = $data['last_updated'] ?? time();
-        $session->lastSaved = $data['last_saved'] ?? 0;
+
+        $session->databaseId        = $data['database_id'] ?? null;
+        $session->title             = $data['title'] ?? '';
+        $session->currentState      = $data['current_state'] ?? 'initial';
+        $session->stateHistory      = $data['state_history'] ?? [];
+        $session->pausedFromState   = $data['paused_from_state'] ?? null;
+        $session->isActive          = $data['is_active'] ?? true;
+        $session->context           = $data['context'] ?? [];
+        $session->metadata          = $data['metadata'] ?? [];
+        $session->progress          = $data['progress'] ?? 0.0;
+        $session->confidenceScore   = $data['confidence_score'] ?? 0.0;
+        $session->createdAt         = $data['created_at'] ?? time();
+        $session->lastUpdated       = $data['last_updated'] ?? time();
+        $session->lastSaved         = $data['last_saved'] ?? 0;
         $session->hasUnsavedChanges = $data['has_unsaved_changes'] ?? false;
-        $session->totalTokens = $data['total_tokens'] ?? 0;
-        $session->totalCost = $data['total_cost'] ?? 0.0;
-        
+        $session->totalTokens       = $data['total_tokens'] ?? 0;
+        $session->totalCost         = $data['total_cost'] ?? 0.0;
+
         // Restore messages
         foreach ($data['messages'] ?? [] as $message) {
             $session->messages[] = $message;
         }
-        
+
         return $session;
     }
 
     // GETTERS AND SETTERS
-
     public function getSessionId(): string
     {
         return $this->sessionId;
@@ -700,22 +699,22 @@ class ConversationSession
     public function createCheckpoint(string $name = ''): array
     {
         $checkpointName = $name ?: 'checkpoint_' . time();
-        
+
         $checkpoint = [
-            'name' => $checkpointName,
-            'timestamp' => time(),
-            'state' => $this->currentState,
-            'context' => $this->context,
-            'progress' => $this->progress,
-            'message_count' => count($this->messages),
-            'confidence_score' => $this->confidenceScore
+            'name'             => $checkpointName,
+            'timestamp'        => time(),
+            'state'            => $this->currentState,
+            'context'          => $this->context,
+            'progress'         => $this->progress,
+            'message_count'    => count($this->messages),
+            'confidence_score' => $this->confidenceScore,
         ];
-        
+
         $this->setMetadata('checkpoints', array_merge(
             $this->getMetadata('checkpoints') ?: [],
             [$checkpointName => $checkpoint]
         ));
-        
+
         return $checkpoint;
     }
 
@@ -725,25 +724,25 @@ class ConversationSession
     public function restoreFromCheckpoint(string $checkpointName): bool
     {
         $checkpoints = $this->getMetadata('checkpoints') ?: [];
-        
+
         if (!isset($checkpoints[$checkpointName])) {
             return false;
         }
-        
+
         $checkpoint = $checkpoints[$checkpointName];
-        
-        $this->currentState = $checkpoint['state'];
-        $this->context = $checkpoint['context'];
-        $this->progress = $checkpoint['progress'];
+
+        $this->currentState    = $checkpoint['state'];
+        $this->context         = $checkpoint['context'];
+        $this->progress        = $checkpoint['progress'];
         $this->confidenceScore = $checkpoint['confidence_score'];
-        
+
         // Trim messages to checkpoint count
         if (isset($checkpoint['message_count']) && count($this->messages) > $checkpoint['message_count']) {
             $this->messages = array_slice($this->messages, 0, $checkpoint['message_count']);
         }
-        
+
         $this->markAsModified();
-        
+
         return true;
     }
 
@@ -754,7 +753,7 @@ class ConversationSession
     {
         return $this->getMetadata('checkpoints') ?: [];
     }
-    
+
     /**
      * Update progress based on current state
      */
@@ -762,20 +761,20 @@ class ConversationSession
     {
         // Define progress percentages for each state
         $stateProgress = [
-            'initial' => 0,
-            'welcome' => 0,
-            'template_selection' => 10,
+            'initial'                => 0,
+            'welcome'                => 0,
+            'template_selection'     => 10,
             'requirements_gathering' => 20,
-            'structure_generation' => 35,
-            'structure_review' => 45,
-            'content_generation' => 60,
-            'content_review' => 75,
-            'final_review' => 90,
-            'wordpress_creation' => 95,
-            'completed' => 100,
-            'complete' => 100
+            'structure_generation'   => 35,
+            'structure_review'       => 45,
+            'content_generation'     => 60,
+            'content_review'         => 75,
+            'final_review'           => 90,
+            'wordpress_creation'     => 95,
+            'completed'              => 100,
+            'complete'               => 100,
         ];
-        
+
         // Update progress if state is recognized
         if (isset($stateProgress[$state])) {
             $this->updateProgress($stateProgress[$state]);

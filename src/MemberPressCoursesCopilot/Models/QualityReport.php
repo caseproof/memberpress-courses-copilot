@@ -6,13 +6,13 @@ namespace MemberPressCoursesCopilot\Models;
 
 /**
  * Quality Report Model
- * 
+ *
  * Represents the detailed quality assessment results for a generated course.
  * Includes scoring breakdown by category, improvement recommendations,
  * historical tracking capabilities, and comparative analysis.
- * 
+ *
  * @package MemberPressCoursesCopilot\Models
- * @since 1.0.0
+ * @since   1.0.0
  */
 class QualityReport extends BaseModel
 {
@@ -20,11 +20,31 @@ class QualityReport extends BaseModel
      * Quality levels for score interpretation
      */
     private const QUALITY_LEVELS = [
-        'excellent' => ['min' => 90, 'max' => 100, 'color' => '#28a745'],
-        'good' => ['min' => 80, 'max' => 89, 'color' => '#17a2b8'],
-        'fair' => ['min' => 70, 'max' => 79, 'color' => '#ffc107'],
-        'poor' => ['min' => 50, 'max' => 69, 'color' => '#fd7e14'],
-        'critical' => ['min' => 0, 'max' => 49, 'color' => '#dc3545']
+        'excellent' => [
+            'min'   => 90,
+            'max'   => 100,
+            'color' => '#28a745',
+        ],
+        'good'      => [
+            'min'   => 80,
+            'max'   => 89,
+            'color' => '#17a2b8',
+        ],
+        'fair'      => [
+            'min'   => 70,
+            'max'   => 79,
+            'color' => '#ffc107',
+        ],
+        'poor'      => [
+            'min'   => 50,
+            'max'   => 69,
+            'color' => '#fd7e14',
+        ],
+        'critical'  => [
+            'min'   => 0,
+            'max'   => 49,
+            'color' => '#dc3545',
+        ],
     ];
 
     /**
@@ -32,9 +52,9 @@ class QualityReport extends BaseModel
      */
     private const PRIORITY_LEVELS = [
         'critical' => 4,
-        'high' => 3,
-        'medium' => 2,
-        'low' => 1
+        'high'     => 3,
+        'medium'   => 2,
+        'low'      => 1,
     ];
 
     /**
@@ -43,7 +63,7 @@ class QualityReport extends BaseModel
     public function validate(): bool
     {
         $required = ['course_title', 'assessment_date', 'overall_score', 'dimension_scores'];
-        
+
         foreach ($required as $field) {
             if (!$this->has($field)) {
                 return false;
@@ -57,16 +77,18 @@ class QualityReport extends BaseModel
         }
 
         // Validate dimension scores
-        $dimensionScores = $this->get('dimension_scores', []);
+        $dimensionScores    = $this->get('dimension_scores', []);
         $requiredDimensions = ['pedagogical', 'content', 'structural', 'accessibility', 'technical'];
-        
+
         foreach ($requiredDimensions as $dimension) {
-            if (!isset($dimensionScores[$dimension]) || 
+            if (
+                !isset($dimensionScores[$dimension]) ||
                 !is_array($dimensionScores[$dimension]) ||
                 !isset($dimensionScores[$dimension]['score']) ||
                 !is_numeric($dimensionScores[$dimension]['score']) ||
                 $dimensionScores[$dimension]['score'] < 0 ||
-                $dimensionScores[$dimension]['score'] > 100) {
+                $dimensionScores[$dimension]['score'] > 100
+            ) {
                 return false;
             }
         }
@@ -84,7 +106,7 @@ class QualityReport extends BaseModel
         }
 
         $reportData = $this->toArray();
-        $reportId = $this->get('id');
+        $reportId   = $this->get('id');
 
         if ($reportId) {
             // Update existing report
@@ -98,15 +120,15 @@ class QualityReport extends BaseModel
             $reportId = 'qr_' . wp_generate_uuid4() . '_' . time();
             $this->set('id', $reportId);
             $this->set('created_at', current_time('mysql'));
-            
+
             $reportData = $this->toArray();
-            $saved = add_option("mpcc_quality_report_{$reportId}", $reportData, '', 'no');
-            
+            $saved      = add_option("mpcc_quality_report_{$reportId}", $reportData, '', 'no');
+
             if ($saved) {
                 $this->syncOriginal();
                 $this->updateReportIndex($reportId);
             }
-            
+
             return $saved;
         }
     }
@@ -135,7 +157,7 @@ class QualityReport extends BaseModel
     public static function find(string $reportId): ?self
     {
         $reportData = get_option("mpcc_quality_report_{$reportId}");
-        
+
         if ($reportData === false) {
             return null;
         }
@@ -148,7 +170,7 @@ class QualityReport extends BaseModel
      */
     public static function findByCourse(string $courseTitle): array
     {
-        $allReports = self::getAll();
+        $allReports    = self::getAll();
         $courseReports = [];
 
         foreach ($allReports as $report) {
@@ -158,7 +180,7 @@ class QualityReport extends BaseModel
         }
 
         // Sort by assessment date (newest first)
-        usort($courseReports, function($a, $b) {
+        usort($courseReports, function ($a, $b) {
             return strtotime($b->get('assessment_date')) - strtotime($a->get('assessment_date'));
         });
 
@@ -171,7 +193,7 @@ class QualityReport extends BaseModel
     public static function getAll(): array
     {
         $reportIndex = get_option('mpcc_quality_reports_index', []);
-        $reports = [];
+        $reports     = [];
 
         foreach ($reportIndex as $reportId) {
             $report = self::find($reportId);
@@ -189,14 +211,19 @@ class QualityReport extends BaseModel
     public function getQualityLevel(int $score = null): array
     {
         $scoreToCheck = $score ?? $this->get('overall_score');
-        
+
         foreach (self::QUALITY_LEVELS as $level => $config) {
             if ($scoreToCheck >= $config['min'] && $scoreToCheck <= $config['max']) {
                 return array_merge(['level' => $level], $config);
             }
         }
 
-        return ['level' => 'unknown', 'min' => 0, 'max' => 0, 'color' => '#6c757d'];
+        return [
+            'level' => 'unknown',
+            'min'   => 0,
+            'max'   => 0,
+            'color' => '#6c757d',
+        ];
     }
 
     /**
@@ -213,7 +240,7 @@ class QualityReport extends BaseModel
     public function getDimensionQualityLevel(string $dimension): array
     {
         $dimensionScores = $this->get('dimension_scores', []);
-        $score = $dimensionScores[$dimension]['score'] ?? 0;
+        $score           = $dimensionScores[$dimension]['score'] ?? 0;
         return $this->getQualityLevel($score);
     }
 
@@ -223,8 +250,8 @@ class QualityReport extends BaseModel
     public function getRecommendationsByPriority(): array
     {
         $recommendations = $this->get('recommendations', []);
-        
-        usort($recommendations, function($a, $b) {
+
+        usort($recommendations, function ($a, $b) {
             $priorityA = self::PRIORITY_LEVELS[$a['priority']] ?? 0;
             $priorityB = self::PRIORITY_LEVELS[$b['priority']] ?? 0;
             return $priorityB - $priorityA; // Descending order (highest priority first)
@@ -239,7 +266,7 @@ class QualityReport extends BaseModel
     public function getRecommendationsByCategory(): array
     {
         $recommendations = $this->get('recommendations', []);
-        $categorized = [];
+        $categorized     = [];
 
         foreach ($recommendations as $recommendation) {
             $category = $recommendation['category'] ?? 'general';
@@ -258,8 +285,8 @@ class QualityReport extends BaseModel
     public function getCriticalRecommendations(): array
     {
         $recommendations = $this->get('recommendations', []);
-        
-        return array_filter($recommendations, function($rec) {
+
+        return array_filter($recommendations, function ($rec) {
             return $rec['priority'] === 'critical';
         });
     }
@@ -270,8 +297,8 @@ class QualityReport extends BaseModel
     public function getHighPriorityRecommendations(): array
     {
         $recommendations = $this->get('recommendations', []);
-        
-        return array_filter($recommendations, function($rec) {
+
+        return array_filter($recommendations, function ($rec) {
             return in_array($rec['priority'], ['critical', 'high']);
         });
     }
@@ -290,21 +317,21 @@ class QualityReport extends BaseModel
     public function getWorstPerformingDimension(): array
     {
         $dimensionScores = $this->get('dimension_scores', []);
-        $lowestScore = 100;
-        $worstDimension = null;
+        $lowestScore     = 100;
+        $worstDimension  = null;
 
         foreach ($dimensionScores as $dimension => $scoreData) {
             $score = $scoreData['score'] ?? 100;
             if ($score < $lowestScore) {
-                $lowestScore = $score;
+                $lowestScore    = $score;
                 $worstDimension = $dimension;
             }
         }
 
         return [
-            'dimension' => $worstDimension,
-            'score' => $lowestScore,
-            'improvement_needed' => 100 - $lowestScore
+            'dimension'          => $worstDimension,
+            'score'              => $lowestScore,
+            'improvement_needed' => 100 - $lowestScore,
         ];
     }
 
@@ -314,20 +341,20 @@ class QualityReport extends BaseModel
     public function getBestPerformingDimension(): array
     {
         $dimensionScores = $this->get('dimension_scores', []);
-        $highestScore = 0;
-        $bestDimension = null;
+        $highestScore    = 0;
+        $bestDimension   = null;
 
         foreach ($dimensionScores as $dimension => $scoreData) {
             $score = $scoreData['score'] ?? 0;
             if ($score > $highestScore) {
-                $highestScore = $score;
+                $highestScore  = $score;
                 $bestDimension = $dimension;
             }
         }
 
         return [
             'dimension' => $bestDimension,
-            'score' => $highestScore
+            'score'     => $highestScore,
         ];
     }
 
@@ -337,16 +364,16 @@ class QualityReport extends BaseModel
     public function getScoreDistribution(): array
     {
         $dimensionScores = $this->get('dimension_scores', []);
-        $distribution = [];
+        $distribution    = [];
 
         foreach ($dimensionScores as $dimension => $scoreData) {
             $score = $scoreData['score'] ?? 0;
             $level = $this->getQualityLevel($score);
-            
+
             $distribution[$dimension] = [
                 'score' => $score,
                 'level' => $level['level'],
-                'color' => $level['color']
+                'color' => $level['color'],
             ];
         }
 
@@ -358,35 +385,35 @@ class QualityReport extends BaseModel
      */
     public function compareWithPrevious(QualityReport $previousReport): array
     {
-        $currentScores = $this->get('dimension_scores', []);
+        $currentScores  = $this->get('dimension_scores', []);
         $previousScores = $previousReport->get('dimension_scores', []);
-        $comparison = [];
+        $comparison     = [];
 
         foreach ($currentScores as $dimension => $currentData) {
-            $currentScore = $currentData['score'] ?? 0;
+            $currentScore  = $currentData['score'] ?? 0;
             $previousScore = $previousScores[$dimension]['score'] ?? 0;
-            $change = $currentScore - $previousScore;
+            $change        = $currentScore - $previousScore;
 
             $comparison[$dimension] = [
-                'current_score' => $currentScore,
-                'previous_score' => $previousScore,
-                'change' => $change,
-                'improvement' => $change > 0,
-                'change_percentage' => $previousScore > 0 ? round(($change / $previousScore) * 100, 1) : 0
+                'current_score'     => $currentScore,
+                'previous_score'    => $previousScore,
+                'change'            => $change,
+                'improvement'       => $change > 0,
+                'change_percentage' => $previousScore > 0 ? round(($change / $previousScore) * 100, 1) : 0,
             ];
         }
 
         // Overall comparison
-        $currentOverall = $this->get('overall_score', 0);
+        $currentOverall  = $this->get('overall_score', 0);
         $previousOverall = $previousReport->get('overall_score', 0);
-        $overallChange = $currentOverall - $previousOverall;
+        $overallChange   = $currentOverall - $previousOverall;
 
         $comparison['overall'] = [
-            'current_score' => $currentOverall,
-            'previous_score' => $previousOverall,
-            'change' => $overallChange,
-            'improvement' => $overallChange > 0,
-            'change_percentage' => $previousOverall > 0 ? round(($overallChange / $previousOverall) * 100, 1) : 0
+            'current_score'     => $currentOverall,
+            'previous_score'    => $previousOverall,
+            'change'            => $overallChange,
+            'improvement'       => $overallChange > 0,
+            'change_percentage' => $previousOverall > 0 ? round(($overallChange / $previousOverall) * 100, 1) : 0,
         ];
 
         return $comparison;
@@ -402,7 +429,7 @@ class QualityReport extends BaseModel
         }
 
         // Sort reports by date
-        usort($historicalReports, function($a, $b) {
+        usort($historicalReports, function ($a, $b) {
             return strtotime($a->get('assessment_date')) - strtotime($b->get('assessment_date'));
         });
 
@@ -414,17 +441,17 @@ class QualityReport extends BaseModel
         // Add current score
         $scores[] = $this->get('overall_score', 0);
 
-        $trend = $this->calculateTrend($scores);
+        $trend      = $this->calculateTrend($scores);
         $volatility = $this->calculateVolatility($scores);
 
         return [
-            'trend' => $trend,
-            'volatility' => $volatility,
-            'score_history' => $scores,
+            'trend'            => $trend,
+            'volatility'       => $volatility,
+            'score_history'    => $scores,
             'improvement_rate' => $this->calculateImprovementRate($scores),
-            'best_score' => max($scores),
-            'worst_score' => min($scores),
-            'average_score' => round(array_sum($scores) / count($scores), 1)
+            'best_score'       => max($scores),
+            'worst_score'      => min($scores),
+            'average_score'    => round(array_sum($scores) / count($scores), 1),
         ];
     }
 
@@ -434,22 +461,22 @@ class QualityReport extends BaseModel
     public function toApiResponse(): array
     {
         $data = $this->toArray();
-        
+
         // Add computed fields
-        $data['overall_quality_level'] = $this->getOverallQualityLevel();
+        $data['overall_quality_level']    = $this->getOverallQualityLevel();
         $data['dimension_quality_levels'] = [];
-        
+
         $dimensionScores = $this->get('dimension_scores', []);
         foreach ($dimensionScores as $dimension => $scoreData) {
             $data['dimension_quality_levels'][$dimension] = $this->getDimensionQualityLevel($dimension);
         }
 
         $data['recommendations_by_priority'] = $this->getRecommendationsByPriority();
-        $data['critical_issues_count'] = count($this->getCriticalRecommendations());
-        $data['high_priority_issues_count'] = count($this->getHighPriorityRecommendations());
-        $data['improvement_score'] = $this->getImprovementScore();
-        $data['worst_performing_dimension'] = $this->getWorstPerformingDimension();
-        $data['best_performing_dimension'] = $this->getBestPerformingDimension();
+        $data['critical_issues_count']       = count($this->getCriticalRecommendations());
+        $data['high_priority_issues_count']  = count($this->getHighPriorityRecommendations());
+        $data['improvement_score']           = $this->getImprovementScore();
+        $data['worst_performing_dimension']  = $this->getWorstPerformingDimension();
+        $data['best_performing_dimension']   = $this->getBestPerformingDimension();
 
         return $data;
     }
@@ -463,16 +490,16 @@ class QualityReport extends BaseModel
         $recommendations = $this->get('recommendations', []);
 
         return [
-            'overall_score' => $this->get('overall_score', 0),
-            'passes_quality_gates' => $this->get('passes_quality_gates', false),
-            'total_dimensions' => count($dimensionScores),
-            'dimensions_above_80' => count(array_filter($dimensionScores, fn($d) => ($d['score'] ?? 0) >= 80)),
-            'dimensions_below_70' => count(array_filter($dimensionScores, fn($d) => ($d['score'] ?? 0) < 70)),
-            'total_recommendations' => count($recommendations),
-            'critical_recommendations' => count(array_filter($recommendations, fn($r) => $r['priority'] === 'critical')),
+            'overall_score'                 => $this->get('overall_score', 0),
+            'passes_quality_gates'          => $this->get('passes_quality_gates', false),
+            'total_dimensions'              => count($dimensionScores),
+            'dimensions_above_80'           => count(array_filter($dimensionScores, fn($d) => ($d['score'] ?? 0) >= 80)),
+            'dimensions_below_70'           => count(array_filter($dimensionScores, fn($d) => ($d['score'] ?? 0) < 70)),
+            'total_recommendations'         => count($recommendations),
+            'critical_recommendations'      => count(array_filter($recommendations, fn($r) => $r['priority'] === 'critical')),
             'high_priority_recommendations' => count(array_filter($recommendations, fn($r) => $r['priority'] === 'high')),
-            'assessment_date' => $this->get('assessment_date'),
-            'course_title' => $this->get('course_title')
+            'assessment_date'               => $this->get('assessment_date'),
+            'course_title'                  => $this->get('course_title'),
         ];
     }
 
@@ -494,7 +521,7 @@ class QualityReport extends BaseModel
     private function removeFromReportIndex(string $reportId): void
     {
         $index = get_option('mpcc_quality_reports_index', []);
-        $index = array_filter($index, function($id) use ($reportId) {
+        $index = array_filter($index, function ($id) use ($reportId) {
             return $id !== $reportId;
         });
         update_option('mpcc_quality_reports_index', array_values($index));
@@ -509,15 +536,15 @@ class QualityReport extends BaseModel
             return 'insufficient_data';
         }
 
-        $n = count($scores);
-        $sumX = array_sum(range(1, $n));
-        $sumY = array_sum($scores);
+        $n     = count($scores);
+        $sumX  = array_sum(range(1, $n));
+        $sumY  = array_sum($scores);
         $sumXY = 0;
         $sumX2 = 0;
 
         for ($i = 0; $i < $n; $i++) {
-            $x = $i + 1;
-            $y = $scores[$i];
+            $x      = $i + 1;
+            $y      = $scores[$i];
             $sumXY += $x * $y;
             $sumX2 += $x * $x;
         }
@@ -546,11 +573,11 @@ class QualityReport extends BaseModel
             return 'insufficient_data';
         }
 
-        $mean = array_sum($scores) / count($scores);
-        $variance = array_sum(array_map(function($score) use ($mean) {
+        $mean     = array_sum($scores) / count($scores);
+        $variance = array_sum(array_map(function ($score) use ($mean) {
             return pow($score - $mean, 2);
         }, $scores)) / count($scores);
-        
+
         $standardDeviation = sqrt($variance);
 
         if ($standardDeviation < 5) {
@@ -572,8 +599,8 @@ class QualityReport extends BaseModel
         }
 
         $firstScore = $scores[0];
-        $lastScore = end($scores);
-        $periods = count($scores) - 1;
+        $lastScore  = end($scores);
+        $periods    = count($scores) - 1;
 
         if ($firstScore <= 0 || $periods <= 0) {
             return 0.0;

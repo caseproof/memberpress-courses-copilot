@@ -4,7 +4,7 @@ namespace MemberPressCoursesCopilot\Models;
 
 /**
  * Course Section Model
- * 
+ *
  * Represents a section within a course that contains multiple lessons.
  * Designed to integrate with MemberPress Courses section management.
  */
@@ -21,9 +21,9 @@ class CourseSection
         int $order = 0,
         array $metadata = []
     ) {
-        $this->title = $title;
-        $this->lessons = $lessons;
-        $this->order = $order;
+        $this->title    = $title;
+        $this->lessons  = $lessons;
+        $this->order    = $order;
         $this->metadata = $metadata;
     }
 
@@ -120,7 +120,7 @@ class CourseSection
         $lesson = $this->lessons[$fromIndex];
         array_splice($this->lessons, $fromIndex, 1);
         array_splice($this->lessons, $toIndex, 0, [$lesson]);
-        
+
         $this->reorderLessons();
         return true;
     }
@@ -211,8 +211,8 @@ class CourseSection
         return [
             'section_title' => $this->title,
             'section_order' => $this->order,
-            'lessons' => $lessonsData,
-            'metadata' => $this->formatMetadataForMemberPress()
+            'lessons'       => $lessonsData,
+            'metadata'      => $this->formatMetadataForMemberPress(),
         ];
     }
 
@@ -229,10 +229,10 @@ class CourseSection
         }
 
         // Add computed metadata
-        $memberPressMetadata['_mpcs_section_lesson_count'] = $this->getLessonCount();
+        $memberPressMetadata['_mpcs_section_lesson_count']   = $this->getLessonCount();
         $memberPressMetadata['_mpcs_section_total_duration'] = $this->getTotalDuration();
-        $memberPressMetadata['_mpcs_section_has_video'] = $this->hasVideoLessons();
-        $memberPressMetadata['_mpcs_section_has_downloads'] = $this->hasDownloadableResources();
+        $memberPressMetadata['_mpcs_section_has_video']      = $this->hasVideoLessons();
+        $memberPressMetadata['_mpcs_section_has_downloads']  = $this->hasDownloadableResources();
 
         return $memberPressMetadata;
     }
@@ -242,15 +242,15 @@ class CourseSection
      */
     public static function fromMemberPressData(array $sectionData): self
     {
-        $title = $sectionData['section_title'] ?? '';
-        $order = $sectionData['section_order'] ?? 0;
+        $title    = $sectionData['section_title'] ?? '';
+        $order    = $sectionData['section_order'] ?? 0;
         $metadata = $sectionData['metadata'] ?? [];
 
         $lessons = [];
         if (isset($sectionData['lessons']) && is_array($sectionData['lessons'])) {
             foreach ($sectionData['lessons'] as $lessonData) {
                 // Assuming lesson data contains the necessary information
-                $lesson = new CourseLesson(
+                $lesson    = new CourseLesson(
                     $lessonData['post_title'] ?? '',
                     $lessonData['post_content'] ?? '',
                     $lessonData['meta_input']['_mpcs_lesson_objectives'] ?? [],
@@ -340,15 +340,15 @@ class CourseSection
         }
 
         return [
-            'title' => $this->title,
-            'lessons' => $lessonsArray,
-            'order' => $this->order,
-            'metadata' => $this->metadata,
-            'lesson_count' => $this->getLessonCount(),
+            'title'          => $this->title,
+            'lessons'        => $lessonsArray,
+            'order'          => $this->order,
+            'metadata'       => $this->metadata,
+            'lesson_count'   => $this->getLessonCount(),
             'total_duration' => $this->getTotalDuration(),
-            'has_video' => $this->hasVideoLessons(),
-            'has_downloads' => $this->hasDownloadableResources(),
-            'all_objectives' => $this->getAllObjectives()
+            'has_video'      => $this->hasVideoLessons(),
+            'has_downloads'  => $this->hasDownloadableResources(),
+            'all_objectives' => $this->getAllObjectives(),
         ];
     }
 }

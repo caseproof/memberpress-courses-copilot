@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Logger Utility for MemberPress Courses Copilot
  *
@@ -13,14 +14,15 @@ namespace MemberPressCoursesCopilot\Utilities;
 /**
  * Logger utility class for tracking API usage and debugging
  */
-class Logger {
+class Logger
+{
     /**
      * Log levels
      */
-    const LEVEL_DEBUG = 'debug';
-    const LEVEL_INFO = 'info';
-    const LEVEL_WARNING = 'warning';
-    const LEVEL_ERROR = 'error';
+    const LEVEL_DEBUG    = 'debug';
+    const LEVEL_INFO     = 'info';
+    const LEVEL_WARNING  = 'warning';
+    const LEVEL_ERROR    = 'error';
     const LEVEL_CRITICAL = 'critical';
 
     /**
@@ -33,7 +35,7 @@ class Logger {
     /**
      * Whether logging is enabled
      *
-     * @var bool
+     * @var boolean
      */
     private $loggingEnabled;
 
@@ -47,7 +49,7 @@ class Logger {
     /**
      * Whether debug mode is enabled
      *
-     * @var bool
+     * @var boolean
      */
     private $debugMode;
 
@@ -75,28 +77,28 @@ class Logger {
     /**
      * Whether cost tracker has been loaded
      *
-     * @var bool
+     * @var boolean
      */
     private $costTrackerLoaded = false;
 
     /**
      * Whether API stats have been loaded
      *
-     * @var bool
+     * @var boolean
      */
     private $apiStatsLoaded = false;
 
     /**
      * Maximum log file size in bytes (10MB)
      *
-     * @var int
+     * @var integer
      */
     private $maxLogSize = 10485760;
 
     /**
      * Log rotation count
      *
-     * @var int
+     * @var integer
      */
     private $rotationCount = 5;
 
@@ -105,7 +107,8 @@ class Logger {
      *
      * @return self
      */
-    public static function getInstance(): self {
+    public static function getInstance(): self
+    {
         if (self::$instance === null) {
             self::$instance = new self();
         }
@@ -115,12 +118,13 @@ class Logger {
     /**
      * Private constructor for singleton
      *
-     * @param string $logLevel Minimum log level to record
-     * @param bool $debugMode Whether debug mode is enabled
+     * @param string  $logLevel  Minimum log level to record
+     * @param boolean $debugMode Whether debug mode is enabled
      */
-    private function __construct(string $logLevel = self::LEVEL_INFO, bool $debugMode = false) {
+    private function __construct(string $logLevel = self::LEVEL_INFO, bool $debugMode = false)
+    {
         $this->loggingEnabled = $this->determineLoggingState();
-        
+
         // Check for log level configuration in wp-config.php
         if (defined('MPCC_LOG_LEVEL')) {
             $validLevels = [self::LEVEL_DEBUG, self::LEVEL_INFO, self::LEVEL_WARNING, self::LEVEL_ERROR, self::LEVEL_CRITICAL];
@@ -128,10 +132,10 @@ class Logger {
                 $logLevel = MPCC_LOG_LEVEL;
             }
         }
-        
-        $this->logLevel = $logLevel;
+
+        $this->logLevel  = $logLevel;
         $this->debugMode = $debugMode || defined('WP_DEBUG') && WP_DEBUG;
-        
+
         // Only initialize log file if logging is enabled
         if ($this->loggingEnabled) {
             $this->initializeLogFile();
@@ -141,21 +145,25 @@ class Logger {
     /**
      * Prevent cloning of singleton
      */
-    private function __clone() {}
+    private function __clone()
+    {
+    }
 
     /**
      * Prevent unserialization of singleton
      */
-    public function __wakeup() {
-        throw new \Exception("Cannot unserialize singleton");
+    public function __wakeup()
+    {
+        throw new \Exception('Cannot unserialize singleton');
     }
 
     /**
      * Determine if logging should be enabled based on configuration
      *
-     * @return bool
+     * @return boolean
      */
-    private function determineLoggingState(): bool {
+    private function determineLoggingState(): bool
+    {
         // Only enable logging if WP_DEBUG is active
         return defined('WP_DEBUG') && WP_DEBUG;
     }
@@ -165,33 +173,35 @@ class Logger {
      *
      * @return void
      */
-    private function initializeLogFile(): void {
+    private function initializeLogFile(): void
+    {
         $uploadDir = wp_upload_dir();
-        $logDir = $uploadDir['basedir'] . '/memberpress-courses-copilot/logs';
-        
+        $logDir    = $uploadDir['basedir'] . '/memberpress-courses-copilot/logs';
+
         if (!file_exists($logDir)) {
             wp_mkdir_p($logDir);
             $this->protectLogFiles($logDir);
         }
-        
+
         $this->logFile = $logDir . '/copilot.log';
     }
 
     /**
      * Protect log files from web access
      *
-     * @param string $logDir Log directory path
+     * @param  string $logDir Log directory path
      * @return void
      */
-    private function protectLogFiles(string $logDir): void {
+    private function protectLogFiles(string $logDir): void
+    {
         // Create .htaccess to prevent web access
-        $htaccessPath = $logDir . '/.htaccess';
+        $htaccessPath    = $logDir . '/.htaccess';
         $htaccessContent = "Order Deny,Allow\nDeny from all\n";
-        
+
         if (!file_exists($htaccessPath)) {
             @file_put_contents($htaccessPath, $htaccessContent);
         }
-        
+
         // Create index.php to prevent directory listing
         $indexPath = $logDir . '/index.php';
         if (!file_exists($indexPath)) {
@@ -202,16 +212,17 @@ class Logger {
     /**
      * Log a debug message
      *
-     * @param string $message Log message
-     * @param array $context Additional context data
+     * @param  string $message Log message
+     * @param  array  $context Additional context data
      * @return void
      */
-    public function debug(string $message, array $context = []): void {
+    public function debug(string $message, array $context = []): void
+    {
         // Early return for performance when logging is disabled
         if (!$this->loggingEnabled) {
             return;
         }
-        
+
         if ($this->shouldLog(self::LEVEL_DEBUG)) {
             $this->log(self::LEVEL_DEBUG, $message, $context);
         }
@@ -220,16 +231,17 @@ class Logger {
     /**
      * Log an info message
      *
-     * @param string $message Log message
-     * @param array $context Additional context data
+     * @param  string $message Log message
+     * @param  array  $context Additional context data
      * @return void
      */
-    public function info(string $message, array $context = []): void {
+    public function info(string $message, array $context = []): void
+    {
         // Early return for performance when logging is disabled
         if (!$this->loggingEnabled) {
             return;
         }
-        
+
         if ($this->shouldLog(self::LEVEL_INFO)) {
             $this->log(self::LEVEL_INFO, $message, $context);
         }
@@ -238,16 +250,17 @@ class Logger {
     /**
      * Log a warning message
      *
-     * @param string $message Log message
-     * @param array $context Additional context data
+     * @param  string $message Log message
+     * @param  array  $context Additional context data
      * @return void
      */
-    public function warning(string $message, array $context = []): void {
+    public function warning(string $message, array $context = []): void
+    {
         // Early return for performance when logging is disabled
         if (!$this->loggingEnabled) {
             return;
         }
-        
+
         if ($this->shouldLog(self::LEVEL_WARNING)) {
             $this->log(self::LEVEL_WARNING, $message, $context);
         }
@@ -256,16 +269,17 @@ class Logger {
     /**
      * Log an error message
      *
-     * @param string $message Log message
-     * @param array $context Additional context data
+     * @param  string $message Log message
+     * @param  array  $context Additional context data
      * @return void
      */
-    public function error(string $message, array $context = []): void {
+    public function error(string $message, array $context = []): void
+    {
         // Early return for performance when logging is disabled
         if (!$this->loggingEnabled) {
             return;
         }
-        
+
         if ($this->shouldLog(self::LEVEL_ERROR)) {
             $this->log(self::LEVEL_ERROR, $message, $context);
         }
@@ -274,16 +288,17 @@ class Logger {
     /**
      * Log a critical message
      *
-     * @param string $message Log message
-     * @param array $context Additional context data
+     * @param  string $message Log message
+     * @param  array  $context Additional context data
      * @return void
      */
-    public function critical(string $message, array $context = []): void {
+    public function critical(string $message, array $context = []): void
+    {
         // Early return for performance when logging is disabled
         if (!$this->loggingEnabled) {
             return;
         }
-        
+
         if ($this->shouldLog(self::LEVEL_CRITICAL)) {
             $this->log(self::LEVEL_CRITICAL, $message, $context);
         }
@@ -292,21 +307,22 @@ class Logger {
     /**
      * Log an API call with cost tracking
      *
-     * @param string $provider Provider name
-     * @param string $model Model name
-     * @param array $usage Usage statistics
-     * @param float $cost Estimated cost
-     * @param array $context Additional context
+     * @param  string $provider Provider name
+     * @param  string $model    Model name
+     * @param  array  $usage    Usage statistics
+     * @param  float  $cost     Estimated cost
+     * @param  array  $context  Additional context
      * @return void
      */
-    public function logApiCall(string $provider, string $model, array $usage, float $cost, array $context = []): void {
+    public function logApiCall(string $provider, string $model, array $usage, float $cost, array $context = []): void
+    {
         $apiCallData = [
-            'provider' => $provider,
-            'model' => $model,
-            'usage' => $usage,
-            'cost' => $cost,
+            'provider'  => $provider,
+            'model'     => $model,
+            'usage'     => $usage,
+            'cost'      => $cost,
             'timestamp' => time(),
-            'context' => $context
+            'context'   => $context,
         ];
 
         $this->info('API call completed', $apiCallData);
@@ -317,59 +333,60 @@ class Logger {
     /**
      * Track API costs
      *
-     * @param string $provider Provider name
-     * @param string $model Model name
-     * @param float $cost Cost amount
-     * @param array $usage Usage statistics
+     * @param  string $provider Provider name
+     * @param  string $model    Model name
+     * @param  float  $cost     Cost amount
+     * @param  array  $usage    Usage statistics
      * @return void
      */
-    private function trackCost(string $provider, string $model, float $cost, array $usage): void {
+    private function trackCost(string $provider, string $model, float $cost, array $usage): void
+    {
         // Early return if logging is disabled
         if (!$this->loggingEnabled) {
             return;
         }
-        
+
         // Use lazy loading to get cost tracker data
         $costTracker = $this->getCostTrackerData();
-        $date = date('Y-m-d');
-        
+        $date        = date('Y-m-d');
+
         if (!isset($costTracker[$date])) {
             $costTracker[$date] = [
                 'total_cost' => 0.0,
-                'providers' => []
+                'providers'  => [],
             ];
         }
 
         if (!isset($costTracker[$date]['providers'][$provider])) {
             $costTracker[$date]['providers'][$provider] = [
-                'cost' => 0.0,
-                'calls' => 0,
+                'cost'   => 0.0,
+                'calls'  => 0,
                 'tokens' => 0,
-                'models' => []
+                'models' => [],
             ];
         }
 
         if (!isset($costTracker[$date]['providers'][$provider]['models'][$model])) {
             $costTracker[$date]['providers'][$provider]['models'][$model] = [
-                'cost' => 0.0,
-                'calls' => 0,
-                'tokens' => 0
+                'cost'   => 0.0,
+                'calls'  => 0,
+                'tokens' => 0,
             ];
         }
 
         // Update totals
-        $costTracker[$date]['total_cost'] += $cost;
+        $costTracker[$date]['total_cost']                   += $cost;
         $costTracker[$date]['providers'][$provider]['cost'] += $cost;
-        $costTracker[$date]['providers'][$provider]['calls']++;
+        ++$costTracker[$date]['providers'][$provider]['calls'];
         $costTracker[$date]['providers'][$provider]['models'][$model]['cost'] += $cost;
-        $costTracker[$date]['providers'][$provider]['models'][$model]['calls']++;
+        ++$costTracker[$date]['providers'][$provider]['models'][$model]['calls'];
 
         // Track tokens if available
-        $totalTokens = ($usage['total_tokens'] ?? 0) ?: 
+        $totalTokens = ($usage['total_tokens'] ?? 0) ?:
                       (($usage['prompt_tokens'] ?? 0) + ($usage['completion_tokens'] ?? 0));
-        
+
         if ($totalTokens > 0) {
-            $costTracker[$date]['providers'][$provider]['tokens'] += $totalTokens;
+            $costTracker[$date]['providers'][$provider]['tokens']                   += $totalTokens;
             $costTracker[$date]['providers'][$provider]['models'][$model]['tokens'] += $totalTokens;
         }
 
@@ -381,37 +398,38 @@ class Logger {
     /**
      * Update API usage statistics
      *
-     * @param string $provider Provider name
-     * @param string $model Model name
-     * @param array $usage Usage statistics
+     * @param  string $provider Provider name
+     * @param  string $model    Model name
+     * @param  array  $usage    Usage statistics
      * @return void
      */
-    private function updateApiStats(string $provider, string $model, array $usage): void {
+    private function updateApiStats(string $provider, string $model, array $usage): void
+    {
         if (!isset($this->apiStats[$provider])) {
             $this->apiStats[$provider] = [
-                'total_calls' => 0,
+                'total_calls'  => 0,
                 'total_tokens' => 0,
-                'models' => [],
-                'last_used' => null
+                'models'       => [],
+                'last_used'    => null,
             ];
         }
 
         if (!isset($this->apiStats[$provider]['models'][$model])) {
             $this->apiStats[$provider]['models'][$model] = [
-                'calls' => 0,
-                'tokens' => 0,
-                'last_used' => null
+                'calls'     => 0,
+                'tokens'    => 0,
+                'last_used' => null,
             ];
         }
 
-        $totalTokens = ($usage['total_tokens'] ?? 0) ?: 
+        $totalTokens = ($usage['total_tokens'] ?? 0) ?:
                       (($usage['prompt_tokens'] ?? 0) + ($usage['completion_tokens'] ?? 0));
 
-        $this->apiStats[$provider]['total_calls']++;
+        ++$this->apiStats[$provider]['total_calls'];
         $this->apiStats[$provider]['total_tokens'] += $totalTokens;
-        $this->apiStats[$provider]['last_used'] = time();
-        $this->apiStats[$provider]['models'][$model]['calls']++;
-        $this->apiStats[$provider]['models'][$model]['tokens'] += $totalTokens;
+        $this->apiStats[$provider]['last_used']     = time();
+        ++$this->apiStats[$provider]['models'][$model]['calls'];
+        $this->apiStats[$provider]['models'][$model]['tokens']   += $totalTokens;
         $this->apiStats[$provider]['models'][$model]['last_used'] = time();
 
         $this->saveApiStats();
@@ -420,10 +438,11 @@ class Logger {
     /**
      * Get cost tracking data
      *
-     * @param string|null $date Optional date (Y-m-d format)
+     * @param  string|null $date Optional date (Y-m-d format)
      * @return array Cost tracking data
      */
-    public function getCostData(?string $date = null): array {
+    public function getCostData(?string $date = null): array
+    {
         if ($date === null) {
             return $this->costTracker;
         }
@@ -434,10 +453,11 @@ class Logger {
     /**
      * Get API usage statistics
      *
-     * @param string|null $provider Optional provider filter
+     * @param  string|null $provider Optional provider filter
      * @return array API statistics
      */
-    public function getApiStats(?string $provider = null): array {
+    public function getApiStats(?string $provider = null): array
+    {
         if ($provider === null) {
             return $this->apiStats;
         }
@@ -448,30 +468,31 @@ class Logger {
     /**
      * Get daily cost summary
      *
-     * @param int $days Number of days to include
+     * @param  integer $days Number of days to include
      * @return array Daily cost summary
      */
-    public function getDailyCostSummary(int $days = 30): array {
+    public function getDailyCostSummary(int $days = 30): array
+    {
         $summary = [];
-        $today = time();
+        $today   = time();
 
         for ($i = 0; $i < $days; $i++) {
-            $date = date('Y-m-d', $today - ($i * 86400));
+            $date    = date('Y-m-d', $today - ($i * 86400));
             $dayData = $this->costTracker[$date] ?? null;
-            
+
             $summary[$date] = [
-                'total_cost' => $dayData['total_cost'] ?? 0.0,
+                'total_cost'  => $dayData['total_cost'] ?? 0.0,
                 'total_calls' => 0,
-                'providers' => []
+                'providers'   => [],
             ];
 
             if ($dayData) {
                 foreach ($dayData['providers'] as $provider => $providerData) {
-                    $summary[$date]['total_calls'] += $providerData['calls'];
+                    $summary[$date]['total_calls']         += $providerData['calls'];
                     $summary[$date]['providers'][$provider] = [
-                        'cost' => $providerData['cost'],
-                        'calls' => $providerData['calls'],
-                        'tokens' => $providerData['tokens']
+                        'cost'   => $providerData['cost'],
+                        'calls'  => $providerData['calls'],
+                        'tokens' => $providerData['tokens'],
                     ];
                 }
             }
@@ -483,90 +504,93 @@ class Logger {
     /**
      * Get monthly cost summary
      *
-     * @param string|null $month Month in Y-m format
+     * @param  string|null $month Month in Y-m format
      * @return array Monthly cost summary
      */
-    public function getMonthlyCostSummary(?string $month = null): array {
+    public function getMonthlyCostSummary(?string $month = null): array
+    {
         if ($month === null) {
             $month = date('Y-m');
         }
 
-        $monthlyCost = 0.0;
-        $monthlyCalls = 0;
+        $monthlyCost   = 0.0;
+        $monthlyCalls  = 0;
         $monthlyTokens = 0;
-        $providers = [];
+        $providers     = [];
 
         foreach ($this->costTracker as $date => $dayData) {
             if (strpos($date, $month) === 0) {
                 $monthlyCost += $dayData['total_cost'];
-                
+
                 foreach ($dayData['providers'] as $provider => $providerData) {
                     if (!isset($providers[$provider])) {
                         $providers[$provider] = [
-                            'cost' => 0.0,
-                            'calls' => 0,
-                            'tokens' => 0
+                            'cost'   => 0.0,
+                            'calls'  => 0,
+                            'tokens' => 0,
                         ];
                     }
-                    
-                    $providers[$provider]['cost'] += $providerData['cost'];
-                    $providers[$provider]['calls'] += $providerData['calls'];
+
+                    $providers[$provider]['cost']   += $providerData['cost'];
+                    $providers[$provider]['calls']  += $providerData['calls'];
                     $providers[$provider]['tokens'] += $providerData['tokens'];
-                    
-                    $monthlyCalls += $providerData['calls'];
+
+                    $monthlyCalls  += $providerData['calls'];
                     $monthlyTokens += $providerData['tokens'];
                 }
             }
         }
 
         return [
-            'month' => $month,
-            'total_cost' => $monthlyCost,
-            'total_calls' => $monthlyCalls,
+            'month'        => $month,
+            'total_cost'   => $monthlyCost,
+            'total_calls'  => $monthlyCalls,
             'total_tokens' => $monthlyTokens,
-            'providers' => $providers
+            'providers'    => $providers,
         ];
     }
 
     /**
      * Clean old log entries
      *
-     * @param int $daysToKeep Number of days to keep
+     * @param  integer $daysToKeep Number of days to keep
      * @return void
      */
-    public function cleanOldLogs(int $daysToKeep = 90): void {
+    public function cleanOldLogs(int $daysToKeep = 90): void
+    {
         $cutoffDate = date('Y-m-d', time() - ($daysToKeep * 86400));
-        
+
         // Clean cost tracker
         foreach (array_keys($this->costTracker) as $date) {
             if ($date < $cutoffDate) {
                 unset($this->costTracker[$date]);
             }
         }
-        
+
         $this->saveCostTracker();
-        
+
         // Rotate log file if needed
         $this->rotateLogFile();
-        
+
         $this->info('Log cleanup completed', [
-            'days_kept' => $daysToKeep,
-            'cutoff_date' => $cutoffDate
+            'days_kept'   => $daysToKeep,
+            'cutoff_date' => $cutoffDate,
         ]);
     }
 
     /**
      * Core logging method
      *
-     * @param string $level Log level
-     * @param string $message Log message
-     * @param array $context Additional context
+     * @param  string $level   Log level
+     * @param  string $message Log message
+     * @param  array  $context Additional context
      * @return void
      */
-    private function log(string $level, string $message, array $context = []): void {
-        $timestamp = date('Y-m-d H:i:s');
+    private function log(string $level, string $message, array $context = []): void
+    {
+        $timestamp     = date('Y-m-d H:i:s');
         $contextString = !empty($context) ? ' ' . json_encode($context) : '';
-        $logEntry = "[{$timestamp}] [{$level}] {$message}{$contextString}" . PHP_EOL;
+        $logEntry      = "[{$timestamp}] [{$level}] {$message}{$contextString}" . PHP_EOL;
 
         // Write to file
         if ($this->logFile && is_writable(dirname($this->logFile))) {
@@ -587,21 +611,22 @@ class Logger {
     /**
      * Check if message should be logged based on log level
      *
-     * @param string $level Message level
-     * @return bool Whether to log the message
+     * @param  string $level Message level
+     * @return boolean Whether to log the message
      */
-    private function shouldLog(string $level): bool {
+    private function shouldLog(string $level): bool
+    {
         // Early return for performance when logging is disabled
         if (!$this->loggingEnabled) {
             return false;
         }
-        
+
         $levels = [
-            self::LEVEL_DEBUG => 0,
-            self::LEVEL_INFO => 1,
-            self::LEVEL_WARNING => 2,
-            self::LEVEL_ERROR => 3,
-            self::LEVEL_CRITICAL => 4
+            self::LEVEL_DEBUG    => 0,
+            self::LEVEL_INFO     => 1,
+            self::LEVEL_WARNING  => 2,
+            self::LEVEL_ERROR    => 3,
+            self::LEVEL_CRITICAL => 4,
         ];
 
         $currentLevelValue = $levels[$this->logLevel] ?? 1;
@@ -615,19 +640,20 @@ class Logger {
      *
      * @return void
      */
-    private function rotateLogFile(): void {
+    private function rotateLogFile(): void
+    {
         if (!file_exists($this->logFile)) {
             return;
         }
 
-        $logDir = dirname($this->logFile);
+        $logDir      = dirname($this->logFile);
         $logBasename = basename($this->logFile, '.log');
 
         // Rotate existing log files
         for ($i = $this->rotationCount - 1; $i > 0; $i--) {
             $oldFile = $logDir . '/' . $logBasename . '.' . $i . '.log';
             $newFile = $logDir . '/' . $logBasename . '.' . ($i + 1) . '.log';
-            
+
             if (file_exists($oldFile)) {
                 if ($i == $this->rotationCount - 1) {
                     unlink($oldFile);
@@ -647,17 +673,18 @@ class Logger {
      *
      * @return array
      */
-    private function getCostTrackerData(): array {
+    private function getCostTrackerData(): array
+    {
         if (!$this->costTrackerLoaded) {
-            $this->costTracker = get_option('mpc_copilot_cost_tracker', []);
+            $this->costTracker       = get_option('mpc_copilot_cost_tracker', []);
             $this->costTrackerLoaded = true;
-            
+
             // Implement size limits to prevent memory issues
             if (strlen(serialize($this->costTracker)) > 1048576) { // 1MB limit
                 $this->rotateCostData();
             }
         }
-        
+
         return $this->costTracker ?? [];
     }
 
@@ -666,7 +693,8 @@ class Logger {
      *
      * @return void
      */
-    private function saveCostTracker(): void {
+    private function saveCostTracker(): void
+    {
         if ($this->costTracker !== null) {
             update_option('mpc_copilot_cost_tracker', $this->costTracker);
         }
@@ -677,12 +705,13 @@ class Logger {
      *
      * @return array
      */
-    private function getApiStatsData(): array {
+    private function getApiStatsData(): array
+    {
         if (!$this->apiStatsLoaded) {
-            $this->apiStats = get_option('mpc_copilot_api_stats', []);
+            $this->apiStats       = get_option('mpc_copilot_api_stats', []);
             $this->apiStatsLoaded = true;
         }
-        
+
         return $this->apiStats ?? [];
     }
 
@@ -691,7 +720,8 @@ class Logger {
      *
      * @return void
      */
-    private function saveApiStats(): void {
+    private function saveApiStats(): void
+    {
         if ($this->apiStats !== null) {
             update_option('mpc_copilot_api_stats', $this->apiStats);
         }
@@ -702,14 +732,15 @@ class Logger {
      *
      * @return void
      */
-    private function rotateCostData(): void {
+    private function rotateCostData(): void
+    {
         if (!$this->costTracker) {
             return;
         }
-        
+
         // Keep only last 30 days of data
         $cutoffDate = date('Y-m-d', time() - (30 * 86400));
-        
+
         foreach (array_keys($this->costTracker) as $date) {
             if ($date < $cutoffDate) {
                 unset($this->costTracker[$date]);
@@ -720,10 +751,11 @@ class Logger {
     /**
      * Set log level
      *
-     * @param string $level Log level
+     * @param  string $level Log level
      * @return void
      */
-    public function setLogLevel(string $level): void {
+    public function setLogLevel(string $level): void
+    {
         $this->logLevel = $level;
     }
 
@@ -732,26 +764,29 @@ class Logger {
      *
      * @return string Current log level
      */
-    public function getLogLevel(): string {
+    public function getLogLevel(): string
+    {
         return $this->logLevel;
     }
 
     /**
      * Enable or disable debug mode
      *
-     * @param bool $enabled Whether debug mode is enabled
+     * @param  boolean $enabled Whether debug mode is enabled
      * @return void
      */
-    public function setDebugMode(bool $enabled): void {
+    public function setDebugMode(bool $enabled): void
+    {
         $this->debugMode = $enabled;
     }
 
     /**
      * Check if debug mode is enabled
      *
-     * @return bool Whether debug mode is enabled
+     * @return boolean Whether debug mode is enabled
      */
-    public function isDebugMode(): bool {
+    public function isDebugMode(): bool
+    {
         return $this->debugMode;
     }
 
@@ -760,17 +795,19 @@ class Logger {
      *
      * @return string Log file path
      */
-    public function getLogFile(): string {
+    public function getLogFile(): string
+    {
         return $this->logFile;
     }
 
     /**
      * Enable or disable logging (only works if WP_DEBUG is active)
      *
-     * @param bool $enabled Whether logging should be enabled
+     * @param  boolean $enabled Whether logging should be enabled
      * @return void
      */
-    public function setLoggingEnabled(bool $enabled): void {
+    public function setLoggingEnabled(bool $enabled): void
+    {
         // Only allow enabling if WP_DEBUG is active
         $this->loggingEnabled = $enabled && defined('WP_DEBUG') && WP_DEBUG;
     }
@@ -778,9 +815,10 @@ class Logger {
     /**
      * Check if logging is enabled
      *
-     * @return bool Whether logging is enabled
+     * @return boolean Whether logging is enabled
      */
-    public function isLoggingEnabled(): bool {
+    public function isLoggingEnabled(): bool
+    {
         return $this->loggingEnabled;
     }
 
@@ -788,9 +826,10 @@ class Logger {
      * Static method to check if logging is enabled globally
      * Useful for quick checks without instantiating the logger
      *
-     * @return bool Whether logging is enabled
+     * @return boolean Whether logging is enabled
      */
-    public static function isLoggingEnabledGlobally(): bool {
+    public static function isLoggingEnabledGlobally(): bool
+    {
         // Only enable logging if WP_DEBUG is active
         return defined('WP_DEBUG') && WP_DEBUG;
     }

@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Admin Menu Handler
  *
- * @package MemberPressCoursesCopilot
+ * @package    MemberPressCoursesCopilot
  * @subpackage Admin
  */
 
@@ -14,7 +15,8 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
  * AdminMenu class handles the WordPress admin menu integration
  * Simplified to work with existing MemberPress Copilot plugin
  */
-class AdminMenu {
+class AdminMenu
+{
     /**
      * Settings page instance
      *
@@ -27,7 +29,8 @@ class AdminMenu {
      *
      * @param SettingsPage $settingsPage Settings page instance
      */
-    public function __construct(SettingsPage $settingsPage) {
+    public function __construct(SettingsPage $settingsPage)
+    {
         $this->settingsPage = $settingsPage;
     }
 
@@ -36,7 +39,8 @@ class AdminMenu {
      *
      * @return void
      */
-    public function init(): void {
+    public function init(): void
+    {
         add_action('admin_menu', [$this, 'registerMenus'], 20);
         // Asset enqueuing is now handled by AssetManager service
     }
@@ -46,7 +50,8 @@ class AdminMenu {
      *
      * @return void
      */
-    public function registerMenus(): void {
+    public function registerMenus(): void
+    {
         // Check if MemberPress Courses is active
         if (!defined('MPCS_VERSION')) {
             return;
@@ -81,11 +86,12 @@ class AdminMenu {
     /**
      * Check if MemberPress Copilot is active
      *
-     * @return bool
+     * @return boolean
      */
-    private function isCopilotActive(): bool {
-        return class_exists('MemberpressAiAssistant') && 
-               function_exists('is_plugin_active') && 
+    private function isCopilotActive(): bool
+    {
+        return class_exists('MemberpressAiAssistant') &&
+               function_exists('is_plugin_active') &&
                is_plugin_active('memberpress-copilot/memberpress-ai-assistant.php');
     }
 
@@ -94,7 +100,8 @@ class AdminMenu {
      *
      * @return void
      */
-    public function renderCourseGenerator(): void {
+    public function renderCourseGenerator(): void
+    {
         // Check capabilities
         if (!current_user_can('edit_posts')) {
             wp_die(__('You do not have sufficient permissions to access this page.', 'memberpress-courses-copilot'));
@@ -115,7 +122,8 @@ class AdminMenu {
      *
      * @return void
      */
-    private function renderCopilotRequiredNotice(): void {
+    private function renderCopilotRequiredNotice(): void
+    {
         ?>
         <div class="wrap">
             <h1><?php esc_html_e('AI Course Generator', 'memberpress-courses-copilot'); ?></h1>
@@ -124,11 +132,11 @@ class AdminMenu {
                     <strong><?php esc_html_e('MemberPress Copilot Required', 'memberpress-courses-copilot'); ?></strong>
                 </p>
                 <p>
-                    <?php 
+                    <?php
                     printf(
                         __('The AI Course Generator requires %s to be installed and activated. Please install and activate MemberPress Copilot first.', 'memberpress-courses-copilot'),
                         '<strong>MemberPress Copilot</strong>'
-                    ); 
+                    );
                     ?>
                 </p>
             </div>
@@ -141,10 +149,11 @@ class AdminMenu {
      *
      * @return array
      */
-    public function getPageHooks(): array {
+    public function getPageHooks(): array
+    {
         return [
             'mpcs-course_page_mpcc-course-generator',
-            'mpcs-course_page_mpcc-status'
+            'mpcs-course_page_mpcc-status',
         ];
     }
 
@@ -153,27 +162,28 @@ class AdminMenu {
      *
      * @return array
      */
-    private function getCourseTemplates(): array {
+    private function getCourseTemplates(): array
+    {
         return [
             'technical' => [
-                'label' => __('Technical Training', 'memberpress-courses-copilot'),
+                'label'       => __('Technical Training', 'memberpress-courses-copilot'),
                 'description' => __('Programming, software, and technical skills', 'memberpress-courses-copilot'),
-                'icon' => 'laptop',
+                'icon'        => 'laptop',
             ],
-            'business' => [
-                'label' => __('Business & Professional', 'memberpress-courses-copilot'),
+            'business'  => [
+                'label'       => __('Business & Professional', 'memberpress-courses-copilot'),
                 'description' => __('Business skills, management, and professional development', 'memberpress-courses-copilot'),
-                'icon' => 'businessperson',
+                'icon'        => 'businessperson',
             ],
-            'creative' => [
-                'label' => __('Creative Arts', 'memberpress-courses-copilot'),
+            'creative'  => [
+                'label'       => __('Creative Arts', 'memberpress-courses-copilot'),
                 'description' => __('Design, arts, music, and creative skills', 'memberpress-courses-copilot'),
-                'icon' => 'art',
+                'icon'        => 'art',
             ],
-            'academic' => [
-                'label' => __('Academic & Educational', 'memberpress-courses-copilot'),
+            'academic'  => [
+                'label'       => __('Academic & Educational', 'memberpress-courses-copilot'),
                 'description' => __('Academic subjects, research, and educational content', 'memberpress-courses-copilot'),
-                'icon' => 'welcome-learn-more',
+                'icon'        => 'welcome-learn-more',
             ],
         ];
     }

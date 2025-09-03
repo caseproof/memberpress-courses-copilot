@@ -6,11 +6,11 @@ namespace MemberPressCoursesCopilot\Utilities;
 
 /**
  * Helper utility class
- * 
+ *
  * Collection of utility methods for the plugin
- * 
+ *
  * @package MemberPressCoursesCopilot\Utilities
- * @since 1.0.0
+ * @since   1.0.0
  */
 final class Helper
 {
@@ -27,7 +27,7 @@ final class Helper
     /**
      * Check if debug mode is enabled
      *
-     * @return bool
+     * @return boolean
      */
     public static function isDebugMode(): bool
     {
@@ -37,7 +37,7 @@ final class Helper
     /**
      * Check if we're in development environment
      *
-     * @return bool
+     * @return boolean
      */
     public static function isDevelopment(): bool
     {
@@ -47,7 +47,7 @@ final class Helper
     /**
      * Get MemberPress member data
      *
-     * @param int $user_id User ID
+     * @param  integer $user_id User ID
      * @return array<string, mixed>|null
      */
     public static function getMemberData(int $user_id): ?array
@@ -62,22 +62,22 @@ final class Helper
         }
 
         return [
-            'id' => $user->ID,
-            'email' => $user->user_email,
-            'username' => $user->user_login,
-            'first_name' => $user->first_name,
-            'last_name' => $user->last_name,
-            'display_name' => $user->display_name,
-            'active_memberships' => $user->active_product_subscriptions('ids'),
+            'id'                   => $user->ID,
+            'email'                => $user->user_email,
+            'username'             => $user->user_login,
+            'first_name'           => $user->first_name,
+            'last_name'            => $user->last_name,
+            'display_name'         => $user->display_name,
+            'active_memberships'   => $user->active_product_subscriptions('ids'),
             'lifetime_memberships' => $user->lifetime_subscriptions('ids'),
-            'expired_memberships' => $user->expired_product_subscriptions('ids'),
+            'expired_memberships'  => $user->expired_product_subscriptions('ids'),
         ];
     }
 
     /**
      * Get MemberPress Courses data for a user
      *
-     * @param int $user_id User ID
+     * @param  integer $user_id User ID
      * @return array<string, mixed>
      */
     public static function getUserCoursesData(int $user_id): array
@@ -87,10 +87,10 @@ final class Helper
         }
 
         $courses_user = new \MpcsUser($user_id);
-        
+
         return [
-            'enrolled_courses' => $courses_user->courses('ids'),
-            'completed_courses' => $courses_user->completed_courses('ids'),
+            'enrolled_courses'    => $courses_user->courses('ids'),
+            'completed_courses'   => $courses_user->completed_courses('ids'),
             'in_progress_courses' => $courses_user->courses_in_progress('ids'),
         ];
     }
@@ -98,14 +98,14 @@ final class Helper
     /**
      * Format file size in human readable format
      *
-     * @param int $size Size in bytes
-     * @param int $precision Decimal precision
+     * @param  integer $size      Size in bytes
+     * @param  integer $precision Decimal precision
      * @return string
      */
     public static function formatFileSize(int $size, int $precision = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        
+
         for ($i = 0; $size > 1024 && $i < count($units) - 1; $i++) {
             $size /= 1024;
         }
@@ -116,7 +116,7 @@ final class Helper
     /**
      * Generate a secure random string
      *
-     * @param int $length String length
+     * @param  integer $length String length
      * @return string
      */
     public static function generateRandomString(int $length = 32): string
@@ -132,8 +132,8 @@ final class Helper
     /**
      * Validate email address
      *
-     * @param string $email Email to validate
-     * @return bool
+     * @param  string $email Email to validate
+     * @return boolean
      */
     public static function isValidEmail(string $email): bool
     {
@@ -143,8 +143,8 @@ final class Helper
     /**
      * Validate URL
      *
-     * @param string $url URL to validate
-     * @return bool
+     * @param  string $url URL to validate
+     * @return boolean
      */
     public static function isValidUrl(string $url): bool
     {
@@ -154,18 +154,18 @@ final class Helper
     /**
      * Get current timestamp in WordPress timezone
      *
-     * @return int
+     * @return integer
      */
     public static function getCurrentTimestamp(): int
     {
-        return current_time('timestamp', true);
+        return time();
     }
 
     /**
      * Format date according to WordPress settings
      *
-     * @param int|string $timestamp Timestamp or date string
-     * @param bool $include_time Whether to include time
+     * @param  integer|string $timestamp    Timestamp or date string
+     * @param  boolean        $include_time Whether to include time
      * @return string
      */
     public static function formatDate(int|string $timestamp, bool $include_time = false): string
@@ -185,9 +185,9 @@ final class Helper
     /**
      * Truncate string to specified length
      *
-     * @param string $string String to truncate
-     * @param int $length Maximum length
-     * @param string $suffix Suffix to append if truncated
+     * @param  string  $string String to truncate
+     * @param  integer $length Maximum length
+     * @param  string  $suffix Suffix to append if truncated
      * @return string
      */
     public static function truncateString(string $string, int $length, string $suffix = '...'): string
@@ -202,7 +202,7 @@ final class Helper
     /**
      * Convert array to query string
      *
-     * @param array<string, mixed> $data Array data
+     * @param  array<string, mixed> $data Array data
      * @return string
      */
     public static function arrayToQueryString(array $data): string
@@ -213,7 +213,7 @@ final class Helper
     /**
      * Deep merge arrays
      *
-     * @param array<mixed> ...$arrays Arrays to merge
+     * @param  array<mixed> ...$arrays Arrays to merge
      * @return array<mixed>
      */
     public static function arrayMergeDeep(array ...$arrays): array
@@ -236,9 +236,9 @@ final class Helper
     /**
      * Check if string starts with substring
      *
-     * @param string $haystack The string to search in
-     * @param string $needle The substring to search for
-     * @return bool
+     * @param  string $haystack The string to search in
+     * @param  string $needle   The substring to search for
+     * @return boolean
      */
     public static function startsWith(string $haystack, string $needle): bool
     {
@@ -248,9 +248,9 @@ final class Helper
     /**
      * Check if string ends with substring
      *
-     * @param string $haystack The string to search in
-     * @param string $needle The substring to search for
-     * @return bool
+     * @param  string $haystack The string to search in
+     * @param  string $needle   The substring to search for
+     * @return boolean
      */
     public static function endsWith(string $haystack, string $needle): bool
     {
@@ -260,7 +260,7 @@ final class Helper
     /**
      * Convert string to slug format
      *
-     * @param string $string String to convert
+     * @param  string $string String to convert
      * @return string
      */
     public static function toSlug(string $string): string
@@ -276,7 +276,7 @@ final class Helper
     public static function getClientIp(): string
     {
         $ip_keys = ['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'];
-        
+
         foreach ($ip_keys as $key) {
             if (!empty($_SERVER[$key])) {
                 $ip = $_SERVER[$key];

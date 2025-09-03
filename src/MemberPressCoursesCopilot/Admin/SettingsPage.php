@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Settings Page Handler
  *
- * @package MemberPressCoursesCopilot
+ * @package    MemberPressCoursesCopilot
  * @subpackage Admin
  */
 
@@ -12,13 +13,15 @@ namespace MemberPressCoursesCopilot\Admin;
  * SettingsPage class handles the plugin status page
  * Shows dependency status and proxy configuration from MemberPress Copilot
  */
-class SettingsPage {
+class SettingsPage
+{
     /**
      * Initialize settings page
      *
      * @return void
      */
-    public function init(): void {
+    public function init(): void
+    {
         // No admin_init registration needed for status page
     }
 
@@ -27,7 +30,8 @@ class SettingsPage {
      *
      * @return void
      */
-    public function render(): void {
+    public function render(): void
+    {
         // Check capabilities
         if (!current_user_can('manage_options')) {
             wp_die(__('You do not have sufficient permissions to access this page.', 'memberpress-courses-copilot'));
@@ -44,9 +48,9 @@ class SettingsPage {
                     <tr>
                         <th scope="row"><?php esc_html_e('MemberPress Copilot', 'memberpress-courses-copilot'); ?></th>
                         <td>
-                            <?php if ($this->isCopilotActive()): ?>
+                            <?php if ($this->isCopilotActive()) : ?>
                                 <span style="color: green; font-weight: bold;">✓ <?php esc_html_e('Active and Ready', 'memberpress-courses-copilot'); ?></span>
-                            <?php else: ?>
+                            <?php else : ?>
                                 <span style="color: red; font-weight: bold;">✗ <?php esc_html_e('Not Active', 'memberpress-courses-copilot'); ?></span>
                                 <p class="description" style="color: #d63638;">
                                     <?php esc_html_e('MemberPress Copilot is required for AI functionality. Please install and activate it.', 'memberpress-courses-copilot'); ?>
@@ -58,9 +62,9 @@ class SettingsPage {
                     <tr>
                         <th scope="row"><?php esc_html_e('MemberPress Courses', 'memberpress-courses-copilot'); ?></th>
                         <td>
-                            <?php if ($this->isCoursesActive()): ?>
+                            <?php if ($this->isCoursesActive()) : ?>
                                 <span style="color: green; font-weight: bold;">✓ <?php esc_html_e('Active and Ready', 'memberpress-courses-copilot'); ?></span>
-                            <?php else: ?>
+                            <?php else : ?>
                                 <span style="color: red; font-weight: bold;">✗ <?php esc_html_e('Not Active', 'memberpress-courses-copilot'); ?></span>
                                 <p class="description" style="color: #d63638;">
                                     <?php esc_html_e('MemberPress Courses is required for course integration. Please install and activate it.', 'memberpress-courses-copilot'); ?>
@@ -71,7 +75,7 @@ class SettingsPage {
                 </table>
             </div>
                 
-            <?php if ($this->isCopilotActive()): ?>
+            <?php if ($this->isCopilotActive()) : ?>
             <div class="mpcc-proxy-status">
                 <h2><?php esc_html_e('AI Service Configuration', 'memberpress-courses-copilot'); ?></h2>
                 <p class="description">
@@ -168,23 +172,25 @@ class SettingsPage {
     /**
      * Check if MemberPress Copilot is active
      *
-     * @return bool
+     * @return boolean
      */
-    private function isCopilotActive(): bool {
-        return class_exists('MemberpressAiAssistant') && 
-               function_exists('is_plugin_active') && 
+    private function isCopilotActive(): bool
+    {
+        return class_exists('MemberpressAiAssistant') &&
+               function_exists('is_plugin_active') &&
                is_plugin_active('memberpress-copilot/memberpress-ai-assistant.php');
     }
 
     /**
      * Check if MemberPress Courses is active
      *
-     * @return bool
+     * @return boolean
      */
-    private function isCoursesActive(): bool {
-        return defined('MPCS_VERSION') && 
-               class_exists('memberpress\\courses\\models\\Course') && 
-               function_exists('is_plugin_active') && 
+    private function isCoursesActive(): bool
+    {
+        return defined('MPCS_VERSION') &&
+               class_exists('memberpress\\courses\\models\\Course') &&
+               function_exists('is_plugin_active') &&
                is_plugin_active('memberpress-courses/main.php');
     }
 }
