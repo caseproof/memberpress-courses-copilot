@@ -58,8 +58,9 @@ foreach ($testFiles as $testFile) {
     
     echo "📋 Running: " . basename($testFile) . "\n";
     
-    // Run the specific test file
-    $command = escapeshellcmd($phpunitPath) . ' --configuration=' . escapeshellarg($pluginRoot . '/phpunit.xml') . ' ' . escapeshellarg($fullPath);
+    // Build command with proper escaping for paths with spaces
+    // Don't use escapeshellcmd on the entire command, only on individual parts
+    $command = escapeshellarg($phpunitPath) . ' --configuration=' . escapeshellarg($pluginRoot . '/phpunit.xml') . ' ' . escapeshellarg($fullPath);
     $output = [];
     $returnCode = 0;
     

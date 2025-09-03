@@ -1974,6 +1974,11 @@
         }
     }
 
+    // Expose class for testing
+    if (typeof window !== 'undefined') {
+        window.MPCCQuizAIModal = MPCCQuizAIModal;
+    }
+
     // Initialize on document ready
     $(document).ready(() => {
         if (typeof wp !== 'undefined' && wp.data && wp.blocks) {

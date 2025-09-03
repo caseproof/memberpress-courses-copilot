@@ -5,6 +5,9 @@
  */
 
 module.exports = {
+    // Root directory
+    rootDir: '../../',
+    
     // Test environment
     testEnvironment: 'jsdom',
     
@@ -48,7 +51,7 @@ module.exports = {
     ],
     
     // Mock CSS and other assets
-    moduleNameMapping: {
+    moduleNameMapper: {
         '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
     },
     

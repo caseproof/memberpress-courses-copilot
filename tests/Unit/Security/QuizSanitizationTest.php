@@ -47,18 +47,7 @@ class QuizSanitizationTest extends TestCase
      */
     private function mockSanitizationFunctions(): void
     {
-        if (!function_exists('wp_kses_post')) {
-            function wp_kses_post($data) {
-                // Simple HTML sanitization for tests - allows basic tags
-                return strip_tags($data, '<p><br><b><strong><i><em><ul><ol><li>');
-            }
-        }
-
-        if (!function_exists('esc_url_raw')) {
-            function esc_url_raw($url) {
-                return filter_var($url, FILTER_SANITIZE_URL);
-            }
-        }
+        // Functions are now defined in bootstrap.php to avoid redeclaration
     }
 
     /**
