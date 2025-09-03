@@ -37,6 +37,13 @@ class SessionFeaturesService extends BaseService
     private const MAX_EXPORT_SIZE_MB    = 50;
     private const COMPRESSION_ENABLED   = true;
 
+    /**
+     * Constructor
+     *
+     * @param ConversationManager $conversationManager Instance of ConversationManager
+     * @param DatabaseService     $databaseService     Instance of DatabaseService
+     * @since 1.0.0
+     */
     public function __construct(
         ConversationManager $conversationManager,
         DatabaseService $databaseService
@@ -51,6 +58,11 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Initialize auto-save functionality
+     *
+     * Sets up WordPress hooks and schedules for auto-save operations
+     *
+     * @return void
+     * @since  1.0.0
      */
     public function initializeAutoSave(): void
     {
@@ -67,6 +79,11 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Initialize timeout monitoring
+     *
+     * Sets up WordPress hooks and schedules for session timeout checks
+     *
+     * @return void
+     * @since  1.0.0
      */
     public function initializeTimeoutMonitoring(): void
     {
@@ -80,6 +97,11 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Perform auto-save for active sessions
+     *
+     * Saves sessions that have unsaved changes in batches to prevent performance issues
+     *
+     * @return void
+     * @since  1.0.0
      */
     public function performAutoSave(): void
     {
@@ -130,6 +152,11 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Handle AJAX auto-save request
+     *
+     * Processes client-side auto-save requests via AJAX
+     *
+     * @return void
+     * @since  1.0.0
      */
     public function handleAjaxAutoSave(): void
     {
@@ -183,6 +210,11 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Perform timeout check for all active sessions
+     *
+     * Checks for sessions approaching timeout and expired sessions
+     *
+     * @return void
+     * @since  1.0.0
      */
     public function performTimeoutCheck(): void
     {
@@ -213,6 +245,13 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Handle heartbeat timeout check
+     *
+     * Integrates with WordPress heartbeat API to check session timeout status
+     *
+     * @param  array<string, mixed> $response Heartbeat response data
+     * @param  array<string, mixed> $data     Heartbeat request data
+     * @return array<string, mixed> Modified response data
+     * @since  1.0.0
      */
     public function handleHeartbeatTimeout(array $response, array $data): array
     {
@@ -238,6 +277,11 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Handle session extension request
+     *
+     * Processes AJAX requests to extend session timeout
+     *
+     * @return void
+     * @since  1.0.0
      */
     public function handleSessionExtension(): void
     {
@@ -278,6 +322,14 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Export conversation session with comprehensive data
+     *
+     * Exports a session with all related data and metadata
+     *
+     * @param  string               $sessionId Session ID to export
+     * @param  array<string, mixed> $options   Export options (include_analytics, include_debug_info, include_related_data)
+     * @return array<string, mixed> Exported session data
+     * @throws \Exception If session not found, insufficient permissions, or export size exceeds limit
+     * @since  1.0.0
      */
     public function exportSession(string $sessionId, array $options = []): array
     {
@@ -346,6 +398,14 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Import conversation session from exported data
+     *
+     * Imports a previously exported session with validation and permission checks
+     *
+     * @param  array<string, mixed> $importData Import data containing session information
+     * @param  array<string, mixed> $options    Import options (preserve_session_id, overwrite_existing, allow_user_import, target_user_id)
+     * @return ConversationSession Imported session instance
+     * @throws \Exception If validation fails, insufficient permissions, or save fails
+     * @since  1.0.0
      */
     public function importSession(array $importData, array $options = []): ConversationSession
     {
@@ -416,6 +476,15 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Synchronize session across multiple devices/clients
+     *
+     * Handles multi-device synchronization with conflict resolution
+     *
+     * @param  string               $sessionId   Session ID to synchronize
+     * @param  array<string, mixed> $clientState Current state from client (last_updated, client_id, etc.)
+     * @param  array<string, mixed> $options     Sync options for conflict resolution
+     * @return array<string, mixed> Synchronization result with updates and conflict information
+     * @throws \Exception If session not found or insufficient permissions
+     * @since  1.0.0
      */
     public function synchronizeSession(string $sessionId, array $clientState, array $options = []): array
     {
@@ -484,6 +553,14 @@ class SessionFeaturesService extends BaseService
 
     /**
      * Enable collaborative editing for session
+     *
+     * Sets up real-time collaborative editing with specified collaborators
+     *
+     * @param  string                                                       $sessionId     Session ID to enable collaboration for
+     * @param  array<array{user_id: int, permissions: array<string, bool>}> $collaborators Array of collaborator data
+     * @return array<string, mixed> Collaboration setup result
+     * @throws \Exception If session not found or insufficient permissions
+     * @since  1.0.0
      */
     public function enableCollaborativeEditing(string $sessionId, array $collaborators = []): array
     {
@@ -537,6 +614,13 @@ class SessionFeaturesService extends BaseService
     }
 
     // PRIVATE HELPER METHODS.
+
+    /**
+     * Schedule auto-save tasks using WordPress cron
+     *
+     * @return void
+     * @since  1.0.0
+     */
     private function scheduleAutoSaveTasks(): void
     {
         if (!wp_next_scheduled('mpcc_auto_save_sessions')) {
@@ -553,6 +637,12 @@ class SessionFeaturesService extends BaseService
         });
     }
 
+    /**
+     * Schedule timeout check tasks using WordPress cron
+     *
+     * @return void
+     * @since  1.0.0
+     */
     private function scheduleTimeoutChecks(): void
     {
         if (!wp_next_scheduled('mpcc_check_session_timeouts')) {
@@ -568,6 +658,12 @@ class SessionFeaturesService extends BaseService
         });
     }
 
+    /**
+     * Get active sessions that need saving
+     *
+     * @return array<int, string> Array of session IDs needing save
+     * @since  1.0.0
+     */
     private function getActiveSessionsNeedingSave(): array
     {
         // Use database service to get active sessions that need saving.
@@ -575,6 +671,14 @@ class SessionFeaturesService extends BaseService
         return $this->databaseService->getActiveSessionsNeedingSave(5, self::AUTO_SAVE_BATCH_SIZE);
     }
 
+    /**
+     * Handle session modification event
+     *
+     * @param  string              $sessionId Session ID
+     * @param  ConversationSession $session   Session instance
+     * @return void
+     * @since  1.0.0
+     */
     private function handleSessionModification(string $sessionId, ConversationSession $session): void
     {
         // Trigger immediate auto-save if threshold reached.
@@ -583,6 +687,14 @@ class SessionFeaturesService extends BaseService
         }
     }
 
+    /**
+     * Update session from client-side data
+     *
+     * @param  ConversationSession  $session    Session instance to update
+     * @param  array<string, mixed> $clientData Client-side data containing updates
+     * @return void
+     * @since  1.0.0
+     */
     private function updateSessionFromClientData(ConversationSession $session, array $clientData): void
     {
         // Update session with client-side changes.
@@ -610,250 +722,308 @@ class SessionFeaturesService extends BaseService
     // For brevity, including key method signatures.
 
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Get sessions approaching timeout threshold
+     *
+     * @param  integer $threshold Timeout threshold timestamp
+     * @return array<int, object> Array of session data objects
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function getSessionsNearTimeout(int $threshold): array
     {
         throw new \RuntimeException('getSessionsNearTimeout() is not implemented. This method must retrieve sessions approaching timeout threshold.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Get expired sessions
+     *
+     * @param  integer $threshold Expiry threshold timestamp
+     * @return array<int, object> Array of expired session data objects
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function getExpiredSessions(int $threshold): array
     {
         throw new \RuntimeException('getExpiredSessions() is not implemented. This method must retrieve sessions that have expired.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Send timeout warning notification
+     *
+     * @param  object $sessionData Session data object
+     * @return void
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function sendTimeoutWarning(object $sessionData): void
     {
         throw new \RuntimeException('sendTimeoutWarning() is not implemented. This method must send timeout warning notifications.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Handle session timeout cleanup
+     *
+     * @param  object $sessionData Session data object
+     * @return void
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function handleSessionTimeout(object $sessionData): void
     {
         throw new \RuntimeException('handleSessionTimeout() is not implemented. This method must handle session timeout cleanup.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Check if user can export session
+     *
+     * @param  integer $sessionUserId Session owner user ID
+     * @param  integer $currentUserId Current user ID
+     * @return boolean True if user can export
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function canUserExportSession(int $sessionUserId, int $currentUserId): bool
     {
         throw new \RuntimeException('canUserExportSession() is not implemented. This method must check if user can export session.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Get plugin version
+     *
+     * @return string Plugin version number
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function getPluginVersion(): string
     {
         throw new \RuntimeException('getPluginVersion() is not implemented. This method must return the actual plugin version.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Generate analytics data for session export
+     *
+     * @param  ConversationSession $session Session instance
+     * @return array<string, mixed> Analytics data
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function generateExportAnalytics(ConversationSession $session): array
     {
         throw new \RuntimeException('generateExportAnalytics() is not implemented. This method must generate analytics for session export.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Generate debug information for session
+     *
+     * @param  ConversationSession $session Session instance
+     * @return array<string, mixed> Debug information
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function generateDebugInfo(ConversationSession $session): array
     {
         throw new \RuntimeException('generateDebugInfo() is not implemented. This method must generate debug information for session.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Get related session data
+     *
+     * @param  ConversationSession $session Session instance
+     * @return array<string, mixed> Related session data
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function getRelatedSessionData(ConversationSession $session): array
     {
         throw new \RuntimeException('getRelatedSessionData() is not implemented. This method must retrieve related session data.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Calculate export data size in bytes
+     *
+     * @param  array<string, mixed> $data Export data
+     * @return integer Size in bytes
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function calculateExportSize(array $data): int
     {
         throw new \RuntimeException('calculateExportSize() is not implemented. This method must calculate accurate export data size.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Compress export data
+     *
+     * @param  array<string, mixed> $data Data to compress
+     * @return array<string, mixed> Compressed data with metadata
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function compressExportData(array $data): array
     {
         throw new \RuntimeException('compressExportData() is not implemented. This method must compress export data.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Validate import data structure and content
+     *
+     * @param  array<string, mixed> $data Import data to validate
+     * @return array{valid: bool, errors: array<int, string>} Validation result
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function validateImportData(array $data): array
     {
         throw new \RuntimeException('validateImportData() is not implemented. This method must validate import data structure and content.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Decompress import data
+     *
+     * @param  array<string, mixed> $data Compressed data
+     * @return array<string, mixed> Decompressed data
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function decompressImportData(array $data): array
     {
         throw new \RuntimeException('decompressImportData() is not implemented. This method must decompress import data.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Generate unique session ID
+     *
+     * @return string Unique session identifier
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function generateNewSessionId(): string
     {
         throw new \RuntimeException('generateNewSessionId() is not implemented. This method must generate unique session IDs.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Check if user can sync session
+     *
+     * @param  integer $sessionUserId Session owner user ID
+     * @param  integer $currentUserId Current user ID
+     * @return boolean True if user can sync
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function canUserSyncSession(int $sessionUserId, int $currentUserId): bool
     {
         throw new \RuntimeException('canUserSyncSession() is not implemented. This method must check if user can sync session.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Generate server sync state
+     *
+     * @param  ConversationSession $session Session instance
+     * @return array<string, mixed> Server sync state data
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function generateServerSyncState(ConversationSession $session): array
     {
         throw new \RuntimeException('generateServerSyncState() is not implemented. This method must generate server sync state.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Detect synchronization conflicts
+     *
+     * @param  array<string, mixed> $serverState Server state data
+     * @param  array<string, mixed> $clientState Client state data
+     * @return boolean True if conflict detected
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function detectSyncConflict(array $serverState, array $clientState): bool
     {
         throw new \RuntimeException('detectSyncConflict() is not implemented. This method must detect sync conflicts between states.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Resolve synchronization conflicts
+     *
+     * @param  ConversationSession  $session     Session instance
+     * @param  array<string, mixed> $serverState Server state data
+     * @param  array<string, mixed> $clientState Client state data
+     * @param  array<string, mixed> $options     Conflict resolution options
+     * @return string Resolution strategy applied
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function resolveSyncConflict(ConversationSession $session, array $serverState, array $clientState, array $options): string
     {
         throw new \RuntimeException('resolveSyncConflict() is not implemented. This method must resolve sync conflicts based on strategy.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Generate updates for client synchronization
+     *
+     * @param  ConversationSession  $session     Session instance
+     * @param  array<string, mixed> $clientState Client state data
+     * @return array<string, mixed> Updates to send to client
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function generateClientUpdates(ConversationSession $session, array $clientState): array
     {
         throw new \RuntimeException('generateClientUpdates() is not implemented. This method must generate updates for client sync.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Apply client updates to session
+     *
+     * @param  ConversationSession  $session     Session instance
+     * @param  array<string, mixed> $clientState Client state data with updates
+     * @return void
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function applyClientUpdates(ConversationSession $session, array $clientState): void
     {
         throw new \RuntimeException('applyClientUpdates() is not implemented. This method must apply client updates to session.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Check if user can enable collaboration
+     *
+     * @param  integer $sessionUserId Session owner user ID
+     * @param  integer $currentUserId Current user ID
+     * @return boolean True if user can enable collaboration
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function canUserEnableCollaboration(int $sessionUserId, int $currentUserId): bool
     {
         throw new \RuntimeException('canUserEnableCollaboration() is not implemented. This method must check collaboration permissions.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Validate collaborator data
+     *
+     * @param  array<array{user_id: int, permissions: array<string, bool>}> $collaborators Collaborator data to validate
+     * @return array<array{user_id: int, permissions: array<string, bool>}> Validated collaborators
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function validateCollaborators(array $collaborators): array
     {
         throw new \RuntimeException('validateCollaborators() is not implemented. This method must validate collaborator data.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Create collaboration channels
+     *
+     * @param  string               $sessionId         Session ID
+     * @param  array<string, mixed> $collaborationData Collaboration metadata
+     * @return array<string, mixed> Channel information
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function createCollaborationChannels(string $sessionId, array $collaborationData): array
     {
         throw new \RuntimeException('createCollaborationChannels() is not implemented. This method must create collaboration channels.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Initialize real-time synchronization
+     *
+     * @param  string $sessionId Session ID
+     * @return void
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function initializeRealTimeSync(string $sessionId): void
     {
         throw new \RuntimeException('initializeRealTimeSync() is not implemented. This method must initialize real-time synchronization.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Get real-time sync URL
+     *
+     * @param  string $sessionId Session ID
+     * @return string Real-time sync endpoint URL
+     * @throws \RuntimeException Method not implemented
+     * @since  1.0.0
      */
     private function getRealTimeSyncUrl(string $sessionId): string
     {

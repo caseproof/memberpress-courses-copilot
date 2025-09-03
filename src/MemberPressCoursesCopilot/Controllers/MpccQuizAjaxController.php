@@ -60,6 +60,8 @@ class MpccQuizAjaxController
     /**
      * Load hooks and register AJAX handlers
      *
+     * @since 1.0.0
+     *
      * @return void
      *
      * @example
@@ -79,6 +81,8 @@ class MpccQuizAjaxController
 
     /**
      * Load hooks and register AJAX handlers
+     *
+     * @since 1.0.0
      *
      * @return void
      */
@@ -102,7 +106,12 @@ class MpccQuizAjaxController
     /**
      * Handle quiz generation AJAX request
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When quiz generation fails.
+     * @throws \Throwable When fatal error occurs.
      *
      * @example
      * // AJAX request from JavaScript for lesson-based quiz generation
@@ -267,6 +276,8 @@ class MpccQuizAjaxController
      * 3. Validates against WordPress nonce system
      * 4. Returns false for any invalid or missing nonce
      *
+     * @since 1.0.0
+     *
      * @return boolean True if nonce is valid, false otherwise
      */
     private function verifyQuizNonce(): bool
@@ -309,6 +320,8 @@ class MpccQuizAjaxController
      * - Blocks Subscriber and Contributor roles from quiz generation
      * - Ensures only trusted users can create educational content
      *
+     * @since 1.0.0
+     *
      * @return boolean True if user can edit posts, false otherwise
      */
     private function verifyUserPermissions(): bool
@@ -334,6 +347,8 @@ class MpccQuizAjaxController
      * - absint() converts to absolute integer, removing negative values and non-numeric data
      * - sanitize_textarea_field() removes script tags, dangerous HTML, and normalizes line breaks
      * - Raw options array is intentionally unsanitized here to preserve structure for JSON parsing
+     *
+     * @since 1.0.0
      *
      * @return array Sanitized input data with consistent structure
      */
@@ -378,6 +393,8 @@ class MpccQuizAjaxController
      * - Non-array results return empty array (type safety)
      * - Null/undefined options return empty array (default behavior)
      *
+     * @since 1.0.0
+     *
      * @param  mixed $options Raw options from request (array or JSON string)
      * @return array Parsed and sanitized options array
      */
@@ -410,6 +427,8 @@ class MpccQuizAjaxController
     /**
      * Get quiz content from lesson, course, or provided content
      *
+     * @since 1.0.0
+     *
      * @param  string  $content  Direct content
      * @param  integer $lessonId Lesson ID
      * @param  integer $courseId Course ID
@@ -435,6 +454,8 @@ class MpccQuizAjaxController
     /**
      * Prepare options for quiz generation
      *
+     * @since 1.0.0
+     *
      * @param  array $options Parsed options
      * @return array Generation options
      */
@@ -451,11 +472,14 @@ class MpccQuizAjaxController
     /**
      * Format successful quiz response
      *
+     * @since 1.0.0
+     *
      * @param  array   $result       Quiz generation result
      * @param  string  $questionType Question type
      * @param  integer $lessonId     Lesson ID
      * @param  integer $courseId     Course ID
      * @return array Formatted response data
+     * @throws \Exception When quiz questions generation fails.
      */
     private function formatSuccessfulQuizResponse(
         array $result,
@@ -493,7 +517,11 @@ class MpccQuizAjaxController
     /**
      * Handle regenerate question AJAX request
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When question regeneration fails.
      *
      * @example
      * // Regenerate a specific question
@@ -616,7 +644,11 @@ class MpccQuizAjaxController
     /**
      * Handle validate quiz AJAX request
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When quiz validation fails.
      *
      * @example
      * // Validate a complete quiz
@@ -706,6 +738,8 @@ class MpccQuizAjaxController
 
     /**
      * Recursively sanitize array data with type-specific cleaning
+     *
+     * @since 1.0.0
      *
      * @example
      * // Sanitize quiz options array
@@ -821,6 +855,8 @@ class MpccQuizAjaxController
     /**
      * Get lesson content
      *
+     * @since 1.0.0
+     *
      * @param  integer $lessonId The ID of the lesson to retrieve content from.
      * @return string
      *
@@ -882,6 +918,8 @@ class MpccQuizAjaxController
 
     /**
      * Get course content
+     *
+     * @since 1.0.0
      *
      * @param  integer $courseId The ID of the course to retrieve content from.
      * @return string
@@ -973,6 +1011,8 @@ class MpccQuizAjaxController
      * - Ensures positive numeric values only
      * - Defaults invalid points to 1 (prevents zero-point questions)
      * - Calculates total points for quiz scoring
+     *
+     * @since 1.0.0
      *
      * @param  array $quizData Complete quiz data structure to validate
      * @return array Validation results with 'valid', 'errors', 'warnings', and 'summary'
@@ -1155,7 +1195,11 @@ class MpccQuizAjaxController
     /**
      * Handle create quiz from lesson AJAX request
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When quiz creation from lesson fails.
      *
      * @example
      * // Create a quiz from a specific lesson
@@ -1318,7 +1362,11 @@ class MpccQuizAjaxController
     /**
      * Get the course ID for a lesson
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When getting lesson course fails.
      *
      * @example
      * // Get course information for a lesson
@@ -1428,7 +1476,11 @@ class MpccQuizAjaxController
     /**
      * Get all lessons for a course
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When getting course lessons fails.
      *
      * @example
      * // Get all lessons for a course
@@ -1573,6 +1625,8 @@ class MpccQuizAjaxController
 
     /**
      * Handle AJAX errors consistently
+     *
+     * @since 1.0.0
      *
      * @param  \Exception $e       The exception to handle
      * @param  string     $context Context description for logging

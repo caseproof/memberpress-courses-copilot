@@ -48,6 +48,15 @@ class ConversationSession
     private const AUTO_SAVE_INTERVAL  = 30; // seconds
     private const MAX_STATE_HISTORY   = 50;
 
+    /**
+     * Constructor for ConversationSession
+     *
+     * @since 1.0.0
+     *
+     * @param string  $sessionId   Unique identifier for the session
+     * @param integer $userId      User ID associated with this session
+     * @param string  $contextType Context type for the session (default: 'course_creation')
+     */
     public function __construct(string $sessionId, int $userId, string $contextType = 'course_creation')
     {
         $this->sessionId   = $sessionId;
@@ -60,6 +69,16 @@ class ConversationSession
 
     /**
      * Add a message to the conversation
+     *
+     * @since 1.0.0
+     *
+     * @param string $type     Type of message ('user', 'assistant', or 'system')
+     * @param string $content  Message content
+     * @param array  $metadata Optional metadata for the message
+     *                         - tokens_used (int): Number of tokens used
+     *                         - cost (float): Cost of the message
+     *
+     * @return void
      */
     public function addMessage(string $type, string $content, array $metadata = []): void
     {
@@ -93,6 +112,10 @@ class ConversationSession
 
     /**
      * Clear all messages from the conversation
+     *
+     * @since 1.0.0
+     *
+     * @return void
      */
     public function clearMessages(): void
     {
@@ -102,6 +125,12 @@ class ConversationSession
 
     /**
      * Get recent messages
+     *
+     * @since 1.0.0
+     *
+     * @param integer $count Number of recent messages to retrieve (default: 10)
+     *
+     * @return array Array of recent messages
      */
     public function getRecentMessages(int $count = 10): array
     {
@@ -110,6 +139,10 @@ class ConversationSession
 
     /**
      * Get all messages
+     *
+     * @since 1.0.0
+     *
+     * @return array Array of all messages
      */
     public function getMessages(): array
     {
@@ -118,6 +151,12 @@ class ConversationSession
 
     /**
      * Get messages by type
+     *
+     * @since 1.0.0
+     *
+     * @param string $type Message type to filter by ('user', 'assistant', or 'system')
+     *
+     * @return array Array of messages matching the specified type
      */
     public function getMessagesByType(string $type): array
     {
@@ -126,6 +165,12 @@ class ConversationSession
 
     /**
      * Set current conversation state
+     *
+     * @since 1.0.0
+     *
+     * @param string $state New conversation state
+     *
+     * @return void
      */
     public function setCurrentState(string $state): void
     {
@@ -140,6 +185,10 @@ class ConversationSession
 
     /**
      * Get current conversation state
+     *
+     * @since 1.0.0
+     *
+     * @return string Current conversation state
      */
     public function getCurrentState(): string
     {
@@ -148,6 +197,13 @@ class ConversationSession
 
     /**
      * Save current state to history for backtracking
+     *
+     * @since 1.0.0
+     *
+     * @param string $state          State to save to history
+     * @param array  $transitionData Optional transition data
+     *
+     * @return void
      */
     public function saveStateToHistory(string $state, array $transitionData = []): void
     {
@@ -171,6 +227,10 @@ class ConversationSession
 
     /**
      * Get state history for backtracking
+     *
+     * @since 1.0.0
+     *
+     * @return array Array of state history items
      */
     public function getStateHistory(): array
     {
@@ -179,6 +239,12 @@ class ConversationSession
 
     /**
      * Set state history (for restoration)
+     *
+     * @since 1.0.0
+     *
+     * @param array $history State history array to set
+     *
+     * @return void
      */
     public function setStateHistory(array $history): void
     {
@@ -188,6 +254,13 @@ class ConversationSession
 
     /**
      * Set conversation context data
+     *
+     * @since 1.0.0
+     *
+     * @param string|array $key   Context key or entire context array
+     * @param mixed        $value Value to set (null when setting entire array)
+     *
+     * @return void
      */
     public function setContext(string|array $key, mixed $value = null): void
     {
@@ -204,6 +277,13 @@ class ConversationSession
 
     /**
      * Get conversation context data
+     *
+     * @since 1.0.0
+     *
+     * @param string|null $key     Optional context key to retrieve
+     * @param mixed       $default Default value if key not found
+     *
+     * @return mixed Context value, entire context array if no key specified, or default value
      */
     public function getContext(?string $key = null, mixed $default = null): mixed
     {
@@ -217,6 +297,12 @@ class ConversationSession
 
     /**
      * Set progress percentage
+     *
+     * @since 1.0.0
+     *
+     * @param float $progress Progress percentage (0.0 to 100.0)
+     *
+     * @return void
      */
     public function updateProgress(float $progress): void
     {
@@ -226,6 +312,10 @@ class ConversationSession
 
     /**
      * Get progress percentage
+     *
+     * @since 1.0.0
+     *
+     * @return float Progress percentage (0.0 to 100.0)
      */
     public function getProgress(): float
     {
@@ -234,6 +324,12 @@ class ConversationSession
 
     /**
      * Set progress value directly
+     *
+     * @since 1.0.0
+     *
+     * @param float $progress Progress percentage to set
+     *
+     * @return void
      */
     public function setProgress(float $progress): void
     {
@@ -243,6 +339,12 @@ class ConversationSession
 
     /**
      * Set confidence score
+     *
+     * @since 1.0.0
+     *
+     * @param float $score Confidence score (0.0 to 1.0)
+     *
+     * @return void
      */
     public function setConfidenceScore(float $score): void
     {
@@ -252,6 +354,10 @@ class ConversationSession
 
     /**
      * Get confidence score
+     *
+     * @since 1.0.0
+     *
+     * @return float Confidence score (0.0 to 1.0)
      */
     public function getConfidenceScore(): float
     {
@@ -260,6 +366,12 @@ class ConversationSession
 
     /**
      * Pause the conversation session
+     *
+     * @since 1.0.0
+     *
+     * @param string $reason Optional reason for pausing
+     *
+     * @return void
      */
     public function pause(string $reason = ''): void
     {
@@ -274,6 +386,10 @@ class ConversationSession
 
     /**
      * Resume the conversation session
+     *
+     * @since 1.0.0
+     *
+     * @return void
      */
     public function resume(): void
     {
@@ -291,6 +407,12 @@ class ConversationSession
 
     /**
      * Complete the conversation session
+     *
+     * @since 1.0.0
+     *
+     * @param array $completionData Optional completion data to store
+     *
+     * @return void
      */
     public function complete(array $completionData = []): void
     {
@@ -304,6 +426,12 @@ class ConversationSession
 
     /**
      * Abandon the conversation session
+     *
+     * @since 1.0.0
+     *
+     * @param string $reason Optional reason for abandoning
+     *
+     * @return void
      */
     public function abandon(string $reason = ''): void
     {
@@ -316,6 +444,10 @@ class ConversationSession
 
     /**
      * Check if session is active
+     *
+     * @since 1.0.0
+     *
+     * @return boolean True if session is active, false otherwise
      */
     public function isActive(): bool
     {
@@ -324,6 +456,12 @@ class ConversationSession
 
     /**
      * Check if session is expired
+     *
+     * @since 1.0.0
+     *
+     * @param integer $timeoutMinutes Timeout duration in minutes (default: 60)
+     *
+     * @return boolean True if session is expired, false otherwise
      */
     public function isExpired(int $timeoutMinutes = 60): bool
     {
@@ -332,6 +470,12 @@ class ConversationSession
 
     /**
      * Get time until expiry
+     *
+     * @since 1.0.0
+     *
+     * @param integer $timeoutMinutes Timeout duration in minutes (default: 60)
+     *
+     * @return integer Time remaining in seconds until expiry
      */
     public function getTimeUntilExpiry(int $timeoutMinutes = 60): int
     {
@@ -341,6 +485,10 @@ class ConversationSession
 
     /**
      * Get pause duration if paused
+     *
+     * @since 1.0.0
+     *
+     * @return integer Pause duration in seconds (0 if not paused)
      */
     public function getPauseDuration(): int
     {
@@ -362,6 +510,12 @@ class ConversationSession
 
     /**
      * Set paused from state
+     *
+     * @since 1.0.0
+     *
+     * @param string $state State the session was paused from
+     *
+     * @return void
      */
     public function setPausedFromState(string $state): void
     {
@@ -371,6 +525,10 @@ class ConversationSession
 
     /**
      * Get paused from state
+     *
+     * @since 1.0.0
+     *
+     * @return string|null State the session was paused from, or null
      */
     public function getPausedFromState(): ?string
     {
@@ -379,6 +537,13 @@ class ConversationSession
 
     /**
      * Set session metadata
+     *
+     * @since 1.0.0
+     *
+     * @param string $key   Metadata key
+     * @param mixed  $value Metadata value
+     *
+     * @return void
      */
     public function setMetadata(string $key, mixed $value): void
     {
@@ -388,6 +553,12 @@ class ConversationSession
 
     /**
      * Set entire metadata array
+     *
+     * @since 1.0.0
+     *
+     * @param array $metadata Complete metadata array to set
+     *
+     * @return void
      */
     public function setMetadataArray(array $metadata): void
     {
@@ -397,6 +568,12 @@ class ConversationSession
 
     /**
      * Get session metadata
+     *
+     * @since 1.0.0
+     *
+     * @param string|null $key Optional metadata key to retrieve
+     *
+     * @return mixed Metadata value, entire metadata array if no key specified, or null
      */
     public function getMetadata(?string $key = null): mixed
     {
@@ -409,6 +586,12 @@ class ConversationSession
 
     /**
      * Check if auto-save is needed
+     *
+     * @since 1.0.0
+     *
+     * @param integer|null $intervalSeconds Optional auto-save interval in seconds
+     *
+     * @return boolean True if auto-save is needed, false otherwise
      */
     public function shouldAutoSave(int $intervalSeconds = null): bool
     {
@@ -418,6 +601,10 @@ class ConversationSession
 
     /**
      * Mark session as saved
+     *
+     * @since 1.0.0
+     *
+     * @return void
      */
     public function markAsSaved(): void
     {
@@ -428,6 +615,10 @@ class ConversationSession
 
     /**
      * Mark session as modified
+     *
+     * @since 1.0.0
+     *
+     * @return void
      */
     public function markAsModified(): void
     {
@@ -437,6 +628,10 @@ class ConversationSession
 
     /**
      * Check if session has unsaved changes
+     *
+     * @since 1.0.0
+     *
+     * @return boolean True if session has unsaved changes, false otherwise
      */
     public function hasUnsavedChanges(): bool
     {
@@ -445,6 +640,12 @@ class ConversationSession
 
     /**
      * Restore messages from database without marking as modified
+     *
+     * @since 1.0.0
+     *
+     * @param array $messages Array of message data
+     *
+     * @return void
      */
     public function restoreMessages(array $messages): void
     {
@@ -454,6 +655,12 @@ class ConversationSession
 
     /**
      * Restore state from database without marking as modified
+     *
+     * @since 1.0.0
+     *
+     * @param string $state State to restore
+     *
+     * @return void
      */
     public function restoreState(string $state): void
     {
@@ -463,6 +670,12 @@ class ConversationSession
 
     /**
      * Restore context from database without marking as modified
+     *
+     * @since 1.0.0
+     *
+     * @param array $context Context array to restore
+     *
+     * @return void
      */
     public function restoreContext(array $context): void
     {
@@ -472,6 +685,12 @@ class ConversationSession
 
     /**
      * Restore progress from database without marking as modified
+     *
+     * @since 1.0.0
+     *
+     * @param float $progress Progress percentage to restore
+     *
+     * @return void
      */
     public function restoreProgress(float $progress): void
     {
@@ -481,6 +700,12 @@ class ConversationSession
 
     /**
      * Restore confidence score from database without marking as modified
+     *
+     * @since 1.0.0
+     *
+     * @param float $confidenceScore Confidence score to restore
+     *
+     * @return void
      */
     public function restoreConfidenceScore(float $confidenceScore): void
     {
@@ -490,6 +715,12 @@ class ConversationSession
 
     /**
      * Restore metadata from database without marking as modified
+     *
+     * @since 1.0.0
+     *
+     * @param array $metadata Metadata array to restore
+     *
+     * @return void
      */
     public function restoreMetadata(array $metadata): void
     {
@@ -499,6 +730,12 @@ class ConversationSession
 
     /**
      * Restore state history from database without marking as modified
+     *
+     * @since 1.0.0
+     *
+     * @param array $stateHistory State history array to restore
+     *
+     * @return void
      */
     public function restoreStateHistory(array $stateHistory): void
     {
@@ -508,6 +745,23 @@ class ConversationSession
 
     /**
      * Calculate session statistics
+     *
+     * @since 1.0.0
+     *
+     * @return array Session statistics including:
+     *               - total_messages (int)
+     *               - user_messages (int)
+     *               - assistant_messages (int)
+     *               - system_messages (int)
+     *               - duration_seconds (int)
+     *               - average_response_time (float)
+     *               - state_transitions (int)
+     *               - progress_percentage (float)
+     *               - confidence_score (float)
+     *               - total_tokens (int)
+     *               - total_cost (float)
+     *               - is_active (bool)
+     *               - has_unsaved_changes (bool)
      */
     public function getStatistics(): array
     {
@@ -537,6 +791,10 @@ class ConversationSession
 
     /**
      * Export session data
+     *
+     * @since 1.0.0
+     *
+     * @return array Complete session data array
      */
     public function toArray(): array
     {
@@ -567,6 +825,32 @@ class ConversationSession
 
     /**
      * Create session from array data
+     *
+     * @since 1.0.0
+     *
+     * @param array $data Session data array containing:
+     *                    - session_id (string): Required session identifier
+     *                    - user_id (int): Required user ID
+     *                    - context_type (string): Optional context type
+     *                    - database_id (int|null): Optional database ID
+     *                    - title (string): Optional session title
+     *                    - current_state (string): Optional current state
+     *                    - state_history (array): Optional state history
+     *                    - paused_from_state (string|null): Optional paused state
+     *                    - is_active (bool): Optional active status
+     *                    - context (array): Optional context data
+     *                    - metadata (array): Optional metadata
+     *                    - messages (array): Optional messages array
+     *                    - progress (float): Optional progress percentage
+     *                    - confidence_score (float): Optional confidence score
+     *                    - created_at (int): Optional creation timestamp
+     *                    - last_updated (int): Optional last update timestamp
+     *                    - last_saved (int): Optional last save timestamp
+     *                    - has_unsaved_changes (bool): Optional unsaved changes flag
+     *                    - total_tokens (int): Optional total tokens
+     *                    - total_cost (float): Optional total cost
+     *
+     * @return self New ConversationSession instance
      */
     public static function fromArray(array $data): self
     {
@@ -598,95 +882,238 @@ class ConversationSession
     }
 
     // GETTERS AND SETTERS
+
+    /**
+     * Get session ID
+     *
+     * @since 1.0.0
+     *
+     * @return string Session identifier
+     */
     public function getSessionId(): string
     {
         return $this->sessionId;
     }
 
+    /**
+     * Get user ID
+     *
+     * @since 1.0.0
+     *
+     * @return integer User ID
+     */
     public function getUserId(): int
     {
         return $this->userId;
     }
 
+    /**
+     * Get context type
+     *
+     * @since 1.0.0
+     *
+     * @return string Context type
+     */
     public function getContextType(): string
     {
         return $this->contextType;
     }
 
+    /**
+     * Get database ID
+     *
+     * @since 1.0.0
+     *
+     * @return integer|null Database ID or null if not saved
+     */
     public function getDatabaseId(): ?int
     {
         return $this->databaseId;
     }
 
+    /**
+     * Set database ID
+     *
+     * @since 1.0.0
+     *
+     * @param integer $id Database ID
+     *
+     * @return void
+     */
     public function setDatabaseId(int $id): void
     {
         $this->databaseId = $id;
     }
 
+    /**
+     * Get session title
+     *
+     * @since 1.0.0
+     *
+     * @return string Session title
+     */
     public function getTitle(): string
     {
         return $this->title;
     }
 
+    /**
+     * Set session title
+     *
+     * @since 1.0.0
+     *
+     * @param string $title Session title
+     *
+     * @return void
+     */
     public function setTitle(string $title): void
     {
         $this->title = $title;
         $this->markAsModified();
     }
 
+    /**
+     * Get creation timestamp
+     *
+     * @since 1.0.0
+     *
+     * @return integer Unix timestamp of creation
+     */
     public function getCreatedAt(): int
     {
         return $this->createdAt;
     }
 
+    /**
+     * Set creation timestamp
+     *
+     * @since 1.0.0
+     *
+     * @param integer $timestamp Unix timestamp
+     *
+     * @return void
+     */
     public function setCreatedAt(int $timestamp): void
     {
         $this->createdAt = $timestamp;
     }
 
+    /**
+     * Get last updated timestamp
+     *
+     * @since 1.0.0
+     *
+     * @return integer Unix timestamp of last update
+     */
     public function getLastUpdated(): int
     {
         return $this->lastUpdated;
     }
 
+    /**
+     * Set last updated timestamp
+     *
+     * @since 1.0.0
+     *
+     * @param integer $timestamp Unix timestamp
+     *
+     * @return void
+     */
     public function setLastUpdated(int $timestamp): void
     {
         $this->lastUpdated = $timestamp;
     }
 
+    /**
+     * Get last saved timestamp
+     *
+     * @since 1.0.0
+     *
+     * @return integer Unix timestamp of last save
+     */
     public function getLastSaved(): int
     {
         return $this->lastSaved;
     }
 
+    /**
+     * Get total tokens used
+     *
+     * @since 1.0.0
+     *
+     * @return integer Total number of tokens
+     */
     public function getTotalTokens(): int
     {
         return $this->totalTokens;
     }
 
+    /**
+     * Set total tokens
+     *
+     * @since 1.0.0
+     *
+     * @param integer $tokens Total number of tokens
+     *
+     * @return void
+     */
     public function setTotalTokens(int $tokens): void
     {
         $this->totalTokens = $tokens;
         $this->markAsModified();
     }
 
+    /**
+     * Add tokens to total
+     *
+     * @since 1.0.0
+     *
+     * @param integer $tokens Number of tokens to add
+     *
+     * @return void
+     */
     public function addTokens(int $tokens): void
     {
         $this->totalTokens += $tokens;
         $this->markAsModified();
     }
 
+    /**
+     * Get total cost
+     *
+     * @since 1.0.0
+     *
+     * @return float Total cost amount
+     */
     public function getTotalCost(): float
     {
         return $this->totalCost;
     }
 
+    /**
+     * Set total cost
+     *
+     * @since 1.0.0
+     *
+     * @param float $cost Total cost amount
+     *
+     * @return void
+     */
     public function setTotalCost(float $cost): void
     {
         $this->totalCost = $cost;
         $this->markAsModified();
     }
 
+    /**
+     * Add cost to total
+     *
+     * @since 1.0.0
+     *
+     * @param float $cost Cost amount to add
+     *
+     * @return void
+     */
     public function addCost(float $cost): void
     {
         $this->totalCost += $cost;
@@ -695,6 +1122,19 @@ class ConversationSession
 
     /**
      * Create a recovery checkpoint
+     *
+     * @since 1.0.0
+     *
+     * @param string $name Optional checkpoint name
+     *
+     * @return array Checkpoint data containing:
+     *               - name (string)
+     *               - timestamp (int)
+     *               - state (string)
+     *               - context (array)
+     *               - progress (float)
+     *               - message_count (int)
+     *               - confidence_score (float)
      */
     public function createCheckpoint(string $name = ''): array
     {
@@ -720,6 +1160,12 @@ class ConversationSession
 
     /**
      * Restore from a checkpoint
+     *
+     * @since 1.0.0
+     *
+     * @param string $checkpointName Name of checkpoint to restore
+     *
+     * @return boolean True if checkpoint restored successfully, false otherwise
      */
     public function restoreFromCheckpoint(string $checkpointName): bool
     {
@@ -748,6 +1194,10 @@ class ConversationSession
 
     /**
      * Get available checkpoints
+     *
+     * @since 1.0.0
+     *
+     * @return array Array of checkpoint data indexed by checkpoint name
      */
     public function getCheckpoints(): array
     {
@@ -756,6 +1206,12 @@ class ConversationSession
 
     /**
      * Update progress based on current state
+     *
+     * @since 1.0.0
+     *
+     * @param string $state Current state to map to progress
+     *
+     * @return void
      */
     private function updateProgressFromState(string $state): void
     {
