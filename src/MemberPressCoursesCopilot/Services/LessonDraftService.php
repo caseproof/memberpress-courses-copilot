@@ -35,7 +35,7 @@ class LessonDraftService
         $tableName = $this->table->getTableName();
 
         // Check if table exists
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$tableName}'") === $tableName;
+        $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $tableName)) === $tableName;
 
         if (!$table_exists) {
             $this->table->create();

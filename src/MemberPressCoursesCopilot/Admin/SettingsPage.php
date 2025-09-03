@@ -33,7 +33,10 @@ class SettingsPage
     public function render(): void
     {
         // Check capabilities
-        if (!current_user_can('manage_options')) {
+        $meprCap = function_exists('MeprUtils::get_mepr_admin_capability')
+            ? \MeprUtils::get_mepr_admin_capability()
+            : 'remove_users';
+        if (!current_user_can($meprCap)) {
             wp_die(__('You do not have sufficient permissions to access this page.', 'memberpress-courses-copilot'));
         }
 
