@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Course Edit AI Assistant Metabox Template
  *
- * @package MemberPressCoursesCopilot
+ * @package    MemberPressCoursesCopilot
  * @subpackage Templates
  */
 
@@ -11,10 +12,10 @@ defined('ABSPATH') || exit;
 use MemberPressCoursesCopilot\Security\NonceConstants;
 
 // Get post data
-$post_id = $post_id ?? 0;
-$post_title = $post_title ?? '';
+$post_id     = $post_id ?? 0;
+$post_title  = $post_title ?? '';
 $post_status = $post_status ?? '';
-$is_new = $is_new ?? false;
+$is_new      = $is_new ?? false;
 ?>
 
 <input type="hidden" id="mpcc-course-ajax-nonce" value="<?php echo NonceConstants::create(NonceConstants::AI_ASSISTANT); ?>" />
@@ -45,9 +46,9 @@ wp_enqueue_script('mpcc-metabox-ai-assistant');
 
 // Pass data to JavaScript
 wp_localize_script('mpcc-metabox-ai-assistant', 'mpccMetaboxAI', [
-    'postId' => $post_id,
-    'postTitle' => $post_title,
+    'postId'     => $post_id,
+    'postTitle'  => $post_title,
     'postStatus' => $post_status,
-    'isNew' => $is_new
+    'isNew'      => $is_new,
 ]);
 ?>

@@ -1,9 +1,10 @@
 <?php
+
 /**
  * AI Chat Interface Template
- * 
+ *
  * @package MemberPressCoursesCopilot
- * @since 1.0.0
+ * @since   1.0.0
  */
 
 // Prevent direct access
@@ -11,8 +12,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$context = $data['context'] ?? 'general';
-$courseId = $data['course_id'] ?? 0;
+$context         = $data['context'] ?? 'general';
+$courseId        = $data['course_id'] ?? 0;
 $initialMessages = $data['messages'] ?? [];
 ?>
 
@@ -31,7 +32,7 @@ $initialMessages = $data['messages'] ?? [];
 
     <div class="mpcc-chat-messages-wrapper">
         <div id="mpcc-chat-messages" class="mpcc-chat-messages">
-            <?php if (empty($initialMessages)): ?>
+            <?php if (empty($initialMessages)) : ?>
                 <div class="mpcc-chat-welcome">
                     <div class="mpcc-chat-message assistant">
                         <div class="message-content">
@@ -46,8 +47,8 @@ $initialMessages = $data['messages'] ?? [];
                         </div>
                     </div>
                 </div>
-            <?php else: ?>
-                <?php foreach ($initialMessages as $message): ?>
+            <?php else : ?>
+                <?php foreach ($initialMessages as $message) : ?>
                     <div class="mpcc-chat-message <?php echo esc_attr($message['role']); ?>">
                         <div class="message-content">
                             <?php echo wp_kses_post($message['content']); ?>
@@ -93,7 +94,7 @@ wp_enqueue_script('mpcc-ai-chat-interface');
 wp_localize_script('mpcc-ai-chat-interface', 'mpccChatInterface', [
     'strings' => [
         'confirmClear' => __('Are you sure you want to clear the chat?', 'memberpress-courses-copilot'),
-        'chatCleared' => __('Chat cleared. How can I help you with your course?', 'memberpress-courses-copilot')
-    ]
+        'chatCleared'  => __('Chat cleared. How can I help you with your course?', 'memberpress-courses-copilot'),
+    ],
 ]);
 ?>

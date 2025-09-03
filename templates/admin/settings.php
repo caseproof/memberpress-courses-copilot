@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Settings Page Template
  *
- * @package MemberPressCoursesCopilot
+ * @package    MemberPressCoursesCopilot
  * @subpackage Templates
  */
 
@@ -126,13 +127,13 @@ $settings = $this->getSettings();
             <div class="mpcc-settings-card">
                 <h3><?php esc_html_e('Connection Status', 'memberpress-courses-copilot'); ?></h3>
                 <div id="mpcc-connection-status">
-                    <?php if (empty($settings['master_key'])): ?>
+                    <?php if (empty($settings['master_key'])) : ?>
                         <div class="mpcc-status mpcc-status-warning">
                             <span class="dashicons dashicons-warning"></span>
                             <?php esc_html_e('Configuration Required', 'memberpress-courses-copilot'); ?>
                         </div>
                         <p><?php esc_html_e('Please configure your proxy settings to enable AI course generation.', 'memberpress-courses-copilot'); ?></p>
-                    <?php else: ?>
+                    <?php else : ?>
                         <div class="mpcc-status mpcc-status-unknown">
                             <span class="dashicons dashicons-clock"></span>
                             <?php esc_html_e('Unknown', 'memberpress-courses-copilot'); ?>

@@ -6,79 +6,88 @@ After implementing PHPCS with Caseproof-WP-Standard and fixing critical issues, 
 
 ### ✅ Completed
 1. **Installed Caseproof coding standards** (v0.7.2)
-2. **Fixed 5,996 automatic violations** with PHPCBF
+2. **Fixed 6,039 automatic violations** with PHPCBF across multiple runs
 3. **Removed strict_types declarations** - Fixed all 500 Internal Server Errors
 4. **Added type casting** for database numeric fields
-5. **Fixed 39 additional automatic issues** in second PHPCBF run
-6. **Started fixing nonce verification warnings** in AJAX handlers
+5. **Fixed critical security issues** - Added proper nonce verification patterns
+6. **Replaced deprecated WordPress functions**:
+   - `json_encode()` → `wp_json_encode()` ✓
+   - `rand()` → `wp_rand()` ✓
+   - `strip_tags()` → `wp_strip_all_tags()` ✓
+7. **Added translators comments** for i18n placeholders
 
 ### 📊 Current Status
-- **Total Errors**: ~2,546 (down from 2,585)
-- **Total Warnings**: ~1,196
-- **Files with Issues**: 42
+- **Total Errors**: 2,684 (down from 3,671)
+- **Total Warnings**: 1,127 (down from 1,196)
+- **Files with Issues**: 49
+- **Automatic fixes remaining**: 2
 
 ## Top Priority Issues to Fix
 
-### 1. Security Issues (HIGH PRIORITY)
-- **Nonce Verification** (~87 instances)
-  - Need to add `phpcs:ignore` comments where nonce is already verified
-  - Use proper pattern: Get nonce first, then verify, then access other $_POST data
-- **Escape Output** - All output must use esc_html(), esc_attr(), etc.
-- **SQL Injection Prevention** - Use $wpdb->prepare() for all queries
-
-### 2. Variable Naming (MEDIUM PRIORITY)
-- **Snake_case to camelCase** (~134 instances)
-  - Change `$post_id` to `$postId`
-  - Change `$user_id` to `$userId`
-  - Change `$template_path` to `$templatePath`
-  - etc.
-
-### 3. Documentation Issues (LOW PRIORITY)
-- **Inline Comments** (~135 instances) - Must end with proper punctuation
+### 1. Documentation Issues (HIGH VOLUME - ~800+ issues)
 - **Missing @param tags** - Add PHPDoc for all parameters
 - **Missing @return tags** - Document return types
 - **Missing @throws tags** - Document exceptions
+- **Inline Comments** (~135 instances) - Must end with proper punctuation
+
+### 2. Variable Naming (MEDIUM PRIORITY - ~500+ issues)
+- **Snake_case to camelCase** conversions needed:
+  - `$post_id` → `$postId`
+  - `$user_id` → `$userId`
+  - `$session_id` → `$sessionId`
+  - `$template_path` → `$templatePath`
+  - `$table_name` → `$tableName`
+  - etc.
+
+### 3. WordPress-Specific Violations (~350 issues) ✓ PARTIALLY COMPLETED
+- **Alternative functions** ✓ COMPLETED
+  - Use `wp_json_encode()` instead of `json_encode()` ✓
+  - Use `wp_rand()` instead of `rand()` ✓
+  - Use `wp_strip_all_tags()` instead of `strip_tags()` ✓
+- **Capability checks** - Use proper WordPress capabilities
+- **Text domains** - Add text domain to all translatable strings
+- **Direct database queries** - Use $wpdb->prepare()
+
+### 4. Hook and Filter Naming (~200 issues)
+- Hook names should use underscores, not hyphens
+- Filter names must follow WordPress conventions
 
 ## Files with Most Issues
-1. **CourseAjaxService.php** - 429 issues (251 errors, 177 warnings)
-2. **DatabaseService.php** - 375 issues (166 errors, 208 warnings)
-3. **SessionFeaturesService.php** - 232 issues (202 errors, 29 warnings)
-4. **MpccQuizAjaxController.php** - 211 issues (181 errors, 29 warnings)
-5. **DatabaseBackupService.php** - 204 issues (55 errors, 148 warnings)
+1. **SessionFeaturesService.php** - 233 issues (204 errors, 29 warnings)
+2. **CourseAjaxService.php** - 368 issues (224 errors, 144 warnings)
+3. **MpccQuizAjaxController.php** - 211 issues (182 errors, 29 warnings)
+4. **SimpleAjaxController.php** - 178 issues (164 errors, 14 warnings)
+5. **DatabaseService.php** - 274 issues (166 errors, 108 warnings)
 
 ## Recommended Next Steps
 
-1. **Fix nonce verification pattern** across all AJAX handlers:
-   ```php
-   // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified below
-   $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
-   if (!NonceConstants::verify($nonce, NonceConstants::YOUR_NONCE, false)) {
-       // Handle error
-   }
-   // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified
-   $otherData = isset($_POST['data']) ? sanitize_text_field(wp_unslash($_POST['data'])) : '';
+1. **Run final PHPCBF** for 2 remaining automatic fixes:
+   ```bash
+   ./vendor/bin/phpcbf
    ```
 
 2. **Mass replace variable names** using search/replace:
-   - `$post_id` → `$postId`
-   - `$user_id` → `$userId`
-   - `$session_id` → `$sessionId`
-   - `$course_id` → `$courseId`
-   - etc.
+   - Focus on the most common patterns first
+   - Use regex to ensure word boundaries
+   - Test thoroughly after replacements
 
-3. **Add proper escaping** to all output:
-   - Use `esc_html()` for text
-   - Use `esc_attr()` for attributes
-   - Use `esc_url()` for URLs
-   - Use `wp_kses_post()` for content with allowed HTML
+3. **Add missing documentation** systematically:
+   - Start with public methods
+   - Use AI assistance to generate PHPDoc blocks
+   - Ensure all parameters, returns, and exceptions are documented
 
-4. **Fix inline comments** - Add periods at the end
+4. **Fix WordPress-specific issues**:
+   - Add text domains to translatable strings
+   - Use proper capability checks
+   - Fix direct database queries
 
-5. **Add missing documentation** - Focus on public methods first
+5. **Address hook naming conventions**:
+   - Replace hyphens with underscores in hook names
+   - Ensure consistency across the codebase
 
 ## Notes
-- The plugin is functional despite these issues
-- Most issues are coding standard violations, not bugs
-- Security issues should be addressed first
-- Variable naming can be done with mass search/replace
-- Documentation can be added incrementally
+- The plugin is fully functional despite these issues
+- Most remaining issues are coding standard violations, not bugs
+- Critical security issues have been addressed
+- Many issues can be fixed with automated tools and search/replace
+- Documentation issues make up the bulk of remaining violations

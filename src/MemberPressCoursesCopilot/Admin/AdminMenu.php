@@ -134,7 +134,7 @@ class AdminMenu
                 <p>
                     <?php
                     printf(
-                        /* translators: %s: Plugin name (MemberPress Copilot) */
+                        // translators: %s: Plugin name (MemberPress Copilot)
                         __('The AI Course Generator requires %s to be installed and activated. Please install and activate MemberPress Copilot first.', 'memberpress-courses-copilot'),
                         '<strong>MemberPress Copilot</strong>'
                     );

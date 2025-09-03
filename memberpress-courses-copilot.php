@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: MemberPress Courses Copilot
  * Plugin URI: https://memberpress.com/
@@ -12,28 +13,28 @@
  * Domain Path: /i18n/languages
  * Requires at least: 6.0
  * Requires PHP: 8.0
- * 
+ *
  * @package MemberPressCoursesCopilot
  */
 
 // Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) {
+if (! defined('ABSPATH')) {
     exit;
 }
 
 use MemberPressCoursesCopilot\Security\NonceConstants;
 
 // Plugin constants
-define( 'MEMBERPRESS_COURSES_COPILOT_VERSION', '1.0.19' );
-define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_FILE', __FILE__ );
-define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'MEMBERPRESS_COURSES_COPILOT_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+define('MEMBERPRESS_COURSES_COPILOT_VERSION', '1.0.19');
+define('MEMBERPRESS_COURSES_COPILOT_PLUGIN_FILE', __FILE__);
+define('MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('MEMBERPRESS_COURSES_COPILOT_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('MEMBERPRESS_COURSES_COPILOT_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
 // Autoloader
 $autoload_file = MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'vendor/autoload.php';
-if ( ! file_exists( $autoload_file ) ) {
-    wp_die( 'Composer autoload file not found. Please run composer install.' );
+if (! file_exists($autoload_file)) {
+    wp_die('Composer autoload file not found. Please run composer install.');
 }
 require_once $autoload_file;
 
@@ -43,28 +44,30 @@ use MemberPressCoursesCopilot\Services\DatabaseService;
 /**
  * Check if MemberPress is active
  *
- * @return bool
+ * @return boolean
  */
-function memberpress_courses_copilot_is_memberpress_active(): bool {
-    return defined( 'MEPR_PLUGIN_NAME' ) && class_exists( 'MeprCtrlFactory' );
+function memberpress_courses_copilot_is_memberpress_active(): bool
+{
+    return defined('MEPR_PLUGIN_NAME') && class_exists('MeprCtrlFactory');
 }
 
 /**
  * Check if MemberPress Courses is active and properly loaded
  *
- * @return bool
+ * @return boolean
  */
-function memberpress_courses_copilot_is_courses_active(): bool {
+function memberpress_courses_copilot_is_courses_active(): bool
+{
     // First check if plugin is active
-    if ( ! is_plugin_active( 'memberpress-courses/main.php' ) ) {
+    if (! is_plugin_active('memberpress-courses/main.php')) {
         return false;
     }
-    
+
     // Check if main namespace and core classes exist
     return (
-        defined( 'memberpress\\courses\\VERSION' ) &&
-        class_exists( 'memberpress\\courses\\models\\Course' ) &&
-        class_exists( 'memberpress\\courses\\controllers\\App' )
+        defined('memberpress\\courses\\VERSION') &&
+        class_exists('memberpress\\courses\\models\\Course') &&
+        class_exists('memberpress\\courses\\controllers\\App')
     );
 }
 
@@ -73,19 +76,20 @@ function memberpress_courses_copilot_is_courses_active(): bool {
  *
  * @return void
  */
-function memberpress_courses_copilot_missing_dependencies_notice(): void {
-    $class = 'notice notice-error';
-    $message = '<strong>' . esc_html__( 'MemberPress Courses Copilot', 'memberpress-courses-copilot' ) . '</strong> ';
-    
-    if ( ! memberpress_courses_copilot_is_memberpress_active() && ! memberpress_courses_copilot_is_courses_active() ) {
-        $message .= esc_html__( 'requires both MemberPress and MemberPress Courses to be installed and activated.', 'memberpress-courses-copilot' );
-    } elseif ( ! memberpress_courses_copilot_is_memberpress_active() ) {
-        $message .= esc_html__( 'requires MemberPress to be installed and activated.', 'memberpress-courses-copilot' );
-    } elseif ( ! memberpress_courses_copilot_is_courses_active() ) {
-        $message .= esc_html__( 'requires MemberPress Courses to be installed and activated.', 'memberpress-courses-copilot' );
+function memberpress_courses_copilot_missing_dependencies_notice(): void
+{
+    $class   = 'notice notice-error';
+    $message = '<strong>' . esc_html__('MemberPress Courses Copilot', 'memberpress-courses-copilot') . '</strong> ';
+
+    if (! memberpress_courses_copilot_is_memberpress_active() && ! memberpress_courses_copilot_is_courses_active()) {
+        $message .= esc_html__('requires both MemberPress and MemberPress Courses to be installed and activated.', 'memberpress-courses-copilot');
+    } elseif (! memberpress_courses_copilot_is_memberpress_active()) {
+        $message .= esc_html__('requires MemberPress to be installed and activated.', 'memberpress-courses-copilot');
+    } elseif (! memberpress_courses_copilot_is_courses_active()) {
+        $message .= esc_html__('requires MemberPress Courses to be installed and activated.', 'memberpress-courses-copilot');
     }
-    
-    printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), wp_kses_post( $message ) );
+
+    printf('<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), wp_kses_post($message));
 }
 
 /**
@@ -93,130 +97,136 @@ function memberpress_courses_copilot_missing_dependencies_notice(): void {
  *
  * @return void
  */
-function memberpress_courses_copilot_init(): void {
+function memberpress_courses_copilot_init(): void
+{
     // Check dependencies
-    if ( ! memberpress_courses_copilot_is_memberpress_active() || ! memberpress_courses_copilot_is_courses_active() ) {
-        add_action( 'admin_notices', 'memberpress_courses_copilot_missing_dependencies_notice' );
+    if (! memberpress_courses_copilot_is_memberpress_active() || ! memberpress_courses_copilot_is_courses_active()) {
+        add_action('admin_notices', 'memberpress_courses_copilot_missing_dependencies_notice');
         return;
     }
-    
+
     // Initialize the plugin
     Plugin::instance();
 }
-add_action( 'plugins_loaded', 'memberpress_courses_copilot_init', 20 );
+add_action('plugins_loaded', 'memberpress_courses_copilot_init', 20);
 
 /**
  * Register WP-CLI commands
  *
  * @return void
  */
-function memberpress_courses_copilot_register_cli_commands(): void {
-    if ( defined( 'WP_CLI' ) && WP_CLI ) {
+function memberpress_courses_copilot_register_cli_commands(): void
+{
+    if (defined('WP_CLI') && WP_CLI) {
         require_once MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'src/MemberPressCoursesCopilot/Commands/DatabaseCommand.php';
     }
 }
-add_action( 'init', 'memberpress_courses_copilot_register_cli_commands' );
+add_action('init', 'memberpress_courses_copilot_register_cli_commands');
 
 /**
  * Plugin activation hook
  *
  * @return void
  */
-function memberpress_courses_copilot_activate(): void {
+function memberpress_courses_copilot_activate(): void
+{
     // Check PHP version
-    if ( version_compare( PHP_VERSION, '8.0', '<' ) ) {
-        deactivate_plugins( plugin_basename( __FILE__ ) );
-        wp_die( 
-            esc_html__( 'MemberPress Courses Copilot requires PHP version 8.0 or higher.', 'memberpress-courses-copilot' ),
-            esc_html__( 'Plugin Activation Error', 'memberpress-courses-copilot' ),
-            [ 'back_link' => true ]
+    if (version_compare(PHP_VERSION, '8.0', '<')) {
+        deactivate_plugins(plugin_basename(__FILE__));
+        wp_die(
+            esc_html__('MemberPress Courses Copilot requires PHP version 8.0 or higher.', 'memberpress-courses-copilot'),
+            esc_html__('Plugin Activation Error', 'memberpress-courses-copilot'),
+            ['back_link' => true]
         );
     }
-    
+
     // Get database service from container
     $container = \MemberPressCoursesCopilot\Container\Container::getInstance();
     \MemberPressCoursesCopilot\Container\ServiceProvider::register($container);
     $database_service = $container->get(DatabaseService::class);
-    
+
     // Install database tables
     $db_installed = $database_service->installTables();
-    
-    if ( ! $db_installed ) {
-        deactivate_plugins( plugin_basename( __FILE__ ) );
-        wp_die( 
-            esc_html__( 'Failed to install database tables for MemberPress Courses Copilot.', 'memberpress-courses-copilot' ),
-            esc_html__( 'Plugin Activation Error', 'memberpress-courses-copilot' ),
-            [ 'back_link' => true ]
+
+    if (! $db_installed) {
+        deactivate_plugins(plugin_basename(__FILE__));
+        wp_die(
+            esc_html__('Failed to install database tables for MemberPress Courses Copilot.', 'memberpress-courses-copilot'),
+            esc_html__('Plugin Activation Error', 'memberpress-courses-copilot'),
+            ['back_link' => true]
         );
     }
-    
+
     // Seed default data
     $database_service->seedDefaultData();
-    
+
     // Set activation transient
-    set_transient( 'memberpress_courses_copilot_activated', true, 30 );
-    
+    set_transient('memberpress_courses_copilot_activated', true, 30);
+
     // Flush rewrite rules
     flush_rewrite_rules();
 }
-register_activation_hook( __FILE__, 'memberpress_courses_copilot_activate' );
+register_activation_hook(__FILE__, 'memberpress_courses_copilot_activate');
 
 /**
  * Plugin deactivation hook
  *
  * @return void
  */
-function memberpress_courses_copilot_deactivate(): void {
+function memberpress_courses_copilot_deactivate(): void
+{
     // Clean up transients
-    delete_transient( 'memberpress_courses_copilot_activated' );
-    
+    delete_transient('memberpress_courses_copilot_activated');
+
     // Flush rewrite rules
     flush_rewrite_rules();
-    
+
     // Optional: Clean up temporary data (keeping permanent data intact)
     // This preserves user conversations and templates for reactivation
 }
-register_deactivation_hook( __FILE__, 'memberpress_courses_copilot_deactivate' );
+register_deactivation_hook(__FILE__, 'memberpress_courses_copilot_deactivate');
 
 /**
  * Plugin uninstall hook - only runs when plugin is deleted
  *
  * @return void
  */
-function memberpress_courses_copilot_uninstall(): void {
+function memberpress_courses_copilot_uninstall(): void
+{
     // Only run during actual uninstall, not deactivation
-    if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+    if (! defined('WP_UNINSTALL_PLUGIN')) {
         return;
     }
-    
+
     // Get database service from container
     $container = \MemberPressCoursesCopilot\Container\Container::getInstance();
     \MemberPressCoursesCopilot\Container\ServiceProvider::register($container);
     $database_service = $container->get(DatabaseService::class);
-    
+
     // Remove all plugin data including database tables
     // This is permanent and cannot be undone
     $database_service->dropTables();
-    
+
     // Clean up any remaining options
-    delete_option( 'mpcc_db_version' );
-    delete_option( 'memberpress_courses_copilot_settings' );
-    
+    delete_option('mpcc_db_version');
+    delete_option('memberpress_courses_copilot_settings');
+
     // Clean up any cached data
     wp_cache_flush();
 }
-register_uninstall_hook( __FILE__, 'memberpress_courses_copilot_uninstall' );
+register_uninstall_hook(__FILE__, 'memberpress_courses_copilot_uninstall');
 
 /**
  * Load plugin text domain
  *
  * @return void
  */
-function memberpress_courses_copilot_load_textdomain(): void {
+function memberpress_courses_copilot_load_textdomain(): void
+{
     load_plugin_textdomain(
         'memberpress-courses-copilot',
         false,
-        dirname( plugin_basename( __FILE__ ) ) . '/i18n/languages'
+        dirname(plugin_basename(__FILE__)) . '/i18n/languages'
     );
 }
-add_action( 'init', 'memberpress_courses_copilot_load_textdomain' );
+add_action('init', 'memberpress_courses_copilot_load_textdomain');
