@@ -1,6 +1,5 @@
 <?php
 
-declare(strict_types=1);
 
 namespace MemberPressCoursesCopilot\Security;
 
@@ -18,30 +17,30 @@ class NonceConstants
     /**
      * Main nonces used across the plugin
      */
-    // Primary nonce for course editor operations
+    // Primary nonce for course editor operations.
     public const EDITOR_NONCE = 'mpcc_editor_nonce';
 
-    // Primary nonce for course integration/generation
+    // Primary nonce for course integration/generation.
     public const COURSES_INTEGRATION = 'mpcc_courses_integration';
 
-    // Primary nonce for AI interface operations
+    // Primary nonce for AI interface operations.
     public const AI_INTERFACE = 'mpcc_ai_interface';
 
-    // Legacy nonces (for backward compatibility)
+    // Legacy nonces (for backward compatibility).
     public const AJAX_NONCE    = 'mpcc_ajax_nonce';
     public const GENERIC_NONCE = 'mpcc_nonce';
 
-    // Export/Import operations
+    // Export/Import operations.
     public const EXPORT = 'mpcc_export';
 
-    // AI Assistant and Course Creation
+    // AI Assistant and Course Creation.
     public const AI_ASSISTANT  = 'mpcc_ai_assistant';
     public const CREATE_COURSE = 'mpcc_create_course';
 
-    // Settings
+    // Settings.
     public const SAVE_SETTINGS = 'mpcc_save_settings';
 
-    // Quiz AI operations
+    // Quiz AI operations.
     public const QUIZ_AI = 'mpcc_quiz_ai_nonce';
 
     /**
@@ -63,10 +62,10 @@ class NonceConstants
     /**
      * Verify nonce with standardized error handling
      *
-     * @param  string  $nonce  The nonce value to verify
-     * @param  string  $action The nonce action (use constants from this class)
-     * @param  boolean $die    Whether to die on failure (default: true)
-     * @return boolean True if valid, false if not (only when $die is false)
+     * @param  string  $nonce  The nonce value to verify.
+     * @param  string  $action The nonce action (use constants from this class).
+     * @param  boolean $die    Whether to die on failure (default: true).
+     * @return boolean True if valid, false if not (only when $die is false).
      */
     public static function verify(string $nonce, string $action, bool $die = true): bool
     {
@@ -82,26 +81,26 @@ class NonceConstants
     /**
      * Verify AJAX nonce with standardized error handling
      *
-     * @param  string  $action    The nonce action (use constants from this class)
-     * @param  string  $query_arg The query argument name (default: 'nonce')
-     * @param  boolean $die       Whether to die on failure (default: true)
-     * @return boolean True if valid
+     * @param  string  $action   The nonce action (use constants from this class).
+     * @param  string  $queryArg The query argument name (default: 'nonce').
+     * @param  boolean $die      Whether to die on failure (default: true).
+     * @return boolean True if valid.
      */
-    public static function verifyAjax(string $action, string $query_arg = 'nonce', bool $die = true): bool
+    public static function verifyAjax(string $action, string $queryArg = 'nonce', bool $die = true): bool
     {
         if ($die) {
-            check_ajax_referer($action, $query_arg);
+            check_ajax_referer($action, $queryArg);
             return true;
         }
 
-        return check_ajax_referer($action, $query_arg, false) !== false;
+        return check_ajax_referer($action, $queryArg, false) !== false;
     }
 
     /**
      * Create a nonce for a given action
      *
-     * @param  string $action The nonce action (use constants from this class)
-     * @return string The nonce value
+     * @param  string $action The nonce action (use constants from this class).
+     * @return string The nonce value.
      */
     public static function create(string $action): string
     {
@@ -111,14 +110,18 @@ class NonceConstants
     /**
      * Create a nonce field for forms
      *
-     * @param  string  $action  The nonce action (use constants from this class)
-     * @param  string  $name    The nonce field name (default: '_wpnonce')
-     * @param  boolean $referer Whether to add the referer field (default: true)
-     * @param  boolean $echo    Whether to echo the field (default: true)
-     * @return string The nonce field HTML
+     * @param  string  $action  The nonce action (use constants from this class).
+     * @param  string  $name    The nonce field name (default: '_wpnonce').
+     * @param  boolean $referer Whether to add the referer field (default: true).
+     * @param  boolean $echo    Whether to echo the field (default: true).
+     * @return string The nonce field HTML.
      */
-    public static function field(string $action, string $name = '_wpnonce', bool $referer = true, bool $echo = true): string
-    {
+    public static function field(
+        string $action,
+        string $name = '_wpnonce',
+        bool $referer = true,
+        bool $echo = true
+    ): string {
         return wp_nonce_field($action, $name, $referer, $echo);
     }
 }

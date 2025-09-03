@@ -1,12 +1,27 @@
 <?php
 
+
 namespace MemberPressCoursesCopilot\Database;
 
 class LessonDraftTable
 {
+    /**
+     * Database table name
+     *
+     * @var string
+     */
     private $table_name;
+
+    /**
+     * Database charset collate
+     *
+     * @var string
+     */
     private $charset_collate;
 
+    /**
+     * Constructor
+     */
     public function __construct()
     {
         global $wpdb;
@@ -39,10 +54,12 @@ class LessonDraftTable
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
 
-        // Log table creation
+        // Log table creation.
         if (class_exists('\MemberPressCoursesCopilot\Services\Logger')) {
             $logger = new \MemberPressCoursesCopilot\Services\Logger();
-            $logger->info('Lesson drafts table created or verified', ['table' => $this->table_name]);
+            $logger->info('Lesson drafts table created or verified', [
+                'table' => $this->table_name,
+            ]);
         }
     }
 
@@ -52,8 +69,9 @@ class LessonDraftTable
     public function drop()
     {
         global $wpdb;
-        $sql = "DROP TABLE IF EXISTS {$this->table_name}";
-        $wpdb->query($sql);
+        // Table name is safe as it comes from wpdb->prefix + hardcoded string.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $wpdb->query("DROP TABLE IF EXISTS {$this->table_name}");
     }
 
     /**
@@ -66,17 +84,22 @@ class LessonDraftTable
 
     /**
      * Clean up old drafts (older than 30 days)
+     *
+     * @param  integer $days Number of days to keep drafts.
+     * @return integer|false Number of rows deleted or false on error.
      */
     public function cleanupOldDrafts($days = 30)
     {
         global $wpdb;
 
-        $sql = $wpdb->prepare(
-            "DELETE FROM {$this->table_name} WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
-            $days
+        // Table name is safe as it comes from wpdb->prefix + hardcoded string.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $deleted = $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$this->table_name} WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+                $days
+            )
         );
-
-        $deleted = $wpdb->query($sql);
 
         if (class_exists('\MemberPressCoursesCopilot\Services\Logger')) {
             $logger = new \MemberPressCoursesCopilot\Services\Logger();

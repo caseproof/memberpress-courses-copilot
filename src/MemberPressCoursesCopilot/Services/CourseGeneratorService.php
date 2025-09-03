@@ -1,5 +1,6 @@
 <?php
 
+
 namespace MemberPressCoursesCopilot\Services;
 
 use memberpress\courses\models\Course;

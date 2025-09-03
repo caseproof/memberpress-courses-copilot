@@ -1,0 +1,57 @@
+> phpcs --standard=Caseproof-WP-Standard src/ --extensions=php '--report=summary'
+
+PHP CODE SNIFFER REPORT SUMMARY
+--------------------------------------------------------------------------------
+FILE                                                            ERRORS  WARNINGS
+--------------------------------------------------------------------------------
+...s-courses-copilot/src/MemberPressCoursesCopilot/helpers.php  3       0
+...ss-courses-copilot/src/MemberPressCoursesCopilot/Plugin.php  13      4
+...s-copilot/src/MemberPressCoursesCopilot/Admin/AdminMenu.php  13      3
+...ot/src/MemberPressCoursesCopilot/Admin/CourseEditorPage.php  14      9
+...opilot/src/MemberPressCoursesCopilot/Admin/SettingsPage.php  4       27
+.../src/MemberPressCoursesCopilot/Commands/DatabaseCommand.php  53      63
+...pilot/src/MemberPressCoursesCopilot/Container/Container.php  31      0
+...src/MemberPressCoursesCopilot/Container/ServiceProvider.php  37      0
+...rPressCoursesCopilot/Controllers/MpccQuizAjaxController.php  181     29
+...berPressCoursesCopilot/Controllers/SimpleAjaxController.php  163     15
+...src/MemberPressCoursesCopilot/Database/LessonDraftTable.php  2       6
+...mberPressCoursesCopilot/Interfaces/IConversationManager.php  5       0
+...c/MemberPressCoursesCopilot/Interfaces/ICourseGenerator.php  4       0
+...c/MemberPressCoursesCopilot/Interfaces/IDatabaseService.php  6       0
+...ot/src/MemberPressCoursesCopilot/Interfaces/ILLMService.php  3       0
+...src/MemberPressCoursesCopilot/Interfaces/IQuizAIService.php  21      7
+...rc/MemberPressCoursesCopilot/Models/ConversationSession.php  106     0
+...pilot/src/MemberPressCoursesCopilot/Models/CourseLesson.php  47      5
+...ilot/src/MemberPressCoursesCopilot/Models/CourseSection.php  33      0
+...lot/src/MemberPressCoursesCopilot/Models/CourseTemplate.php  41      17
+...ot/src/MemberPressCoursesCopilot/Models/GeneratedCourse.php  54      5
+...ilot/src/MemberPressCoursesCopilot/Models/QualityReport.php  23      3
+...lot/src/MemberPressCoursesCopilot/Services/AssetManager.php  65      27
+...ilot/src/MemberPressCoursesCopilot/Services/BaseService.php  22      8
+...erPressCoursesCopilot/Services/ContentGenerationService.php  93      2
+...berPressCoursesCopilot/Services/ConversationFlowHandler.php  140     17
+.../MemberPressCoursesCopilot/Services/ConversationManager.php  96      19
+...rc/MemberPressCoursesCopilot/Services/CourseAjaxService.php  251     177
+...mberPressCoursesCopilot/Services/CourseGeneratorService.php  62      18
+...erPressCoursesCopilot/Services/CourseIntegrationService.php  31      43
+.../src/MemberPressCoursesCopilot/Services/CourseUIService.php  33      6
+...emberPressCoursesCopilot/Services/DatabaseBackupService.php  55      148
+.../src/MemberPressCoursesCopilot/Services/DatabaseService.php  166     208
+...PressCoursesCopilot/Services/EditorAIIntegrationService.php  68      82
+...mberPressCoursesCopilot/Services/EnhancedTemplateEngine.php  89      4
+...c/MemberPressCoursesCopilot/Services/LessonDraftService.php  43      110
+...pilot/src/MemberPressCoursesCopilot/Services/LLMService.php  72      23
+...rc/MemberPressCoursesCopilot/Services/MpccQuizAIService.php  98      23
+...mberPressCoursesCopilot/Services/SessionFeaturesService.php  202     29
+...lot/src/MemberPressCoursesCopilot/Utilities/ApiResponse.php  46      24
+...-copilot/src/MemberPressCoursesCopilot/Utilities/Helper.php  20      21
+...-copilot/src/MemberPressCoursesCopilot/Utilities/Logger.php  76      14
+--------------------------------------------------------------------------------
+A TOTAL OF 2585 ERRORS AND 1196 WARNINGS WERE FOUND IN 42 FILES
+--------------------------------------------------------------------------------
+PHPCBF CAN FIX 2 OF THESE SNIFF VIOLATIONS AUTOMATICALLY
+--------------------------------------------------------------------------------
+
+Time: 3.62 secs; Memory: 42MB
+
+Script phpcs --standard=Caseproof-WP-Standard src/ --extensions=php handling the cs-check event returned with error code 2

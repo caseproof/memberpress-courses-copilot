@@ -1,5 +1,6 @@
 <?php
 
+
 /**
  * Logger Utility for MemberPress Courses Copilot
  *

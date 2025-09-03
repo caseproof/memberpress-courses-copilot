@@ -1,6 +1,5 @@
 <?php
 
-declare(strict_types=1);
 
 use MemberPressCoursesCopilot\Container\Container;
 use MemberPressCoursesCopilot\Plugin;

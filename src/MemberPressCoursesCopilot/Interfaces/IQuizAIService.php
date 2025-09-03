@@ -1,5 +1,6 @@
 <?php
 
+
 /**
  * Quiz AI Service Interface
  *
