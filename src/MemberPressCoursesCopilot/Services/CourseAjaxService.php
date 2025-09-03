@@ -140,33 +140,33 @@ class CourseAjaxService extends BaseService
      */
     public function init(): void
     {
-        // Register all AJAX handlers
+        // Register all AJAX handlers.
         add_action('wp_ajax_mpcc_load_ai_interface', [$this, 'loadAIInterface']);
         add_action('wp_ajax_mpcc_create_course_with_ai', [$this, 'createCourseWithAI']);
         add_action('wp_ajax_mpcc_ai_chat', [$this, 'handleAIChat']);
         add_action('wp_ajax_mpcc_ping', [$this, 'handlePing']);
 
-        // New simple AI chat handler
+        // New simple AI chat handler.
         add_action('wp_ajax_mpcc_new_ai_chat', [$this, 'handleNewAIChat']);
 
-        // Course content update handler
+        // Course content update handler.
         add_action('wp_ajax_mpcc_update_course_content', [$this, 'updateCourseContent']);
 
-        // Conversation persistence endpoints
-        // Note: mpcc_save_conversation is handled by SimpleAjaxController with higher priority
+        // Conversation persistence endpoints.
+        // Note: mpcc_save_conversation is handled by SimpleAjaxController with higher priority.
         add_action('wp_ajax_mpcc_load_conversation', [$this, 'loadConversation']);
         add_action('wp_ajax_mpcc_create_conversation', [$this, 'createConversation']);
         add_action('wp_ajax_mpcc_list_conversations', [$this, 'listConversations']);
 
-        // Course preview editing endpoints
+        // Course preview editing endpoints.
         add_action('wp_ajax_mpcc_save_lesson_content', [$this, 'saveLessonContent']);
         add_action('wp_ajax_mpcc_load_lesson_content', [$this, 'loadLessonContent']);
-        add_action('wp_ajax_mpcc_load_all_drafts', [$this, 'loadLessonContent']); // Same handler, loads all drafts for session
+        add_action('wp_ajax_mpcc_load_all_drafts', [$this, 'loadLessonContent']); // Same handler, loads all drafts for session.
         add_action('wp_ajax_mpcc_generate_lesson_content', [$this, 'generateLessonContent']);
         add_action('wp_ajax_mpcc_reorder_course_items', [$this, 'reorderCourseItems']);
         add_action('wp_ajax_mpcc_delete_course_item', [$this, 'deleteCourseItem']);
 
-        // Course edit page AI chat
+        // Course edit page AI chat.
         add_action('wp_ajax_mpcc_course_chat_message', [$this, 'handleCourseEditChat']);
     }
 
@@ -177,7 +177,7 @@ class CourseAjaxService extends BaseService
      */
     public function loadAIInterface(): void
     {
-        // Verify nonce
+        // Verify nonce.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!NonceConstants::verify($nonce, NonceConstants::AI_INTERFACE, false)) {
@@ -203,37 +203,37 @@ class CourseAjaxService extends BaseService
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
         $context = isset($_POST['context']) ? sanitize_text_field(wp_unslash($_POST['context'])) : '';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
-        $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
+        $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
 
         try {
             $this->logger->info('Loading AI interface', [
                 'user_id' => get_current_user_id(),
                 'context' => $context,
-                'post_id' => $post_id,
+                'post_id' => $postId,
             ]);
 
             // Generate the AI interface HTML
             ob_start();
-            $this->renderAIInterface($context, $post_id);
+            $this->renderAIInterface($context, $postId);
             $html = ob_get_clean();
 
             $this->logger->debug('AI interface HTML generated successfully', [
                 'user_id'     => get_current_user_id(),
                 'context'     => $context,
-                'post_id'     => $post_id,
+                'post_id'     => $postId,
                 'html_length' => strlen($html),
             ]);
 
             wp_send_json_success([
                 'html'    => $html,
                 'context' => $context,
-                'post_id' => $post_id,
+                'post_id' => $postId,
             ]);
         } catch (\Exception $e) {
             $this->logger->error('Failed to load AI interface', [
                 'user_id'       => get_current_user_id(),
                 'context'       => $context,
-                'post_id'       => $post_id,
+                'post_id'       => $postId,
                 'error_message' => $e->getMessage(),
                 'error_file'    => $e->getFile(),
                 'error_line'    => $e->getLine(),
@@ -247,26 +247,26 @@ class CourseAjaxService extends BaseService
      * Render AI interface HTML
      *
      * @param  string  $context Interface context (course_creation, course_editing)
-     * @param  integer $post_id Post ID for editing context
+     * @param  integer $postId  Post ID for editing context
      * @return void
      */
-    private function renderAIInterface(string $context, int $post_id = 0): void
+    private function renderAIInterface(string $context, int $postId = 0): void
     {
         // Load the AI chat interface template
-        $template_path = MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'templates/ai-chat-interface.php';
+        $templatePath = MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'templates/ai-chat-interface.php';
 
-        if (file_exists($template_path)) {
+        if (file_exists($templatePath)) {
             // Prepare data for template
             $data = [
                 'context'   => $context,
-                'course_id' => $post_id,
+                'course_id' => $postId,
                 'messages'  => [], // Empty array for initial load
             ];
-            include $template_path;
+            include $templatePath;
         } else {
             // Fallback basic interface
             ?>
-            <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($post_id); ?>" style="height: 100%; display: flex; flex-direction: column;">
+            <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($postId); ?>" style="height: 100%; display: flex; flex-direction: column;">
                 <div id="mpcc-course-chat-messages" class="mpcc-chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; border: none; padding: 20px; background: #f9f9f9;">
                     <!-- Messages will be inserted here by JavaScript -->
                 </div>
@@ -322,7 +322,7 @@ class CourseAjaxService extends BaseService
      */
     public function handleAIChat(): void
     {
-        // Verify nonce
+        // Verify nonce.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false)) {
@@ -350,17 +350,17 @@ class CourseAjaxService extends BaseService
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
         $context = isset($_POST['context']) ? sanitize_text_field(wp_unslash($_POST['context'])) : 'course_editing';
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
-        $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
+        $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
-        $conversation_history = isset($_POST['conversation_history']) ? wp_unslash($_POST['conversation_history']) : [];
+        $conversationHistory = isset($_POST['conversation_history']) ? wp_unslash($_POST['conversation_history']) : [];
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
-        $conversation_state = isset($_POST['conversation_state']) ? wp_unslash($_POST['conversation_state']) : [];
+        $conversationState = isset($_POST['conversation_state']) ? wp_unslash($_POST['conversation_state']) : [];
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
         $sessionId = isset($_POST['session_id']) ? sanitize_text_field(wp_unslash($_POST['session_id'])) : '';
 
         // Sanitize arrays
-        $conversation_history = $this->sanitizeArray($conversation_history, 'textarea');
-        $conversation_state   = $this->sanitizeArray($conversation_state);
+        $conversationHistory = $this->sanitizeArray($conversationHistory, 'textarea');
+        $conversationState   = $this->sanitizeArray($conversationState);
 
         // Load session if provided
         $session             = null;
@@ -371,7 +371,7 @@ class CourseAjaxService extends BaseService
                 $session             = $conversationManager->loadSession($sessionId);
                 if ($session && $session->getUserId() === get_current_user_id()) {
                     // Update session state from conversation state
-                    $currentStep = $conversation_state['current_step'] ?? 'initial';
+                    $currentStep = $conversationState['current_step'] ?? 'initial';
                     $session->setCurrentState($currentStep);
                 }
             } catch (\Exception $e) {
@@ -386,7 +386,7 @@ class CourseAjaxService extends BaseService
             $this->logger->warning('AI chat request failed: empty message', [
                 'user_id' => get_current_user_id(),
                 'context' => $context,
-                'post_id' => $post_id,
+                'post_id' => $postId,
             ]);
             ApiResponse::errorMessage('Message is required', ApiResponse::ERROR_MISSING_PARAMETER);
             return;
@@ -397,9 +397,9 @@ class CourseAjaxService extends BaseService
                 'user_id'                    => get_current_user_id(),
                 'message_length'             => strlen($message),
                 'context'                    => $context,
-                'post_id'                    => $post_id,
-                'conversation_history_count' => count($conversation_history),
-                'conversation_state'         => $conversation_state,
+                'post_id'                    => $postId,
+                'conversation_history_count' => count($conversationHistory),
+                'conversation_state'         => $conversationState,
                 'request_ip'                 => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
             ]);
 
@@ -408,8 +408,8 @@ class CourseAjaxService extends BaseService
 
             // Build conversation context
             $conversation_context = '';
-            if (!empty($conversation_history)) {
-                foreach ($conversation_history as $entry) {
+            if (!empty($conversationHistory)) {
+                foreach ($conversationHistory as $entry) {
                     $role                  = $entry['role'] ?? 'user';
                     $content               = $entry['content'] ?? '';
                     $conversation_context .= "\n{$role}: {$content}";
@@ -417,8 +417,8 @@ class CourseAjaxService extends BaseService
             }
 
             // Get current conversation state for course creation
-            $current_step   = $conversation_state['current_step'] ?? 'initial';
-            $collected_data = $conversation_state['collected_data'] ?? [];
+            $current_step   = $conversationState['current_step'] ?? 'initial';
+            $collected_data = $conversationState['collected_data'] ?? [];
 
             // Prepare the full prompt
             $system_prompt = $this->getSystemPrompt($context);
@@ -569,7 +569,7 @@ class CourseAjaxService extends BaseService
      */
     public function createCourseWithAI(): void
     {
-        // Verify nonce
+        // Verify nonce.
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Course creation failed: invalid nonce', [
                 'user_id'    => get_current_user_id(),
@@ -865,7 +865,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function handlePing(): void
     {
-        // Verify nonce
+        // Verify nonce.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false)) {
@@ -940,7 +940,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function saveConversation(): void
     {
-        // Verify nonce - check multiple possible nonce names
+        // Verify nonce. - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
         if (
             !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
@@ -1192,7 +1192,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function saveLessonContent(): void
     {
-        // Verify nonce - check multiple possible nonce names
+        // Verify nonce. - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
         if (
             !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
@@ -1275,7 +1275,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function loadLessonContent(): void
     {
-        // Verify nonce - check multiple possible nonce names
+        // Verify nonce. - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
         if (
             !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
@@ -1379,7 +1379,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             'user_id' => get_current_user_id(),
         ]);
 
-        // Verify nonce - check multiple possible nonce names
+        // Verify nonce. - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
         if (
             !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
@@ -1480,7 +1480,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function reorderCourseItems(): void
     {
-        // Verify nonce
+        // Verify nonce.
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Reorder course items failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
@@ -1606,7 +1606,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function deleteCourseItem(): void
     {
-        // Verify nonce
+        // Verify nonce.
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Delete course item failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
@@ -1799,7 +1799,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function handleCourseEditChat(): void
     {
-        // Verify nonce
+        // Verify nonce.
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_ASSISTANT, false)) {
             $this->logger->warning('Course edit chat failed: invalid nonce', [
                 'user_id' => get_current_user_id(),
@@ -1989,7 +1989,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function handleNewAIChat(): void
     {
-        // Verify nonce
+        // Verify nonce.
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_ASSISTANT, false)) {
             wp_send_json_error('Security verification failed');
             return;
@@ -2056,7 +2056,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function updateCourseContent(): void
     {
-        // Verify nonce
+        // Verify nonce.
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_ASSISTANT, false)) {
             wp_send_json_error('Security verification failed');
             return;
