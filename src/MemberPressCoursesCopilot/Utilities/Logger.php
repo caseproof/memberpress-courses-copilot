@@ -420,10 +420,10 @@ class Logger {
     /**
      * Get cost tracking data
      *
-     * @param string $date Optional date (Y-m-d format)
+     * @param string|null $date Optional date (Y-m-d format)
      * @return array Cost tracking data
      */
-    public function getCostData(string $date = null): array {
+    public function getCostData(?string $date = null): array {
         if ($date === null) {
             return $this->costTracker;
         }
@@ -434,10 +434,10 @@ class Logger {
     /**
      * Get API usage statistics
      *
-     * @param string $provider Optional provider filter
+     * @param string|null $provider Optional provider filter
      * @return array API statistics
      */
-    public function getApiStats(string $provider = null): array {
+    public function getApiStats(?string $provider = null): array {
         if ($provider === null) {
             return $this->apiStats;
         }
@@ -483,10 +483,10 @@ class Logger {
     /**
      * Get monthly cost summary
      *
-     * @param string $month Month in Y-m format
+     * @param string|null $month Month in Y-m format
      * @return array Monthly cost summary
      */
-    public function getMonthlyCostSummary(string $month = null): array {
+    public function getMonthlyCostSummary(?string $month = null): array {
         if ($month === null) {
             $month = date('Y-m');
         }

@@ -9,6 +9,15 @@
 // Mock jQuery
 global.$ = global.jQuery = require('jquery');
 
+// Add support for :visible and :hidden pseudo-selectors in jsdom
+$.expr.pseudos.visible = function(elem) {
+    return elem.offsetWidth > 0 || elem.offsetHeight > 0 || elem.getClientRects().length > 0;
+};
+
+$.expr.pseudos.hidden = function(elem) {
+    return !$.expr.pseudos.visible(elem);
+};
+
 // Mock WordPress globals that quiz-ai-modal.js expects
 global.wp = {
     data: {
@@ -42,15 +51,19 @@ global.wp = {
 // Mock AJAX settings that would be localized by WordPress
 global.mpcc_ajax = {
     ajax_url: '/wp-admin/admin-ajax.php',
-    nonce: 'test-nonce-123'
+    nonce: 'test-nonce-123',
+    security: 'test-nonce-123' // Some scripts may use 'security' instead of 'nonce'
 };
 
 // Mock browser APIs
-global.navigator = {
-    clipboard: {
-        writeText: jest.fn().mockResolvedValue()
-    }
-};
+Object.defineProperty(global, 'navigator', {
+    value: {
+        clipboard: {
+            writeText: jest.fn(() => Promise.resolve())
+        }
+    },
+    writable: true
+});
 
 // Mock URLSearchParams for older browsers
 if (!global.URLSearchParams) {
@@ -163,3 +176,90 @@ document.body.classList.add('post-type-mpcs-quiz');
 
 // Mock timers for setTimeout/setInterval tests
 jest.useFakeTimers();
+
+// Add custom jQuery matchers for testing
+expect.extend({
+    toHaveText(received, expected) {
+        const text = received.text();
+        const pass = text.includes(expected);
+        return {
+            pass,
+            message: () => `expected ${received.selector} to have text "${expected}", but got "${text}"`
+        };
+    },
+    toContainText(received, expected) {
+        const text = received.text();
+        const pass = text.includes(expected);
+        return {
+            pass,
+            message: () => `expected ${received.selector} to contain text "${expected}", but got "${text}"`
+        };
+    },
+    toHaveClass(received, expected) {
+        const pass = received.hasClass(expected);
+        return {
+            pass,
+            message: () => `expected ${received.selector} to have class "${expected}"`
+        };
+    },
+    toBeVisible(received) {
+        // Check if element exists and is not hidden
+        const exists = received.length > 0;
+        const isHidden = received.css('display') === 'none' || received.is(':hidden');
+        const pass = exists && !isHidden;
+        return {
+            pass,
+            message: () => pass 
+                ? `expected element to not be visible` 
+                : `expected element to be visible (exists: ${exists}, display: ${received.css('display')})`
+        };
+    }
+});
+
+// Mock jQuery's $.get to return a proper jQuery promise
+const mockGetImplementation = () => {
+    const callbacks = {
+        done: [],
+        fail: [],
+        always: []
+    };
+    
+    const promise = {
+        done: function(callback) {
+            if (callback) callbacks.done.push(callback);
+            return this;
+        },
+        fail: function(callback) {
+            if (callback) callbacks.fail.push(callback);
+            return this;
+        },
+        always: function(callback) {
+            if (callback) callbacks.always.push(callback);
+            return this;
+        },
+        // Method to trigger success
+        _resolve: function(data) {
+            callbacks.done.forEach(cb => cb(data));
+            callbacks.always.forEach(cb => cb(data));
+        },
+        // Method to trigger error
+        _reject: function(error) {
+            callbacks.fail.forEach(cb => cb(error));
+            callbacks.always.forEach(cb => cb(error));
+        }
+    };
+    
+    // Store reference for test manipulation
+    $.get._lastPromise = promise;
+    
+    // Auto-resolve with empty array if nothing else is set
+    setTimeout(() => {
+        if (callbacks.done.length > 0 && !promise._resolved && !promise._rejected) {
+            promise._resolve([]);
+        }
+    }, 0);
+    
+    return promise;
+};
+
+$.get = jest.fn(mockGetImplementation);

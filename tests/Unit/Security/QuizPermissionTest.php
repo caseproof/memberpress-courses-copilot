@@ -46,16 +46,7 @@ class QuizPermissionTest extends TestCase
     private function mockWordPressFunctions(): void
     {
         // Mock functions that might not be available in test environment
-        if (!function_exists('get_post')) {
-            function get_post($id) {
-                return (object) [
-                    'ID' => $id,
-                    'post_title' => 'Test Post',
-                    'post_content' => 'Test content',
-                    'post_type' => $id === 123 ? 'mpcs-lesson' : 'mpcs-course'
-                ];
-            }
-        }
+        // Nothing needed here now - moved to bootstrap
     }
 
     /**

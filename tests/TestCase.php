@@ -89,6 +89,9 @@ abstract class TestCase extends PHPUnitTestCase
     protected function setCurrentUserCaps(array $caps): void
     {
         $this->currentUserCaps = $caps;
+        // Also update global for current_user_can function
+        global $test_user_caps;
+        $test_user_caps = $caps;
     }
     
     /**
@@ -130,6 +133,7 @@ abstract class TestCase extends PHPUnitTestCase
     protected function setPostData(array $data): void
     {
         $_POST = $data;
+        $_REQUEST = array_merge($_GET, $data); // WordPress often checks $_REQUEST
     }
     
     /**
@@ -160,24 +164,74 @@ abstract class TestCase extends PHPUnitTestCase
         try {
             $callback();
         } catch (\Exception $e) {
+            $output = ob_get_contents();
             ob_end_clean();
             
             if ($e->getMessage() === 'wp_send_json_exit') {
                 // Expected exit from wp_send_json
-                $output = ob_get_contents();
-                ob_end_clean();
                 
+                // If output is empty, return empty response
+                if (empty($output)) {
+                    return ['error' => 'No output captured', 'raw' => ''];
+                }
+                
+                // Find the first complete JSON object
+                $jsonStart = strpos($output, '{');
+                if ($jsonStart !== false) {
+                    $braceCount = 0;
+                    $inString = false;
+                    $escape = false;
+                    
+                    for ($i = $jsonStart; $i < strlen($output); $i++) {
+                        $char = $output[$i];
+                        
+                        if (!$escape) {
+                            if ($char === '"' && !$inString) {
+                                $inString = true;
+                            } elseif ($char === '"' && $inString) {
+                                $inString = false;
+                            } elseif (!$inString) {
+                                if ($char === '{') {
+                                    $braceCount++;
+                                } elseif ($char === '}') {
+                                    $braceCount--;
+                                    if ($braceCount === 0) {
+                                        // Found complete JSON object
+                                        $jsonPart = substr($output, $jsonStart, $i - $jsonStart + 1);
+                                        $decoded = json_decode($jsonPart, true);
+                                        if (json_last_error() === JSON_ERROR_NONE) {
+                                            return $decoded;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if ($char === '\\') {
+                                $escape = true;
+                            }
+                        } else {
+                            $escape = false;
+                        }
+                    }
+                }
+                
+                // Try direct decode if no pattern match
                 $decoded = json_decode($output, true);
                 if (json_last_error() === JSON_ERROR_NONE) {
                     return $decoded;
                 }
+                
+                // If json decode fails, return raw output info
+                return ['error' => 'Failed to decode JSON', 'raw' => $output, 'json_error' => json_last_error_msg()];
             }
             
             throw $e;
         }
         
         $output = ob_get_clean();
-        return json_decode($output, true) ?: [];
+        $decoded = json_decode($output, true);
+        return $decoded ?: ['error' => 'No JSON output captured', 'raw' => $output];
     }
     
     /**
@@ -194,6 +248,30 @@ abstract class TestCase extends PHPUnitTestCase
                     $this->assertArrayStructure($value, $actual[$key]);
                 }
             }
+        }
+    }
+    
+    /**
+     * Polyfill for assertStringContains (for older PHPUnit versions)
+     */
+    public function assertStringContains(string $needle, string $haystack, string $message = ''): void
+    {
+        if (method_exists($this, 'assertStringContainsString')) {
+            $this->assertStringContainsString($needle, $haystack, $message);
+        } else {
+            $this->assertContains($needle, $haystack, $message);
+        }
+    }
+    
+    /**
+     * Polyfill for assertStringNotContains (for older PHPUnit versions)
+     */
+    public function assertStringNotContains(string $needle, string $haystack, string $message = ''): void
+    {
+        if (method_exists($this, 'assertStringNotContainsString')) {
+            $this->assertStringNotContainsString($needle, $haystack, $message);
+        } else {
+            $this->assertNotContains($needle, $haystack, $message);
         }
     }
     

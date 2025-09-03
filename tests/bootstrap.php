@@ -8,6 +8,11 @@
 // Define test constants
 define('MEMBERPRESS_COURSES_COPILOT_TESTS', true);
 
+// Suppress error logging to stdout during tests
+ini_set('log_errors', '0');
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
 // Get plugin root directory
 $pluginRoot = dirname(__DIR__);
 
@@ -49,7 +54,43 @@ if (!function_exists('esc_js')) {
 
 if (!function_exists('sanitize_text_field')) {
     function sanitize_text_field($str) {
-        return trim(strip_tags($str));
+        if ($str === null) {
+            return '';
+        }
+        // Remove script tags and their contents completely
+        $str = preg_replace('#<script(.*?)>(.*?)</script>#is', '', $str);
+        // Remove style tags and their contents completely  
+        $str = preg_replace('#<style(.*?)>(.*?)</style>#is', '', $str);
+        // Strip all remaining HTML tags
+        $str = strip_tags($str);
+        // Trim whitespace from beginning and end
+        $str = trim($str);
+        // Normalize internal whitespace (convert multiple spaces to single space)
+        $str = preg_replace('/\s+/', ' ', $str);
+        return $str;
+    }
+}
+
+if (!function_exists('sanitize_textarea_field')) {
+    function sanitize_textarea_field($str) {
+        if ($str === null) {
+            return '';
+        }
+        // Remove script tags and their contents completely
+        $str = preg_replace('#<script(.*?)>(.*?)</script>#is', '', $str);
+        // Remove style tags and their contents completely  
+        $str = preg_replace('#<style(.*?)>(.*?)</style>#is', '', $str);
+        // Strip all remaining HTML tags
+        $str = strip_tags($str);
+        // Normalize line breaks
+        $str = str_replace(array("\r\n", "\r"), "\n", $str);
+        // Remove control characters except newlines and tabs
+        $str = preg_replace('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $str);
+        // Trim whitespace from beginning and end
+        $str = trim($str);
+        // Normalize internal whitespace (convert multiple spaces to single space)
+        $str = preg_replace('/\s+/', ' ', $str);
+        return $str;
     }
 }
 
@@ -107,8 +148,34 @@ if (!function_exists('wp_send_json_success')) {
 
 if (!function_exists('wp_send_json_error')) {
     function wp_send_json_error($data = null) {
-        echo json_encode(['success' => false, 'data' => $data]);
+        $response = ['success' => false];
+        
+        // Handle the ApiResponse format where data contains an 'error' key
+        if (is_array($data) && isset($data['error'])) {
+            $response['error'] = $data['error'];
+        } else {
+            // Fallback to legacy format
+            $response['data'] = $data;
+        }
+        
+        echo json_encode($response);
         throw new \Exception('wp_send_json_exit');
+    }
+}
+
+if (!function_exists('wp_remote_retrieve_response_code')) {
+    function wp_remote_retrieve_response_code($response) {
+        if (is_array($response) && isset($response['response']['code'])) {
+            return $response['response']['code'];
+        }
+        return '';
+    }
+}
+
+if (!function_exists('status_header')) {
+    function status_header($code) {
+        // Mock function for tests - doesn't actually set headers
+        return;
     }
 }
 
@@ -196,6 +263,110 @@ if (!function_exists('is_wp_error')) {
     }
 }
 
+if (!function_exists('wp_kses_post')) {
+    function wp_kses_post($data) {
+        // Simple HTML sanitization for tests - allows basic tags
+        if ($data === null) {
+            return '';
+        }
+        return strip_tags($data, '<p><br><b><strong><i><em><ul><ol><li><a><h1><h2><h3><h4><h5><h6><div>');
+    }
+}
+
+if (!function_exists('esc_url_raw')) {
+    function esc_url_raw($url) {
+        if ($url === null || $url === false) {
+            return '';
+        }
+        return filter_var($url, FILTER_SANITIZE_URL);
+    }
+}
+
+if (!function_exists('sanitize_email')) {
+    function sanitize_email($email) {
+        if ($email === null || $email === false) {
+            return '';
+        }
+        // Remove all illegal characters from email
+        $email = filter_var($email, FILTER_SANITIZE_EMAIL);
+        // Validate email
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return '';
+        }
+        return $email;
+    }
+}
+
+if (!function_exists('absint')) {
+    function absint($value) {
+        return abs(intval($value));
+    }
+}
+
+if (!function_exists('status_header')) {
+    function status_header($code, $description = '') {
+        // Mock implementation for tests - just log it
+        global $test_status_headers;
+        if (!isset($test_status_headers)) {
+            $test_status_headers = [];
+        }
+        $test_status_headers[] = $code;
+        return null;
+    }
+}
+
+if (!function_exists('get_post')) {
+    function get_post($id = null, $output = OBJECT, $filter = 'raw') {
+        // Mock implementation for tests
+        if ($id === null) {
+            return null;
+        }
+        
+        // Provide specific test data for known IDs
+        switch ($id) {
+            case 123:
+                $post = (object) [
+                    'ID' => 123,
+                    'post_title' => 'Test Lesson',
+                    'post_content' => 'This is test lesson content',
+                    'post_type' => 'mpcs-lesson',
+                    'post_excerpt' => 'Test excerpt',
+                    'post_status' => 'publish',
+                    'post_author' => 1,
+                    'post_date' => date('Y-m-d H:i:s'),
+                    'post_date_gmt' => gmdate('Y-m-d H:i:s'),
+                    'post_modified' => date('Y-m-d H:i:s'),
+                    'post_modified_gmt' => gmdate('Y-m-d H:i:s')
+                ];
+                break;
+            case 456:
+                $post = (object) [
+                    'ID' => 456,
+                    'post_title' => 'Test Course',
+                    'post_content' => 'This is test course content',
+                    'post_type' => 'mpcs-course',
+                    'post_status' => 'publish',
+                    'post_author' => 1,
+                    'post_date' => date('Y-m-d H:i:s'),
+                    'post_date_gmt' => gmdate('Y-m-d H:i:s'),
+                    'post_modified' => date('Y-m-d H:i:s'),
+                    'post_modified_gmt' => gmdate('Y-m-d H:i:s')
+                ];
+                break;
+            default:
+                return null;
+        }
+        
+        if ($output === ARRAY_A) {
+            return (array) $post;
+        } elseif ($output === ARRAY_N) {
+            return array_values((array) $post);
+        }
+        
+        return $post;
+    }
+}
+
 // Mock WP_Error class
 if (!class_exists('WP_Error')) {
     class WP_Error {
@@ -215,6 +386,15 @@ if (!class_exists('WP_Error')) {
             }
         }
         
+        public function add_data($data, $code = '') {
+            if (empty($code)) {
+                $code = $this->get_error_code();
+            }
+            if (!empty($code)) {
+                $this->error_data[$code] = $data;
+            }
+        }
+        
         public function get_error_message($code = '') {
             if (empty($code)) {
                 $code = $this->get_error_code();
@@ -226,22 +406,186 @@ if (!class_exists('WP_Error')) {
             $codes = array_keys($this->errors);
             return !empty($codes) ? $codes[0] : '';
         }
+        
+        public function get_error_data($code = '') {
+            if (empty($code)) {
+                $code = $this->get_error_code();
+            }
+            return isset($this->error_data[$code]) ? $this->error_data[$code] : '';
+        }
+        
+        public function get_error_messages($code = '') {
+            if (empty($code)) {
+                $code = $this->get_error_code();
+            }
+            
+            if (isset($this->errors[$code])) {
+                return $this->errors[$code];
+            }
+            
+            return [];
+        }
+        
+        public function has_errors() {
+            return !empty($this->errors);
+        }
     }
 }
 
 if (!defined('WP_DEBUG')) {
-    define('WP_DEBUG', true);
+    define('WP_DEBUG', false);
 }
 
 if (!defined('ABSPATH')) {
     define('ABSPATH', '/tmp/wordpress/');
 }
 
+// Define WordPress constants for get_post output types
+if (!defined('OBJECT')) {
+    define('OBJECT', 'OBJECT');
+}
+if (!defined('ARRAY_A')) {
+    define('ARRAY_A', 'ARRAY_A');
+}
+if (!defined('ARRAY_N')) {
+    define('ARRAY_N', 'ARRAY_N');
+}
+
+// Additional WordPress mocks that may be needed
+if (!function_exists('wp_upload_dir')) {
+    function wp_upload_dir($time = null, $create_dir = true, $refresh_cache = false) {
+        $temp_dir = sys_get_temp_dir() . '/wordpress-test-uploads';
+        if (!file_exists($temp_dir)) {
+            @mkdir($temp_dir, 0777, true);
+        }
+        
+        return [
+            'path'    => $temp_dir,
+            'url'     => 'http://test.local/wp-content/uploads',
+            'subdir'  => '',
+            'basedir' => $temp_dir,
+            'baseurl' => 'http://test.local/wp-content/uploads',
+            'error'   => false
+        ];
+    }
+}
+
+if (!function_exists('get_option')) {
+    function get_option($option, $default = false) {
+        global $test_options;
+        if (!isset($test_options)) {
+            $test_options = [];
+        }
+        return isset($test_options[$option]) ? $test_options[$option] : $default;
+    }
+}
+
+if (!function_exists('update_option')) {
+    function update_option($option, $value, $autoload = null) {
+        global $test_options;
+        if (!isset($test_options)) {
+            $test_options = [];
+        }
+        $test_options[$option] = $value;
+        return true;
+    }
+}
+
+if (!function_exists('get_post_meta')) {
+    function get_post_meta($post_id, $key = '', $single = false) {
+        global $test_post_meta;
+        if (!isset($test_post_meta)) {
+            $test_post_meta = [];
+        }
+        
+        if (!isset($test_post_meta[$post_id])) {
+            return $single ? '' : [];
+        }
+        
+        if ($key === '') {
+            return $test_post_meta[$post_id];
+        }
+        
+        if (!isset($test_post_meta[$post_id][$key])) {
+            return $single ? '' : [];
+        }
+        
+        return $single ? $test_post_meta[$post_id][$key] : [$test_post_meta[$post_id][$key]];
+    }
+}
+
+if (!function_exists('get_posts')) {
+    function get_posts($args = []) {
+        // Simple mock implementation
+        $defaults = [
+            'post_type' => 'post',
+            'posts_per_page' => 5,
+            'post_status' => 'publish'
+        ];
+        
+        $args = array_merge($defaults, $args);
+        
+        // Return mock lessons for quiz tests
+        if ($args['post_type'] === 'mpcs-lesson') {
+            return [
+                (object) ['ID' => 123, 'post_title' => 'Lesson 1', 'post_content' => 'Lesson 1 content'],
+                (object) ['ID' => 124, 'post_title' => 'Lesson 2', 'post_content' => 'Lesson 2 content']
+            ];
+        }
+        
+        return [];
+    }
+}
+
+if (!function_exists('wp_strip_all_tags')) {
+    function wp_strip_all_tags($text) {
+        return strip_tags($text);
+    }
+}
+
+if (!function_exists('update_post_meta')) {
+    function update_post_meta($post_id, $meta_key, $meta_value, $prev_value = '') {
+        global $test_post_meta;
+        if (!isset($test_post_meta)) {
+            $test_post_meta = [];
+        }
+        if (!isset($test_post_meta[$post_id])) {
+            $test_post_meta[$post_id] = [];
+        }
+        $test_post_meta[$post_id][$meta_key] = $meta_value;
+        return true;
+    }
+}
+
+if (!function_exists('wp_insert_post')) {
+    function wp_insert_post($postarr, $wp_error = false, $fire_after_hooks = true) {
+        // Return a mock post ID
+        return 999;
+    }
+}
+
+if (!function_exists('add_query_arg')) {
+    function add_query_arg(...$args) {
+        if (count($args) === 2) {
+            list($query_vars, $url) = $args;
+            $url = $url ?: '';
+            return $url . (strpos($url, '?') === false ? '?' : '&') . http_build_query($query_vars);
+        }
+        return '';
+    }
+}
+
 // Initialize global test variables
-global $test_transients, $test_localized_data, $test_user_caps;
+global $test_transients, $test_localized_data, $test_user_caps, $test_options, $test_post_meta, $test_status_headers;
 $test_transients = [];
 $test_localized_data = [];
 $test_user_caps = ['read' => true]; // Default capabilities
+$test_options = [];
+$test_post_meta = [];
+$test_status_headers = [];
+
+// Import WordPress functions into namespaces used by the plugin
+require_once __DIR__ . '/wordpress-functions.php';
 
 // Output test environment info
 echo PHP_EOL . 'MemberPress Courses Copilot Test Suite' . PHP_EOL;

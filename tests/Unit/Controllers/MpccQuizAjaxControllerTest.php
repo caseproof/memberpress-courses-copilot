@@ -53,107 +53,13 @@ class MpccQuizAjaxControllerTest extends TestCase
      */
     private function mockWordPressFunctions(): void
     {
-        // Mock functions that return posts
-        if (!function_exists('get_post')) {
-            function get_post($id) {
-                // Return mock post data based on ID
-                switch ($id) {
-                    case 123:
-                        return (object) [
-                            'ID' => 123,
-                            'post_title' => 'Test Lesson',
-                            'post_content' => 'This is test lesson content',
-                            'post_type' => 'mpcs-lesson',
-                            'post_excerpt' => 'Test excerpt'
-                        ];
-                    case 456:
-                        return (object) [
-                            'ID' => 456,
-                            'post_title' => 'Test Course',
-                            'post_content' => 'This is test course content',
-                            'post_type' => 'mpcs-course'
-                        ];
-                    default:
-                        return null;
-                }
-            }
-        }
-
-        if (!function_exists('get_post_meta')) {
-            function get_post_meta($id, $key, $single = false) {
-                // Mock post meta based on ID and key
-                $meta = [
-                    123 => [
-                        '_mpcs_course_id' => 456,
-                        '_mpcs_lesson_section_id' => 789,
-                        '_mpcs_lesson_lesson_order' => 1
-                    ]
-                ];
-                
-                if (isset($meta[$id][$key])) {
-                    return $single ? $meta[$id][$key] : [$meta[$id][$key]];
-                }
-                
-                return $single ? '' : [];
-            }
-        }
-
-        if (!function_exists('update_post_meta')) {
-            function update_post_meta($id, $key, $value) {
-                return true;
-            }
-        }
-
-        if (!function_exists('wp_insert_post')) {
-            function wp_insert_post($data) {
-                return 999; // Mock quiz ID
-            }
-        }
-
-        if (!function_exists('get_posts')) {
-            function get_posts($args) {
-                // Return mock lessons for course
-                if (isset($args['post_type']) && $args['post_type'] === 'mpcs-lesson') {
-                    return [
-                        (object) [
-                            'ID' => 123,
-                            'post_title' => 'Lesson 1',
-                            'post_content' => 'Lesson 1 content'
-                        ],
-                        (object) [
-                            'ID' => 124,
-                            'post_title' => 'Lesson 2', 
-                            'post_content' => 'Lesson 2 content'
-                        ]
-                    ];
-                }
-                return [];
-            }
-        }
-
-        if (!function_exists('wp_strip_all_tags')) {
-            function wp_strip_all_tags($text) {
-                return strip_tags($text);
-            }
-        }
-
-        if (!function_exists('sanitize_textarea_field')) {
-            function sanitize_textarea_field($text) {
-                return trim(strip_tags($text));
-            }
-        }
-
-        if (!function_exists('absint')) {
-            function absint($value) {
-                return abs(intval($value));
-            }
-        }
-
-        if (!function_exists('add_query_arg')) {
-            function add_query_arg($args, $url) {
-                return $url . '?' . http_build_query($args);
-            }
-        }
+        // Set up test post meta data
+        global $test_post_meta;
+        $test_post_meta[123] = [
+            '_mpcs_course_id' => 456,
+            '_mpcs_lesson_section_id' => 789,
+            '_mpcs_lesson_lesson_order' => 1
+        ];
     }
 
     /**
@@ -179,7 +85,7 @@ class MpccQuizAjaxControllerTest extends TestCase
             ])
         ]);
 
-        // Mock quiz service response
+        // Mock quiz service response - return array of questions directly
         $mockQuestions = [
             [
                 'question' => 'Test question?',
@@ -236,7 +142,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Security check failed', $response['data']['message']);
+        $this->assertStringContains('Security check failed', $response['error']['message']);
     }
 
     /**
@@ -263,7 +169,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Insufficient permissions', $response['data']['message']);
+        $this->assertStringContains('Insufficient permissions', $response['error']['message']);
     }
 
     /**
@@ -288,7 +194,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('No content available', $response['data']['message']);
+        $this->assertStringContains('No content available', $response['error']['message']);
     }
 
     /**
@@ -321,9 +227,9 @@ class MpccQuizAjaxControllerTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Content too short', $response['data']['message']);
-        $this->assertArrayHasKey('data', $response['data']);
-        $this->assertEquals('Please provide more detailed content', $response['data']['data']['suggestion']);
+        $this->assertStringContains('Content too short', $response['error']['message']);
+        $this->assertArrayHasKey('data', $response['error']);
+        $this->assertEquals('Please provide more detailed content', $response['error']['data']['suggestion']);
     }
 
     /**
@@ -468,7 +374,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Question and content are required', $response['data']['message']);
+        $this->assertStringContains('Question and content are required', $response['error']['message']);
     }
 
     /**
@@ -487,11 +393,11 @@ class MpccQuizAjaxControllerTest extends TestCase
                     'question' => 'What is 2+2?',
                     'type' => 'multiple_choice',
                     'options' => ['A' => '3', 'B' => '4', 'C' => '5', 'D' => '6'],
-                    'correct_answer' => 'B',
+                    'correct_answer' => '4',
                     'points' => 1
                 ],
                 [
-                    'statement' => 'The sky is blue',
+                    'question' => 'The sky is blue',
                     'type' => 'true_false',
                     'correct_answer' => true,
                     'points' => 1
@@ -604,7 +510,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Invalid lesson ID', $response['data']['message']);
+        $this->assertStringContains('Invalid lesson ID', $response['error']['message']);
     }
 
     /**
@@ -951,7 +857,7 @@ class MpccQuizAjaxControllerTest extends TestCase
                     'question' => 'What is 2+2?',
                     'type' => 'multiple_choice',
                     'options' => ['A' => '3', 'B' => '4', 'C' => '5', 'D' => '6'],
-                    'correct_answer' => 'B'
+                    'correct_answer' => '4'
                 ],
                 true,
                 []
@@ -961,7 +867,7 @@ class MpccQuizAjaxControllerTest extends TestCase
                     'question' => 'What is 2+2?',
                     'type' => 'multiple_choice',
                     'options' => ['A' => '4'], // Only one option
-                    'correct_answer' => 'A'
+                    'correct_answer' => '4'
                 ],
                 false,
                 ['Question 1: At least 2 options are required']
@@ -971,13 +877,14 @@ class MpccQuizAjaxControllerTest extends TestCase
                     'question' => 'What is 2+2?',
                     'type' => 'multiple_choice',
                     'options' => ['A' => '3', 'B' => '4'],
-                    'correct_answer' => 'C' // Not in options
+                    'correct_answer' => '5' // Not in options values
                 ],
                 false,
                 ['Question 1: Correct answer is not in options']
             ],
             'valid_true_false' => [
                 [
+                    'question' => 'The sky is blue',
                     'statement' => 'The sky is blue',
                     'type' => 'true_false',
                     'correct_answer' => true
@@ -1143,7 +1050,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Quiz questions are required', $response['data']['message']);
+        $this->assertStringContains('Quiz questions are required', $response['error']['message']);
     }
 
     /**
