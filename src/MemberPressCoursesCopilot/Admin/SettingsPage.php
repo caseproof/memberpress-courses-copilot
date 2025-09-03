@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * Settings Page Handler
  *

@@ -22,26 +22,31 @@ This document tracks the implementation of PHP CodeSniffer (PHPCS) with Caseproo
    - Aligned equals signs in assignments
 
 3. **Manual Fixes Applied**
-   - Added `declare(strict_types=1)` to 22 PHP files
+   - Added `declare(strict_types=1)` to 22 PHP files (then removed due to 500 errors)
    - Fixed inline comment punctuation (added periods)
    - Converted snake_case variables to camelCase:
+     - `$post_id` → `$postId`
+     - `$user_id` → `$userId`
+     - `$session_id` → `$sessionId`
+     - `$conversation_id` → `$conversationId`
+     - `$course_id` → `$courseId`
+     - `$table_name` → `$tableName`
      - `$asset_manager` → `$assetManager`
      - `$editor_ai_integration` → `$editorAiIntegration`
-     - `$quiz_ajax_controller` → `$quizAjaxController`
-     - `$query_arg` → `$queryArg`
      - And many others
    - Added missing documentation comments
    - Fixed SQL security warnings with proper PHPCS ignores
-   - Fixed parameter comment punctuation
+   - Fixed nonce verification patterns in AJAX handlers
 
 ## Current Status
 
 ### Summary of Remaining Issues
 
 After applying all automatic and manual fixes, we have:
-- **Total Errors**: 2,583 (down from ~6,000+)
-- **Total Warnings**: 1,196 (down from ~2,000+)
+- **Total Errors**: 2,594 (down from ~6,000+)
+- **Total Warnings**: 1,076 (down from ~2,000+)
 - **Files with Issues**: 43
+- **Automatic fixes available**: 2
 
 ### Top Files by Issue Count
 
@@ -103,7 +108,7 @@ The Caseproof-WP-Standard includes:
 1. **Variables**: Use camelCase (not snake_case)
 2. **Methods**: Use camelCase
 3. **Arrays**: Short array syntax `[]` is allowed
-4. **Strict Types**: All files should have `declare(strict_types=1)`
+4. **Strict Types**: NOT REQUIRED (removed due to WordPress database type issues)
 5. **Comments**: All inline comments must end with punctuation
 
 ### Configuration

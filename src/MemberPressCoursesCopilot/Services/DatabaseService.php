@@ -1,6 +1,5 @@
 <?php
 
-
 namespace MemberPressCoursesCopilot\Services;
 
 use wpdb;
@@ -92,9 +91,9 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createConversationsTable(): void
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
-        $sql = "CREATE TABLE IF NOT EXISTS {$table_name} (
+        $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned NOT NULL,
             session_id varchar(64) NOT NULL,
@@ -131,9 +130,9 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createTemplatesTable(): void
     {
-        $table_name = $this->table_prefix . 'templates';
+        $tableName = $this->table_prefix . 'templates';
 
-        $sql = "CREATE TABLE IF NOT EXISTS {$table_name} (
+        $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             name varchar(255) NOT NULL,
             description text NULL,
@@ -171,9 +170,9 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createCoursePatternsTable(): void
     {
-        $table_name = $this->table_prefix . 'course_patterns';
+        $tableName = $this->table_prefix . 'course_patterns';
 
-        $sql = "CREATE TABLE IF NOT EXISTS {$table_name} (
+        $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             pattern_hash varchar(64) NOT NULL,
             course_structure json NOT NULL,
@@ -214,9 +213,9 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createUsageAnalyticsTable(): void
     {
-        $table_name = $this->table_prefix . 'usage_analytics';
+        $tableName = $this->table_prefix . 'usage_analytics';
 
-        $sql = "CREATE TABLE IF NOT EXISTS {$table_name} (
+        $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             user_id bigint(20) unsigned NOT NULL,
             conversation_id bigint(20) unsigned NULL,
@@ -258,9 +257,9 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createQualityMetricsTable(): void
     {
-        $table_name = $this->table_prefix . 'quality_metrics';
+        $tableName = $this->table_prefix . 'quality_metrics';
 
-        $sql = "CREATE TABLE IF NOT EXISTS {$table_name} (
+        $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             course_id bigint(20) unsigned NULL,
             conversation_id bigint(20) unsigned NULL,
@@ -329,8 +328,8 @@ class DatabaseService extends BaseService implements IDatabaseService
             ];
 
             foreach ($tables as $table) {
-                $table_name = $this->table_prefix . $table;
-                $sql        = "DROP TABLE IF EXISTS {$table_name}";
+                $tableName = $this->table_prefix . $table;
+                $sql       = "DROP TABLE IF EXISTS {$tableName}";
                 $this->wpdb->query($sql);
             }
 
@@ -417,13 +416,13 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Add an index to a table if it doesn't already exist
      *
-     * @param  string $table_name
+     * @param  string $tableName
      * @param  string $index_name
      * @param  string $column_name
      * @return void
      * @throws \Exception
      */
-    private function addIndexIfNotExists(string $table_name, string $index_name, string $column_name): void
+    private function addIndexIfNotExists(string $tableName, string $index_name, string $column_name): void
     {
         // Check if index already exists
         $index_exists = $this->wpdb->get_var(
@@ -433,17 +432,17 @@ class DatabaseService extends BaseService implements IDatabaseService
                 AND table_name = %s 
                 AND index_name = %s',
                 DB_NAME,
-                $table_name,
+                $tableName,
                 $index_name
             )
         );
 
         if (!$index_exists) {
-            $sql = "ALTER TABLE {$table_name} ADD INDEX {$index_name} ({$column_name})";
-            $this->executeQuery($sql, "Failed to add index {$index_name} to table {$table_name}");
-            $this->log("Added index {$index_name} to table {$table_name}");
+            $sql = "ALTER TABLE {$tableName} ADD INDEX {$index_name} ({$column_name})";
+            $this->executeQuery($sql, "Failed to add index {$index_name} to table {$tableName}");
+            $this->log("Added index {$index_name} to table {$tableName}");
         } else {
-            $this->log("Index {$index_name} already exists on table {$table_name}");
+            $this->log("Index {$index_name} already exists on table {$tableName}");
         }
     }
 
@@ -541,7 +540,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function insertConversation(array $data): int|false
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         // Add a small random delay to ensure unique timestamps
         usleep(rand(1000, 5000)); // Sleep for 1-5 milliseconds
@@ -561,7 +560,7 @@ class DatabaseService extends BaseService implements IDatabaseService
 
         $data = array_merge($defaults, $data);
 
-        $result = $this->wpdb->insert($table_name, $data);
+        $result = $this->wpdb->insert($tableName, $data);
 
         return $result !== false ? $this->wpdb->insert_id : false;
     }
@@ -569,13 +568,13 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Update a conversation
      *
-     * @param  integer              $conversation_id
+     * @param  integer              $conversationId
      * @param  array<string, mixed> $data
      * @return boolean
      */
-    public function updateConversation(int $conversation_id, array $data): bool
+    public function updateConversation(int $conversationId, array $data): bool
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         // Only update timestamp if we're updating actual content, not just metadata or state
         $contentFields     = ['messages', 'title', 'step_data'];
@@ -597,9 +596,9 @@ class DatabaseService extends BaseService implements IDatabaseService
         }
 
         $result = $this->wpdb->update(
-            $table_name,
+            $tableName,
             $data,
-            ['id' => $conversation_id]
+            ['id' => $conversationId]
         );
 
         return $result !== false;
@@ -608,17 +607,18 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get a conversation by ID
      *
-     * @param  integer $conversation_id
+     * @param  integer $conversationId
      * @return object|null
      */
-    public function getConversation(int $conversation_id): ?object
+    public function getConversation(int $conversationId): ?object
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE id = %d",
-                $conversation_id
+                "SELECT * FROM {$tableName} WHERE id = %d",
+                $conversationId
             )
         );
 
@@ -628,19 +628,20 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get conversations by user ID
      *
-     * @param  integer $user_id
+     * @param  integer $userId
      * @param  integer $limit
      * @param  integer $offset
      * @return array<object>
      */
-    public function getConversationsByUser(int $user_id, int $limit = 20, int $offset = 0): array
+    public function getConversationsByUser(int $userId, int $limit = 20, int $offset = 0): array
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
         $results = $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE user_id = %d ORDER BY updated_at DESC, id DESC LIMIT %d OFFSET %d",
-                $user_id,
+                "SELECT * FROM {$tableName} WHERE user_id = %d ORDER BY updated_at DESC, id DESC LIMIT %d OFFSET %d",
+                $userId,
                 $limit,
                 $offset
             )
@@ -657,7 +658,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function insertTemplate(array $data): int|false
     {
-        $table_name = $this->table_prefix . 'templates';
+        $tableName = $this->table_prefix . 'templates';
 
         $defaults = [
             'category'    => 'general',
@@ -672,7 +673,7 @@ class DatabaseService extends BaseService implements IDatabaseService
 
         $data = array_merge($defaults, $data);
 
-        $result = $this->wpdb->insert($table_name, $data);
+        $result = $this->wpdb->insert($tableName, $data);
 
         return $result !== false ? $this->wpdb->insert_id : false;
     }
@@ -686,7 +687,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getTemplates(string $category = '', string $type = ''): array
     {
-        $table_name = $this->table_prefix . 'templates';
+        $tableName = $this->table_prefix . 'templates';
 
         $where_conditions = ['is_active = 1'];
         $params           = [];
@@ -703,7 +704,7 @@ class DatabaseService extends BaseService implements IDatabaseService
 
         $where_clause = implode(' AND ', $where_conditions);
 
-        $sql = "SELECT * FROM {$table_name} WHERE {$where_clause} ORDER BY usage_count DESC, name ASC";
+        $sql = "SELECT * FROM {$tableName} WHERE {$where_clause} ORDER BY usage_count DESC, name ASC";
 
         if (!empty($params)) {
             $sql = $this->wpdb->prepare($sql, ...$params);
@@ -722,7 +723,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function recordUsage(array $data): int|false
     {
-        $table_name = $this->table_prefix . 'usage_analytics';
+        $tableName = $this->table_prefix . 'usage_analytics';
 
         $defaults = [
             'tokens_used' => 0,
@@ -733,7 +734,7 @@ class DatabaseService extends BaseService implements IDatabaseService
 
         $data = array_merge($defaults, $data);
 
-        $result = $this->wpdb->insert($table_name, $data);
+        $result = $this->wpdb->insert($tableName, $data);
 
         return $result !== false ? $this->wpdb->insert_id : false;
     }
@@ -745,19 +746,19 @@ class DatabaseService extends BaseService implements IDatabaseService
      *
      * @param  string       $start_date
      * @param  string       $end_date
-     * @param  integer|null $user_id
+     * @param  integer|null $userId
      * @return array<object>
      */
-    public function getUsageAnalytics(string $start_date, string $end_date, ?int $user_id = null): array
+    public function getUsageAnalytics(string $start_date, string $end_date, ?int $userId = null): array
     {
-        $table_name = $this->table_prefix . 'usage_analytics';
+        $tableName = $this->table_prefix . 'usage_analytics';
 
         $where_conditions = ['created_at BETWEEN %s AND %s'];
         $params           = [$start_date, $end_date];
 
-        if ($user_id !== null) {
+        if ($userId !== null) {
             $where_conditions[] = 'user_id = %d';
-            $params[]           = $user_id;
+            $params[]           = $userId;
         }
 
         $where_clause = implode(' AND ', $where_conditions);
@@ -771,7 +772,7 @@ class DatabaseService extends BaseService implements IDatabaseService
                     SUM(cost_amount) as total_cost,
                     AVG(response_time_ms) as avg_response_time,
                     SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful_requests
-                FROM {$table_name} 
+                FROM {$tableName} 
                 WHERE {$where_clause}
                 GROUP BY DATE(created_at)
                 ORDER BY date ASC",
@@ -785,15 +786,15 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get quality metrics summary
      *
-     * @param  integer|null $course_id
+     * @param  integer|null $courseId
      * @return object|null
      */
-    public function getQualityMetricsSummary(?int $course_id = null): ?object
+    public function getQualityMetricsSummary(?int $courseId = null): ?object
     {
-        $table_name = $this->table_prefix . 'quality_metrics';
+        $tableName = $this->table_prefix . 'quality_metrics';
 
-        $where_clause = $course_id ? 'WHERE course_id = %d' : '';
-        $params       = $course_id ? [$course_id] : [];
+        $where_clause = $courseId ? 'WHERE course_id = %d' : '';
+        $params       = $courseId ? [$courseId] : [];
 
         $sql = "SELECT 
                     AVG(score) as average_score,
@@ -801,7 +802,7 @@ class DatabaseService extends BaseService implements IDatabaseService
                     MAX(score) as max_score,
                     COUNT(*) as total_assessments,
                     SUM(CASE WHEN human_reviewed = 1 THEN 1 ELSE 0 END) as human_reviewed_count
-                FROM {$table_name} {$where_clause}";
+                FROM {$tableName} {$where_clause}";
 
         if (!empty($params)) {
             $sql = $this->wpdb->prepare($sql, ...$params);
@@ -852,17 +853,17 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get conversation by session ID
      *
-     * @param  string $session_id
+     * @param  string $sessionId
      * @return object|null
      */
-    public function getConversationBySessionId(string $session_id): ?object
+    public function getConversationBySessionId(string $sessionId): ?object
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE session_id = %s",
-                $session_id
+                "SELECT * FROM {$tableName} WHERE session_id = %s",
+                $sessionId
             )
         );
 
@@ -873,23 +874,23 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Get multiple conversations by session IDs
      * Batch loading to avoid N+1 queries
      *
-     * @param  array $session_ids Array of session IDs
+     * @param  array $sessionIds Array of session IDs
      * @return array<string, object> Array keyed by session_id
      */
-    public function getConversationsBySessionIds(array $session_ids): array
+    public function getConversationsBySessionIds(array $sessionIds): array
     {
-        if (empty($session_ids)) {
+        if (empty($sessionIds)) {
             return [];
         }
 
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         // Prepare placeholders for the IN clause
-        $placeholders = implode(',', array_fill(0, count($session_ids), '%s'));
+        $placeholders = implode(',', array_fill(0, count($sessionIds), '%s'));
 
         // Build and prepare the query
-        $sql          = "SELECT * FROM {$table_name} WHERE session_id IN ({$placeholders})";
-        $prepared_sql = $this->wpdb->prepare($sql, ...$session_ids);
+        $sql          = "SELECT * FROM {$tableName} WHERE session_id IN ({$placeholders})";
+        $prepared_sql = $this->wpdb->prepare($sql, ...$sessionIds);
 
         $results = $this->wpdb->get_results($prepared_sql);
 
@@ -906,23 +907,23 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Get multiple conversations by IDs
      * Batch loading to avoid N+1 queries
      *
-     * @param  array $conversation_ids Array of conversation IDs
+     * @param  array $conversationIds Array of conversation IDs
      * @return array<int, object> Array keyed by conversation ID
      */
-    public function getConversationsByIds(array $conversation_ids): array
+    public function getConversationsByIds(array $conversationIds): array
     {
-        if (empty($conversation_ids)) {
+        if (empty($conversationIds)) {
             return [];
         }
 
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         // Prepare placeholders for the IN clause
-        $placeholders = implode(',', array_fill(0, count($conversation_ids), '%d'));
+        $placeholders = implode(',', array_fill(0, count($conversationIds), '%d'));
 
         // Build and prepare the query
-        $sql          = "SELECT * FROM {$table_name} WHERE id IN ({$placeholders})";
-        $prepared_sql = $this->wpdb->prepare($sql, ...$conversation_ids);
+        $sql          = "SELECT * FROM {$tableName} WHERE id IN ({$placeholders})";
+        $prepared_sql = $this->wpdb->prepare($sql, ...$conversationIds);
 
         $results = $this->wpdb->get_results($prepared_sql);
 
@@ -1001,11 +1002,11 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Check if an index exists on a table
      *
-     * @param  string $table_name
+     * @param  string $tableName
      * @param  string $index_name
      * @return boolean
      */
-    private function indexExists(string $table_name, string $index_name): bool
+    private function indexExists(string $tableName, string $index_name): bool
     {
         $result = $this->wpdb->get_var(
             $this->wpdb->prepare(
@@ -1014,7 +1015,7 @@ class DatabaseService extends BaseService implements IDatabaseService
                 AND table_name = %s 
                 AND index_name = %s',
                 DB_NAME,
-                $table_name,
+                $tableName,
                 $index_name
             )
         );
@@ -1041,18 +1042,18 @@ class DatabaseService extends BaseService implements IDatabaseService
         $status = [];
 
         foreach ($tables as $table) {
-            $table_name = $this->table_prefix . $table;
-            $exists     = $this->wpdb->get_var(
+            $tableName = $this->table_prefix . $table;
+            $exists    = $this->wpdb->get_var(
                 $this->wpdb->prepare(
                     'SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES 
                     WHERE table_schema = %s 
                     AND table_name = %s',
                     DB_NAME,
-                    $table_name
+                    $tableName
                 )
             );
 
-            $status[$table_name] = (bool)$exists;
+            $status[$tableName] = (bool)$exists;
         }
 
         return $status;
@@ -1142,17 +1143,17 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get active session count for user
      *
-     * @param  integer $user_id
+     * @param  integer $userId
      * @return integer
      */
-    public function getActiveSessionCount(int $user_id): int
+    public function getActiveSessionCount(int $userId): int
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         $result = $this->wpdb->get_var(
             $this->wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table_name} WHERE user_id = %d AND state = 'active'",
-                $user_id
+                "SELECT COUNT(*) FROM {$tableName} WHERE user_id = %d AND state = 'active'",
+                $userId
             )
         );
 
@@ -1162,17 +1163,17 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get oldest active session for user
      *
-     * @param  integer $user_id
+     * @param  integer $userId
      * @return object|null
      */
-    public function getOldestActiveSession(int $user_id): ?object
+    public function getOldestActiveSession(int $userId): ?object
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE user_id = %d AND state = 'active' ORDER BY created_at ASC LIMIT 1",
-                $user_id
+                "SELECT * FROM {$tableName} WHERE user_id = %d AND state = 'active' ORDER BY created_at ASC LIMIT 1",
+                $userId
             )
         );
 
@@ -1187,11 +1188,11 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getExpiredSessions(int $expired_before_timestamp): array
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         $results = $this->wpdb->get_results(
             $this->wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE updated_at < %s AND state IN ('active', 'paused')",
+                "SELECT * FROM {$tableName} WHERE updated_at < %s AND state IN ('active', 'paused')",
                 date('Y-m-d H:i:s', $expired_before_timestamp)
             )
         );
@@ -1202,16 +1203,16 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Delete a conversation
      *
-     * @param  integer $conversation_id
+     * @param  integer $conversationId
      * @return boolean
      */
-    public function deleteConversation(int $conversation_id): bool
+    public function deleteConversation(int $conversationId): bool
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         $result = $this->wpdb->delete(
-            $table_name,
-            ['id' => $conversation_id],
+            $tableName,
+            ['id' => $conversationId],
             ['%d']
         );
 
@@ -1228,14 +1229,14 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getActiveSessionsNeedingSave(int $minutes_since_update = 5, int $limit = 100): array
     {
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         // Calculate the timestamp for comparison
         $cutoff_time = date('Y-m-d H:i:s', time() - ($minutes_since_update * 60));
 
         $results = $this->wpdb->get_col(
             $this->wpdb->prepare(
-                "SELECT session_id FROM {$table_name} 
+                "SELECT session_id FROM {$tableName} 
                 WHERE state = 'active' 
                 AND updated_at < %s 
                 ORDER BY updated_at ASC 
@@ -1252,23 +1253,23 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Batch update conversations to abandoned state
      * Avoids N+1 queries by updating all expired sessions in a single query
      *
-     * @param  array  $conversation_ids Array of conversation IDs to update
-     * @param  string $abandoned_at     Timestamp when sessions were abandoned
+     * @param  array  $conversationIds Array of conversation IDs to update
+     * @param  string $abandoned_at    Timestamp when sessions were abandoned
      * @return integer Number of rows updated
      */
-    public function batchAbandonConversations(array $conversation_ids, string $abandoned_at): int
+    public function batchAbandonConversations(array $conversationIds, string $abandoned_at): int
     {
-        if (empty($conversation_ids)) {
+        if (empty($conversationIds)) {
             return 0;
         }
 
-        $table_name = $this->table_prefix . 'conversations';
+        $tableName = $this->table_prefix . 'conversations';
 
         // Prepare placeholders for the IN clause
-        $placeholders = implode(',', array_fill(0, count($conversation_ids), '%d'));
+        $placeholders = implode(',', array_fill(0, count($conversationIds), '%d'));
 
         // Build the update query
-        $sql = "UPDATE {$table_name} 
+        $sql = "UPDATE {$tableName} 
                 SET state = 'abandoned',
                     metadata = JSON_SET(
                         COALESCE(metadata, '{}'),
@@ -1280,7 +1281,7 @@ class DatabaseService extends BaseService implements IDatabaseService
                 AND state = 'active'";
 
         // Prepare the query with all parameters
-        $params       = array_merge([$abandoned_at], $conversation_ids);
+        $params       = array_merge([$abandoned_at], $conversationIds);
         $prepared_sql = $this->wpdb->prepare($sql, ...$params);
 
         $result = $this->wpdb->query($prepared_sql);

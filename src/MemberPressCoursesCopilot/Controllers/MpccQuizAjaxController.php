@@ -1,6 +1,5 @@
 <?php
 
-
 namespace MemberPressCoursesCopilot\Controllers;
 
 use MemberPressCoursesCopilot\Services\MpccQuizAIService;

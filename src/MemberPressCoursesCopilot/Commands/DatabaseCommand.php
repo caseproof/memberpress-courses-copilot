@@ -1,6 +1,5 @@
 <?php
 
-
 namespace MemberPressCoursesCopilot\Commands;
 
 use MemberPressCoursesCopilot\Services\DatabaseService;

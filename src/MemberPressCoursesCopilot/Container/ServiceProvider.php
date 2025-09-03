@@ -1,6 +1,5 @@
 <?php
 
-
 namespace MemberPressCoursesCopilot\Container;
 
 use MemberPressCoursesCopilot\Services\{

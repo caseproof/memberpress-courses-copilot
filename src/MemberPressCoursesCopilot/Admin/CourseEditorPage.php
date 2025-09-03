@@ -1,6 +1,5 @@
 <?php
 
-
 namespace MemberPressCoursesCopilot\Admin;
 
 use MemberPressCoursesCopilot\Security\NonceConstants;

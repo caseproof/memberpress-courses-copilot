@@ -156,7 +156,9 @@ class SimpleAjaxController
             // Critical Security Validation: Verify CSRF protection nonce
             // This prevents unauthorized requests from external sites or malicious scripts
             // Uses EDITOR_NONCE constant for consistency across course editor operations
-            if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
+            $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+            if (!NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)) {
                 // Send standardized error response with specific error code
                 // 403 status indicates authorization failure (not authentication)
                 ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
