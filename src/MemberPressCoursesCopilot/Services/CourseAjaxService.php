@@ -178,7 +178,7 @@ class CourseAjaxService extends BaseService
     public function loadAIInterface(): void
     {
         // Verify nonce.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line.
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!NonceConstants::verify($nonce, NonceConstants::AI_INTERFACE, false)) {
             $this->logger->warning('AI interface load failed: invalid nonce', [
@@ -190,7 +190,7 @@ class CourseAjaxService extends BaseService
             return;
         }
 
-        // Check user capabilities
+        // Check user capabilities.
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('AI interface load failed: insufficient permissions', [
                 'user_id'             => get_current_user_id(),
@@ -200,9 +200,9 @@ class CourseAjaxService extends BaseService
             return;
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above.
         $context = isset($_POST['context']) ? sanitize_text_field(wp_unslash($_POST['context'])) : '';
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above.
         $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
 
         try {
@@ -212,7 +212,7 @@ class CourseAjaxService extends BaseService
                 'post_id' => $postId,
             ]);
 
-            // Generate the AI interface HTML
+            // Generate the AI interface HTML.
             ob_start();
             $this->renderAIInterface($context, $postId);
             $html = ob_get_clean();
@@ -252,19 +252,19 @@ class CourseAjaxService extends BaseService
      */
     private function renderAIInterface(string $context, int $postId = 0): void
     {
-        // Load the AI chat interface template
+        // Load the AI chat interface template.
         $templatePath = MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'templates/ai-chat-interface.php';
 
         if (file_exists($templatePath)) {
-            // Prepare data for template
+            // Prepare data for template.
             $data = [
                 'context'   => $context,
                 'course_id' => $postId,
-                'messages'  => [], // Empty array for initial load
+                'messages'  => [], // Empty array for initial load.
             ];
             include $templatePath;
         } else {
-            // Fallback basic interface
+            // Fallback basic interface.
             ?>
             <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($postId); ?>" style="height: 100%; display: flex; flex-direction: column;">
                 <div id="mpcc-course-chat-messages" class="mpcc-chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; border: none; padding: 20px; background: #f9f9f9;">
@@ -283,24 +283,24 @@ class CourseAjaxService extends BaseService
             </div>
             
             <script type="text/javascript">
-            // Initialize basic chat functionality
+            // Initialize basic chat functionality.
             jQuery(document).ready(function($) {
                 $('#mpcc-course-send-message').on('click', function() {
                     var message = $('#mpcc-course-chat-input').val().trim();
                     if (message) {
-                        // Add user message to chat
+                        // Add user message to chat.
                         var userMessage = '<div style="margin-bottom: 15px; text-align: right;"><div style="display: inline-block; background: #0073aa; color: white; padding: 10px 15px; border-radius: 18px; max-width: 70%;">' + message + '</div></div>';
                         $('#mpcc-chat-messages').append(userMessage);
                         $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
                         $('#mpcc-course-chat-input').val('');
                         
-                        // Show typing indicator
+                        // Show typing indicator.
                         var typingIndicator = '<div id="mpcc-typing" style="margin-bottom: 15px;"><div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px;"><span style="animation: pulse 1.5s infinite;">AI is typing...</span></div></div>';
                         $('#mpcc-chat-messages').append(typingIndicator);
                         $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
                         
-                        // This is handled by the SimpleAjaxController via AJAX
-                        // The inline handler here is just for the UI, actual processing happens server-side
+                        // This is handled by the SimpleAjaxController via AJAX.
+                        // The inline handler here is just for the UI, actual processing happens server-side.
                     }
                 });
                 
@@ -323,7 +323,7 @@ class CourseAjaxService extends BaseService
     public function handleAIChat(): void
     {
         // Verify nonce.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line.
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('AI chat request failed: invalid nonce', [
@@ -335,7 +335,7 @@ class CourseAjaxService extends BaseService
             return;
         }
 
-        // Check user capabilities
+        // Check user capabilities.
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('AI chat request failed: insufficient permissions', [
                 'user_id'             => get_current_user_id(),
@@ -345,24 +345,24 @@ class CourseAjaxService extends BaseService
             return;
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above.
         $message = isset($_POST['message']) ? sanitize_textarea_field(wp_unslash($_POST['message'])) : '';
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above.
         $context = isset($_POST['context']) ? sanitize_text_field(wp_unslash($_POST['context'])) : 'course_editing';
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above.
         $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above.
         $conversationHistory = isset($_POST['conversation_history']) ? wp_unslash($_POST['conversation_history']) : [];
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above.
         $conversationState = isset($_POST['conversation_state']) ? wp_unslash($_POST['conversation_state']) : [];
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above.
         $sessionId = isset($_POST['session_id']) ? sanitize_text_field(wp_unslash($_POST['session_id'])) : '';
 
-        // Sanitize arrays
+        // Sanitize arrays.
         $conversationHistory = $this->sanitizeArray($conversationHistory, 'textarea');
         $conversationState   = $this->sanitizeArray($conversationState);
 
-        // Load session if provided
+        // Load session if provided.
         $session             = null;
         $conversationManager = null;
         if (!empty($sessionId)) {
@@ -370,7 +370,7 @@ class CourseAjaxService extends BaseService
                 $conversationManager = $this->getConversationManager();
                 $session             = $conversationManager->loadSession($sessionId);
                 if ($session && $session->getUserId() === get_current_user_id()) {
-                    // Update session state from conversation state
+                    // Update session state from conversation state.
                     $currentStep = $conversationState['current_step'] ?? 'initial';
                     $session->setCurrentState($currentStep);
                 }
@@ -403,10 +403,10 @@ class CourseAjaxService extends BaseService
                 'request_ip'                 => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
             ]);
 
-            // Use LLMService for AI requests
+            // Use LLMService for AI requests.
             $llm_service = $this->getLLMService();
 
-            // Build conversation context
+            // Build conversation context.
             $conversation_context = '';
             if (!empty($conversationHistory)) {
                 foreach ($conversationHistory as $entry) {
@@ -416,15 +416,15 @@ class CourseAjaxService extends BaseService
                 }
             }
 
-            // Get current conversation state for course creation
+            // Get current conversation state for course creation.
             $current_step   = $conversationState['current_step'] ?? 'initial';
             $collected_data = $conversationState['collected_data'] ?? [];
 
-            // Prepare the full prompt
+            // Prepare the full prompt.
             $system_prompt = $this->getSystemPrompt($context);
             $full_prompt   = $system_prompt . "\n\nConversation history:" . $conversation_context . "\n\nUser: " . $message . "\n\nAssistant:";
 
-            // Add current state context for course creation
+            // Add current state context for course creation.
             if ($context === 'course_creation' && !empty($collected_data)) {
                 $full_prompt .= "\n\nCurrent collected course data: " . wp_json_encode($collected_data);
             }
@@ -438,7 +438,7 @@ class CourseAjaxService extends BaseService
                 'prompt_length'        => strlen($full_prompt),
             ]);
 
-            // Make request to AI service
+            // Make request to AI service.
             $response = $llm_service->generateContent($full_prompt, 'course_assistance', [
                 'temperature' => 0.7,
                 'max_tokens'  => 2000,
@@ -466,7 +466,7 @@ class CourseAjaxService extends BaseService
 
             $ai_message = $response['content'];
 
-            // Extract any course data from the response if it contains structured data
+            // Extract any course data from the response if it contains structured data.
             $course_data     = null;
             $ready_to_create = false;
 
@@ -474,23 +474,23 @@ class CourseAjaxService extends BaseService
                 $json_data = json_decode($matches[1], true);
                 if (json_last_error() === JSON_ERROR_NONE) {
                     $course_data = $json_data;
-                    // Remove JSON from message
+                    // Remove JSON from message.
                     $ai_message = trim(str_replace($matches[0], '', $ai_message));
 
-                    // Check if we have enough data to create a course
+                    // Check if we have enough data to create a course.
                     if (isset($course_data['title']) && isset($course_data['sections']) && count($course_data['sections']) > 0) {
                         $ready_to_create = true;
                     }
                 }
             }
 
-            // Update conversation state
+            // Update conversation state.
             if ($course_data) {
-                // Store course data under 'course_structure' key to match JavaScript expectations
+                // Store course data under 'course_structure' key to match JavaScript expectations.
                 $collected_data['course_structure'] = $course_data;
             }
 
-            // Determine next step
+            // Determine next step.
             $next_step = $current_step;
             $actions   = [];
 
@@ -510,12 +510,12 @@ class CourseAjaxService extends BaseService
                 ];
             }
 
-            // Update session state and progress if we have a session
+            // Update session state and progress if we have a session.
             if ($session && $conversationManager) {
                 $session->setCurrentState($next_step);
                 $session->setContext($collected_data, null);
 
-                // Save the session to persist progress
+                // Save the session to persist progress.
                 try {
                     $conversationManager->saveSession($session);
                 } catch (\Exception $e) {
@@ -580,7 +580,7 @@ class CourseAjaxService extends BaseService
             return;
         }
 
-        // Check user capabilities
+        // Check user capabilities.
         if (!current_user_can('publish_posts')) {
             $this->logger->warning('Course creation failed: insufficient permissions', [
                 'user_id'             => get_current_user_id(),
@@ -592,12 +592,12 @@ class CourseAjaxService extends BaseService
 
         $course_data = $_POST['course_data'] ?? [];
 
-        // Sanitize course data before processing
+        // Sanitize course data before processing.
         if (is_array($course_data)) {
             $course_data = $this->sanitizeArray($course_data);
         }
 
-        // If course_data is a JSON string, decode it
+        // If course_data is a JSON string, decode it.
         if (is_string($course_data)) {
             $decoded = json_decode($course_data, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
@@ -610,7 +610,7 @@ class CourseAjaxService extends BaseService
             }
         }
 
-        // Log the raw POST data to debug
+        // Log the raw POST data to debug.
         $this->logger->info('Raw course_data received', [
             'raw_data'          => wp_json_encode($_POST['course_data'] ?? 'empty'),
             'is_array'          => is_array($course_data),
@@ -622,7 +622,7 @@ class CourseAjaxService extends BaseService
             'full_structure'    => wp_json_encode($course_data),
         ]);
 
-        // Check if course data is nested under 'course_structure' key
+        // Check if course data is nested under 'course_structure' key.
         if (isset($course_data['course_structure']) && is_array($course_data['course_structure'])) {
             $this->logger->info('Found nested course_structure, extracting it', [
                 'nested_structure_keys' => array_keys($course_data['course_structure']),
@@ -632,7 +632,7 @@ class CourseAjaxService extends BaseService
             $course_data = $course_data['course_structure'];
         }
 
-        // Log final course data structure after any extraction
+        // Log final course data structure after any extraction.
         $this->logger->info('Final course_data structure', [
             'has_title'      => isset($course_data['title']),
             'title'          => $course_data['title'] ?? 'NO TITLE FOUND',
@@ -658,10 +658,10 @@ class CourseAjaxService extends BaseService
                 'first_section'    => isset($course_data['sections'][0]) ? wp_json_encode($course_data['sections'][0]) : 'no sections',
             ]);
 
-            // Get the Course Generator Service from container
+            // Get the Course Generator Service from container.
             $generator = $this->getCourseGenerator();
 
-            // Validate course data
+            // Validate course data.
             $validation = $generator->validateCourseData($course_data);
             if (!$validation['valid']) {
                 $this->logger->error('Course creation failed: validation errors', [
@@ -676,7 +676,7 @@ class CourseAjaxService extends BaseService
                 return;
             }
 
-            // Apply saved draft content if we have a session ID
+            // Apply saved draft content if we have a session ID.
             if (isset($_POST['session_id']) && !empty($_POST['session_id'])) {
                 $sessionId = sanitize_text_field($_POST['session_id']);
                 $this->logger->info('Applying lesson drafts to course structure', [
@@ -684,7 +684,7 @@ class CourseAjaxService extends BaseService
                     'course_title' => $course_data['title'] ?? 'Unknown',
                 ]);
 
-                // Get lesson draft service and map drafts to course structure
+                // Get lesson draft service and map drafts to course structure.
                 $draftService = $this->getLessonDraftService();
                 $course_data  = $draftService->mapDraftsToStructure($sessionId, $course_data);
 
@@ -705,7 +705,7 @@ class CourseAjaxService extends BaseService
                 ]);
             }
 
-            // Generate the course
+            // Generate the course.
             $result = $generator->generateCourse($course_data);
 
             if ($result['success']) {
@@ -716,7 +716,7 @@ class CourseAjaxService extends BaseService
                     'sections_count' => count($course_data['sections'] ?? []),
                 ]);
 
-                // Update session title if we have a session ID
+                // Update session title if we have a session ID.
                 if (isset($_POST['session_id']) && !empty($_POST['session_id'])) {
                     try {
                         $sessionId           = sanitize_text_field($_POST['session_id']);
@@ -741,13 +741,13 @@ class CourseAjaxService extends BaseService
                             ]);
                         }
                     } catch (\Exception $e) {
-                        // Log but don't fail the course creation
+                        // Log but don't fail the course creation.
                         $this->logger->warning('Failed to update session title after course creation', [
                             'error' => $e->getMessage(),
                         ]);
                     }
 
-                    // Clean up lesson drafts after successful course creation
+                    // Clean up lesson drafts after successful course creation.
                     try {
                         $draftService = $this->getLessonDraftService();
                         $deletedCount = $draftService->deleteSessionDrafts($sessionId);
@@ -756,7 +756,7 @@ class CourseAjaxService extends BaseService
                             'drafts_deleted' => $deletedCount,
                         ]);
                     } catch (\Exception $e) {
-                        // Log but don't fail the course creation
+                        // Log but don't fail the course creation.
                         $this->logger->warning('Failed to clean up lesson drafts after course creation', [
                             'session_id' => $sessionId,
                             'error'      => $e->getMessage(),
@@ -866,7 +866,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     public function handlePing(): void
     {
         // Verify nonce.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line.
         $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
         if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Ping request failed: invalid nonce', [
@@ -882,7 +882,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             'timestamp' => current_time('timestamp'),
         ]);
 
-        // Simple ping response
+        // Simple ping response.
         wp_send_json_success([
             'pong'      => true,
             'timestamp' => current_time('timestamp'),
@@ -940,7 +940,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function saveConversation(): void
     {
-        // Verify nonce. - check multiple possible nonce names
+        // Verify nonce. - check multiple possible nonce names.
         $nonce = $_POST['nonce'] ?? '';
         if (
             !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
@@ -973,11 +973,11 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 return;
             }
 
-            // Update session with new data
+            // Update session with new data.
             $conversationHistory = $_POST['conversation_history'] ?? [];
             $conversationState   = $_POST['conversation_state'] ?? [];
 
-            // Sanitize arrays
+            // Sanitize arrays.
             $conversationHistory = $this->sanitizeArray($conversationHistory, 'textarea');
             $conversationState   = $this->sanitizeArray($conversationState);
 
@@ -987,11 +987,11 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 'message_keys'  => count($conversationHistory) > 0 ? array_keys($conversationHistory[0]) : [],
             ]);
 
-            // Clear existing messages and add new ones
+            // Clear existing messages and add new ones.
             $session->clearMessages();
             foreach ($conversationHistory as $message) {
-                // The frontend sends 'role' but ConversationSession expects 'type' for the first parameter
-                // Map 'role' to the message type expected by addMessage
+                // The frontend sends 'role' but ConversationSession expects 'type' for the first parameter.
+                // Map 'role' to the message type expected by addMessage.
                 $messageType = $message['role'] === 'user' ? 'user' :
                               ($message['role'] === 'assistant' ? 'assistant' : 'system');
                 $session->addMessage(
@@ -1001,11 +1001,11 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 );
             }
 
-            // Update state
+            // Update state.
             $session->setCurrentState($conversationState['current_step'] ?? 'initial');
             $session->setContext($conversationState['collected_data'] ?? [], null);
 
-            // Update session title if course data is available
+            // Update session title if course data is available.
             $collectedData = $conversationState['collected_data'] ?? [];
             if (isset($collectedData['course_structure']['title'])) {
                 $courseTitle = $collectedData['course_structure']['title'];
@@ -1015,7 +1015,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     'course_title' => $courseTitle,
                 ]);
             } elseif (isset($collectedData['title']) && isset($collectedData['sections'])) {
-                // Fallback for old format
+                // Fallback for old format.
                 $courseTitle = $collectedData['title'];
                 $session->setTitle('Course: ' . $courseTitle);
                 $this->logger->info('Updated session title with course name (old format)', [
@@ -1024,10 +1024,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 ]);
             }
 
-            // Save to database
+            // Save to database.
             $saved = $conversationManager->saveSession($session);
 
-            // Verify what was actually saved
+            // Verify what was actually saved.
             $savedMessages = $session->getMessages();
             $this->logger->info('Saved conversation', [
                 'session_id'           => $sessionId,
@@ -1084,7 +1084,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 return;
             }
 
-            // Format messages for frontend
+            // Format messages for frontend.
             $messages    = [];
             $allMessages = $session->getMessages();
 
@@ -1096,7 +1096,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
 
             foreach ($allMessages as $message) {
                 if ($message['type'] !== 'system') {
-                    // Map backend 'type' to frontend 'role' field
+                    // Map backend 'type' to frontend 'role' field.
                     $role       = $message['type'] === 'user' ? 'user' :
                            ($message['type'] === 'assistant' ? 'assistant' : $message['type']);
                     $messages[] = [
@@ -1153,8 +1153,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $conversationManager = $this->getConversationManager();
             $sessions            = $conversationManager->getUserSessions(
                 get_current_user_id(),
-                10, // limit
-                0   // offset
+                10, // limit.
+                0   // offset.
             );
 
             $sessionList = [];
@@ -1192,7 +1192,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function saveLessonContent(): void
     {
-        // Verify nonce. - check multiple possible nonce names
+        // Verify nonce. - check multiple possible nonce names.
         $nonce = $_POST['nonce'] ?? '';
         if (
             !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
@@ -1206,7 +1206,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             return;
         }
 
-        // Check user capabilities
+        // Check user capabilities.
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Save lesson content failed: insufficient permissions', [
                 'user_id' => get_current_user_id(),
@@ -1238,10 +1238,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
 
         try {
-            // Get lesson draft service from container
+            // Get lesson draft service from container.
             $draftService = $this->getLessonDraftService();
 
-            // Save draft
+            // Save draft.
             $result = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex);
 
             if ($result !== false) {
@@ -1275,7 +1275,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function loadLessonContent(): void
     {
-        // Verify nonce. - check multiple possible nonce names
+        // Verify nonce. - check multiple possible nonce names.
         $nonce = $_POST['nonce'] ?? '';
         if (
             !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
@@ -1289,7 +1289,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             return;
         }
 
-        // Check user capabilities
+        // Check user capabilities.
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Load lesson content failed: insufficient permissions', [
                 'user_id' => get_current_user_id(),
@@ -1308,12 +1308,12 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
 
         try {
-            // Get lesson draft service from container
+            // Get lesson draft service from container.
             $draftService = $this->getLessonDraftService();
 
-            // Load specific lesson or all session drafts
+            // Load specific lesson or all session drafts.
             if ($sectionId !== '' && $lessonId !== '') {
-                // Load specific lesson
+                // Load specific lesson.
                 $draft = $draftService->getDraft($sessionId, $sectionId, $lessonId);
 
                 if ($draft) {
@@ -1331,10 +1331,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     ]);
                 }
             } else {
-                // Load all drafts for session
+                // Load all drafts for session.
                 $drafts = $draftService->getSessionDrafts($sessionId);
 
-                // Group drafts by section
+                // Group drafts by section.
                 $groupedDrafts = [];
                 foreach ($drafts as $draft) {
                     if (!isset($groupedDrafts[$draft->section_id])) {
@@ -1372,14 +1372,14 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     public function generateLessonContent(): void
     {
-        // Debug logging
+        // Debug logging.
         $this->logger->info('CourseAjaxService::generateLessonContent called', [
             'nonce'   => $_POST['nonce'] ?? 'not set',
             'action'  => $_POST['action'] ?? 'not set',
             'user_id' => get_current_user_id(),
         ]);
 
-        // Verify nonce. - check multiple possible nonce names
+        // Verify nonce. - check multiple possible nonce names.
         $nonce = $_POST['nonce'] ?? '';
         if (
             !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
@@ -1394,7 +1394,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             return;
         }
 
-        // Check user capabilities
+        // Check user capabilities.
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Generate lesson content failed: insufficient permissions', [
                 'user_id' => get_current_user_id(),
@@ -1409,7 +1409,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $courseTitle  = sanitize_text_field($_POST['course_title'] ?? '');
         $context      = $_POST['context'] ?? [];
 
-        // Sanitize context array
+        // Sanitize context array.
         $context = $this->sanitizeArray($context);
 
         if (empty($lessonTitle)) {
@@ -1418,10 +1418,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
 
         try {
-            // Use LLMService for content generation
+            // Use LLMService for content generation.
             $llm_service = $this->getLLMService();
 
-            // Build prompt for lesson content generation
+            // Build prompt for lesson content generation.
             $prompt = $this->buildLessonContentPrompt($courseTitle, $sectionTitle, $lessonTitle, $context);
 
             $this->logger->debug('Generating lesson content', [
@@ -1430,7 +1430,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 'prompt_length' => strlen($prompt),
             ]);
 
-            // Generate content
+            // Generate content.
             $response = $llm_service->generateContent($prompt, 'lesson_content', [
                 'temperature' => 0.7,
                 'max_tokens'  => 3000,
@@ -1442,7 +1442,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
 
             $generatedContent = $response['content'];
 
-            // Save generated content as draft if session ID provided
+            // Save generated content as draft if session ID provided.
             if (!empty($sessionId) && !empty($_POST['section_id']) && !empty($_POST['lesson_id'])) {
                 $draftService = $this->getLessonDraftService();
 
@@ -1489,7 +1489,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             return;
         }
 
-        // Check user capabilities
+        // Check user capabilities.
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Reorder course items failed: insufficient permissions', [
                 'user_id' => get_current_user_id(),
@@ -1499,10 +1499,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
 
         $sessionId   = sanitize_text_field($_POST['session_id'] ?? '');
-        $itemType    = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'
+        $itemType    = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'.
         $reorderData = $_POST['reorder_data'] ?? [];
 
-        // Sanitize reorder data array
+        // Sanitize reorder data array.
         if (is_array($reorderData)) {
             $reorderData = $this->sanitizeArray($reorderData);
         }
@@ -1514,7 +1514,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
 
         try {
             if ($itemType === 'lesson') {
-                // Reorder lessons within a section
+                // Reorder lessons within a section.
                 $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
                 if (empty($sectionId)) {
                     wp_send_json_error('Section ID is required for lesson reordering');
@@ -1523,7 +1523,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
 
                 $draftService = $this->getLessonDraftService();
 
-                // Validate lesson order array
+                // Validate lesson order array.
                 $lessonOrder = array_map('sanitize_text_field', $reorderData);
 
                 $success = $draftService->updateLessonOrder($sessionId, $sectionId, $lessonOrder);
@@ -1543,8 +1543,8 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     throw new \Exception('Failed to update lesson order');
                 }
             } elseif ($itemType === 'section') {
-                // Handle section reordering
-                // This would update the course structure in the conversation state
+                // Handle section reordering.
+                // This would update the course structure in the conversation state.
                 $conversationManager = $this->getConversationManager();
                 $session             = $conversationManager->loadSession($sessionId);
 
@@ -1553,15 +1553,15 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     return;
                 }
 
-                // Get current context
+                // Get current context.
                 $context = $session->getContext();
 
-                // Update section order in course structure
+                // Update section order in course structure.
                 if (isset($context['course_structure']) && isset($context['course_structure']['sections'])) {
                     $sections    = $context['course_structure']['sections'];
                     $newSections = [];
 
-                    // Reorder sections based on provided order
+                    // Reorder sections based on provided order.
                     foreach ($reorderData as $sectionIndex) {
                         $index = (int) $sectionIndex;
                         if (isset($sections[$index])) {
@@ -1615,7 +1615,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             return;
         }
 
-        // Check user capabilities
+        // Check user capabilities.
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Delete course item failed: insufficient permissions', [
                 'user_id' => get_current_user_id(),
@@ -1625,7 +1625,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
 
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
-        $itemType  = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'
+        $itemType  = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'.
         $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
         $lessonId  = sanitize_text_field($_POST['lesson_id'] ?? '');
 
@@ -1641,27 +1641,27 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     return;
                 }
 
-                // Delete lesson draft
+                // Delete lesson draft.
                 $draftService = $this->getLessonDraftService();
 
                 $success = $draftService->deleteDraft($sessionId, $sectionId, $lessonId);
 
                 if ($success) {
-                    // Also update the course structure in conversation state
+                    // Also update the course structure in conversation state.
                     $conversationManager = $this->getConversationManager();
                     $session             = $conversationManager->loadSession($sessionId);
 
                     if ($session && $session->getUserId() === get_current_user_id()) {
                         $context = $session->getContext();
 
-                        // Remove lesson from course structure
+                        // Remove lesson from course structure.
                         if (isset($context['course_structure']['sections'])) {
                             foreach ($context['course_structure']['sections'] as &$section) {
                                 if (isset($section['lessons'])) {
                                     $section['lessons'] = array_filter($section['lessons'], function ($lesson) use ($lessonId) {
                                         return ($lesson['id'] ?? '') !== $lessonId;
                                     });
-                                    $section['lessons'] = array_values($section['lessons']); // Re-index
+                                    $section['lessons'] = array_values($section['lessons']); // Re-index.
                                 }
                             }
 
@@ -1689,19 +1689,19 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     return;
                 }
 
-                // Delete all lessons in the section
+                // Delete all lessons in the section.
                 $draftService = $this->getLessonDraftService();
 
                 $deletedCount = $draftService->deleteSectionDrafts($sessionId, $sectionId);
 
-                // Update course structure in conversation state
+                // Update course structure in conversation state.
                 $conversationManager = new ConversationManager();
                 $session             = $conversationManager->loadSession($sessionId);
 
                 if ($session && $session->getUserId() === get_current_user_id()) {
                     $context = $session->getContext();
 
-                    // Remove section from course structure
+                    // Remove section from course structure.
                     if (isset($context['course_structure']['sections'])) {
                         $context['course_structure']['sections'] = array_filter(
                             $context['course_structure']['sections'],
@@ -1709,7 +1709,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                                 return ($section['id'] ?? '') !== $sectionId;
                             }
                         );
-                        $context['course_structure']['sections'] = array_values($context['course_structure']['sections']); // Re-index
+                        $context['course_structure']['sections'] = array_values($context['course_structure']['sections']); // Re-index.
 
                         $session->setContext($context, null);
                         $conversationManager->saveSession($session);
@@ -1808,7 +1808,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             return;
         }
 
-        // Check permissions
+        // Check permissions.
         $courseId = isset($_POST['course_id']) ? (int) $_POST['course_id'] : 0;
         if ($courseId && !current_user_can('edit_post', $courseId)) {
             wp_send_json_error('Insufficient permissions');
@@ -1822,7 +1822,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $courseData          = isset($_POST['course_data']) ? json_decode(wp_unslash($_POST['course_data']), true) : [];
         $conversationHistory = isset($_POST['conversation_history']) ? json_decode(wp_unslash($_POST['conversation_history']), true) : [];
 
-        // Sanitize arrays
+        // Sanitize arrays.
         if (is_array($courseData)) {
             $courseData = $this->sanitizeArray($courseData);
         }
@@ -1840,7 +1840,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             return;
         }
 
-        // Verify user can edit this course
+        // Verify user can edit this course.
         if (!current_user_can('edit_post', $courseId)) {
             wp_send_json_error('You do not have permission to edit this course');
             return;
@@ -1853,10 +1853,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 'message_length' => strlen($message),
             ]);
 
-            // Build system prompt for course editing context
+            // Build system prompt for course editing context.
             $systemPrompt = $this->buildCourseEditSystemPrompt($courseData);
 
-            // Build conversation messages
+            // Build conversation messages.
             $messages = [
                 [
                     'role'    => 'system',
@@ -1864,7 +1864,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 ],
             ];
 
-            // Add conversation history
+            // Add conversation history.
             foreach ($conversationHistory as $msg) {
                 if (isset($msg['role']) && isset($msg['content'])) {
                     $messages[] = [
@@ -1874,13 +1874,13 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 }
             }
 
-            // Add current message
+            // Add current message.
             $messages[] = [
                 'role'    => 'user',
                 'content' => $message,
             ];
 
-            // Get AI response
+            // Get AI response.
             $llmResponse = $llmService->generateContent('', [
                 'messages'   => $messages,
                 'max_tokens' => 2000,
@@ -1892,18 +1892,18 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
 
             $aiResponse = $llmResponse['content'];
 
-            // Check if AI response contains course update instructions
+            // Check if AI response contains course update instructions.
             $courseUpdates = $this->extractCourseUpdates($aiResponse, $courseData);
 
-            // Build response
+            // Build response.
             $responseData = [
                 'message'        => $aiResponse,
                 'course_updates' => $courseUpdates,
             ];
 
-            // If course updates were suggested, prepare them
+            // If course updates were suggested, prepare them.
             if ($courseUpdates && isset($courseUpdates['sections'])) {
-                // Update course metadata if sections were modified
+                // Update course metadata if sections were modified.
                 update_post_meta($courseId, '_mpcs_sections', $courseUpdates['sections']);
                 $responseData['require_refresh'] = true;
             }
@@ -1978,9 +1978,9 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     private function extractCourseUpdates(string $aiResponse, array $currentCourseData): ?array
     {
-        // This is a placeholder for more sophisticated update extraction
-        // In a real implementation, you might parse specific formats or JSON blocks
-        // For now, return null to indicate no automatic updates
+        // This is a placeholder for more sophisticated update extraction.
+        // In a real implementation, you might parse specific formats or JSON blocks.
+        // For now, return null to indicate no automatic updates.
         return null;
     }
 
@@ -1995,7 +1995,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             return;
         }
 
-        // Check permissions
+        // Check permissions.
         $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         if ($postId && !current_user_can('edit_post', $postId)) {
             wp_send_json_error('Insufficient permissions');
@@ -2005,7 +2005,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $message    = sanitize_text_field($_POST['message'] ?? '');
         $courseData = isset($_POST['course_data']) ? $_POST['course_data'] : [];
 
-        // Sanitize course data array
+        // Sanitize course data array.
         if (is_array($courseData)) {
             $courseData = $this->sanitizeArray($courseData);
         }
@@ -2016,10 +2016,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
 
         try {
-            // Get LLM service from container
+            // Get LLM service from container.
             $llmService = $this->getLLMService();
 
-            // Build comprehensive system prompt with course context
+            // Build comprehensive system prompt with course context.
             $contextualPrompt = $this->buildCourseContextPrompt($courseData, $message);
 
             $response = $llmService->generateContent(
@@ -2035,7 +2035,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 $content          = $response['content'];
                 $hasContentUpdate = strpos($content, '[CONTENT_UPDATE]') !== false;
 
-                // Remove the tag from display
+                // Remove the tag from display.
                 $content = str_replace('[CONTENT_UPDATE]', '', $content);
 
                 wp_send_json_success([
@@ -2062,7 +2062,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             return;
         }
 
-        // Check permissions
+        // Check permissions.
         $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         if (!$postId || !current_user_can('edit_post', $postId)) {
             wp_send_json_error('Insufficient permissions');
@@ -2077,7 +2077,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         }
 
         try {
-            // Update the course post content
+            // Update the course post content.
             $result = wp_update_post([
                 'ID'           => $postId,
                 'post_content' => $content,
@@ -2088,7 +2088,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 return;
             }
 
-            // Log the update
+            // Log the update.
             $this->logger->info('Course content updated', [
                 'post_id'        => $postId,
                 'user_id'        => get_current_user_id(),
@@ -2118,7 +2118,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
 
         $prompt .= "=== CURRENT COURSE CONTEXT ===\n";
 
-        // Basic course information
+        // Basic course information.
         if (!empty($courseData['title'])) {
             $prompt .= 'Course Title: ' . $courseData['title'] . "\n";
         }
@@ -2128,7 +2128,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $prompt .= 'Course Description: ' . substr($content, 0, 300) . (strlen($content) > 300 ? '...' : '') . "\n";
         }
 
-        // Course metadata
+        // Course metadata.
         if (!empty($courseData['difficulty_level'])) {
             $prompt .= 'Difficulty Level: ' . $courseData['difficulty_level'] . "\n";
         }
@@ -2145,7 +2145,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $prompt .= 'Template Type: ' . $courseData['template_type'] . "\n";
         }
 
-        // Learning objectives
+        // Learning objectives.
         if (!empty($courseData['learning_objectives']) && is_array($courseData['learning_objectives'])) {
             $prompt .= "Learning Objectives:\n";
             foreach ($courseData['learning_objectives'] as $objective) {
@@ -2153,7 +2153,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             }
         }
 
-        // Prerequisites
+        // Prerequisites.
         if (!empty($courseData['prerequisites']) && is_array($courseData['prerequisites'])) {
             $prompt .= "Prerequisites:\n";
             foreach ($courseData['prerequisites'] as $prereq) {
@@ -2161,7 +2161,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             }
         }
 
-        // Course structure
+        // Course structure.
         $sectionCount = $courseData['section_count'] ?? 0;
         $lessonCount  = $courseData['lesson_count'] ?? 0;
         $prompt      .= "Course Structure: {$sectionCount} sections, {$lessonCount} lessons\n";
@@ -2170,7 +2170,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             $prompt .= 'Total Estimated Duration: ' . $courseData['total_estimated_duration'] . " minutes\n";
         }
 
-        // Sections overview
+        // Sections overview.
         if (!empty($courseData['sections']) && is_array($courseData['sections'])) {
             $prompt .= "\nSECTION STRUCTURE:\n";
             foreach ($courseData['sections'] as $section) {
@@ -2181,7 +2181,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     $prompt .= '  Description: ' . substr($section['description'], 0, 100) . "\n";
                 }
 
-                // Include lesson titles for context
+                // Include lesson titles for context.
                 if (!empty($section['lessons'])) {
                     $prompt      .= '  Lessons: ';
                     $lessonTitles = array_column($section['lessons'], 'title');
@@ -2199,7 +2199,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
 
         $prompt .= "=== YOUR RESPONSE ===\n";
 
-        // Check if user wants to update course content/description
+        // Check if user wants to update course content/description.
         $contentKeywords = ['description', 'overview', 'content', 'rewrite', 'enhance', 'improve the course text'];
         $updateKeywords  = ['update', 'change', 'edit', 'write', 'rewrite', 'enhance', 'improve'];
 

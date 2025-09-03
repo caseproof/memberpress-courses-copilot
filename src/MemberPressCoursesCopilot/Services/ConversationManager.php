@@ -33,14 +33,14 @@ class ConversationManager extends BaseService implements IConversationManager
     private array $activeSessions = [];
     private array $sessionCache   = [];
 
-    // Session configuration
+    // Session configuration.
     private const MAX_ACTIVE_SESSIONS_PER_USER = 5;
-    private const SESSION_CLEANUP_INTERVAL     = 3600; // 1 hour
-    private const CACHE_TTL                    = 900; // 15 minutes
+    private const SESSION_CLEANUP_INTERVAL     = 3600; // 1 hour.
+    private const CACHE_TTL                    = 900; // 15 minutes.
     private const MAX_MESSAGE_HISTORY          = 1000;
-    private const AUTO_SAVE_THRESHOLD          = 10; // messages
+    private const AUTO_SAVE_THRESHOLD          = 10; // messages.
 
-    // Session states for management
+    // Session states for management.
     private const MANAGEABLE_STATES = [
         'active',
         'paused',
@@ -57,7 +57,7 @@ class ConversationManager extends BaseService implements IConversationManager
     public function __construct(?IDatabaseService $databaseService = null)
     {
         parent::__construct();
-        // Use injected service or get from container as fallback
+        // Use injected service or get from container as fallback.
         if ($databaseService) {
             $this->databaseService = $databaseService;
         } else {
@@ -73,7 +73,7 @@ class ConversationManager extends BaseService implements IConversationManager
      */
     public function init(): void
     {
-        // Schedule cleanup tasks
+        // Schedule cleanup tasks.
         add_action('init', [$this, 'scheduleCleanupTasks']);
         add_action('mpcc_cleanup_sessions', [$this, 'cleanupExpiredSessions']);
     }
@@ -86,7 +86,7 @@ class ConversationManager extends BaseService implements IConversationManager
      * @throws \Exception When session creation fails
      *
      * @example
-     * // Create a basic course creation session
+     * // Create a basic course creation session.
      * $conversationManager = new ConversationManager();
      * $session = $conversationManager->createSession([
      *     'user_id' => 123,
@@ -101,7 +101,7 @@ class ConversationManager extends BaseService implements IConversationManager
      * echo "Created session: " . $session->getSessionId();
      *
      * @example
-     * // Create session with custom ID
+     * // Create session with custom ID.
      * $session = $conversationManager->createSession([
      *     'session_id' => 'custom_session_' . time(),
      *     'user_id' => get_current_user_id(),
@@ -114,13 +114,13 @@ class ConversationManager extends BaseService implements IConversationManager
      * ]);
      *
      * @example
-     * // Handle session limit enforcement
+     * // Handle session limit enforcement.
      * try {
      *     $session = $conversationManager->createSession($sessionData);
-     *     // Session created successfully
+     *     // Session created successfully.
      * } catch (Exception $e) {
      *     if (strpos($e->getMessage(), 'session limit') !== false) {
-     *         // User has too many active sessions
+     *         // User has too many active sessions.
      *         echo 'Please close some existing sessions first';
      *     }
      * }
@@ -129,13 +129,13 @@ class ConversationManager extends BaseService implements IConversationManager
     {
         $userId = (int) ($sessionData['user_id'] ?? get_current_user_id());
 
-        // Validate user session limits
+        // Validate user session limits.
         $this->enforceSessionLimits($userId);
 
-        // Use provided session ID or generate unique session ID
+        // Use provided session ID or generate unique session ID.
         $sessionId = $sessionData['session_id'] ?? $this->generateSessionId();
 
-        // Prepare session data
+        // Prepare session data.
         $sessionRecord = [
             'user_id'      => $userId,
             'session_id'   => $sessionId,
@@ -155,25 +155,25 @@ class ConversationManager extends BaseService implements IConversationManager
             'total_cost'   => 0.0,
         ];
 
-        // Save to database
+        // Save to database.
         $conversationId = $this->databaseService->insertConversation($sessionRecord);
 
         if (!$conversationId) {
             throw new \Exception('Failed to create conversation session in database');
         }
 
-        // Create session object
+        // Create session object.
         $session = new ConversationSession($sessionId, $userId, $sessionData['context'] ?? 'course_creation');
         $session->setDatabaseId($conversationId);
         $session->setCurrentState($sessionData['state'] ?? 'initial');
-        // Pass array as first parameter with null as second to set entire context
+        // Pass array as first parameter with null as second to set entire context.
         $session->setContext($sessionData['initial_data'] ?? [], null);
 
-        // Add to active sessions and cache
+        // Add to active sessions and cache.
         $this->activeSessions[$sessionId] = $session;
         $this->cacheSession($session);
 
-        // Log session creation
+        // Log session creation.
         $this->log("Created new conversation session: {$sessionId} for user: {$userId}");
 
         return $session;
@@ -186,7 +186,7 @@ class ConversationManager extends BaseService implements IConversationManager
      * @return ConversationSession|null Loaded session or null if not found
      *
      * @example
-     * // Load a session by ID
+     * // Load a session by ID.
      * $conversationManager = new ConversationManager();
      * $session = $conversationManager->loadSession('mpcc_session_abc123_1234567890');
      *
@@ -199,29 +199,29 @@ class ConversationManager extends BaseService implements IConversationManager
      * }
      *
      * @example
-     * // Load and continue conversation
+     * // Load and continue conversation.
      * $session = $conversationManager->loadSession($sessionId);
      * if ($session && $session->isActive()) {
      *     $messages = $session->getMessages();
      *     $lastMessage = end($messages);
      *     echo "Last message: " . $lastMessage['content'];
      *
-     *     // Add new message
+     *     // Add new message.
      *     $session->addMessage('user', 'Continue with the next lesson');
      *     $conversationManager->saveSession($session);
      * }
      *
      * @example
-     * // Load with caching benefit
-     * // First call - loads from database
+     * // Load with caching benefit.
+     * // First call - loads from database.
      * $session1 = $conversationManager->loadSession($sessionId);
-     * // Second call - loads from memory cache (faster)
+     * // Second call - loads from memory cache (faster).
      * $session2 = $conversationManager->loadSession($sessionId);
-     * // Both return the same session object
+     * // Both return the same session object.
      */
     public function loadSession(string $sessionId): ?ConversationSession
     {
-        // Check cache first
+        // Check cache first.
         if (isset($this->sessionCache[$sessionId])) {
             $cached = $this->sessionCache[$sessionId];
             if ($cached['expires'] > time()) {
@@ -231,10 +231,10 @@ class ConversationManager extends BaseService implements IConversationManager
             }
         }
 
-        // Load from database
+        // Load from database.
         $conversationId = $this->getConversationIdBySessionId($sessionId);
 
-        // Check if conversation ID exists before trying to load
+        // Check if conversation ID exists before trying to load.
         if (!$conversationId) {
             return null;
         }
@@ -245,10 +245,10 @@ class ConversationManager extends BaseService implements IConversationManager
             return null;
         }
 
-        // Create session object from database data
+        // Create session object from database data.
         $session = $this->createSessionFromDatabaseRecord($sessionData);
 
-        // Cache the session
+        // Cache the session.
         $this->cacheSession($session);
 
         return $session;
@@ -262,7 +262,7 @@ class ConversationManager extends BaseService implements IConversationManager
      * @return array<string, ConversationSession> Array of sessions keyed by session_id
      *
      * @example
-     * // Load multiple sessions efficiently
+     * // Load multiple sessions efficiently.
      * $conversationManager = new ConversationManager();
      * $sessionIds = ['session_1', 'session_2', 'session_3'];
      * $sessions = $conversationManager->loadMultipleSessions($sessionIds);
@@ -273,16 +273,16 @@ class ConversationManager extends BaseService implements IConversationManager
      * }
      *
      * @example
-     * // Load user's recent sessions
+     * // Load user's recent sessions.
      * $userSessions = $conversationManager->getUserSessions($userId, 10);
      * $sessionIds = array_map(fn($s) => $s->getSessionId(), $userSessions);
      * $fullSessions = $conversationManager->loadMultipleSessions($sessionIds);
      *
      * @example
-     * // Handle mixed cached and uncached sessions
+     * // Handle mixed cached and uncached sessions.
      * $sessionIds = ['cached_session', 'new_session_1', 'new_session_2'];
      * $sessions = $conversationManager->loadMultipleSessions($sessionIds);
-     * // Only uncached sessions are loaded from database, cached ones from memory
+     * // Only uncached sessions are loaded from database, cached ones from memory.
      * echo "Loaded " . count($sessions) . " sessions";
      */
     public function loadMultipleSessions(array $sessionIds): array
@@ -294,7 +294,7 @@ class ConversationManager extends BaseService implements IConversationManager
         $sessions         = [];
         $sessionIdsToLoad = [];
 
-        // First check cache for any already loaded sessions
+        // First check cache for any already loaded sessions.
         foreach ($sessionIds as $sessionId) {
             if (isset($this->sessionCache[$sessionId])) {
                 $cached = $this->sessionCache[$sessionId];
@@ -308,20 +308,20 @@ class ConversationManager extends BaseService implements IConversationManager
             $sessionIdsToLoad[] = $sessionId;
         }
 
-        // If all sessions were cached, return early
+        // If all sessions were cached, return early.
         if (empty($sessionIdsToLoad)) {
             return $sessions;
         }
 
-        // Load remaining sessions from database in a single query
+        // Load remaining sessions from database in a single query.
         $conversations = $this->databaseService->getConversationsBySessionIds($sessionIdsToLoad);
 
-        // Create session objects from database records
+        // Create session objects from database records.
         foreach ($conversations as $sessionId => $conversationData) {
             $session              = $this->createSessionFromDatabaseRecord($conversationData);
             $sessions[$sessionId] = $session;
 
-            // Cache the session
+            // Cache the session.
             $this->cacheSession($session);
         }
 
@@ -335,7 +335,7 @@ class ConversationManager extends BaseService implements IConversationManager
      * @return boolean Success status
      *
      * @example
-     * // Save a modified session
+     * // Save a modified session.
      * $conversationManager = new ConversationManager();
      * $session = $conversationManager->loadSession($sessionId);
      * $session->addMessage('user', 'Add another lesson about arrays');
@@ -348,30 +348,30 @@ class ConversationManager extends BaseService implements IConversationManager
      * }
      *
      * @example
-     * // Auto-save during conversation
+     * // Auto-save during conversation.
      * $messageCount = 0;
      * $session->addMessage('user', $userMessage);
      * $session->addMessage('assistant', $aiResponse);
      * $messageCount += 2;
      *
-     * // Auto-save every 10 messages
+     * // Auto-save every 10 messages.
      * if ($messageCount % 10 === 0) {
      *     $conversationManager->saveSession($session);
      * }
      *
      * @example
-     * // Save with error handling
+     * // Save with error handling.
      * try {
      *     $success = $conversationManager->saveSession($session);
      *     if (!$success) {
      *         throw new Exception('Database save failed');
      *     }
      *
-     *     // Session saved and cached
+     *     // Session saved and cached.
      *     echo "Session synchronized";
      * } catch (Exception $e) {
      *     error_log('Session save error: ' . $e->getMessage());
-     *     // Session changes are preserved in memory until next save attempt
+     *     // Session changes are preserved in memory until next save attempt.
      * }
      */
     public function saveSession(ConversationSession $session): bool
@@ -396,7 +396,7 @@ class ConversationManager extends BaseService implements IConversationManager
         $success = $this->databaseService->updateConversation($session->getDatabaseId(), $sessionData);
 
         if ($success) {
-            // Update cache
+            // Update cache.
             $this->cacheSession($session);
             $session->markAsSaved();
 
@@ -419,18 +419,18 @@ class ConversationManager extends BaseService implements IConversationManager
             $sessionData['context']
         );
 
-        // Restore session state
+        // Restore session state.
         $session->setCurrentState($sessionData['current_state']);
         $session->setContext($sessionData['context_data'], null);
         $session->setStateHistory($sessionData['state_history']);
         $session->setProgress($sessionData['progress']);
 
-        // Restore messages
+        // Restore messages.
         foreach ($sessionData['messages'] as $message) {
             $session->addMessage($message['type'], $message['content'], $message['metadata']);
         }
 
-        // Save to database
+        // Save to database.
         $conversationId = $this->databaseService->insertConversation([
             'user_id'    => $session->getUserId(),
             'session_id' => $session->getSessionId(),
@@ -462,7 +462,7 @@ class ConversationManager extends BaseService implements IConversationManager
      * @return array Array of ConversationSession objects
      *
      * @example
-     * // Get user's recent sessions
+     * // Get user's recent sessions.
      * $conversationManager = new ConversationManager();
      * $sessions = $conversationManager->getUserSessions(123, 10, 0);
      *
@@ -473,7 +473,7 @@ class ConversationManager extends BaseService implements IConversationManager
      * }
      *
      * @example
-     * // Paginate through user sessions
+     * // Paginate through user sessions.
      * $page = 0;
      * $limit = 5;
      *
@@ -488,7 +488,7 @@ class ConversationManager extends BaseService implements IConversationManager
      * } while (count($sessions) === $limit);
      *
      * @example
-     * // Filter user sessions by context
+     * // Filter user sessions by context.
      * $allSessions = $conversationManager->getUserSessions($userId, 100);
      * $courseSessions = array_filter($allSessions, function($session) {
      *     return $session->getContextType() === 'course_creation';
@@ -550,7 +550,7 @@ class ConversationManager extends BaseService implements IConversationManager
 
         $session->complete($completionData);
 
-        // Remove from active sessions
+        // Remove from active sessions.
         unset($this->activeSessions[$sessionId]);
 
         return $this->saveSession($session);
@@ -569,7 +569,7 @@ class ConversationManager extends BaseService implements IConversationManager
 
         $session->abandon($reason);
 
-        // Remove from active sessions
+        // Remove from active sessions.
         unset($this->activeSessions[$sessionId]);
 
         return $this->saveSession($session);
@@ -586,12 +586,12 @@ class ConversationManager extends BaseService implements IConversationManager
             return false;
         }
 
-        // Delete from database
+        // Delete from database.
         $conversationId = $session->getDatabaseId();
         $deleted        = $this->databaseService->deleteConversation($conversationId);
 
         if ($deleted) {
-            // Remove from cache and active sessions
+            // Remove from cache and active sessions.
             unset($this->activeSessions[$sessionId]);
             unset($this->sessionCache[$sessionId]);
 
@@ -612,7 +612,7 @@ class ConversationManager extends BaseService implements IConversationManager
             throw new \Exception('Session not found for sync');
         }
 
-        // Get server state
+        // Get server state.
         $serverState = [
             'current_state' => $session->getCurrentState(),
             'progress'      => $session->getProgress(),
@@ -621,7 +621,7 @@ class ConversationManager extends BaseService implements IConversationManager
             'context_hash'  => md5(wp_json_encode($session->getContext())),
         ];
 
-        // Compare with client state
+        // Compare with client state.
         $clientLastUpdated = $clientState['last_updated'] ?? 0;
         $serverLastUpdated = $session->getLastUpdated();
 
@@ -641,7 +641,7 @@ class ConversationManager extends BaseService implements IConversationManager
             ];
         }
 
-        // Check for conflicts (if client has newer data)
+        // Check for conflicts (if client has newer data).
         if (isset($clientState['last_modified']) && $clientState['last_modified'] > $serverLastUpdated) {
             $syncResponse['conflict_detected']           = true;
             $syncResponse['conflict_resolution_options'] = [
@@ -662,17 +662,17 @@ class ConversationManager extends BaseService implements IConversationManager
      * @throws \Exception When session not found
      *
      * @example
-     * // Export a session for backup
+     * // Export a session for backup.
      * $conversationManager = new ConversationManager();
      * $exportData = $conversationManager->exportSession('mpcc_session_abc123');
      *
-     * // Save to file
+     * // Save to file.
      * $filename = 'session_backup_' . date('Y-m-d_H-i-s') . '.json';
      * file_put_contents($filename, wp_json_encode($exportData, JSON_PRETTY_PRINT));
      * echo "Session exported to: " . $filename;
      *
      * @example
-     * // Export and analyze session data
+     * // Export and analyze session data.
      * $exportData = $conversationManager->exportSession($sessionId);
      *
      * echo "Export info:";
@@ -685,11 +685,11 @@ class ConversationManager extends BaseService implements IConversationManager
      * echo "- Total cost: $" . number_format($exportData['total_cost'], 4);
      *
      * @example
-     * // Export for session migration
+     * // Export for session migration.
      * try {
      *     $exportData = $conversationManager->exportSession($oldSessionId);
      *
-     *     // Create new session from exported data
+     *     // Create new session from exported data.
      *     $newSession = $conversationManager->createSessionFromData($exportData);
      *     echo "Session migrated: " . $newSession->getSessionId();
      *
@@ -778,10 +778,10 @@ class ConversationManager extends BaseService implements IConversationManager
         $expiredTime = time() - self::SESSION_CLEANUP_INTERVAL;
 
         try {
-            // Get expired sessions
+            // Get expired sessions.
             $expiredSessions = $this->databaseService->getExpiredSessions($expiredTime);
 
-            // Collect active session IDs that need to be abandoned
+            // Collect active session IDs that need to be abandoned.
             $activeSessionIds = [];
             foreach ($expiredSessions as $sessionData) {
                 if ($sessionData->state === 'active') {
@@ -789,7 +789,7 @@ class ConversationManager extends BaseService implements IConversationManager
                 }
             }
 
-            // Batch update all active sessions to abandoned state (avoids N+1 queries)
+            // Batch update all active sessions to abandoned state (avoids N+1 queries).
             if (!empty($activeSessionIds)) {
                 $abandonedCount = $this->databaseService->batchAbandonConversations(
                     $activeSessionIds,
@@ -798,7 +798,7 @@ class ConversationManager extends BaseService implements IConversationManager
                 $this->log("Auto-abandoned {$abandonedCount} active sessions");
             }
 
-            // Clean up cache
+            // Clean up cache.
             foreach ($this->sessionCache as $sessionId => $cached) {
                 if ($cached['expires'] <= time()) {
                     unset($this->sessionCache[$sessionId]);
@@ -859,10 +859,10 @@ class ConversationManager extends BaseService implements IConversationManager
             $session->setPausedFromState($stepData['paused_from_state']);
         }
 
-        // Restore messages without triggering markAsModified
+        // Restore messages without triggering markAsModified.
         $session->restoreMessages($messages);
 
-        // Mark as saved since it's from database
+        // Mark as saved since it's from database.
         $session->markAsSaved();
 
         return $session;
@@ -895,7 +895,7 @@ class ConversationManager extends BaseService implements IConversationManager
         $activeSessions = $this->databaseService->getActiveSessionCount($userId);
 
         if ($activeSessions >= self::MAX_ACTIVE_SESSIONS_PER_USER) {
-            // Auto-abandon oldest session
+            // Auto-abandon oldest session.
             $oldestSession = $this->databaseService->getOldestActiveSession($userId);
             if ($oldestSession) {
                 $this->abandonSession($oldestSession->session_id, 'Auto-abandoned due to session limit');
@@ -915,9 +915,9 @@ class ConversationManager extends BaseService implements IConversationManager
         $sessionDuration = max(1, $session->getLastUpdated() - $session->getCreatedAt());
         $progress        = $session->getProgress();
 
-        // Calculate based on message frequency, session duration, and progress
-        $messageFrequency = $messageCount / ($sessionDuration / 3600); // messages per hour
-        $progressRate     = $progress / max(1, $sessionDuration / 3600); // progress per hour
+        // Calculate based on message frequency, session duration, and progress.
+        $messageFrequency = $messageCount / ($sessionDuration / 3600); // messages per hour.
+        $progressRate     = $progress / max(1, $sessionDuration / 3600); // progress per hour.
 
         $engagementScore = min(1.0, ($messageFrequency * 0.4) + ($progressRate * 0.6));
 
@@ -933,7 +933,7 @@ class ConversationManager extends BaseService implements IConversationManager
         $engagementScore  = $this->calculateEngagementScore($session);
         $stateTransitions = count($session->getStateHistory());
 
-        // Simple prediction model based on current progress and engagement
+        // Simple prediction model based on current progress and engagement.
         $completionLikelihood = ($progress * 0.5) + ($engagementScore * 0.3) + (min(1.0, $stateTransitions / 10) * 0.2);
 
         return round(min(1.0, $completionLikelihood), 2);
@@ -948,27 +948,27 @@ class ConversationManager extends BaseService implements IConversationManager
      */
     public function processMessage(string $message, int $userId): array
     {
-        // Get or create active session for user
+        // Get or create active session for user.
         $sessions = $this->getActiveSessions($userId);
         $session  = !empty($sessions) ? reset($sessions) : null;
 
         if (!$session) {
-            // Create new session if none exists
+            // Create new session if none exists.
             $session = $this->createSession([
                 'user_id' => $userId,
                 'context' => 'general_conversation',
             ]);
         }
 
-        // Add message to session
+        // Add message to session.
         $session->addMessage([
             'role'      => 'user',
             'content'   => $message,
             'timestamp' => time(),
         ]);
 
-        // Here you would integrate with LLM service to get response
-        // For now, return a placeholder
+        // Here you would integrate with LLM service to get response.
+        // For now, return a placeholder.
         $response = [
             'content'  => 'This is a placeholder response. Integration with LLM service needed.',
             'metadata' => [
@@ -977,14 +977,14 @@ class ConversationManager extends BaseService implements IConversationManager
             ],
         ];
 
-        // Add response to session
+        // Add response to session.
         $session->addMessage([
             'role'      => 'assistant',
             'content'   => $response['content'],
             'timestamp' => time(),
         ]);
 
-        // Save session
+        // Save session.
         $this->saveSession($session);
 
         return $response;
@@ -1011,15 +1011,15 @@ class ConversationManager extends BaseService implements IConversationManager
     public function clearHistory(int $userId): bool
     {
         try {
-            // Get all conversations for user
+            // Get all conversations for user.
             $conversations = $this->databaseService->getConversationsByUser($userId, 1000);
 
-            // Delete each conversation
+            // Delete each conversation.
             foreach ($conversations as $conversation) {
                 $this->databaseService->deleteConversation($conversation->id);
             }
 
-            // Clear any cached sessions
+            // Clear any cached sessions.
             foreach ($this->activeSessions as $sessionId => $session) {
                 if ($session->getUserId() === $userId) {
                     unset($this->activeSessions[$sessionId]);

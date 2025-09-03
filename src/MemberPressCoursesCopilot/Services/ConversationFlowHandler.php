@@ -16,7 +16,7 @@ class ConversationFlowHandler extends BaseService
     private CourseGeneratorService $courseGenerator;
     private ConversationManager $conversationManager;
 
-    // Flow configurations
+    // Flow configurations.
     private const FLOW_PATTERNS = [
         'linear'      => 'Sequential progression through all states',
         'adaptive'    => 'Skip states based on available information',
@@ -50,7 +50,7 @@ class ConversationFlowHandler extends BaseService
      */
     public function init(): void
     {
-        // No initialization needed for this service
+        // No initialization needed for this service.
     }
 
     /**
@@ -62,16 +62,16 @@ class ConversationFlowHandler extends BaseService
         $sessionContext      = $session->getContext();
         $conversationHistory = $session->getMessages();
 
-        // Analyze user expertise level
+        // Analyze user expertise level.
         $expertiseLevel = $this->analyzeUserExpertise($userProfile, $conversationHistory);
 
-        // Check available information completeness
+        // Check available information completeness.
         $informationCompleteness = $this->assessInformationCompleteness($sessionContext);
 
-        // Determine user preference from behavior
+        // Determine user preference from behavior.
         $userPreference = $this->inferUserPreference($conversationHistory);
 
-        // Calculate flow recommendation
+        // Calculate flow recommendation.
         $flowScore = [
             'linear'      => $this->calculateLinearFlowScore($expertiseLevel, $informationCompleteness),
             'adaptive'    => $this->calculateAdaptiveFlowScore($expertiseLevel, $informationCompleteness),
@@ -82,7 +82,7 @@ class ConversationFlowHandler extends BaseService
 
         $recommendedFlow = array_keys($flowScore, max($flowScore))[0];
 
-        // Store flow decision for future reference
+        // Store flow decision for future reference.
         $session->setMetadata('conversation_flow', $recommendedFlow);
         $session->setMetadata('flow_scores', $flowScore);
         $session->setMetadata('flow_factors', [
@@ -105,7 +105,7 @@ class ConversationFlowHandler extends BaseService
 
         $availableTransitions = $this->courseGenerator->getStateTransitions()[$currentState] ?? [];
 
-        // Filter transitions based on flow type and context
+        // Filter transitions based on flow type and context.
         $branches = match ($flow) {
             'linear' => $this->getLinearBranches($currentState, $availableTransitions),
             'adaptive' => $this->getAdaptiveBranches($currentState, $availableTransitions, $context),
@@ -115,7 +115,7 @@ class ConversationFlowHandler extends BaseService
             default => $this->getDefaultBranches($currentState, $availableTransitions)
         };
 
-        // Add branching metadata
+        // Add branching metadata.
         foreach ($branches as &$branch) {
             $branch['confidence']      = $this->calculateBranchConfidence($branch, $session);
             $branch['estimated_time']  = $this->estimateBranchTime($branch, $session);
@@ -133,7 +133,7 @@ class ConversationFlowHandler extends BaseService
     {
         $currentState = $session->getCurrentState();
 
-        // Validate branch selection
+        // Validate branch selection.
         $availableBranches = $this->getNextBranches($session);
         $validBranch       = array_filter($availableBranches, fn($branch) => $branch['state'] === $selectedBranch);
 
@@ -147,7 +147,7 @@ class ConversationFlowHandler extends BaseService
 
         $branch = array_values($validBranch)[0];
 
-        // Check prerequisites
+        // Check prerequisites.
         if (!$this->checkBranchPrerequisites($branch, $session)) {
             return [
                 'success'               => false,
@@ -157,11 +157,11 @@ class ConversationFlowHandler extends BaseService
             ];
         }
 
-        // Execute branch transition
+        // Execute branch transition.
         $transitionResult = $this->executeBranchTransition($session, $selectedBranch, $branchData);
 
         if ($transitionResult['success']) {
-            // Log branching decision
+            // Log branching decision.
             $session->addMessage('system', 'Branch transition executed', [
                 'from_state'  => $currentState,
                 'to_state'    => $selectedBranch,
@@ -169,7 +169,7 @@ class ConversationFlowHandler extends BaseService
                 'flow_type'   => $session->getMetadata('conversation_flow'),
             ]);
 
-            // Update session progress
+            // Update session progress.
             $this->updateProgressForBranch($session, $selectedBranch);
         }
 
@@ -191,12 +191,12 @@ class ConversationFlowHandler extends BaseService
             ];
         }
 
-        // Determine target state for backtracking
+        // Determine target state for backtracking.
         if (!$targetState) {
             $targetState = $this->determineOptimalBacktrackTarget($session, $options);
         }
 
-        // Validate backtrack target
+        // Validate backtrack target.
         $targetStateData = $this->findStateInHistory($stateHistory, $targetState);
         if (!$targetStateData) {
             return [
@@ -206,10 +206,10 @@ class ConversationFlowHandler extends BaseService
             ];
         }
 
-        // Calculate what will be lost in backtrack
+        // Calculate what will be lost in backtrack.
         $lossAssessment = $this->assessBacktrackLoss($session, $targetStateData);
 
-        // Require confirmation for significant backtracking
+        // Require confirmation for significant backtracking.
         if ($lossAssessment['significance'] > 0.7 && !($options['confirmed'] ?? false)) {
             return [
                 'success'               => false,
@@ -220,11 +220,11 @@ class ConversationFlowHandler extends BaseService
             ];
         }
 
-        // Execute backtrack
+        // Execute backtrack.
         $backtrackResult = $this->executeBacktrack($session, $targetState, $targetStateData);
 
         if ($backtrackResult['success']) {
-            // Log backtrack action
+            // Log backtrack action.
             $session->addMessage('system', 'Backtrack executed', [
                 'target_state'      => $targetState,
                 'steps_back'        => $backtrackResult['steps_back'],
@@ -248,7 +248,7 @@ class ConversationFlowHandler extends BaseService
 
         $suggestions = [];
 
-        // Progressive suggestions based on current state
+        // Progressive suggestions based on current state.
         switch ($currentState) {
             case 'template_selection':
                 $suggestions = $this->getTemplateSelectionSuggestions($session);
@@ -271,16 +271,16 @@ class ConversationFlowHandler extends BaseService
                 break;
         }
 
-        // Add flow-specific suggestions
+        // Add flow-specific suggestions.
         $suggestions = array_merge($suggestions, $this->getFlowSpecificSuggestions($session, $flow));
 
-        // Add smart shortcuts if applicable
+        // Add smart shortcuts if applicable.
         $shortcuts = $this->identifySmartShortcuts($session);
         if (!empty($shortcuts)) {
             $suggestions['shortcuts'] = $shortcuts;
         }
 
-        // Add recovery options if there are issues
+        // Add recovery options if there are issues.
         if ($this->detectNavigationIssues($session)) {
             $suggestions['recovery'] = $this->getRecoveryOptions($session);
         }
@@ -314,14 +314,14 @@ class ConversationFlowHandler extends BaseService
             'data_preservation' => [],
         ];
 
-        // Determine recovery strategy
+        // Determine recovery strategy.
         if (isset($recoveryOptions['strategy'])) {
             $recoveryPlan['strategy'] = $recoveryOptions['strategy'];
         } else {
             $recoveryPlan['strategy'] = $this->determineOptimalRecoveryStrategy($session, $errorContext);
         }
 
-        // Execute recovery based on strategy
+        // Execute recovery based on strategy.
         switch ($recoveryPlan['strategy']) {
             case 'backtrack_recovery':
                 $result = $this->executeBacktrackRecovery($session, $lastStableState);
@@ -344,7 +344,7 @@ class ConversationFlowHandler extends BaseService
                 break;
         }
 
-        // Log recovery attempt
+        // Log recovery attempt.
         $session->addMessage('system', 'Recovery executed', [
             'strategy'      => $recoveryPlan['strategy'],
             'result'        => $result,
@@ -354,10 +354,10 @@ class ConversationFlowHandler extends BaseService
         return array_merge($recoveryPlan, $result);
     }
 
-    // PRIVATE HELPER METHODS
+    // PRIVATE HELPER METHODS.
     private function getUserProfile(int $userId): array
     {
-        // Placeholder - implement user profile retrieval
+        // Placeholder - implement user profile retrieval.
         return [
             'course_creation_experience'  => 'intermediate',
             'technical_background'        => 'moderate',
@@ -447,7 +447,7 @@ class ConversationFlowHandler extends BaseService
 
     private function getLinearBranches(string $currentState, array $transitions): array
     {
-        // Return only the next logical state in sequence
+        // Return only the next logical state in sequence.
         $sequence = [
             'welcome'                => 'template_selection',
             'template_selection'     => 'requirements_gathering',
@@ -477,7 +477,7 @@ class ConversationFlowHandler extends BaseService
         foreach ($transitions as $transition) {
             $skipConditions = $this->getBranchSkipConditions(
                 ['state' => $transition],
-                new ConversationSession('temp', 0) // Temporary session for method compatibility
+                new ConversationSession('temp', 0) // Temporary session for method compatibility.
             );
 
             $branch = [
@@ -495,7 +495,7 @@ class ConversationFlowHandler extends BaseService
 
     private function getExploratoryBranches(string $currentState, array $transitions): array
     {
-        // Allow navigation to any valid state
+        // Allow navigation to any valid state.
         return array_map(fn($transition) => [
             'state'         => $transition,
             'type'          => 'exploratory',
@@ -506,7 +506,7 @@ class ConversationFlowHandler extends BaseService
 
     private function getGuidedBranches(string $currentState, array $transitions, ConversationSession $session): array
     {
-        // Provide curated options with clear guidance
+        // Provide curated options with clear guidance.
         $guidedOptions = [
             'recommended' => [],
             'alternative' => [],
@@ -529,11 +529,11 @@ class ConversationFlowHandler extends BaseService
 
     private function getExpertBranches(string $currentState, array $transitions, array $context): array
     {
-        // Minimal guidance, maximum flexibility
+        // Minimal guidance, maximum flexibility.
         return array_map(fn($transition) => [
             'state'             => $transition,
             'type'              => 'expert',
-            'description'       => $transition, // Minimal description
+            'description'       => $transition, // Minimal description.
             'technical_details' => $this->getTechnicalStateDetails($transition),
         ], $transitions);
     }
@@ -553,7 +553,7 @@ class ConversationFlowHandler extends BaseService
     }
 
     // Additional helper methods would continue here...
-    // For brevity, I'm including key method signatures
+    // For brevity, I'm including key method signatures.
 
     /**
      * @throws \RuntimeException
@@ -627,7 +627,7 @@ class ConversationFlowHandler extends BaseService
     }
     private function updateProgressForBranch(ConversationSession $session, string $branch): void
     {
-        // Define progress percentages for each state
+        // Define progress percentages for each state.
         $stateProgress = [
             'welcome'                => 0,
             'template_selection'     => 10,
@@ -641,15 +641,15 @@ class ConversationFlowHandler extends BaseService
             'completed'              => 100,
         ];
 
-        // Get current state
+        // Get current state.
         $currentState = $session->getCurrentState();
 
-        // Update progress based on current state
+        // Update progress based on current state.
         if (isset($stateProgress[$currentState])) {
             $session->updateProgress($stateProgress[$currentState]);
         }
 
-        // If branch indicates completion, set to 100%
+        // If branch indicates completion, set to 100%.
         if ($branch === 'complete' || $currentState === 'completed') {
             $session->updateProgress(100);
         }
