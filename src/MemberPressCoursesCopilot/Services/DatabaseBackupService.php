@@ -450,7 +450,7 @@ class DatabaseBackupService extends BaseService
     private function saveBackupMetadata(string $backup_id, array $metadata): void
     {
         $metadata_file = $this->backup_dir . '/' . $backup_id . '.json';
-        file_put_contents($metadata_file, json_encode($metadata, JSON_PRETTY_PRINT));
+        file_put_contents($metadata_file, wp_json_encode($metadata, JSON_PRETTY_PRINT));
     }
 
     /**

@@ -142,9 +142,9 @@ class ConversationManager extends BaseService implements IConversationManager
             'state'        => 'active',
             'context'      => $sessionData['context'] ?? 'course_creation',
             'title'        => $sessionData['title'] ?? 'New Course (Draft)',
-            'messages'     => json_encode([]),
-            'metadata'     => json_encode($sessionData['initial_data'] ?? []),
-            'step_data'    => json_encode([
+            'messages'     => wp_json_encode([]),
+            'metadata'     => wp_json_encode($sessionData['initial_data'] ?? []),
+            'step_data'    => wp_json_encode([
                 'current_state'    => $sessionData['state'] ?? 'initial',
                 'state_history'    => [],
                 'context'          => $sessionData['initial_data'] ?? [],
@@ -379,9 +379,9 @@ class ConversationManager extends BaseService implements IConversationManager
         $sessionData = [
             'state'        => $session->isActive() ? 'active' : 'paused',
             'title'        => $session->getTitle(),
-            'messages'     => json_encode($session->getMessages(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'metadata'     => json_encode($session->getMetadata()),
-            'step_data'    => json_encode([
+            'messages'     => wp_json_encode($session->getMessages(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'metadata'     => wp_json_encode($session->getMetadata()),
+            'step_data'    => wp_json_encode([
                 'current_state'     => $session->getCurrentState(),
                 'state_history'     => $session->getStateHistory(),
                 'context'           => $session->getContext(),
@@ -437,9 +437,9 @@ class ConversationManager extends BaseService implements IConversationManager
             'state'      => 'active',
             'context'    => $session->getContextType(),
             'title'      => 'Imported Session',
-            'messages'   => json_encode($session->getMessages()),
-            'metadata'   => json_encode($sessionData['metadata'] ?? []),
-            'step_data'  => json_encode([
+            'messages'   => wp_json_encode($session->getMessages()),
+            'metadata'   => wp_json_encode($sessionData['metadata'] ?? []),
+            'step_data'  => wp_json_encode([
                 'current_state' => $session->getCurrentState(),
                 'state_history' => $session->getStateHistory(),
                 'context'       => $session->getContext(),
@@ -618,7 +618,7 @@ class ConversationManager extends BaseService implements IConversationManager
             'progress'      => $session->getProgress(),
             'last_updated'  => $session->getLastUpdated(),
             'message_count' => count($session->getMessages()),
-            'context_hash'  => md5(json_encode($session->getContext())),
+            'context_hash'  => md5(wp_json_encode($session->getContext())),
         ];
 
         // Compare with client state
@@ -668,7 +668,7 @@ class ConversationManager extends BaseService implements IConversationManager
      *
      * // Save to file
      * $filename = 'session_backup_' . date('Y-m-d_H-i-s') . '.json';
-     * file_put_contents($filename, json_encode($exportData, JSON_PRETTY_PRINT));
+     * file_put_contents($filename, wp_json_encode($exportData, JSON_PRETTY_PRINT));
      * echo "Session exported to: " . $filename;
      *
      * @example

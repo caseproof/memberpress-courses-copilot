@@ -584,7 +584,7 @@ class EnhancedTemplateEngine extends BaseService
             "Return as JSON array with 'type', 'score' (0-100), and 'reason' for each recommendation.",
             $description,
             implode("\n", $templateDescriptions),
-            json_encode($context)
+            wp_json_encode($context)
         );
     }
 

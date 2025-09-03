@@ -57,7 +57,7 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
                 'course_title'     => $courseData['title'] ?? 'No title',
                 'sections_count'   => count($courseData['sections'] ?? []),
                 'course_data_keys' => array_keys($courseData),
-                'full_course_data' => json_encode($courseData),
+                'full_course_data' => wp_json_encode($courseData),
             ]);
 
             // Create the main course

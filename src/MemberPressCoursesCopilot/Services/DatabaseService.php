@@ -476,7 +476,7 @@ class DatabaseService extends BaseService implements IDatabaseService
                 'description'     => 'A standard course template with introduction, main content, and conclusion',
                 'category'        => 'general',
                 'type'            => 'course',
-                'template_data'   => json_encode([
+                'template_data'   => wp_json_encode([
                     'sections' => [
                         [
                             'title'   => 'Introduction',
@@ -495,14 +495,14 @@ class DatabaseService extends BaseService implements IDatabaseService
                 'prompt_template' => 'Create a course about {{topic}} with the following structure...',
                 'is_system'       => 1,
                 'version'         => '1.0.0',
-                'tags'            => json_encode(['basic', 'structure', 'default']),
+                'tags'            => wp_json_encode(['basic', 'structure', 'default']),
             ],
             [
                 'name'            => 'Skill-Based Learning Path',
                 'description'     => 'Template for courses focused on building specific skills progressively',
                 'category'        => 'skill-building',
                 'type'            => 'course',
-                'template_data'   => json_encode([
+                'template_data'   => wp_json_encode([
                     'sections' => [
                         [
                             'title'   => 'Foundations',
@@ -521,7 +521,7 @@ class DatabaseService extends BaseService implements IDatabaseService
                 'prompt_template' => 'Design a skill-building course for {{skill}} that progresses from beginner to advanced...',
                 'is_system'       => 1,
                 'version'         => '1.0.0',
-                'tags'            => json_encode(['skill-building', 'progressive', 'hands-on']),
+                'tags'            => wp_json_encode(['skill-building', 'progressive', 'hands-on']),
             ],
         ];
 
@@ -543,13 +543,13 @@ class DatabaseService extends BaseService implements IDatabaseService
         $tableName = $this->table_prefix . 'conversations';
 
         // Add a small random delay to ensure unique timestamps
-        usleep(rand(1000, 5000)); // Sleep for 1-5 milliseconds
+        usleep(wp_rand(1000, 5000)); // Sleep for 1-5 milliseconds.
 
         $defaults = [
             'state'        => 'active',
             'context'      => 'course_creation',
             'title'        => '',
-            'messages'     => json_encode([]),
+            'messages'     => wp_json_encode([]),
             'metadata'     => null,
             'step_data'    => null,
             'total_tokens' => 0,
@@ -591,7 +591,7 @@ class DatabaseService extends BaseService implements IDatabaseService
         if ($hasContentChanges) {
             // Use microtime to ensure unique timestamps
             // Add a small random delay to ensure uniqueness even for rapid updates
-            usleep(rand(1000, 5000)); // Sleep for 1-5 milliseconds
+            usleep(wp_rand(1000, 5000)); // Sleep for 1-5 milliseconds.
             $data['updated_at'] = current_time('mysql');
         }
 
@@ -1303,7 +1303,7 @@ class DatabaseService extends BaseService implements IDatabaseService
         $data = [
             'user_id'    => $userId,
             'session_id' => wp_generate_password(32, false),
-            'messages'   => json_encode([
+            'messages'   => wp_json_encode([
                 [
                     'role'    => 'user',
                     'content' => $message,

@@ -589,7 +589,7 @@ class Logger
     private function log(string $level, string $message, array $context = []): void
     {
         $timestamp     = date('Y-m-d H:i:s');
-        $contextString = !empty($context) ? ' ' . json_encode($context) : '';
+        $contextString = !empty($context) ? ' ' . wp_json_encode($context) : '';
         $logEntry      = "[{$timestamp}] [{$level}] {$message}{$contextString}" . PHP_EOL;
 
         // Write to file
