@@ -356,8 +356,8 @@ class SessionFeaturesService extends BaseService
         }
 
         // Check import permissions.
-        $meprCap = function_exists('MeprUtils::get_mepr_admin_capability') 
-            ? \MeprUtils::get_mepr_admin_capability() 
+        $meprCap = function_exists('MeprUtils::get_mepr_admin_capability')
+            ? \MeprUtils::get_mepr_admin_capability()
             : 'remove_users';
         if (!current_user_can($meprCap) && !($options['allow_user_import'] ?? false)) {
             throw new \Exception('Insufficient permissions to import sessions');
