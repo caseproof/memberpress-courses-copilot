@@ -546,14 +546,68 @@ class ConversationFlowHandler extends BaseService
     // Additional helper methods would continue here...
     // For brevity, I'm including key method signatures
 
-    private function calculateBranchConfidence(array $branch, ConversationSession $session): float { return 0.8; }
-    private function estimateBranchTime(array $branch, ConversationSession $session): int { return 300; }
-    private function getBranchPrerequisites(array $branch, ConversationSession $session): array { return []; }
-    private function getBranchSkipConditions(array $branch, ConversationSession $session): array { return []; }
-    private function checkBranchPrerequisites(array $branch, ConversationSession $session): bool { return true; }
-    private function getSuggestedPrerequisiteActions(array $branch, ConversationSession $session): array { return []; }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
+    private function calculateBranchConfidence(array $branch, ConversationSession $session): float { 
+        throw new \RuntimeException('calculateBranchConfidence() is not implemented. This method must calculate confidence score for branch selection.');
+    }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
+    private function estimateBranchTime(array $branch, ConversationSession $session): int { 
+        throw new \RuntimeException('estimateBranchTime() is not implemented. This method must estimate time required for branch completion.');
+    }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
+    private function getBranchPrerequisites(array $branch, ConversationSession $session): array { 
+        throw new \RuntimeException('getBranchPrerequisites() is not implemented. This method must return prerequisites for the branch.');
+    }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
+    private function getBranchSkipConditions(array $branch, ConversationSession $session): array { 
+        throw new \RuntimeException('getBranchSkipConditions() is not implemented. This method must return conditions for skipping the branch.');
+    }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
+    private function checkBranchPrerequisites(array $branch, ConversationSession $session): bool { 
+        throw new \RuntimeException('checkBranchPrerequisites() is not implemented. This method must check if branch prerequisites are met.');
+    }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
+    private function getSuggestedPrerequisiteActions(array $branch, ConversationSession $session): array { 
+        throw new \RuntimeException('getSuggestedPrerequisiteActions() is not implemented. This method must suggest actions to meet prerequisites.');
+    }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
     private function executeBranchTransition(ConversationSession $session, string $branch, array $data): array { 
-        return ['success' => true]; 
+        throw new \RuntimeException('executeBranchTransition() is not implemented. This method must execute the transition to the specified branch.');
     }
     private function updateProgressForBranch(ConversationSession $session, string $branch): void 
     {
@@ -584,21 +638,58 @@ class ConversationFlowHandler extends BaseService
             $session->updateProgress(100);
         }
     }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
     private function determineOptimalBacktrackTarget(ConversationSession $session, array $options): string { 
-        return 'welcome'; 
+        throw new \RuntimeException('determineOptimalBacktrackTarget() is not implemented. This method must determine the best state to backtrack to.');
     }
-    private function findStateInHistory(array $history, string $state): ?array { return null; }
-    private function getAvailableBacktrackStates(array $history): array { return []; }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
+    private function findStateInHistory(array $history, string $state): ?array { 
+        throw new \RuntimeException('findStateInHistory() is not implemented. This method must find a specific state in conversation history.');
+    }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
+    private function getAvailableBacktrackStates(array $history): array { 
+        throw new \RuntimeException('getAvailableBacktrackStates() is not implemented. This method must return states available for backtracking.');
+    }
+    /**
+     * @throws \RuntimeException
+     */
+    /**
+     * @throws \RuntimeException
+     */
     private function assessBacktrackLoss(ConversationSession $session, array $targetData): array { 
-        return ['significance' => 0.3]; 
+        throw new \RuntimeException('assessBacktrackLoss() is not implemented. This method must assess data loss from backtracking.');
     }
+    /**
+     * @throws \RuntimeException
+     */
     private function generateBacktrackConfirmationMessage(array $lossAssessment): string { 
-        return 'Confirm backtrack?'; 
+        throw new \RuntimeException('generateBacktrackConfirmationMessage() is not implemented. This method must generate a confirmation message based on loss assessment.');
     }
+    /**
+     * @throws \RuntimeException
+     */
     private function suggestBacktrackAlternatives(ConversationSession $session, string $target): array { 
-        return []; 
+        throw new \RuntimeException('suggestBacktrackAlternatives() is not implemented. This method must suggest alternatives to backtracking.');
     }
+    /**
+     * @throws \RuntimeException
+     */
     private function executeBacktrack(ConversationSession $session, string $target, array $data): array { 
-        return ['success' => true, 'steps_back' => 2]; 
+        throw new \RuntimeException('executeBacktrack() is not implemented. This method must execute the backtrack operation.');
     }
 }
