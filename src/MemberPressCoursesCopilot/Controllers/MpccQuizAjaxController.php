@@ -21,7 +21,7 @@ class MpccQuizAjaxController
      * @var MpccQuizAIService Service for AI-powered quiz question generation
      */
     private MpccQuizAIService $quizAIService;
-    
+
     /**
      * @var Logger Logging service for error tracking and debug information
      */
@@ -462,8 +462,7 @@ class MpccQuizAjaxController
         string $questionType,
         int $lessonId,
         int $courseId
-    ): array
-    {
+    ): array {
         // For backward compatibility, if the result is directly an array of questions
         $questions = isset($result['questions']) ? $result['questions'] : $result;
 
@@ -1096,7 +1095,7 @@ class MpccQuizAjaxController
                         $results['valid']    = false;
                     } elseif (count($question['options']) < 3) {
                         $results['errors'][] = "Question {$questionNum}: "
-                            . "At least 3 options are required for multiple select";
+                            . 'At least 3 options are required for multiple select';
                         $results['valid']    = false;
                     }
 
@@ -1107,7 +1106,7 @@ class MpccQuizAjaxController
                     } elseif (count($question['correct_answers']) < 2) {
                         // Minimum 2 correct answers defines "multiple" selection
                         $results['errors'][] = "Question {$questionNum}: "
-                            . "At least 2 correct answers are required for multiple select";
+                            . 'At least 2 correct answers are required for multiple select';
                         $results['valid']    = false;
                     } else {
                         // Validate referential integrity: all correct answers must reference valid options

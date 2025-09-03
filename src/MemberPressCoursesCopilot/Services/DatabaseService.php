@@ -416,8 +416,8 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Add an index to a table if it doesn't already exist
      *
-     * @param  string $tableName The name of the database table.
-     * @param  string $index_name The name of the index to create.
+     * @param  string $tableName   The name of the database table.
+     * @param  string $index_name  The name of the index to create.
      * @param  string $column_name The column name to index.
      * @return void
      * @throws \Exception
@@ -570,7 +570,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Update a conversation
      *
      * @param  integer              $conversationId The ID of the conversation to update.
-     * @param  array<string, mixed> $data The conversation data to update.
+     * @param  array<string, mixed> $data           The conversation data to update.
      * @return boolean
      */
     public function updateConversation(int $conversationId, array $data): bool
@@ -630,7 +630,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Get conversations by user ID
      *
      * @param  integer $userId The ID of the user whose conversations to retrieve.
-     * @param  integer $limit The maximum number of conversations to retrieve.
+     * @param  integer $limit  The maximum number of conversations to retrieve.
      * @param  integer $offset The number of conversations to skip.
      * @return array<object>
      */
@@ -683,7 +683,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Get templates by category and type
      *
      * @param  string $category The template category to filter by.
-     * @param  string $type The template type to filter by.
+     * @param  string $type     The template type to filter by.
      * @return array<object>
      */
     public function getTemplates(string $category = '', string $type = ''): array
@@ -746,8 +746,8 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Get usage analytics for a date range
      *
      * @param  string       $start_date The start date for analytics range.
-     * @param  string       $end_date The end date for analytics range.
-     * @param  integer|null $userId Optional user ID to filter analytics by.
+     * @param  string       $end_date   The end date for analytics range.
+     * @param  integer|null $userId     Optional user ID to filter analytics by.
      * @return array<object>
      */
     public function getUsageAnalytics(string $start_date, string $end_date, ?int $userId = null): array
@@ -817,7 +817,7 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Execute a database query with error handling
      *
-     * @param  string $sql The SQL query to execute.
+     * @param  string $sql           The SQL query to execute.
      * @param  string $error_message The error message to log on failure.
      * @return void
      * @throws \Exception
@@ -1003,7 +1003,7 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Check if an index exists on a table
      *
-     * @param  string $tableName The name of the database table.
+     * @param  string $tableName  The name of the database table.
      * @param  string $index_name The name of the index to check.
      * @return boolean
      */

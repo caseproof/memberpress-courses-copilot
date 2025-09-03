@@ -20,22 +20,22 @@ class SimpleAjaxController
      * @var LLMService Service for Language Learning Model interactions and content generation
      */
     private LLMService $llmService;
-    
+
     /**
      * @var LessonDraftService Service for managing lesson drafts during course editing
      */
     private LessonDraftService $lessonDraftService;
-    
+
     /**
      * @var ConversationManager Service for managing and persisting conversation sessions
      */
     private ConversationManager $conversationManager;
-    
+
     /**
      * @var CourseGeneratorService Service for generating complete course structures
      */
     private CourseGeneratorService $courseGenerator;
-    
+
     /**
      * @var Logger Logging service for debugging and monitoring
      */

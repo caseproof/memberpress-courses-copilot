@@ -610,7 +610,7 @@ class EditorAIIntegrationService extends BaseService
 
             // Handle context_data - it may come as an array or JSON string
             $contextDataRaw = $_POST['context_data'] ?? '{}';
-            $contextData = is_array($contextDataRaw)
+            $contextData    = is_array($contextDataRaw)
                 ? $contextDataRaw
                 : json_decode(stripslashes($contextDataRaw), true);
 
@@ -807,9 +807,17 @@ class EditorAIIntegrationService extends BaseService
         }
 
         // Fallback: Check if user is requesting content and response seems substantial
-        $requestKeywords = [
-            'write', 'create', 'generate', 'make', 'build',
-            'develop', 'update', 'rewrite', 'improve', 'enhance'
+        $requestKeywords     = [
+            'write',
+            'create',
+            'generate',
+            'make',
+            'build',
+            'develop',
+            'update',
+            'rewrite',
+            'improve',
+            'enhance',
         ];
         $userRequestsContent = false;
 

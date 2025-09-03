@@ -33,16 +33,16 @@ class ConversationManager extends BaseService implements IConversationManager
      * @var IDatabaseService Database service for persisting conversation data
      */
     private IDatabaseService $databaseService;
-    
+
     /**
      * @var array<string, ConversationSession> Active sessions indexed by session ID for quick access
      */
     private array $activeSessions = [];
-    
+
     /**
      * @var array<string, array{session: ConversationSession, expires: int}> In-memory cache of sessions with expiration timestamps
      */
-    private array $sessionCache   = [];
+    private array $sessionCache = [];
 
     // Session configuration.
     private const MAX_ACTIVE_SESSIONS_PER_USER = 5;
