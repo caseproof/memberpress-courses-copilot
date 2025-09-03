@@ -18,27 +18,27 @@ use WP_Error;
 
 /**
  * Course AJAX Service
- * 
+ *
  * Handles all AJAX endpoints for the AI Course Assistant functionality
  * Separated from CourseIntegrationService to follow Single Responsibility Principle
- * 
+ *
  * @package MemberPressCoursesCopilot\Services
- * @since 1.0.0
+ * @since   1.0.0
  */
 class CourseAjaxService extends BaseService
 {
-    private ?ILLMService $llmService = null;
+    private ?ILLMService $llmService                   = null;
     private ?IConversationManager $conversationManager = null;
-    private ?ICourseGenerator $courseGenerator = null;
-    private ?LessonDraftService $draftService = null;
-    
+    private ?ICourseGenerator $courseGenerator         = null;
+    private ?LessonDraftService $draftService          = null;
+
     /**
      * Constructor with dependency injection
-     * 
-     * @param ILLMService|null $llmService
+     *
+     * @param ILLMService|null          $llmService
      * @param IConversationManager|null $conversationManager
-     * @param ICourseGenerator|null $courseGenerator
-     * @param LessonDraftService|null $draftService
+     * @param ICourseGenerator|null     $courseGenerator
+     * @param LessonDraftService|null   $draftService
      */
     public function __construct(
         ?ILLMService $llmService = null,
@@ -47,12 +47,12 @@ class CourseAjaxService extends BaseService
         ?LessonDraftService $draftService = null
     ) {
         parent::__construct();
-        $this->llmService = $llmService;
+        $this->llmService          = $llmService;
         $this->conversationManager = $conversationManager;
-        $this->courseGenerator = $courseGenerator;
-        $this->draftService = $draftService;
+        $this->courseGenerator     = $courseGenerator;
+        $this->draftService        = $draftService;
     }
-    
+
     /**
      * Get LLM Service (lazy loaded from container if not injected)
      *
@@ -61,12 +61,12 @@ class CourseAjaxService extends BaseService
     private function getLLMService(): ILLMService
     {
         if (!$this->llmService) {
-            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $container        = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
             $this->llmService = $container->get(ILLMService::class);
         }
         return $this->llmService;
     }
-    
+
     /**
      * Get Conversation Manager (lazy loaded from container if not injected)
      *
@@ -75,12 +75,12 @@ class CourseAjaxService extends BaseService
     private function getConversationManager(): IConversationManager
     {
         if (!$this->conversationManager) {
-            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $container                 = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
             $this->conversationManager = $container->get(IConversationManager::class);
         }
         return $this->conversationManager;
     }
-    
+
     /**
      * Get Course Generator (lazy loaded from container if not injected)
      *
@@ -89,12 +89,12 @@ class CourseAjaxService extends BaseService
     private function getCourseGenerator(): ICourseGenerator
     {
         if (!$this->courseGenerator) {
-            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $container             = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
             $this->courseGenerator = $container->get(ICourseGenerator::class);
         }
         return $this->courseGenerator;
     }
-    
+
     /**
      * Get Lesson Draft Service (lazy loaded from container if not injected)
      *
@@ -103,25 +103,26 @@ class CourseAjaxService extends BaseService
     private function getLessonDraftService(): LessonDraftService
     {
         if (!$this->draftService) {
-            $container = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
+            $container          = \MemberPressCoursesCopilot\Plugin::instance()->getContainer();
             $this->draftService = $container->get(LessonDraftService::class);
         }
         return $this->draftService;
     }
-    
+
     /**
      * Sanitize array data recursively
      *
-     * @param array $data Data to sanitize
-     * @param string $type Sanitization type
+     * @param  array  $data Data to sanitize
+     * @param  string $type Sanitization type
      * @return array Sanitized array
      */
-    protected function sanitizeArray(array $data, string $type = 'text'): array {
-        return array_map(function($item) use ($type) {
+    protected function sanitizeArray(array $data, string $type = 'text'): array
+    {
+        return array_map(function ($item) use ($type) {
             if (is_array($item)) {
                 return $this->sanitizeArray($item, $type);
             }
-            return match($type) {
+            return match ($type) {
                 'textarea' => sanitize_textarea_field($item),
                 'email' => sanitize_email($item),
                 'url' => esc_url_raw($item),
@@ -133,7 +134,7 @@ class CourseAjaxService extends BaseService
             };
         }, $data);
     }
-    
+
     /**
      * Initialize the service
      *
@@ -146,19 +147,19 @@ class CourseAjaxService extends BaseService
         add_action('wp_ajax_mpcc_create_course_with_ai', [$this, 'createCourseWithAI']);
         add_action('wp_ajax_mpcc_ai_chat', [$this, 'handleAIChat']);
         add_action('wp_ajax_mpcc_ping', [$this, 'handlePing']);
-        
+
         // New simple AI chat handler
         add_action('wp_ajax_mpcc_new_ai_chat', [$this, 'handleNewAIChat']);
-        
+
         // Course content update handler
         add_action('wp_ajax_mpcc_update_course_content', [$this, 'updateCourseContent']);
-        
+
         // Conversation persistence endpoints
         // Note: mpcc_save_conversation is handled by SimpleAjaxController with higher priority
         add_action('wp_ajax_mpcc_load_conversation', [$this, 'loadConversation']);
         add_action('wp_ajax_mpcc_create_conversation', [$this, 'createConversation']);
         add_action('wp_ajax_mpcc_list_conversations', [$this, 'listConversations']);
-        
+
         // Course preview editing endpoints
         add_action('wp_ajax_mpcc_save_lesson_content', [$this, 'saveLessonContent']);
         add_action('wp_ajax_mpcc_load_lesson_content', [$this, 'loadLessonContent']);
@@ -166,7 +167,7 @@ class CourseAjaxService extends BaseService
         add_action('wp_ajax_mpcc_generate_lesson_content', [$this, 'generateLessonContent']);
         add_action('wp_ajax_mpcc_reorder_course_items', [$this, 'reorderCourseItems']);
         add_action('wp_ajax_mpcc_delete_course_item', [$this, 'deleteCourseItem']);
-        
+
         // Course edit page AI chat
         add_action('wp_ajax_mpcc_course_chat_message', [$this, 'handleCourseEditChat']);
     }
@@ -181,59 +182,59 @@ class CourseAjaxService extends BaseService
         // Verify nonce
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_INTERFACE, false)) {
             $this->logger->warning('AI interface load failed: invalid nonce', [
-                'user_id' => get_current_user_id(),
+                'user_id'    => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
             ]);
             ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
             return;
         }
-        
+
         // Check user capabilities
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('AI interface load failed: insufficient permissions', [
-                'user_id' => get_current_user_id(),
-                'required_capability' => 'edit_posts'
+                'user_id'             => get_current_user_id(),
+                'required_capability' => 'edit_posts',
             ]);
             ApiResponse::forbidden('Insufficient permissions to load AI interface');
             return;
         }
-        
+
         $context = sanitize_text_field($_POST['context'] ?? '');
         $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
-        
+
         try {
             $this->logger->info('Loading AI interface', [
                 'user_id' => get_current_user_id(),
                 'context' => $context,
-                'post_id' => $post_id
+                'post_id' => $post_id,
             ]);
-            
+
             // Generate the AI interface HTML
             ob_start();
             $this->renderAIInterface($context, $post_id);
             $html = ob_get_clean();
-            
+
             $this->logger->debug('AI interface HTML generated successfully', [
-                'user_id' => get_current_user_id(),
+                'user_id'     => get_current_user_id(),
+                'context'     => $context,
+                'post_id'     => $post_id,
+                'html_length' => strlen($html),
+            ]);
+
+            wp_send_json_success([
+                'html'    => $html,
                 'context' => $context,
                 'post_id' => $post_id,
-                'html_length' => strlen($html)
-            ]);
-            
-            wp_send_json_success([
-                'html' => $html,
-                'context' => $context,
-                'post_id' => $post_id
             ]);
         } catch (\Exception $e) {
             $this->logger->error('Failed to load AI interface', [
-                'user_id' => get_current_user_id(),
-                'context' => $context,
-                'post_id' => $post_id,
+                'user_id'       => get_current_user_id(),
+                'context'       => $context,
+                'post_id'       => $post_id,
                 'error_message' => $e->getMessage(),
-                'error_file' => $e->getFile(),
-                'error_line' => $e->getLine()
+                'error_file'    => $e->getFile(),
+                'error_line'    => $e->getLine(),
             ]);
             $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_AI_SERVICE);
             ApiResponse::error($error);
@@ -243,21 +244,21 @@ class CourseAjaxService extends BaseService
     /**
      * Render AI interface HTML
      *
-     * @param string $context Interface context (course_creation, course_editing)
-     * @param int $post_id Post ID for editing context
+     * @param  string  $context Interface context (course_creation, course_editing)
+     * @param  integer $post_id Post ID for editing context
      * @return void
      */
     private function renderAIInterface(string $context, int $post_id = 0): void
     {
         // Load the AI chat interface template
         $template_path = MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'templates/ai-chat-interface.php';
-        
+
         if (file_exists($template_path)) {
             // Prepare data for template
             $data = [
-                'context' => $context,
+                'context'   => $context,
                 'course_id' => $post_id,
-                'messages' => [] // Empty array for initial load
+                'messages'  => [], // Empty array for initial load
             ];
             include $template_path;
         } else {
@@ -322,42 +323,42 @@ class CourseAjaxService extends BaseService
         // Verify nonce
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('AI chat request failed: invalid nonce', [
-                'user_id' => get_current_user_id(),
+                'user_id'    => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
             ]);
             ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
             return;
         }
-        
+
         // Check user capabilities
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('AI chat request failed: insufficient permissions', [
-                'user_id' => get_current_user_id(),
-                'required_capability' => 'edit_posts'
+                'user_id'             => get_current_user_id(),
+                'required_capability' => 'edit_posts',
             ]);
             ApiResponse::forbidden('Insufficient permissions to use AI chat');
             return;
         }
-        
-        $message = sanitize_textarea_field($_POST['message'] ?? '');
-        $context = sanitize_text_field($_POST['context'] ?? 'course_editing');
-        $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
+
+        $message              = sanitize_textarea_field($_POST['message'] ?? '');
+        $context              = sanitize_text_field($_POST['context'] ?? 'course_editing');
+        $post_id              = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         $conversation_history = $_POST['conversation_history'] ?? [];
-        $conversation_state = $_POST['conversation_state'] ?? [];
-        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
-        
+        $conversation_state   = $_POST['conversation_state'] ?? [];
+        $sessionId            = sanitize_text_field($_POST['session_id'] ?? '');
+
         // Sanitize arrays
         $conversation_history = $this->sanitizeArray($conversation_history, 'textarea');
-        $conversation_state = $this->sanitizeArray($conversation_state);
-        
+        $conversation_state   = $this->sanitizeArray($conversation_state);
+
         // Load session if provided
-        $session = null;
+        $session             = null;
         $conversationManager = null;
         if (!empty($sessionId)) {
             try {
                 $conversationManager = $this->getConversationManager();
-                $session = $conversationManager->loadSession($sessionId);
+                $session             = $conversationManager->loadSession($sessionId);
                 if ($session && $session->getUserId() === get_current_user_id()) {
                     // Update session state from conversation state
                     $currentStep = $conversation_state['current_step'] ?? 'initial';
@@ -366,178 +367,185 @@ class CourseAjaxService extends BaseService
             } catch (\Exception $e) {
                 $this->logger->warning('Failed to load session in AI chat', [
                     'session_id' => $sessionId,
-                    'error' => $e->getMessage()
+                    'error'      => $e->getMessage(),
                 ]);
             }
         }
-        
+
         if (empty($message)) {
             $this->logger->warning('AI chat request failed: empty message', [
                 'user_id' => get_current_user_id(),
                 'context' => $context,
-                'post_id' => $post_id
+                'post_id' => $post_id,
             ]);
             ApiResponse::errorMessage('Message is required', ApiResponse::ERROR_MISSING_PARAMETER);
             return;
         }
-        
+
         try {
             $this->logger->info('AI chat request initiated', [
-                'user_id' => get_current_user_id(),
-                'message_length' => strlen($message),
-                'context' => $context,
-                'post_id' => $post_id,
+                'user_id'                    => get_current_user_id(),
+                'message_length'             => strlen($message),
+                'context'                    => $context,
+                'post_id'                    => $post_id,
                 'conversation_history_count' => count($conversation_history),
-                'conversation_state' => $conversation_state,
-                'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                'conversation_state'         => $conversation_state,
+                'request_ip'                 => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
             ]);
-            
+
             // Use LLMService for AI requests
             $llm_service = $this->getLLMService();
-            
+
             // Build conversation context
             $conversation_context = '';
             if (!empty($conversation_history)) {
                 foreach ($conversation_history as $entry) {
-                    $role = $entry['role'] ?? 'user';
-                    $content = $entry['content'] ?? '';
+                    $role                  = $entry['role'] ?? 'user';
+                    $content               = $entry['content'] ?? '';
                     $conversation_context .= "\n{$role}: {$content}";
                 }
             }
-            
+
             // Get current conversation state for course creation
-            $current_step = $conversation_state['current_step'] ?? 'initial';
+            $current_step   = $conversation_state['current_step'] ?? 'initial';
             $collected_data = $conversation_state['collected_data'] ?? [];
-            
+
             // Prepare the full prompt
             $system_prompt = $this->getSystemPrompt($context);
-            $full_prompt = $system_prompt . "\n\nConversation history:" . $conversation_context . "\n\nUser: " . $message . "\n\nAssistant:";
-            
+            $full_prompt   = $system_prompt . "\n\nConversation history:" . $conversation_context . "\n\nUser: " . $message . "\n\nAssistant:";
+
             // Add current state context for course creation
             if ($context === 'course_creation' && !empty($collected_data)) {
                 $full_prompt .= "\n\nCurrent collected course data: " . json_encode($collected_data);
             }
-            
+
             $this->logger->debug('Preparing LLM service call', [
-                'user_id' => get_current_user_id(),
-                'context' => $context,
-                'current_step' => $current_step,
-                'collected_data_keys' => array_keys($collected_data),
+                'user_id'              => get_current_user_id(),
+                'context'              => $context,
+                'current_step'         => $current_step,
+                'collected_data_keys'  => array_keys($collected_data),
                 'has_course_structure' => isset($collected_data['course_structure']),
-                'prompt_length' => strlen($full_prompt)
+                'prompt_length'        => strlen($full_prompt),
             ]);
-            
+
             // Make request to AI service
             $response = $llm_service->generateContent($full_prompt, 'course_assistance', [
                 'temperature' => 0.7,
-                'max_tokens' => 2000
+                'max_tokens'  => 2000,
             ]);
-            
+
             $this->logger->debug('LLM service response received', [
-                'user_id' => get_current_user_id(),
-                'context' => $context,
-                'has_error' => $response['error'] ?? false,
+                'user_id'                 => get_current_user_id(),
+                'context'                 => $context,
+                'has_error'               => $response['error'] ?? false,
                 'response_content_length' => isset($response['content']) ? strlen($response['content']) : 0,
-                'response_keys' => array_keys($response)
+                'response_keys'           => array_keys($response),
             ]);
-            
+
             if ($response['error']) {
                 $this->logger->error('LLM service returned error', [
-                    'user_id' => get_current_user_id(),
-                    'context' => $context,
+                    'user_id'       => get_current_user_id(),
+                    'context'       => $context,
                     'error_message' => $response['message'] ?? 'Unknown error',
-                    'full_response' => $response
+                    'full_response' => $response,
                 ]);
                 $error = new WP_Error(ApiResponse::ERROR_AI_SERVICE, 'AI service error: ' . ($response['message'] ?? 'Unknown error'));
                 ApiResponse::error($error);
                 return;
             }
-            
+
             $ai_message = $response['content'];
-            
+
             // Extract any course data from the response if it contains structured data
-            $course_data = null;
+            $course_data     = null;
             $ready_to_create = false;
-            
+
             if (preg_match('/```json\s*([\s\S]*?)\s*```/', $ai_message, $matches)) {
                 $json_data = json_decode($matches[1], true);
                 if (json_last_error() === JSON_ERROR_NONE) {
                     $course_data = $json_data;
                     // Remove JSON from message
                     $ai_message = trim(str_replace($matches[0], '', $ai_message));
-                    
+
                     // Check if we have enough data to create a course
                     if (isset($course_data['title']) && isset($course_data['sections']) && count($course_data['sections']) > 0) {
                         $ready_to_create = true;
                     }
                 }
             }
-            
+
             // Update conversation state
             if ($course_data) {
                 // Store course data under 'course_structure' key to match JavaScript expectations
                 $collected_data['course_structure'] = $course_data;
             }
-            
+
             // Determine next step
             $next_step = $current_step;
-            $actions = [];
-            
+            $actions   = [];
+
             if ($ready_to_create) {
                 $next_step = 'ready_to_create';
-                $actions = [
-                    ['action' => 'create_course', 'label' => 'Create Course', 'type' => 'primary'],
-                    ['action' => 'modify', 'label' => 'Modify Details', 'type' => 'secondary']
+                $actions   = [
+                    [
+                        'action' => 'create_course',
+                        'label'  => 'Create Course',
+                        'type'   => 'primary',
+                    ],
+                    [
+                        'action' => 'modify',
+                        'label'  => 'Modify Details',
+                        'type'   => 'secondary',
+                    ],
                 ];
             }
-            
+
             // Update session state and progress if we have a session
             if ($session && $conversationManager) {
                 $session->setCurrentState($next_step);
                 $session->setContext($collected_data, null);
-                
+
                 // Save the session to persist progress
                 try {
                     $conversationManager->saveSession($session);
                 } catch (\Exception $e) {
                     $this->logger->warning('Failed to save session after AI chat', [
                         'session_id' => $sessionId,
-                        'error' => $e->getMessage()
+                        'error'      => $e->getMessage(),
                     ]);
                 }
             }
-            
+
             $this->logger->info('AI chat request completed successfully', [
-                'user_id' => get_current_user_id(),
-                'context' => $context,
-                'next_step' => $next_step,
-                'ready_to_create' => $ready_to_create,
-                'has_course_data' => !empty($course_data),
+                'user_id'                 => get_current_user_id(),
+                'context'                 => $context,
+                'next_step'               => $next_step,
+                'ready_to_create'         => $ready_to_create,
+                'has_course_data'         => !empty($course_data),
                 'response_message_length' => strlen($ai_message),
-                'actions_count' => count($actions)
+                'actions_count'           => count($actions),
             ]);
-            
+
             wp_send_json_success([
-                'message' => $ai_message,
-                'course_data' => $course_data,
-                'context' => $context,
-                'timestamp' => current_time('timestamp'),
+                'message'            => $ai_message,
+                'course_data'        => $course_data,
+                'context'            => $context,
+                'timestamp'          => current_time('timestamp'),
                 'conversation_state' => [
-                    'current_step' => $next_step,
-                    'collected_data' => $collected_data
+                    'current_step'   => $next_step,
+                    'collected_data' => $collected_data,
                 ],
-                'actions' => $actions,
-                'ready_to_create' => $ready_to_create
+                'actions'            => $actions,
+                'ready_to_create'    => $ready_to_create,
             ]);
-            
         } catch (\Exception $e) {
             $this->logger->error('AI chat request failed with exception', [
-                'user_id' => get_current_user_id(),
-                'context' => $context,
+                'user_id'       => get_current_user_id(),
+                'context'       => $context,
                 'error_message' => $e->getMessage(),
-                'error_file' => $e->getFile(),
-                'error_line' => $e->getLine(),
-                'stack_trace' => $e->getTraceAsString()
+                'error_file'    => $e->getFile(),
+                'error_line'    => $e->getLine(),
+                'stack_trace'   => $e->getTraceAsString(),
             ]);
             $error = ApiResponse::exceptionToError($e, ApiResponse::ERROR_AI_SERVICE);
             ApiResponse::error($error);
@@ -554,31 +562,31 @@ class CourseAjaxService extends BaseService
         // Verify nonce
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Course creation failed: invalid nonce', [
-                'user_id' => get_current_user_id(),
+                'user_id'    => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
             ]);
             ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
             return;
         }
-        
+
         // Check user capabilities
         if (!current_user_can('publish_posts')) {
             $this->logger->warning('Course creation failed: insufficient permissions', [
-                'user_id' => get_current_user_id(),
-                'required_capability' => 'publish_posts'
+                'user_id'             => get_current_user_id(),
+                'required_capability' => 'publish_posts',
             ]);
             ApiResponse::forbidden('Insufficient permissions to create courses');
             return;
         }
-        
+
         $course_data = $_POST['course_data'] ?? [];
-        
+
         // Sanitize course data before processing
         if (is_array($course_data)) {
             $course_data = $this->sanitizeArray($course_data);
         }
-        
+
         // If course_data is a JSON string, decode it
         if (is_string($course_data)) {
             $decoded = json_decode($course_data, true);
@@ -586,193 +594,191 @@ class CourseAjaxService extends BaseService
                 $course_data = $decoded;
                 $this->logger->info('Decoded JSON course_data', [
                     'decoded_keys' => array_keys($course_data),
-                    'has_title' => isset($course_data['title']),
-                    'title_value' => $course_data['title'] ?? 'not set'
+                    'has_title'    => isset($course_data['title']),
+                    'title_value'  => $course_data['title'] ?? 'not set',
                 ]);
             }
         }
-        
+
         // Log the raw POST data to debug
         $this->logger->info('Raw course_data received', [
-            'raw_data' => json_encode($_POST['course_data'] ?? 'empty'),
-            'is_array' => is_array($course_data),
-            'is_empty' => empty($course_data),
-            'course_data_type' => gettype($course_data),
-            'course_data_keys' => is_array($course_data) ? array_keys($course_data) : 'not an array',
+            'raw_data'          => json_encode($_POST['course_data'] ?? 'empty'),
+            'is_array'          => is_array($course_data),
+            'is_empty'          => empty($course_data),
+            'course_data_type'  => gettype($course_data),
+            'course_data_keys'  => is_array($course_data) ? array_keys($course_data) : 'not an array',
             'has_title_at_root' => isset($course_data['title']),
-            'title_at_root' => $course_data['title'] ?? 'no title at root',
-            'full_structure' => json_encode($course_data)
+            'title_at_root'     => $course_data['title'] ?? 'no title at root',
+            'full_structure'    => json_encode($course_data),
         ]);
-        
+
         // Check if course data is nested under 'course_structure' key
         if (isset($course_data['course_structure']) && is_array($course_data['course_structure'])) {
             $this->logger->info('Found nested course_structure, extracting it', [
                 'nested_structure_keys' => array_keys($course_data['course_structure']),
-                'nested_has_title' => isset($course_data['course_structure']['title']),
-                'nested_title' => $course_data['course_structure']['title'] ?? 'no title in nested'
+                'nested_has_title'      => isset($course_data['course_structure']['title']),
+                'nested_title'          => $course_data['course_structure']['title'] ?? 'no title in nested',
             ]);
             $course_data = $course_data['course_structure'];
         }
-        
+
         // Log final course data structure after any extraction
         $this->logger->info('Final course_data structure', [
-            'has_title' => isset($course_data['title']),
-            'title' => $course_data['title'] ?? 'NO TITLE FOUND',
-            'keys' => is_array($course_data) ? array_keys($course_data) : 'not an array',
-            'sections_count' => isset($course_data['sections']) ? count($course_data['sections']) : 0
+            'has_title'      => isset($course_data['title']),
+            'title'          => $course_data['title'] ?? 'NO TITLE FOUND',
+            'keys'           => is_array($course_data) ? array_keys($course_data) : 'not an array',
+            'sections_count' => isset($course_data['sections']) ? count($course_data['sections']) : 0,
         ]);
-        
+
         if (empty($course_data)) {
             $this->logger->warning('Course creation failed: no course data provided', [
-                'user_id' => get_current_user_id(),
-                'post_keys' => array_keys($_POST)
+                'user_id'   => get_current_user_id(),
+                'post_keys' => array_keys($_POST),
             ]);
             wp_send_json_error('No course data provided');
             return;
         }
-        
+
         try {
             $this->logger->info('Course creation initiated', [
-                'user_id' => get_current_user_id(),
-                'course_title' => $course_data['title'] ?? 'Unknown',
-                'sections_count' => count($course_data['sections'] ?? []),
+                'user_id'          => get_current_user_id(),
+                'course_title'     => $course_data['title'] ?? 'Unknown',
+                'sections_count'   => count($course_data['sections'] ?? []),
                 'course_data_keys' => array_keys($course_data),
-                'first_section' => isset($course_data['sections'][0]) ? json_encode($course_data['sections'][0]) : 'no sections'
+                'first_section'    => isset($course_data['sections'][0]) ? json_encode($course_data['sections'][0]) : 'no sections',
             ]);
-            
+
             // Get the Course Generator Service from container
             $generator = $this->getCourseGenerator();
-            
+
             // Validate course data
             $validation = $generator->validateCourseData($course_data);
             if (!$validation['valid']) {
                 $this->logger->error('Course creation failed: validation errors', [
-                    'user_id' => get_current_user_id(),
-                    'course_title' => $course_data['title'] ?? 'Unknown',
-                    'validation_errors' => $validation['errors']
+                    'user_id'           => get_current_user_id(),
+                    'course_title'      => $course_data['title'] ?? 'Unknown',
+                    'validation_errors' => $validation['errors'],
                 ]);
                 wp_send_json_error([
                     'message' => 'Course data validation failed',
-                    'errors' => $validation['errors']
+                    'errors'  => $validation['errors'],
                 ]);
                 return;
             }
-            
+
             // Apply saved draft content if we have a session ID
             if (isset($_POST['session_id']) && !empty($_POST['session_id'])) {
                 $sessionId = sanitize_text_field($_POST['session_id']);
                 $this->logger->info('Applying lesson drafts to course structure', [
-                    'session_id' => $sessionId,
-                    'course_title' => $course_data['title'] ?? 'Unknown'
+                    'session_id'   => $sessionId,
+                    'course_title' => $course_data['title'] ?? 'Unknown',
                 ]);
-                
+
                 // Get lesson draft service and map drafts to course structure
                 $draftService = $this->getLessonDraftService();
-                $course_data = $draftService->mapDraftsToStructure($sessionId, $course_data);
-                
+                $course_data  = $draftService->mapDraftsToStructure($sessionId, $course_data);
+
                 $this->logger->info('Drafts mapped to course structure', [
-                    'session_id' => $sessionId,
-                    'sections_with_content' => array_map(function($section) {
+                    'session_id'            => $sessionId,
+                    'sections_with_content' => array_map(function ($section) {
                         return [
-                            'title' => $section['title'] ?? 'Untitled',
-                            'lessons_with_content' => array_map(function($lesson) {
+                            'title'                => $section['title'] ?? 'Untitled',
+                            'lessons_with_content' => array_map(function ($lesson) {
                                 return [
-                                    'title' => $lesson['title'] ?? 'Untitled',
-                                    'has_content' => !empty($lesson['content']),
-                                    'content_length' => isset($lesson['content']) ? strlen($lesson['content']) : 0
+                                    'title'          => $lesson['title'] ?? 'Untitled',
+                                    'has_content'    => !empty($lesson['content']),
+                                    'content_length' => isset($lesson['content']) ? strlen($lesson['content']) : 0,
                                 ];
-                            }, $section['lessons'] ?? [])
+                            }, $section['lessons'] ?? []),
                         ];
-                    }, $course_data['sections'] ?? [])
+                    }, $course_data['sections'] ?? []),
                 ]);
             }
-            
+
             // Generate the course
             $result = $generator->generateCourse($course_data);
-            
+
             if ($result['success']) {
                 $this->logger->info('Course created successfully', [
-                    'user_id' => get_current_user_id(),
-                    'course_id' => $result['course_id'],
-                    'course_title' => $course_data['title'] ?? 'Unknown',
-                    'sections_count' => count($course_data['sections'] ?? [])
+                    'user_id'        => get_current_user_id(),
+                    'course_id'      => $result['course_id'],
+                    'course_title'   => $course_data['title'] ?? 'Unknown',
+                    'sections_count' => count($course_data['sections'] ?? []),
                 ]);
-                
+
                 // Update session title if we have a session ID
                 if (isset($_POST['session_id']) && !empty($_POST['session_id'])) {
                     try {
-                        $sessionId = sanitize_text_field($_POST['session_id']);
+                        $sessionId           = sanitize_text_field($_POST['session_id']);
                         $conversationManager = $this->getConversationManager();
-                        $session = $conversationManager->loadSession($sessionId);
-                        
+                        $session             = $conversationManager->loadSession($sessionId);
+
                         if ($session && $session->getUserId() === get_current_user_id()) {
                             $courseTitle = $course_data['title'] ?? 'Unknown Course';
                             $this->logger->info('Attempting to update session title', [
-                                'session_id' => $sessionId,
-                                'course_title' => $courseTitle,
+                                'session_id'            => $sessionId,
+                                'course_title'          => $courseTitle,
                                 'course_data_has_title' => isset($course_data['title']),
-                                'course_data_keys' => array_keys($course_data)
+                                'course_data_keys'      => array_keys($course_data),
                             ]);
-                            
+
                             $session->setTitle('Course: ' . $courseTitle);
                             $conversationManager->saveSession($session);
-                            
+
                             $this->logger->info('Updated session title after course creation', [
-                                'session_id' => $sessionId,
-                                'course_title' => $courseTitle
+                                'session_id'   => $sessionId,
+                                'course_title' => $courseTitle,
                             ]);
-                            
                         }
                     } catch (\Exception $e) {
                         // Log but don't fail the course creation
                         $this->logger->warning('Failed to update session title after course creation', [
-                            'error' => $e->getMessage()
+                            'error' => $e->getMessage(),
                         ]);
                     }
-                    
+
                     // Clean up lesson drafts after successful course creation
                     try {
                         $draftService = $this->getLessonDraftService();
                         $deletedCount = $draftService->deleteSessionDrafts($sessionId);
                         $this->logger->info('Cleaned up lesson drafts after course creation', [
-                            'session_id' => $sessionId,
-                            'drafts_deleted' => $deletedCount
+                            'session_id'     => $sessionId,
+                            'drafts_deleted' => $deletedCount,
                         ]);
                     } catch (\Exception $e) {
                         // Log but don't fail the course creation
                         $this->logger->warning('Failed to clean up lesson drafts after course creation', [
                             'session_id' => $sessionId,
-                            'error' => $e->getMessage()
+                            'error'      => $e->getMessage(),
                         ]);
                     }
                 }
-                
+
                 wp_send_json_success([
-                    'message' => 'Course created successfully!',
-                    'course_id' => $result['course_id'],
-                    'edit_url' => $result['edit_url'],
-                    'preview_url' => $result['preview_url']
+                    'message'     => 'Course created successfully!',
+                    'course_id'   => $result['course_id'],
+                    'edit_url'    => $result['edit_url'],
+                    'preview_url' => $result['preview_url'],
                 ]);
             } else {
                 $this->logger->error('Course creation failed', [
-                    'user_id' => get_current_user_id(),
+                    'user_id'      => get_current_user_id(),
                     'course_title' => $course_data['title'] ?? 'Unknown',
-                    'error' => $result['error']
+                    'error'        => $result['error'],
                 ]);
                 wp_send_json_error([
                     'message' => 'Failed to create course',
-                    'error' => $result['error']
+                    'error'   => $result['error'],
                 ]);
             }
-            
         } catch (\Exception $e) {
             $this->logger->error('Course creation failed with exception', [
-                'user_id' => get_current_user_id(),
-                'course_title' => $course_data['title'] ?? 'Unknown',
+                'user_id'       => get_current_user_id(),
+                'course_title'  => $course_data['title'] ?? 'Unknown',
                 'error_message' => $e->getMessage(),
-                'error_file' => $e->getFile(),
-                'error_line' => $e->getLine(),
-                'stack_trace' => $e->getTraceAsString()
+                'error_file'    => $e->getFile(),
+                'error_line'    => $e->getLine(),
+                'stack_trace'   => $e->getTraceAsString(),
             ]);
             wp_send_json_error('Failed to create course: ' . $e->getMessage());
         }
@@ -781,16 +787,16 @@ class CourseAjaxService extends BaseService
     /**
      * Get system prompt for AI based on context
      *
-     * @param string $context The context (course_creation, course_editing)
+     * @param  string $context The context (course_creation, course_editing)
      * @return string
      */
     private function getSystemPrompt(string $context): string
     {
-        $base_prompt = "You are an AI assistant specialized in helping create and improve online courses for MemberPress Courses. You have expertise in curriculum design, learning objectives, content structuring, and educational best practices.";
-        
+        $base_prompt = 'You are an AI assistant specialized in helping create and improve online courses for MemberPress Courses. You have expertise in curriculum design, learning objectives, content structuring, and educational best practices.';
+
         switch ($context) {
             case 'course_creation':
-                return $base_prompt . " You are helping a user create a new course from scratch. Focus on understanding their topic, target audience, and learning goals. Help them structure a comprehensive curriculum with sections and lessons. 
+                return $base_prompt . ' You are helping a user create a new course from scratch. Focus on understanding their topic, target audience, and learning goals. Help them structure a comprehensive curriculum with sections and lessons. 
 
 IMPORTANT: When the user has provided:
 1. The subject/topic of the course
@@ -805,40 +811,40 @@ Your conversation should be natural and helpful. If you need clarification, ask 
 
 ```json
 {
-  \"title\": \"Course Title\",
-  \"description\": \"Course description\",
-  \"sections\": [
+  "title": "Course Title",
+  "description": "Course description",
+  "sections": [
     {
-      \"title\": \"Section 1 Title\",
-      \"description\": \"Section description\",
-      \"lessons\": [
+      "title": "Section 1 Title",
+      "description": "Section description",
+      "lessons": [
         {
-          \"title\": \"Lesson Title\",
-          \"content\": \"Lesson content (can be HTML)\",
-          \"type\": \"text\",
-          \"duration\": \"15\"
+          "title": "Lesson Title",
+          "content": "Lesson content (can be HTML)",
+          "type": "text",
+          "duration": "15"
         }
       ]
     }
   ],
-  \"settings\": {
-    \"course_progress\": \"enabled\",
-    \"auto_advance\": \"enabled\"
+  "settings": {
+    "course_progress": "enabled",
+    "auto_advance": "enabled"
   },
-  \"categories\": [\"Category 1\"],
-  \"tags\": [\"tag1\", \"tag2\"]
+  "categories": ["Category 1"],
+  "tags": ["tag1", "tag2"]
 }
 ```
 
 Be conversational and guide the user through the process naturally. When you have the 5 key pieces of information listed above, immediately generate the complete course structure. Do not continue asking questions.
 
-Example: If a user says they want to create a PHP course for people with HTML/CSS knowledge to build a todo app in 4 hours with OOP, PDO, and MVC - you have ALL the information needed. Generate the course immediately.";
-                
+Example: If a user says they want to create a PHP course for people with HTML/CSS knowledge to build a todo app in 4 hours with OOP, PDO, and MVC - you have ALL the information needed. Generate the course immediately.';
+
             case 'course_editing':
-                return $base_prompt . " You are helping a user improve an existing course. Focus on enhancing content, improving structure, adding engaging elements, and optimizing the learning experience. Be specific about improvements and provide concrete suggestions. When suggesting course modifications, include structured data in JSON format wrapped in ```json``` code blocks.";
-                
+                return $base_prompt . ' You are helping a user improve an existing course. Focus on enhancing content, improving structure, adding engaging elements, and optimizing the learning experience. Be specific about improvements and provide concrete suggestions. When suggesting course modifications, include structured data in JSON format wrapped in ```json``` code blocks.';
+
             default:
-                return $base_prompt . " Provide helpful, specific guidance for course creation and improvement. When providing course data, use JSON format wrapped in ```json``` code blocks.";
+                return $base_prompt . ' Provide helpful, specific guidance for course creation and improvement. When providing course data, use JSON format wrapped in ```json``` code blocks.';
         }
     }
 
@@ -852,25 +858,25 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         // Verify nonce
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Ping request failed: invalid nonce', [
-                'user_id' => get_current_user_id(),
-                'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                'user_id'    => get_current_user_id(),
+                'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         $this->logger->debug('Ping request received', [
-            'user_id' => get_current_user_id(),
-            'timestamp' => current_time('timestamp')
+            'user_id'   => get_current_user_id(),
+            'timestamp' => current_time('timestamp'),
         ]);
-        
+
         // Simple ping response
         wp_send_json_success([
-            'pong' => true,
-            'timestamp' => current_time('timestamp')
+            'pong'      => true,
+            'timestamp' => current_time('timestamp'),
         ]);
     }
-    
+
     /**
      * Create new conversation session
      *
@@ -880,41 +886,41 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Create conversation failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         try {
             $conversationManager = $this->getConversationManager();
-            
+
             $session = $conversationManager->createSession([
-                'user_id' => get_current_user_id(),
-                'context' => sanitize_text_field($_POST['context'] ?? 'course_creation'),
-                'title' => sanitize_text_field($_POST['title'] ?? 'New Course (Draft)'),
-                'state' => 'initial',
-                'initial_data' => []
+                'user_id'      => get_current_user_id(),
+                'context'      => sanitize_text_field($_POST['context'] ?? 'course_creation'),
+                'title'        => sanitize_text_field($_POST['title'] ?? 'New Course (Draft)'),
+                'state'        => 'initial',
+                'initial_data' => [],
             ]);
-            
+
             $this->logger->info('Created new conversation session', [
                 'session_id' => $session->getSessionId(),
-                'user_id' => get_current_user_id()
+                'user_id'    => get_current_user_id(),
             ]);
-            
+
             wp_send_json_success([
                 'session_id' => $session->getSessionId(),
-                'created_at' => $session->getCreatedAt()
+                'created_at' => $session->getCreatedAt(),
             ]);
         } catch (\Exception $e) {
             $this->logger->error('Failed to create conversation', [
-                'error' => $e->getMessage(),
-                'user_id' => get_current_user_id()
+                'error'   => $e->getMessage(),
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Failed to create conversation');
         }
     }
-    
+
     /**
      * Save conversation state
      *
@@ -924,55 +930,57 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         // Verify nonce - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
-        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) && 
-            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)) {
+        if (
+            !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
+            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)
+        ) {
             $this->logger->warning('Save conversation failed: invalid nonce', [
-                'user_id' => get_current_user_id(),
-                'nonce_value' => $nonce
+                'user_id'     => get_current_user_id(),
+                'nonce_value' => $nonce,
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
         if (empty($sessionId)) {
             wp_send_json_error('Session ID required');
             return;
         }
-        
+
         try {
             $conversationManager = $this->getConversationManager();
-            $session = $conversationManager->loadSession($sessionId);
-            
+            $session             = $conversationManager->loadSession($sessionId);
+
             if (!$session || $session->getUserId() !== get_current_user_id()) {
                 $this->logger->warning('Save conversation failed: access denied', [
                     'session_id' => $sessionId,
-                    'user_id' => get_current_user_id()
+                    'user_id'    => get_current_user_id(),
                 ]);
                 wp_send_json_error('Session not found or access denied');
                 return;
             }
-            
+
             // Update session with new data
             $conversationHistory = $_POST['conversation_history'] ?? [];
-            $conversationState = $_POST['conversation_state'] ?? [];
-            
+            $conversationState   = $_POST['conversation_state'] ?? [];
+
             // Sanitize arrays
             $conversationHistory = $this->sanitizeArray($conversationHistory, 'textarea');
-            $conversationState = $this->sanitizeArray($conversationState);
-            
+            $conversationState   = $this->sanitizeArray($conversationState);
+
             $this->logger->info('Saving conversation - received data', [
                 'message_count' => count($conversationHistory),
                 'first_message' => count($conversationHistory) > 0 ? $conversationHistory[0] : null,
-                'message_keys' => count($conversationHistory) > 0 ? array_keys($conversationHistory[0]) : []
+                'message_keys'  => count($conversationHistory) > 0 ? array_keys($conversationHistory[0]) : [],
             ]);
-            
+
             // Clear existing messages and add new ones
             $session->clearMessages();
             foreach ($conversationHistory as $message) {
                 // The frontend sends 'role' but ConversationSession expects 'type' for the first parameter
                 // Map 'role' to the message type expected by addMessage
-                $messageType = $message['role'] === 'user' ? 'user' : 
+                $messageType = $message['role'] === 'user' ? 'user' :
                               ($message['role'] === 'assistant' ? 'assistant' : 'system');
                 $session->addMessage(
                     $messageType,
@@ -980,57 +988,56 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     ['timestamp' => $message['timestamp'] ?? time()]
                 );
             }
-            
+
             // Update state
             $session->setCurrentState($conversationState['current_step'] ?? 'initial');
             $session->setContext($conversationState['collected_data'] ?? [], null);
-            
+
             // Update session title if course data is available
             $collectedData = $conversationState['collected_data'] ?? [];
             if (isset($collectedData['course_structure']['title'])) {
                 $courseTitle = $collectedData['course_structure']['title'];
                 $session->setTitle('Course: ' . $courseTitle);
                 $this->logger->info('Updated session title with course name', [
-                    'session_id' => $sessionId,
-                    'course_title' => $courseTitle
+                    'session_id'   => $sessionId,
+                    'course_title' => $courseTitle,
                 ]);
             } elseif (isset($collectedData['title']) && isset($collectedData['sections'])) {
                 // Fallback for old format
                 $courseTitle = $collectedData['title'];
                 $session->setTitle('Course: ' . $courseTitle);
                 $this->logger->info('Updated session title with course name (old format)', [
-                    'session_id' => $sessionId,
-                    'course_title' => $courseTitle
+                    'session_id'   => $sessionId,
+                    'course_title' => $courseTitle,
                 ]);
             }
-            
+
             // Save to database
             $saved = $conversationManager->saveSession($session);
-            
+
             // Verify what was actually saved
             $savedMessages = $session->getMessages();
             $this->logger->info('Saved conversation', [
-                'session_id' => $sessionId,
-                'user_id' => get_current_user_id(),
-                'messages_count' => count($conversationHistory),
+                'session_id'           => $sessionId,
+                'user_id'              => get_current_user_id(),
+                'messages_count'       => count($conversationHistory),
                 'saved_messages_count' => count($savedMessages),
-                'first_saved_message' => count($savedMessages) > 0 ? $savedMessages[0] : null
+                'first_saved_message'  => count($savedMessages) > 0 ? $savedMessages[0] : null,
             ]);
-            
+
             wp_send_json_success([
-                'saved' => $saved,
-                'last_saved' => time()
+                'saved'      => $saved,
+                'last_saved' => time(),
             ]);
-            
         } catch (\Exception $e) {
             $this->logger->error('Failed to save conversation', [
                 'session_id' => $sessionId,
-                'error' => $e->getMessage()
+                'error'      => $e->getMessage(),
             ]);
             wp_send_json_error('Failed to save conversation');
         }
     }
-    
+
     /**
      * Load conversation session
      *
@@ -1040,82 +1047,81 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Load conversation failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
         if (empty($sessionId)) {
             wp_send_json_error('Session ID required');
             return;
         }
-        
+
         try {
             $conversationManager = $this->getConversationManager();
-            $session = $conversationManager->loadSession($sessionId);
-            
+            $session             = $conversationManager->loadSession($sessionId);
+
             if (!$session || $session->getUserId() !== get_current_user_id()) {
                 $this->logger->warning('Load conversation failed: access denied', [
                     'session_id' => $sessionId,
-                    'user_id' => get_current_user_id()
+                    'user_id'    => get_current_user_id(),
                 ]);
                 wp_send_json_error('Session not found or access denied');
                 return;
             }
-            
+
             // Format messages for frontend
-            $messages = [];
+            $messages    = [];
             $allMessages = $session->getMessages();
-            
+
             $this->logger->info('Processing messages from session', [
-                'total_messages' => count($allMessages),
+                'total_messages'          => count($allMessages),
                 'first_message_structure' => count($allMessages) > 0 ? array_keys($allMessages[0]) : 'no messages',
-                'sample_message' => count($allMessages) > 0 ? $allMessages[0] : null
+                'sample_message'          => count($allMessages) > 0 ? $allMessages[0] : null,
             ]);
-            
+
             foreach ($allMessages as $message) {
                 if ($message['type'] !== 'system') {
                     // Map backend 'type' to frontend 'role' field
-                    $role = $message['type'] === 'user' ? 'user' : 
+                    $role       = $message['type'] === 'user' ? 'user' :
                            ($message['type'] === 'assistant' ? 'assistant' : $message['type']);
                     $messages[] = [
-                        'role' => $role,
-                        'content' => $message['content'],
-                        'timestamp' => $message['timestamp']
+                        'role'      => $role,
+                        'content'   => $message['content'],
+                        'timestamp' => $message['timestamp'],
                     ];
                 }
             }
-            
+
             $this->logger->info('Loaded conversation', [
-                'session_id' => $sessionId,
-                'user_id' => get_current_user_id(),
-                'messages_count' => count($messages),
+                'session_id'           => $sessionId,
+                'user_id'              => get_current_user_id(),
+                'messages_count'       => count($messages),
                 'has_course_structure' => isset($session->getContext()['course_structure']),
-                'context_keys' => array_keys($session->getContext())
+                'context_keys'         => array_keys($session->getContext()),
             ]);
-            
+
             wp_send_json_success([
-                'session_id' => $session->getSessionId(),
+                'session_id'           => $session->getSessionId(),
                 'conversation_history' => $messages,
-                'conversation_state' => [
-                    'current_step' => $session->getCurrentState(),
-                    'collected_data' => $session->getContext()
+                'conversation_state'   => [
+                    'current_step'   => $session->getCurrentState(),
+                    'collected_data' => $session->getContext(),
                 ],
-                'created_at' => $session->getCreatedAt(),
-                'last_updated' => $session->getLastUpdated()
+                'created_at'           => $session->getCreatedAt(),
+                'last_updated'         => $session->getLastUpdated(),
             ]);
-            
         } catch (\Exception $e) {
             $this->logger->error('Failed to load conversation', [
                 'session_id' => $sessionId,
-                'error' => $e->getMessage()
+                'error'      => $e->getMessage(),
             ]);
             wp_send_json_error('Failed to load conversation');
         }
     }
-    
+
     /**
      * List user conversations
      *
@@ -1125,44 +1131,43 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('List conversations failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         try {
             $conversationManager = $this->getConversationManager();
-            $sessions = $conversationManager->getUserSessions(
+            $sessions            = $conversationManager->getUserSessions(
                 get_current_user_id(),
                 10, // limit
                 0   // offset
             );
-            
+
             $sessionList = [];
             foreach ($sessions as $session) {
                 $sessionList[] = [
-                    'session_id' => $session->getSessionId(),
-                    'title' => $session->getTitle(),
-                    'created_at' => $session->getCreatedAt(),
+                    'session_id'   => $session->getSessionId(),
+                    'title'        => $session->getTitle(),
+                    'created_at'   => $session->getCreatedAt(),
                     'last_updated' => $session->getLastUpdated(),
-                    'is_active' => $session->isActive(),
-                    'progress' => $session->getProgress()
+                    'is_active'    => $session->isActive(),
+                    'progress'     => $session->getProgress(),
                 ];
             }
-            
+
             $this->logger->info('Listed conversations', [
                 'user_id' => get_current_user_id(),
-                'count' => count($sessionList)
+                'count'   => count($sessionList),
             ]);
-            
+
             wp_send_json_success([
-                'sessions' => $sessionList
+                'sessions' => $sessionList,
             ]);
-            
         } catch (\Exception $e) {
             $this->logger->error('Failed to list conversations', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             wp_send_json_error('Failed to list conversations');
         }
@@ -1177,74 +1182,75 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         // Verify nonce - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
-        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) && 
-            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)) {
+        if (
+            !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
+            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)
+        ) {
             $this->logger->warning('Save lesson content failed: invalid nonce', [
-                'user_id' => get_current_user_id(),
-                'nonce_value' => $nonce
+                'user_id'     => get_current_user_id(),
+                'nonce_value' => $nonce,
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         // Check user capabilities
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Save lesson content failed: insufficient permissions', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Insufficient permissions');
             return;
         }
-        
-        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
-        $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
-        $lessonId = sanitize_text_field($_POST['lesson_id'] ?? '');
-        $content = sanitize_textarea_field($_POST['content'] ?? '');
+
+        $sessionId  = sanitize_text_field($_POST['session_id'] ?? '');
+        $sectionId  = sanitize_text_field($_POST['section_id'] ?? '');
+        $lessonId   = sanitize_text_field($_POST['lesson_id'] ?? '');
+        $content    = sanitize_textarea_field($_POST['content'] ?? '');
         $orderIndex = isset($_POST['order_index']) ? (int) $_POST['order_index'] : 0;
-        
+
         $this->logger->info('Save lesson content request', [
-            'session_id' => $sessionId,
-            'section_id' => $sectionId,
-            'lesson_id' => $lessonId,
+            'session_id'     => $sessionId,
+            'section_id'     => $sectionId,
+            'lesson_id'      => $lessonId,
             'content_length' => strlen($content),
-            'has_session' => !empty($sessionId),
-            'has_section' => !empty($sectionId),
-            'has_lesson' => !empty($lessonId),
-            'post_keys' => array_keys($_POST)
+            'has_session'    => !empty($sessionId),
+            'has_section'    => !empty($sectionId),
+            'has_lesson'     => !empty($lessonId),
+            'post_keys'      => array_keys($_POST),
         ]);
-        
+
         if (empty($sessionId) || $sectionId === '' || $lessonId === '') {
             wp_send_json_error('Missing required parameters');
             return;
         }
-        
+
         try {
             // Get lesson draft service from container
             $draftService = $this->getLessonDraftService();
-            
+
             // Save draft
             $result = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex);
-            
+
             if ($result !== false) {
                 $this->logger->info('Lesson content saved', [
                     'session_id' => $sessionId,
                     'section_id' => $sectionId,
-                    'lesson_id' => $lessonId
+                    'lesson_id'  => $lessonId,
                 ]);
-                
+
                 wp_send_json_success([
-                    'saved' => true,
+                    'saved'    => true,
                     'saved_at' => current_time('c'),
-                    'message' => 'Lesson content saved successfully'
+                    'message'  => 'Lesson content saved successfully',
                 ]);
             } else {
                 throw new \Exception('Failed to save lesson content');
             }
-            
         } catch (\Exception $e) {
             $this->logger->error('Failed to save lesson content', [
                 'session_id' => $sessionId,
-                'error' => $e->getMessage()
+                'error'      => $e->getMessage(),
             ]);
             wp_send_json_error('Failed to save lesson content: ' . $e->getMessage());
         }
@@ -1259,61 +1265,63 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         // Verify nonce - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
-        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) && 
-            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)) {
+        if (
+            !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
+            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)
+        ) {
             $this->logger->warning('Load lesson content failed: invalid nonce', [
-                'user_id' => get_current_user_id(),
-                'nonce_value' => $nonce
+                'user_id'     => get_current_user_id(),
+                'nonce_value' => $nonce,
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         // Check user capabilities
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Load lesson content failed: insufficient permissions', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Insufficient permissions');
             return;
         }
-        
+
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
         $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
-        $lessonId = sanitize_text_field($_POST['lesson_id'] ?? '');
-        
+        $lessonId  = sanitize_text_field($_POST['lesson_id'] ?? '');
+
         if (empty($sessionId)) {
             wp_send_json_error('Session ID is required');
             return;
         }
-        
+
         try {
             // Get lesson draft service from container
             $draftService = $this->getLessonDraftService();
-            
+
             // Load specific lesson or all session drafts
             if ($sectionId !== '' && $lessonId !== '') {
                 // Load specific lesson
                 $draft = $draftService->getDraft($sessionId, $sectionId, $lessonId);
-                
+
                 if ($draft) {
                     wp_send_json_success([
                         'draft' => [
-                            'content' => $draft->content,
+                            'content'     => $draft->content,
                             'order_index' => $draft->order_index,
-                            'updated_at' => $draft->updated_at
-                        ]
+                            'updated_at'  => $draft->updated_at,
+                        ],
                     ]);
                 } else {
                     wp_send_json_success([
-                        'draft' => null,
-                        'message' => 'No draft found'
+                        'draft'   => null,
+                        'message' => 'No draft found',
                     ]);
                 }
             } else {
                 // Load all drafts for session
                 $drafts = $draftService->getSessionDrafts($sessionId);
-                
+
                 // Group drafts by section
                 $groupedDrafts = [];
                 foreach ($drafts as $draft) {
@@ -1321,26 +1329,25 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                         $groupedDrafts[$draft->section_id] = [];
                     }
                     $groupedDrafts[$draft->section_id][$draft->lesson_id] = [
-                        'content' => $draft->content,
+                        'content'     => $draft->content,
                         'order_index' => $draft->order_index,
-                        'updated_at' => $draft->updated_at
+                        'updated_at'  => $draft->updated_at,
                     ];
                 }
-                
+
                 $this->logger->info('Loaded session drafts', [
-                    'session_id' => $sessionId,
-                    'drafts_count' => count($drafts)
+                    'session_id'   => $sessionId,
+                    'drafts_count' => count($drafts),
                 ]);
-                
+
                 wp_send_json_success([
-                    'drafts' => $groupedDrafts
+                    'drafts' => $groupedDrafts,
                 ]);
             }
-            
         } catch (\Exception $e) {
             $this->logger->error('Failed to load lesson content', [
                 'session_id' => $sessionId,
-                'error' => $e->getMessage()
+                'error'      => $e->getMessage(),
             ]);
             wp_send_json_error('Failed to load lesson content: ' . $e->getMessage());
         }
@@ -1355,99 +1362,100 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     {
         // Debug logging
         $this->logger->info('CourseAjaxService::generateLessonContent called', [
-            'nonce' => $_POST['nonce'] ?? 'not set',
-            'action' => $_POST['action'] ?? 'not set',
-            'user_id' => get_current_user_id()
+            'nonce'   => $_POST['nonce'] ?? 'not set',
+            'action'  => $_POST['action'] ?? 'not set',
+            'user_id' => get_current_user_id(),
         ]);
-        
+
         // Verify nonce - check multiple possible nonce names
         $nonce = $_POST['nonce'] ?? '';
-        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) && 
-            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)) {
+        if (
+            !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
+            !NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false)
+        ) {
             $this->logger->warning('Generate lesson content failed: invalid nonce', [
-                'user_id' => get_current_user_id(),
+                'user_id'     => get_current_user_id(),
                 'nonce_value' => $nonce,
-                'expected' => 'mpcc_courses_integration or mpcc_editor_nonce'
+                'expected'    => 'mpcc_courses_integration or mpcc_editor_nonce',
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         // Check user capabilities
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Generate lesson content failed: insufficient permissions', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Insufficient permissions');
             return;
         }
-        
-        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
+
+        $sessionId    = sanitize_text_field($_POST['session_id'] ?? '');
         $sectionTitle = sanitize_text_field($_POST['section_title'] ?? '');
-        $lessonTitle = sanitize_text_field($_POST['lesson_title'] ?? '');
-        $courseTitle = sanitize_text_field($_POST['course_title'] ?? '');
-        $context = $_POST['context'] ?? [];
-        
+        $lessonTitle  = sanitize_text_field($_POST['lesson_title'] ?? '');
+        $courseTitle  = sanitize_text_field($_POST['course_title'] ?? '');
+        $context      = $_POST['context'] ?? [];
+
         // Sanitize context array
         $context = $this->sanitizeArray($context);
-        
+
         if (empty($lessonTitle)) {
             wp_send_json_error('Lesson title is required');
             return;
         }
-        
+
         try {
             // Use LLMService for content generation
             $llm_service = $this->getLLMService();
-            
+
             // Build prompt for lesson content generation
             $prompt = $this->buildLessonContentPrompt($courseTitle, $sectionTitle, $lessonTitle, $context);
-            
+
             $this->logger->debug('Generating lesson content', [
-                'session_id' => $sessionId,
-                'lesson_title' => $lessonTitle,
-                'prompt_length' => strlen($prompt)
+                'session_id'    => $sessionId,
+                'lesson_title'  => $lessonTitle,
+                'prompt_length' => strlen($prompt),
             ]);
-            
+
             // Generate content
             $response = $llm_service->generateContent($prompt, 'lesson_content', [
                 'temperature' => 0.7,
-                'max_tokens' => 3000
+                'max_tokens'  => 3000,
             ]);
-            
+
             if ($response['error']) {
                 throw new \Exception($response['message'] ?? 'Unknown error');
             }
-            
+
             $generatedContent = $response['content'];
-            
+
             // Save generated content as draft if session ID provided
             if (!empty($sessionId) && !empty($_POST['section_id']) && !empty($_POST['lesson_id'])) {
                 $draftService = $this->getLessonDraftService();
-                
-                $sectionId = sanitize_text_field($_POST['section_id']);
-                $lessonId = sanitize_text_field($_POST['lesson_id']);
+
+                $sectionId  = sanitize_text_field($_POST['section_id']);
+                $lessonId   = sanitize_text_field($_POST['lesson_id']);
                 $orderIndex = isset($_POST['order_index']) ? (int) $_POST['order_index'] : 0;
-                
+
                 $draftId = $draftService->saveDraft($sessionId, $sectionId, $lessonId, $generatedContent, $orderIndex);
             }
-            
+
             $this->logger->info('Lesson content generated', [
-                'session_id' => $sessionId,
-                'lesson_title' => $lessonTitle,
-                'content_length' => strlen($generatedContent)
+                'session_id'     => $sessionId,
+                'lesson_title'   => $lessonTitle,
+                'content_length' => strlen($generatedContent),
             ]);
-            
+
             wp_send_json_success([
-                'content' => $generatedContent,
+                'content'      => $generatedContent,
                 'generated_at' => current_time('c'),
-                'message' => 'Lesson content generated successfully'
+                'message'      => 'Lesson content generated successfully',
             ]);
-            
         } catch (\Exception $e) {
             $this->logger->error('Failed to generate lesson content', [
                 'lesson_title' => $lessonTitle,
-                'error' => $e->getMessage()
+                'error'        => $e->getMessage(),
             ]);
             wp_send_json_error('Failed to generate lesson content: ' . $e->getMessage());
         }
@@ -1463,35 +1471,35 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         // Verify nonce
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Reorder course items failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         // Check user capabilities
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Reorder course items failed: insufficient permissions', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Insufficient permissions');
             return;
         }
-        
-        $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
-        $itemType = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'
+
+        $sessionId   = sanitize_text_field($_POST['session_id'] ?? '');
+        $itemType    = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'
         $reorderData = $_POST['reorder_data'] ?? [];
-        
+
         // Sanitize reorder data array
         if (is_array($reorderData)) {
             $reorderData = $this->sanitizeArray($reorderData);
         }
-        
+
         if (empty($sessionId) || empty($itemType) || empty($reorderData)) {
             wp_send_json_error('Missing required parameters');
             return;
         }
-        
+
         try {
             if ($itemType === 'lesson') {
                 // Reorder lessons within a section
@@ -1500,47 +1508,47 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                     wp_send_json_error('Section ID is required for lesson reordering');
                     return;
                 }
-                
+
                 $draftService = $this->getLessonDraftService();
-                
+
                 // Validate lesson order array
                 $lessonOrder = array_map('sanitize_text_field', $reorderData);
-                
+
                 $success = $draftService->updateLessonOrder($sessionId, $sectionId, $lessonOrder);
-                
+
                 if ($success) {
                     $this->logger->info('Lessons reordered', [
-                        'session_id' => $sessionId,
-                        'section_id' => $sectionId,
-                        'lesson_count' => count($lessonOrder)
+                        'session_id'   => $sessionId,
+                        'section_id'   => $sectionId,
+                        'lesson_count' => count($lessonOrder),
                     ]);
-                    
+
                     wp_send_json_success([
-                        'message' => 'Lessons reordered successfully',
-                        'updated_at' => current_time('c')
+                        'message'    => 'Lessons reordered successfully',
+                        'updated_at' => current_time('c'),
                     ]);
                 } else {
                     throw new \Exception('Failed to update lesson order');
                 }
-            } else if ($itemType === 'section') {
+            } elseif ($itemType === 'section') {
                 // Handle section reordering
                 // This would update the course structure in the conversation state
                 $conversationManager = $this->getConversationManager();
-                $session = $conversationManager->loadSession($sessionId);
-                
+                $session             = $conversationManager->loadSession($sessionId);
+
                 if (!$session || $session->getUserId() !== get_current_user_id()) {
                     wp_send_json_error('Session not found or access denied');
                     return;
                 }
-                
+
                 // Get current context
                 $context = $session->getContext();
-                
+
                 // Update section order in course structure
                 if (isset($context['course_structure']) && isset($context['course_structure']['sections'])) {
-                    $sections = $context['course_structure']['sections'];
+                    $sections    = $context['course_structure']['sections'];
                     $newSections = [];
-                    
+
                     // Reorder sections based on provided order
                     foreach ($reorderData as $sectionIndex) {
                         $index = (int) $sectionIndex;
@@ -1548,20 +1556,20 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                             $newSections[] = $sections[$index];
                         }
                     }
-                    
+
                     $context['course_structure']['sections'] = $newSections;
                     $session->setContext($context, null);
-                    
+
                     $conversationManager->saveSession($session);
-                    
+
                     $this->logger->info('Sections reordered', [
-                        'session_id' => $sessionId,
-                        'section_count' => count($newSections)
+                        'session_id'    => $sessionId,
+                        'section_count' => count($newSections),
                     ]);
-                    
+
                     wp_send_json_success([
-                        'message' => 'Sections reordered successfully',
-                        'updated_at' => current_time('c')
+                        'message'    => 'Sections reordered successfully',
+                        'updated_at' => current_time('c'),
                     ]);
                 } else {
                     throw new \Exception('No course structure found in session');
@@ -1569,12 +1577,11 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             } else {
                 wp_send_json_error('Invalid item type');
             }
-            
         } catch (\Exception $e) {
             $this->logger->error('Failed to reorder course items', [
                 'session_id' => $sessionId,
-                'item_type' => $itemType,
-                'error' => $e->getMessage()
+                'item_type'  => $itemType,
+                'error'      => $e->getMessage(),
             ]);
             wp_send_json_error('Failed to reorder items: ' . $e->getMessage());
         }
@@ -1590,133 +1597,132 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         // Verify nonce
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Delete course item failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Security check failed');
             return;
         }
-        
+
         // Check user capabilities
         if (!current_user_can('edit_posts')) {
             $this->logger->warning('Delete course item failed: insufficient permissions', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Insufficient permissions');
             return;
         }
-        
+
         $sessionId = sanitize_text_field($_POST['session_id'] ?? '');
-        $itemType = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'
+        $itemType  = sanitize_text_field($_POST['item_type'] ?? ''); // 'section' or 'lesson'
         $sectionId = sanitize_text_field($_POST['section_id'] ?? '');
-        $lessonId = sanitize_text_field($_POST['lesson_id'] ?? '');
-        
+        $lessonId  = sanitize_text_field($_POST['lesson_id'] ?? '');
+
         if (empty($sessionId) || empty($itemType)) {
             wp_send_json_error('Missing required parameters');
             return;
         }
-        
+
         try {
             if ($itemType === 'lesson') {
                 if (empty($sectionId) || empty($lessonId)) {
                     wp_send_json_error('Section ID and Lesson ID are required');
                     return;
                 }
-                
+
                 // Delete lesson draft
                 $draftService = $this->getLessonDraftService();
-                
+
                 $success = $draftService->deleteDraft($sessionId, $sectionId, $lessonId);
-                
+
                 if ($success) {
                     // Also update the course structure in conversation state
                     $conversationManager = $this->getConversationManager();
-                    $session = $conversationManager->loadSession($sessionId);
-                    
+                    $session             = $conversationManager->loadSession($sessionId);
+
                     if ($session && $session->getUserId() === get_current_user_id()) {
                         $context = $session->getContext();
-                        
+
                         // Remove lesson from course structure
                         if (isset($context['course_structure']['sections'])) {
                             foreach ($context['course_structure']['sections'] as &$section) {
                                 if (isset($section['lessons'])) {
-                                    $section['lessons'] = array_filter($section['lessons'], function($lesson) use ($lessonId) {
+                                    $section['lessons'] = array_filter($section['lessons'], function ($lesson) use ($lessonId) {
                                         return ($lesson['id'] ?? '') !== $lessonId;
                                     });
                                     $section['lessons'] = array_values($section['lessons']); // Re-index
                                 }
                             }
-                            
+
                             $session->setContext($context, null);
                             $conversationManager->saveSession($session);
                         }
                     }
-                    
+
                     $this->logger->info('Lesson deleted', [
                         'session_id' => $sessionId,
                         'section_id' => $sectionId,
-                        'lesson_id' => $lessonId
+                        'lesson_id'  => $lessonId,
                     ]);
-                    
+
                     wp_send_json_success([
-                        'message' => 'Lesson deleted successfully',
-                        'deleted_at' => current_time('c')
+                        'message'    => 'Lesson deleted successfully',
+                        'deleted_at' => current_time('c'),
                     ]);
                 } else {
                     throw new \Exception('Failed to delete lesson');
                 }
-            } else if ($itemType === 'section') {
+            } elseif ($itemType === 'section') {
                 if (empty($sectionId)) {
                     wp_send_json_error('Section ID is required');
                     return;
                 }
-                
+
                 // Delete all lessons in the section
                 $draftService = $this->getLessonDraftService();
-                
+
                 $deletedCount = $draftService->deleteSectionDrafts($sessionId, $sectionId);
-                
+
                 // Update course structure in conversation state
                 $conversationManager = new ConversationManager();
-                $session = $conversationManager->loadSession($sessionId);
-                
+                $session             = $conversationManager->loadSession($sessionId);
+
                 if ($session && $session->getUserId() === get_current_user_id()) {
                     $context = $session->getContext();
-                    
+
                     // Remove section from course structure
                     if (isset($context['course_structure']['sections'])) {
                         $context['course_structure']['sections'] = array_filter(
                             $context['course_structure']['sections'],
-                            function($section) use ($sectionId) {
+                            function ($section) use ($sectionId) {
                                 return ($section['id'] ?? '') !== $sectionId;
                             }
                         );
                         $context['course_structure']['sections'] = array_values($context['course_structure']['sections']); // Re-index
-                        
+
                         $session->setContext($context, null);
                         $conversationManager->saveSession($session);
                     }
                 }
-                
+
                 $this->logger->info('Section deleted', [
-                    'session_id' => $sessionId,
-                    'section_id' => $sectionId,
-                    'lessons_deleted' => $deletedCount
-                ]);
-                
-                wp_send_json_success([
-                    'message' => 'Section deleted successfully',
+                    'session_id'      => $sessionId,
+                    'section_id'      => $sectionId,
                     'lessons_deleted' => $deletedCount,
-                    'deleted_at' => current_time('c')
+                ]);
+
+                wp_send_json_success([
+                    'message'         => 'Section deleted successfully',
+                    'lessons_deleted' => $deletedCount,
+                    'deleted_at'      => current_time('c'),
                 ]);
             } else {
                 wp_send_json_error('Invalid item type');
             }
-            
         } catch (\Exception $e) {
             $this->logger->error('Failed to delete course item', [
                 'session_id' => $sessionId,
-                'item_type' => $itemType,
-                'error' => $e->getMessage()
+                'item_type'  => $itemType,
+                'error'      => $e->getMessage(),
             ]);
             wp_send_json_error('Failed to delete item: ' . $e->getMessage());
         }
@@ -1725,34 +1731,34 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     /**
      * Build prompt for lesson content generation
      *
-     * @param string $courseTitle Course title
-     * @param string $sectionTitle Section title
-     * @param string $lessonTitle Lesson title
-     * @param array $context Additional context
+     * @param  string $courseTitle  Course title
+     * @param  string $sectionTitle Section title
+     * @param  string $lessonTitle  Lesson title
+     * @param  array  $context      Additional context
      * @return string
      */
     private function buildLessonContentPrompt(string $courseTitle, string $sectionTitle, string $lessonTitle, array $context): string
     {
         $prompt = "Generate comprehensive lesson content for an online course.\n\n";
-        
+
         if (!empty($courseTitle)) {
             $prompt .= "Course: {$courseTitle}\n";
         }
-        
+
         if (!empty($sectionTitle)) {
             $prompt .= "Section: {$sectionTitle}\n";
         }
-        
+
         $prompt .= "Lesson: {$lessonTitle}\n\n";
-        
+
         if (!empty($context['course_description'])) {
             $prompt .= "Course Description: {$context['course_description']}\n\n";
         }
-        
+
         if (!empty($context['target_audience'])) {
             $prompt .= "Target Audience: {$context['target_audience']}\n\n";
         }
-        
+
         if (!empty($context['learning_objectives'])) {
             $prompt .= "Learning Objectives:\n";
             foreach ($context['learning_objectives'] as $objective) {
@@ -1760,20 +1766,20 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             }
             $prompt .= "\n";
         }
-        
+
         $prompt .= "Please generate engaging and educational lesson content that:\n";
         $prompt .= "1. Introduces the topic clearly\n";
         $prompt .= "2. Explains concepts with examples\n";
         $prompt .= "3. Includes practical applications\n";
         $prompt .= "4. Summarizes key points\n";
         $prompt .= "5. Uses clear formatting with proper headings, paragraphs, and lists\n\n";
-        $prompt .= "Format the content as clean, readable plain text with proper spacing and structure. ";
-        $prompt .= "Use line breaks between sections, bullet points for lists, and clear headings. ";
-        $prompt .= "Do NOT use HTML tags or markdown - just plain, well-formatted text.";
-        
+        $prompt .= 'Format the content as clean, readable plain text with proper spacing and structure. ';
+        $prompt .= 'Use line breaks between sections, bullet points for lists, and clear headings. ';
+        $prompt .= 'Do NOT use HTML tags or markdown - just plain, well-formatted text.';
+
         return $prompt;
     }
-    
+
     /**
      * Handle AI chat for course editing page
      *
@@ -1784,12 +1790,12 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         // Verify nonce
         if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_ASSISTANT, false)) {
             $this->logger->warning('Course edit chat failed: invalid nonce', [
-                'user_id' => get_current_user_id()
+                'user_id' => get_current_user_id(),
             ]);
             wp_send_json_error('Security verification failed');
             return;
         }
-        
+
         // Check permissions
         $courseId = isset($_POST['course_id']) ? (int) $_POST['course_id'] : 0;
         if ($courseId && !current_user_can('edit_post', $courseId)) {
@@ -1799,11 +1805,11 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             wp_send_json_error('Insufficient permissions');
             return;
         }
-        
-        $message = sanitize_text_field($_POST['message'] ?? '');
-        $courseData = isset($_POST['course_data']) ? json_decode(wp_unslash($_POST['course_data']), true) : [];
+
+        $message             = sanitize_text_field($_POST['message'] ?? '');
+        $courseData          = isset($_POST['course_data']) ? json_decode(wp_unslash($_POST['course_data']), true) : [];
         $conversationHistory = isset($_POST['conversation_history']) ? json_decode(wp_unslash($_POST['conversation_history']), true) : [];
-        
+
         // Sanitize arrays
         if (is_array($courseData)) {
             $courseData = $this->sanitizeArray($courseData);
@@ -1811,117 +1817,122 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         if (is_array($conversationHistory)) {
             $conversationHistory = $this->sanitizeArray($conversationHistory, 'textarea');
         }
-        
+
         if (empty($message)) {
             wp_send_json_error('Message cannot be empty');
             return;
         }
-        
+
         if (!$courseId) {
             wp_send_json_error('Invalid course ID');
             return;
         }
-        
+
         // Verify user can edit this course
         if (!current_user_can('edit_post', $courseId)) {
             wp_send_json_error('You do not have permission to edit this course');
             return;
         }
-        
+
         try {
             $this->logger->info('Processing course edit chat message', [
-                'user_id' => get_current_user_id(),
-                'course_id' => $courseId,
-                'message_length' => strlen($message)
+                'user_id'        => get_current_user_id(),
+                'course_id'      => $courseId,
+                'message_length' => strlen($message),
             ]);
-            
+
             // Build system prompt for course editing context
             $systemPrompt = $this->buildCourseEditSystemPrompt($courseData);
-            
+
             // Build conversation messages
             $messages = [
-                ['role' => 'system', 'content' => $systemPrompt]
+                [
+                    'role'    => 'system',
+                    'content' => $systemPrompt,
+                ],
             ];
-            
+
             // Add conversation history
             foreach ($conversationHistory as $msg) {
                 if (isset($msg['role']) && isset($msg['content'])) {
                     $messages[] = [
-                        'role' => $msg['role'],
-                        'content' => $msg['content']
+                        'role'    => $msg['role'],
+                        'content' => $msg['content'],
                     ];
                 }
             }
-            
+
             // Add current message
-            $messages[] = ['role' => 'user', 'content' => $message];
-            
+            $messages[] = [
+                'role'    => 'user',
+                'content' => $message,
+            ];
+
             // Get AI response
             $llmResponse = $llmService->generateContent('', [
-                'messages' => $messages,
-                'max_tokens' => 2000
+                'messages'   => $messages,
+                'max_tokens' => 2000,
             ]);
-            
+
             if (!$llmResponse['success']) {
                 throw new \Exception($llmResponse['error'] ?? 'AI service error');
             }
-            
+
             $aiResponse = $llmResponse['content'];
-            
+
             // Check if AI response contains course update instructions
             $courseUpdates = $this->extractCourseUpdates($aiResponse, $courseData);
-            
+
             // Build response
             $responseData = [
-                'message' => $aiResponse,
-                'course_updates' => $courseUpdates
+                'message'        => $aiResponse,
+                'course_updates' => $courseUpdates,
             ];
-            
+
             // If course updates were suggested, prepare them
             if ($courseUpdates && isset($courseUpdates['sections'])) {
                 // Update course metadata if sections were modified
                 update_post_meta($courseId, '_mpcs_sections', $courseUpdates['sections']);
                 $responseData['require_refresh'] = true;
             }
-            
+
             $this->logger->info('Course edit chat completed successfully', [
-                'user_id' => get_current_user_id(),
-                'course_id' => $courseId,
-                'has_updates' => !empty($courseUpdates)
+                'user_id'     => get_current_user_id(),
+                'course_id'   => $courseId,
+                'has_updates' => !empty($courseUpdates),
             ]);
-            
+
             wp_send_json_success($responseData);
-            
         } catch (\Exception $e) {
             $this->logger->error('Course edit chat failed', [
-                'user_id' => get_current_user_id(),
-                'course_id' => $courseId,
-                'error_message' => $e->getMessage()
+                'user_id'       => get_current_user_id(),
+                'course_id'     => $courseId,
+                'error_message' => $e->getMessage(),
             ]);
-            
+
             wp_send_json_error('Failed to process your request: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Build system prompt for course editing context
      *
-     * @param array $courseData Course data
+     * @param  array $courseData Course data
      * @return string
      */
     private function buildCourseEditSystemPrompt(array $courseData): string
     {
-        $prompt = "You are an AI assistant helping to improve and update an online course. ";
+        $prompt  = 'You are an AI assistant helping to improve and update an online course. ';
         $prompt .= "You have access to the current course structure and can suggest improvements.\n\n";
-        
+
         $prompt .= "Current Course Information:\n";
-        $prompt .= "Title: " . ($courseData['title'] ?? 'Untitled Course') . "\n";
-        $prompt .= "Status: " . ($courseData['status'] ?? 'draft') . "\n";
-        
+        $prompt .= 'Title: ' . ($courseData['title'] ?? 'Untitled Course') . "\n";
+        $prompt .= 'Status: ' . ($courseData['status'] ?? 'draft') . "\n";
+
         if (!empty($courseData['content'])) {
-            $prompt .= "Description: " . substr($courseData['content'], 0, 200) . "...\n";
+            $prompt .= 'Description: ' . substr($courseData['content'], 0, 200) . "...\n";
         }
-        
+
         if (!empty($courseData['sections'])) {
             $prompt .= "\nCourse Structure:\n";
             foreach ($courseData['sections'] as $sIndex => $section) {
@@ -1933,7 +1944,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 }
             }
         }
-        
+
         $prompt .= "\nYour role is to:\n";
         $prompt .= "1. Provide helpful suggestions for improving the course\n";
         $prompt .= "2. Help create new content when requested\n";
@@ -1941,16 +1952,16 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         $prompt .= "4. Offer pedagogical advice for better learning outcomes\n";
         $prompt .= "5. Help write engaging and educational content\n\n";
         $prompt .= "When suggesting course structure changes, format them clearly so they can be implemented.\n";
-        $prompt .= "Focus on practical, actionable advice that improves the learning experience.";
-        
+        $prompt .= 'Focus on practical, actionable advice that improves the learning experience.';
+
         return $prompt;
     }
-    
+
     /**
      * Extract course updates from AI response
      *
-     * @param string $aiResponse AI response text
-     * @param array $currentCourseData Current course data
+     * @param  string $aiResponse        AI response text
+     * @param  array  $currentCourseData Current course data
      * @return array|null
      */
     private function extractCourseUpdates(string $aiResponse, array $currentCourseData): ?array
@@ -1960,7 +1971,7 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
         // For now, return null to indicate no automatic updates
         return null;
     }
-    
+
     /**
      * Handle new simple AI chat
      */
@@ -1971,64 +1982,63 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             wp_send_json_error('Security verification failed');
             return;
         }
-        
+
         // Check permissions
         $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         if ($postId && !current_user_can('edit_post', $postId)) {
             wp_send_json_error('Insufficient permissions');
             return;
         }
-        
-        $message = sanitize_text_field($_POST['message'] ?? '');
+
+        $message    = sanitize_text_field($_POST['message'] ?? '');
         $courseData = isset($_POST['course_data']) ? $_POST['course_data'] : [];
-        
+
         // Sanitize course data array
         if (is_array($courseData)) {
             $courseData = $this->sanitizeArray($courseData);
         }
-        
+
         if (empty($message)) {
             wp_send_json_error('Message cannot be empty');
             return;
         }
-        
+
         try {
             // Get LLM service from container
             $llmService = $this->getLLMService();
-            
+
             // Build comprehensive system prompt with course context
             $contextualPrompt = $this->buildCourseContextPrompt($courseData, $message);
-            
+
             $response = $llmService->generateContent(
                 $contextualPrompt,
                 'course_assistance',
                 [
                     'temperature' => 0.7,
-                    'max_tokens' => 500
+                    'max_tokens'  => 500,
                 ]
             );
-            
+
             if (!$response['error']) {
-                $content = $response['content'];
+                $content          = $response['content'];
                 $hasContentUpdate = strpos($content, '[CONTENT_UPDATE]') !== false;
-                
+
                 // Remove the tag from display
                 $content = str_replace('[CONTENT_UPDATE]', '', $content);
-                
+
                 wp_send_json_success([
-                    'message' => trim($content),
-                    'has_content_update' => $hasContentUpdate
+                    'message'            => trim($content),
+                    'has_content_update' => $hasContentUpdate,
                 ]);
             } else {
                 wp_send_json_error($response['message'] ?? 'Failed to generate AI response');
             }
-            
         } catch (\Exception $e) {
             error_log('MPCC: New AI Chat error: ' . $e->getMessage());
             wp_send_json_error('An error occurred while processing your request');
         }
     }
-    
+
     /**
      * Handle course content update request
      */
@@ -2039,132 +2049,131 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
             wp_send_json_error('Security verification failed');
             return;
         }
-        
+
         // Check permissions
         $postId = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
         if (!$postId || !current_user_can('edit_post', $postId)) {
             wp_send_json_error('Insufficient permissions');
             return;
         }
-        
+
         $content = wp_kses_post($_POST['content'] ?? '');
-        
+
         if (empty($content)) {
             wp_send_json_error('Content cannot be empty');
             return;
         }
-        
+
         try {
             // Update the course post content
             $result = wp_update_post([
-                'ID' => $postId,
-                'post_content' => $content
+                'ID'           => $postId,
+                'post_content' => $content,
             ]);
-            
+
             if (is_wp_error($result)) {
                 wp_send_json_error('Failed to update course content: ' . $result->get_error_message());
                 return;
             }
-            
+
             // Log the update
             $this->logger->info('Course content updated', [
-                'post_id' => $postId,
-                'user_id' => get_current_user_id(),
-                'content_length' => strlen($content)
+                'post_id'        => $postId,
+                'user_id'        => get_current_user_id(),
+                'content_length' => strlen($content),
             ]);
-            
+
             wp_send_json_success([
-                'message' => 'Course content updated successfully',
-                'post_id' => $postId,
-                'updated_at' => current_time('c')
+                'message'    => 'Course content updated successfully',
+                'post_id'    => $postId,
+                'updated_at' => current_time('c'),
             ]);
-            
         } catch (\Exception $e) {
             error_log('MPCC: Update course content error: ' . $e->getMessage());
             wp_send_json_error('An error occurred while updating the course content');
         }
     }
-    
+
     /**
      * Build contextual prompt with comprehensive course data
      */
     private function buildCourseContextPrompt(array $courseData, string $userMessage): string
     {
-        $prompt = "You are an AI course development expert helping a user improve their online course overview/description. ";
+        $prompt  = 'You are an AI course development expert helping a user improve their online course overview/description. ';
         $prompt .= "Your focus is on the main course content/description, NOT the lessons or curriculum structure.\n";
         $prompt .= "When the user asks you to update, enhance, or rewrite the course content, provide the ACTUAL new content they can use.\n";
         $prompt .= "If the user asks for content changes, include [CONTENT_UPDATE] tag in your response.\n\n";
-        
+
         $prompt .= "=== CURRENT COURSE CONTEXT ===\n";
-        
+
         // Basic course information
         if (!empty($courseData['title'])) {
-            $prompt .= "Course Title: " . $courseData['title'] . "\n";
+            $prompt .= 'Course Title: ' . $courseData['title'] . "\n";
         }
-        
+
         if (!empty($courseData['content'])) {
             $content = strip_tags($courseData['content']);
-            $prompt .= "Course Description: " . substr($content, 0, 300) . (strlen($content) > 300 ? '...' : '') . "\n";
+            $prompt .= 'Course Description: ' . substr($content, 0, 300) . (strlen($content) > 300 ? '...' : '') . "\n";
         }
-        
+
         // Course metadata
         if (!empty($courseData['difficulty_level'])) {
-            $prompt .= "Difficulty Level: " . $courseData['difficulty_level'] . "\n";
+            $prompt .= 'Difficulty Level: ' . $courseData['difficulty_level'] . "\n";
         }
-        
+
         if (!empty($courseData['target_audience'])) {
-            $prompt .= "Target Audience: " . $courseData['target_audience'] . "\n";
+            $prompt .= 'Target Audience: ' . $courseData['target_audience'] . "\n";
         }
-        
+
         if (!empty($courseData['course_category'])) {
-            $prompt .= "Category: " . $courseData['course_category'] . "\n";
+            $prompt .= 'Category: ' . $courseData['course_category'] . "\n";
         }
-        
+
         if (!empty($courseData['template_type'])) {
-            $prompt .= "Template Type: " . $courseData['template_type'] . "\n";
+            $prompt .= 'Template Type: ' . $courseData['template_type'] . "\n";
         }
-        
+
         // Learning objectives
         if (!empty($courseData['learning_objectives']) && is_array($courseData['learning_objectives'])) {
             $prompt .= "Learning Objectives:\n";
             foreach ($courseData['learning_objectives'] as $objective) {
-                $prompt .= "- " . $objective . "\n";
+                $prompt .= '- ' . $objective . "\n";
             }
         }
-        
+
         // Prerequisites
         if (!empty($courseData['prerequisites']) && is_array($courseData['prerequisites'])) {
             $prompt .= "Prerequisites:\n";
             foreach ($courseData['prerequisites'] as $prereq) {
-                $prompt .= "- " . $prereq . "\n";
+                $prompt .= '- ' . $prereq . "\n";
             }
         }
-        
+
         // Course structure
         $sectionCount = $courseData['section_count'] ?? 0;
-        $lessonCount = $courseData['lesson_count'] ?? 0;
-        $prompt .= "Course Structure: {$sectionCount} sections, {$lessonCount} lessons\n";
-        
+        $lessonCount  = $courseData['lesson_count'] ?? 0;
+        $prompt      .= "Course Structure: {$sectionCount} sections, {$lessonCount} lessons\n";
+
         if (!empty($courseData['total_estimated_duration'])) {
-            $prompt .= "Total Estimated Duration: " . $courseData['total_estimated_duration'] . " minutes\n";
+            $prompt .= 'Total Estimated Duration: ' . $courseData['total_estimated_duration'] . " minutes\n";
         }
-        
+
         // Sections overview
         if (!empty($courseData['sections']) && is_array($courseData['sections'])) {
             $prompt .= "\nSECTION STRUCTURE:\n";
             foreach ($courseData['sections'] as $section) {
                 $lessonCount = count($section['lessons'] ?? []);
-                $prompt .= "• " . $section['title'] . " ({$lessonCount} lessons)\n";
-                
+                $prompt     .= '• ' . $section['title'] . " ({$lessonCount} lessons)\n";
+
                 if (!empty($section['description'])) {
-                    $prompt .= "  Description: " . substr($section['description'], 0, 100) . "\n";
+                    $prompt .= '  Description: ' . substr($section['description'], 0, 100) . "\n";
                 }
-                
+
                 // Include lesson titles for context
                 if (!empty($section['lessons'])) {
-                    $prompt .= "  Lessons: ";
+                    $prompt      .= '  Lessons: ';
                     $lessonTitles = array_column($section['lessons'], 'title');
-                    $prompt .= implode(', ', array_slice($lessonTitles, 0, 3));
+                    $prompt      .= implode(', ', array_slice($lessonTitles, 0, 3));
                     if (count($lessonTitles) > 3) {
                         $prompt .= ', and ' . (count($lessonTitles) - 3) . ' more';
                     }
@@ -2172,16 +2181,16 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 }
             }
         }
-        
+
         $prompt .= "\n=== USER QUESTION ===\n";
         $prompt .= $userMessage . "\n\n";
-        
+
         $prompt .= "=== YOUR RESPONSE ===\n";
-        
+
         // Check if user wants to update course content/description
         $contentKeywords = ['description', 'overview', 'content', 'rewrite', 'enhance', 'improve the course text'];
-        $updateKeywords = ['update', 'change', 'edit', 'write', 'rewrite', 'enhance', 'improve'];
-        
+        $updateKeywords  = ['update', 'change', 'edit', 'write', 'rewrite', 'enhance', 'improve'];
+
         $wantsContentUpdate = false;
         foreach ($contentKeywords as $contentKeyword) {
             if (stripos($userMessage, $contentKeyword) !== false) {
@@ -2193,18 +2202,18 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 }
             }
         }
-        
+
         if ($wantsContentUpdate) {
-            $prompt .= "The user wants to update the course overview/description content. ";
-            $prompt .= "Provide the ACTUAL new course description they should use. ";
+            $prompt .= 'The user wants to update the course overview/description content. ';
+            $prompt .= 'Provide the ACTUAL new course description they should use. ';
             $prompt .= "Write compelling, engaging course content that will attract students.\n";
             $prompt .= "After providing the new content, add '[CONTENT_UPDATE]' tag at the end.\n\n";
         } else {
-            $prompt .= "Provide advice about the course overview and content. ";
-            $prompt .= "Focus on the main course description, not individual lessons. ";
+            $prompt .= 'Provide advice about the course overview and content. ';
+            $prompt .= 'Focus on the main course description, not individual lessons. ';
             $prompt .= "Be specific and actionable in your suggestions.\n\n";
         }
-        
+
         return $prompt;
     }
 }

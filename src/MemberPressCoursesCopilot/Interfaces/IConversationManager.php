@@ -5,12 +5,13 @@ namespace MemberPressCoursesCopilot\Interfaces;
 /**
  * Interface for managing conversations between users and AI
  */
-interface IConversationManager {
+interface IConversationManager
+{
     /**
      * Process a user message and return the AI response
      *
-     * @param string $message User message
-     * @param int $userId User ID
+     * @param  string  $message User message
+     * @param  integer $userId  User ID
      * @return array Response containing the AI message and any metadata
      */
     public function processMessage(string $message, int $userId): array;
@@ -18,8 +19,8 @@ interface IConversationManager {
     /**
      * Get conversation history for a user
      *
-     * @param int $userId User ID
-     * @param int $limit Number of messages to retrieve
+     * @param  integer $userId User ID
+     * @param  integer $limit  Number of messages to retrieve
      * @return array Formatted conversation history
      */
     public function getHistory(int $userId, int $limit = 50): array;
@@ -27,8 +28,8 @@ interface IConversationManager {
     /**
      * Clear conversation history for a user
      *
-     * @param int $userId User ID
-     * @return bool Success status
+     * @param  integer $userId User ID
+     * @return boolean Success status
      */
     public function clearHistory(int $userId): bool;
 }

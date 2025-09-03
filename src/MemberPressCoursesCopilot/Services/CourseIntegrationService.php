@@ -10,12 +10,12 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
 
 /**
  * Course Integration Service
- * 
+ *
  * Handles the integration of AI Copilot functionality directly into
  * MemberPress Courses admin interface
- * 
+ *
  * @package MemberPressCoursesCopilot\Services
- * @since 1.0.0
+ * @since   1.0.0
  */
 class CourseIntegrationService extends BaseService
 {
@@ -28,15 +28,14 @@ class CourseIntegrationService extends BaseService
     {
         // Hook into MemberPress Courses admin pages
         add_action('admin_init', [$this, 'initializeCoursesIntegration']);
-        
+
         // Hook into courses listing page to add "Create with AI" button
         // Use admin_enqueue_scripts to ensure proper timing
         add_action('admin_enqueue_scripts', [$this, 'maybeEnqueueCreateButton']);
-        
+
         // Hook into course editor to add AI chat interface
         // Disabled metabox to prevent conflicts with center column implementation
         // add_action('add_meta_boxes', [$this, 'addAIAssistantMetaBox'], 20);
-        
         // Add AI chat to center column of course edit page
         add_action('edit_form_after_editor', [$this, 'addAIChatToCenterColumn']);
     }
@@ -60,28 +59,28 @@ class CourseIntegrationService extends BaseService
     /**
      * Check if we're on a MemberPress Courses admin page
      *
-     * @return bool
+     * @return boolean
      */
     private function isCoursesAdminPage(): bool
     {
         global $pagenow, $post_type;
-        
+
         // Check if we're on the AI Course Generator page
         if (isset($_GET['page']) && $_GET['page'] === 'mpcc-course-generator') {
             return true;
         }
-        
+
         // Check if we're on courses listing page
         if ($pagenow === 'edit.php' && $post_type === 'mpcs-course') {
             return true;
         }
-        
+
         // Check if we're on course edit page
         if ($pagenow === 'post.php' || $pagenow === 'post-new.php') {
             if (isset($_GET['post_type']) && $_GET['post_type'] === 'mpcs-course') {
                 return true;
             }
-            
+
             // Check if editing existing course
             if (isset($_GET['post'])) {
                 $post = get_post((int) $_GET['post']);
@@ -90,42 +89,42 @@ class CourseIntegrationService extends BaseService
                 }
             }
         }
-        
+
         return false;
     }
 
     /**
      * Maybe enqueue "Create with AI" button script on courses listing page
      *
-     * @param string $hook The current admin page hook
+     * @param  string $hook The current admin page hook
      * @return void
      */
     public function maybeEnqueueCreateButton(string $hook): void
     {
         global $post_type;
-        
+
         // Only proceed on the edit.php page
         if ($hook !== 'edit.php') {
             return;
         }
-        
+
         // Check both global $post_type and $_GET parameter
         $current_post_type = $post_type ?: (isset($_GET['post_type']) ? $_GET['post_type'] : '');
-        
+
         // Only add button on courses listing page
         if ($current_post_type !== 'mpcs-course') {
             return;
         }
-        
+
         // Enqueue the button script
         wp_enqueue_script('mpcc-course-integration-create-button');
-        
+
         // Pass data to JavaScript
         wp_localize_script('mpcc-course-integration-create-button', 'mpccCreateButton', [
-            'strings' => [
-                'createWithAI' => __('Create with AI', 'memberpress-courses-copilot')
+            'strings'   => [
+                'createWithAI' => __('Create with AI', 'memberpress-courses-copilot'),
             ],
-            'editorUrl' => admin_url('admin.php?page=mpcc-course-editor&action=new')
+            'editorUrl' => admin_url('admin.php?page=mpcc-course-editor&action=new'),
         ]);
     }
 
@@ -137,11 +136,11 @@ class CourseIntegrationService extends BaseService
     public function addAIAssistantMetaBox(): void
     {
         global $post_type;
-        
+
         if ($post_type !== 'mpcs-course') {
             return;
         }
-        
+
         add_meta_box(
             'mpcc-ai-assistant',
             __('AI Assistant', 'memberpress-courses-copilot'),
@@ -155,27 +154,27 @@ class CourseIntegrationService extends BaseService
     /**
      * Render AI Assistant meta box
      *
-     * @param \WP_Post $post Current post object
+     * @param  \WP_Post $post Current post object
      * @return void
      */
     public function renderAIAssistantMetaBox(\WP_Post $post): void
     {
         NonceConstants::field(NonceConstants::AI_ASSISTANT, 'mpcc_ai_assistant_nonce');
-        
+
         // Enqueue metabox script
         wp_enqueue_script('mpcc-course-integration-metabox');
-        
+
         // Pass data to JavaScript
         wp_localize_script('mpcc-course-integration-metabox', 'mpccMetabox', [
-            'nonce' => NonceConstants::create(NonceConstants::AI_INTERFACE),
-            'postId' => $post->ID,
+            'nonce'   => NonceConstants::create(NonceConstants::AI_INTERFACE),
+            'postId'  => $post->ID,
             'strings' => [
-                'openAIChat' => __('Open AI Chat', 'memberpress-courses-copilot'),
-                'closeAIChat' => __('Close AI Chat', 'memberpress-courses-copilot'),
-                'failedToLoad' => __('Failed to load AI interface', 'memberpress-courses-copilot')
-            ]
+                'openAIChat'   => __('Open AI Chat', 'memberpress-courses-copilot'),
+                'closeAIChat'  => __('Close AI Chat', 'memberpress-courses-copilot'),
+                'failedToLoad' => __('Failed to load AI interface', 'memberpress-courses-copilot'),
+            ],
         ]);
-        
+
         ?>
         <div id="mpcc-ai-assistant-metabox">
             <p style="margin-bottom: 15px;">
@@ -209,23 +208,23 @@ class CourseIntegrationService extends BaseService
     /**
      * Enhance screen options for courses pages
      *
-     * @param bool $show_screen Whether to show screen options
-     * @param \WP_Screen $screen Current screen object
-     * @return bool
+     * @param  boolean    $show_screen Whether to show screen options
+     * @param  \WP_Screen $screen      Current screen object
+     * @return boolean
      */
     public function enhanceScreenOptions(bool $show_screen, \WP_Screen $screen): bool
     {
         if ($screen->post_type === 'mpcs-course') {
             // Add additional screen options for AI features if needed
         }
-        
+
         return $show_screen;
     }
-    
+
     /**
      * Add AI Chat to center column of course edit page
      *
-     * @param \WP_Post $post Current post object
+     * @param  \WP_Post $post Current post object
      * @return void
      */
     public function addAIChatToCenterColumn(\WP_Post $post): void
@@ -234,7 +233,7 @@ class CourseIntegrationService extends BaseService
         ?>
         <!-- MPCC Debug: addAIChatToCenterColumn called for post type: <?php echo esc_html($post->post_type); ?> -->
         <?php
-        
+
         // Only add for course post type
         if ($post->post_type !== 'mpcs-course') {
             ?>
@@ -242,21 +241,21 @@ class CourseIntegrationService extends BaseService
             <?php
             return;
         }
-        
+
         ?>
         <!-- MPCC Debug: Adding AI chat for course ID: <?php echo esc_html($post->ID); ?> -->
         <?php
-        
+
         // Get course metadata
-        $sections = get_post_meta($post->ID, '_mpcs_sections', true) ?: [];
+        $sections   = get_post_meta($post->ID, '_mpcs_sections', true) ?: [];
         $courseData = [
-            'id' => $post->ID,
-            'title' => $post->post_title,
-            'content' => $post->post_content,
+            'id'       => $post->ID,
+            'title'    => $post->post_title,
+            'content'  => $post->post_content,
             'sections' => $sections,
-            'status' => $post->post_status
+            'status'   => $post->post_status,
         ];
-        
+
         ?>
         <div id="mpcc-course-ai-chat-section" style="margin-top: 30px;">
             <h2><?php esc_html_e('AI Course Assistant', 'memberpress-courses-copilot'); ?></h2>
@@ -283,9 +282,9 @@ class CourseIntegrationService extends BaseService
                 
                 <div class="mpcc-course-context" style="margin-top: 15px; padding: 10px; background: #f6f7f7; border-radius: 4px; font-size: 12px; color: #646970;">
                     <strong><?php esc_html_e('Course Context:', 'memberpress-courses-copilot'); ?></strong>
-                    <?php 
+                    <?php
                     $sectionCount = is_array($sections) ? count($sections) : 0;
-                    $lessonCount = 0;
+                    $lessonCount  = 0;
                     if (is_array($sections)) {
                         foreach ($sections as $section) {
                             $lessonCount += isset($section['lessons']) && is_array($section['lessons']) ? count($section['lessons']) : 0;
@@ -293,7 +292,7 @@ class CourseIntegrationService extends BaseService
                     }
                     ?>
                     <?php printf(
-                        esc_html__('This course has %d sections and %d lessons.', 'memberpress-courses-copilot'),
+                        esc_html__('This course has %1$d sections and %2$d lessons.', 'memberpress-courses-copilot'),
                         $sectionCount,
                         $lessonCount
                     ); ?>
@@ -304,17 +303,17 @@ class CourseIntegrationService extends BaseService
         <?php
         // Enqueue center AI script
         wp_enqueue_script('mpcc-course-integration-center-ai');
-        
+
         // Pass data to JavaScript
         wp_localize_script('mpcc-course-integration-center-ai', 'mpccCenterAI', [
-            'nonce' => NonceConstants::create(NonceConstants::AI_INTERFACE),
-            'postId' => $post->ID,
+            'nonce'   => NonceConstants::create(NonceConstants::AI_INTERFACE),
+            'postId'  => $post->ID,
             'strings' => [
-                'failedToLoad' => __('Failed to load AI interface', 'memberpress-courses-copilot'),
-                'failedToLoadNetwork' => __('Failed to load AI interface. Please try refreshing the page.', 'memberpress-courses-copilot')
-            ]
+                'failedToLoad'        => __('Failed to load AI interface', 'memberpress-courses-copilot'),
+                'failedToLoadNetwork' => __('Failed to load AI interface. Please try refreshing the page.', 'memberpress-courses-copilot'),
+            ],
         ]);
-        
+
         // Make course data available globally
         wp_add_inline_script('mpcc-course-integration-center-ai', 'window.courseData = ' . json_encode($courseData) . ';', 'before');
         ?>
