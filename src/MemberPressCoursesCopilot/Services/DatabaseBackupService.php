@@ -26,7 +26,7 @@ class DatabaseBackupService extends BaseService
      *
      * @var string
      */
-    private string $table_prefix;
+    private string $tablePrefix;
 
     /**
      * Backup directory path
@@ -50,7 +50,7 @@ class DatabaseBackupService extends BaseService
         parent::__construct();
         global $wpdb;
         $this->wpdb         = $wpdb;
-        $this->table_prefix = $wpdb->prefix . 'mpcc_';
+        $this->tablePrefix = $wpdb->prefix . 'mpcc_';
 
         // Set up backup directory
         $upload_dir       = wp_upload_dir();
@@ -384,7 +384,7 @@ class DatabaseBackupService extends BaseService
         $tables = [];
 
         // Get all tables with our prefix
-        $all_tables = $this->wpdb->get_col("SHOW TABLES LIKE '{$this->table_prefix}%'");
+        $all_tables = $this->wpdb->get_col("SHOW TABLES LIKE '{$this->tablePrefix}%'");
 
         foreach ($all_tables as $table) {
             $tables[] = $table;
