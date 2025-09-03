@@ -60,6 +60,8 @@ class MpccQuizAjaxController
     /**
      * Load hooks and register AJAX handlers
      *
+     * @since 1.0.0
+     * 
      * @return void
      *
      * @example
@@ -80,6 +82,8 @@ class MpccQuizAjaxController
     /**
      * Load hooks and register AJAX handlers
      *
+     * @since 1.0.0
+     * 
      * @return void
      */
     public function load_hooks(): void
@@ -102,7 +106,12 @@ class MpccQuizAjaxController
     /**
      * Handle quiz generation AJAX request
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When quiz generation fails.
+     * @throws \Throwable When fatal error occurs.
      *
      * @example
      * // AJAX request from JavaScript for lesson-based quiz generation
@@ -267,7 +276,9 @@ class MpccQuizAjaxController
      * 3. Validates against WordPress nonce system
      * 4. Returns false for any invalid or missing nonce
      *
-     * @return boolean True if nonce is valid, false otherwise
+     * @since 1.0.0
+     *
+     * @return bool True if nonce is valid, false otherwise
      */
     private function verifyQuizNonce(): bool
     {
@@ -309,7 +320,9 @@ class MpccQuizAjaxController
      * - Blocks Subscriber and Contributor roles from quiz generation
      * - Ensures only trusted users can create educational content
      *
-     * @return boolean True if user can edit posts, false otherwise
+     * @since 1.0.0
+     *
+     * @return bool True if user can edit posts, false otherwise
      */
     private function verifyUserPermissions(): bool
     {
@@ -334,6 +347,8 @@ class MpccQuizAjaxController
      * - absint() converts to absolute integer, removing negative values and non-numeric data
      * - sanitize_textarea_field() removes script tags, dangerous HTML, and normalizes line breaks
      * - Raw options array is intentionally unsanitized here to preserve structure for JSON parsing
+     *
+     * @since 1.0.0
      *
      * @return array Sanitized input data with consistent structure
      */
@@ -378,7 +393,9 @@ class MpccQuizAjaxController
      * - Non-array results return empty array (type safety)
      * - Null/undefined options return empty array (default behavior)
      *
-     * @param  mixed $options Raw options from request (array or JSON string)
+     * @since 1.0.0
+     *
+     * @param mixed $options Raw options from request (array or JSON string)
      * @return array Parsed and sanitized options array
      */
     private function parseQuizOptions($options): array
@@ -410,9 +427,11 @@ class MpccQuizAjaxController
     /**
      * Get quiz content from lesson, course, or provided content
      *
-     * @param  string  $content  Direct content
-     * @param  integer $lessonId Lesson ID
-     * @param  integer $courseId Course ID
+     * @since 1.0.0
+     *
+     * @param string $content  Direct content
+     * @param int    $lessonId Lesson ID
+     * @param int    $courseId Course ID
      * @return string Quiz content
      */
     private function getQuizContent(string $content, int $lessonId, int $courseId): string
@@ -435,7 +454,9 @@ class MpccQuizAjaxController
     /**
      * Prepare options for quiz generation
      *
-     * @param  array $options Parsed options
+     * @since 1.0.0
+     *
+     * @param array $options Parsed options
      * @return array Generation options
      */
     private function prepareGenerationOptions(array $options): array
@@ -451,11 +472,14 @@ class MpccQuizAjaxController
     /**
      * Format successful quiz response
      *
-     * @param  array   $result       Quiz generation result
-     * @param  string  $questionType Question type
-     * @param  integer $lessonId     Lesson ID
-     * @param  integer $courseId     Course ID
+     * @since 1.0.0
+     *
+     * @param array  $result       Quiz generation result
+     * @param string $questionType Question type
+     * @param int    $lessonId     Lesson ID
+     * @param int    $courseId     Course ID
      * @return array Formatted response data
+     * @throws \Exception When quiz questions generation fails.
      */
     private function formatSuccessfulQuizResponse(
         array $result,
@@ -493,7 +517,11 @@ class MpccQuizAjaxController
     /**
      * Handle regenerate question AJAX request
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When question regeneration fails.
      *
      * @example
      * // Regenerate a specific question
@@ -616,7 +644,11 @@ class MpccQuizAjaxController
     /**
      * Handle validate quiz AJAX request
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When quiz validation fails.
      *
      * @example
      * // Validate a complete quiz
@@ -707,6 +739,8 @@ class MpccQuizAjaxController
     /**
      * Recursively sanitize array data with type-specific cleaning
      *
+     * @since 1.0.0
+     *
      * @example
      * // Sanitize quiz options array
      * $rawOptions = [
@@ -774,8 +808,8 @@ class MpccQuizAjaxController
      * - Removes potentially malicious script content
      * - Normalizes input formats for reliable processing
      *
-     * @param  array  $data Data array to sanitize (supports nested arrays)
-     * @param  string $type Sanitization strategy to apply ('text', 'textarea', 'email', etc.)
+     * @param array  $data Data array to sanitize (supports nested arrays)
+     * @param string $type Sanitization strategy to apply ('text', 'textarea', 'email', etc.)
      * @return array Recursively sanitized array with same structure
      */
     protected function sanitizeArray(array $data, string $type = 'text'): array
@@ -821,7 +855,9 @@ class MpccQuizAjaxController
     /**
      * Get lesson content
      *
-     * @param  integer $lessonId The ID of the lesson to retrieve content from.
+     * @since 1.0.0
+     *
+     * @param int $lessonId The ID of the lesson to retrieve content from.
      * @return string
      *
      * @example
@@ -883,7 +919,9 @@ class MpccQuizAjaxController
     /**
      * Get course content
      *
-     * @param  integer $courseId The ID of the course to retrieve content from.
+     * @since 1.0.0
+     *
+     * @param int $courseId The ID of the course to retrieve content from.
      * @return string
      *
      * @example
@@ -974,7 +1012,9 @@ class MpccQuizAjaxController
      * - Defaults invalid points to 1 (prevents zero-point questions)
      * - Calculates total points for quiz scoring
      *
-     * @param  array $quizData Complete quiz data structure to validate
+     * @since 1.0.0
+     *
+     * @param array $quizData Complete quiz data structure to validate
      * @return array Validation results with 'valid', 'errors', 'warnings', and 'summary'
      */
     private function validateQuizData(array $quizData): array
@@ -1155,7 +1195,11 @@ class MpccQuizAjaxController
     /**
      * Handle create quiz from lesson AJAX request
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When quiz creation from lesson fails.
      *
      * @example
      * // Create a quiz from a specific lesson
@@ -1318,7 +1362,11 @@ class MpccQuizAjaxController
     /**
      * Get the course ID for a lesson
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When getting lesson course fails.
      *
      * @example
      * // Get course information for a lesson
@@ -1428,7 +1476,11 @@ class MpccQuizAjaxController
     /**
      * Get all lessons for a course
      *
+     * @since 1.0.0
+     *
      * @return void
+     *
+     * @throws \Exception When getting course lessons fails.
      *
      * @example
      * // Get all lessons for a course
@@ -1574,8 +1626,10 @@ class MpccQuizAjaxController
     /**
      * Handle AJAX errors consistently
      *
-     * @param  \Exception $e       The exception to handle
-     * @param  string     $context Context description for logging
+     * @since 1.0.0
+     *
+     * @param \Exception $e       The exception to handle
+     * @param string     $context Context description for logging
      * @return void
      */
     private function handleAjaxError(\Exception $e, string $context): void

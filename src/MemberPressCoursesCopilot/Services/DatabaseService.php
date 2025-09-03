@@ -33,6 +33,8 @@ class DatabaseService extends BaseService implements IDatabaseService
 
     /**
      * Database constructor
+     *
+     * @since 1.0.0
      */
     public function __construct()
     {
@@ -45,6 +47,7 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Initialize the database service
      *
+     * @since  1.0.0
      * @return void
      */
     public function init(): void
@@ -56,6 +59,7 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Install database tables
      *
+     * @since  1.0.0
      * @return boolean True on success, false on failure
      */
     public function installTables(): bool
@@ -82,8 +86,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Create conversations table for chat sessions
      *
+     * @since  1.0.0
      * @return void
-     * @throws \Exception
+     * @throws \Exception If table creation fails
      */
     private function createConversationsTable(): void
     {
@@ -121,8 +126,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Create templates table for reusable course patterns
      *
+     * @since  1.0.0
      * @return void
-     * @throws \Exception
+     * @throws \Exception If table creation fails
      */
     private function createTemplatesTable(): void
     {
@@ -161,8 +167,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Create course patterns table for successful patterns with embeddings
      *
+     * @since  1.0.0
      * @return void
-     * @throws \Exception
+     * @throws \Exception If table creation fails
      */
     private function createCoursePatternsTable(): void
     {
@@ -204,8 +211,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Create usage analytics table for API usage, costs, and performance
      *
+     * @since  1.0.0
      * @return void
-     * @throws \Exception
+     * @throws \Exception If table creation fails
      */
     private function createUsageAnalyticsTable(): void
     {
@@ -249,8 +257,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Create quality metrics table for course validation results
      *
+     * @since  1.0.0
      * @return void
-     * @throws \Exception
+     * @throws \Exception If table creation fails
      */
     private function createQualityMetricsTable(): void
     {
@@ -299,8 +308,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Create lesson drafts table for course preview editing
      *
+     * @since  1.0.0
      * @return void
-     * @throws \Exception
+     * @throws \Exception If table creation fails
      */
     private function createLessonDraftsTable(): void
     {
@@ -313,7 +323,8 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Drop all plugin tables (for uninstall)
      *
-     * @return boolean
+     * @since  1.0.0
+     * @return boolean True on success, false on failure
      */
     public function dropTables(): bool
     {
@@ -347,6 +358,7 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Check if database needs upgrade and perform if necessary
      *
+     * @since  1.0.0
      * @return void
      */
     public function maybeUpgradeDatabase(): void
@@ -361,8 +373,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Upgrade database from one version to another
      *
+     * @since  1.0.0
      * @param  string $from_version The previous database version to upgrade from.
-     * @return boolean
+     * @return boolean True on success, false on failure
      */
     private function upgradeDatabase(string $from_version): bool
     {
@@ -389,8 +402,9 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Migrate database to version 1.1.0
      * Adds missing indexes for foreign key columns
      *
+     * @since  1.0.0
      * @return void
-     * @throws \Exception
+     * @throws \Exception If migration fails
      */
     private function migrateTo110(): void
     {
@@ -416,11 +430,12 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Add an index to a table if it doesn't already exist
      *
+     * @since  1.0.0
      * @param  string $tableName   The name of the database table.
      * @param  string $index_name  The name of the index to create.
      * @param  string $column_name The column name to index.
      * @return void
-     * @throws \Exception
+     * @throws \Exception If adding index fails
      */
     private function addIndexIfNotExists(string $tableName, string $index_name, string $column_name): void
     {
@@ -449,7 +464,8 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Seed default data
      *
-     * @return boolean
+     * @since  1.0.0
+     * @return boolean True on success, false on failure
      */
     public function seedDefaultData(): bool
     {
@@ -466,6 +482,7 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Seed default course templates
      *
+     * @since  1.0.0
      * @return void
      */
     private function seedDefaultTemplates(): void
@@ -536,7 +553,20 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Insert a new conversation
      *
+     * @since  1.0.0
      * @param  array<string, mixed> $data The conversation data to insert.
+     *                                    Accepted keys:
+     *                                    - user_id (int, required): User ID
+     *                                    - session_id (string, required): Session identifier
+     *                                    - state (string): 'active'|'paused'|'completed'|'error'
+     *                                    - context (string): Context like 'course_creation'
+     *                                    - course_id (int|null): Related course ID
+     *                                    - title (string): Conversation title
+     *                                    - messages (string): JSON encoded messages array
+     *                                    - metadata (string|null): JSON metadata
+     *                                    - step_data (string|null): JSON step data
+     *                                    - total_tokens (int): Total tokens used
+     *                                    - total_cost (float): Total cost
      * @return integer|false Conversation ID on success, false on failure
      */
     public function insertConversation(array $data): int|false
@@ -569,9 +599,11 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Update a conversation
      *
+     * @since  1.0.0
      * @param  integer              $conversationId The ID of the conversation to update.
      * @param  array<string, mixed> $data           The conversation data to update.
-     * @return boolean
+     *                                              See insertConversation for accepted keys.
+     * @return boolean True on success, false on failure
      */
     public function updateConversation(int $conversationId, array $data): bool
     {
@@ -608,8 +640,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get a conversation by ID
      *
+     * @since  1.0.0
      * @param  integer $conversationId The ID of the conversation to retrieve.
-     * @return object|null
+     * @return object|null Conversation object on success, null if not found
      */
     public function getConversation(int $conversationId): ?object
     {
@@ -629,10 +662,11 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get conversations by user ID
      *
+     * @since  1.0.0
      * @param  integer $userId The ID of the user whose conversations to retrieve.
      * @param  integer $limit  The maximum number of conversations to retrieve.
      * @param  integer $offset The number of conversations to skip.
-     * @return array<object>
+     * @return array<object> Array of conversation objects
      */
     public function getConversationsByUser(int $userId, int $limit = 20, int $offset = 0): array
     {
@@ -654,7 +688,22 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Insert a new template
      *
+     * @since  1.0.0
      * @param  array<string, mixed> $data The template data to insert.
+     *                                    Accepted keys:
+     *                                    - name (string, required): Template name
+     *                                    - description (string|null): Template description
+     *                                    - category (string): Template category
+     *                                    - type (string): 'course'|'section'|'lesson'|'assessment'
+     *                                    - template_data (string, required): JSON encoded template data
+     *                                    - prompt_template (string|null): Prompt template text
+     *                                    - variables (string|null): JSON encoded variables
+     *                                    - usage_count (int): Usage count
+     *                                    - is_active (int): 1 for active, 0 for inactive
+     *                                    - is_system (int): 1 for system template, 0 for user template
+     *                                    - created_by (int|null): Creator user ID
+     *                                    - version (string): Template version
+     *                                    - tags (string|null): JSON encoded tags array
      * @return integer|false Template ID on success, false on failure
      */
     public function insertTemplate(array $data): int|false
@@ -682,9 +731,10 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get templates by category and type
      *
+     * @since  1.0.0
      * @param  string $category The template category to filter by.
      * @param  string $type     The template type to filter by.
-     * @return array<object>
+     * @return array<object> Array of template objects
      */
     public function getTemplates(string $category = '', string $type = ''): array
     {
@@ -719,7 +769,24 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Record usage analytics
      *
+     * @since  1.0.0
      * @param  array<string, mixed> $data The analytics data to record.
+     *                                    Accepted keys:
+     *                                    - user_id (int, required): User ID
+     *                                    - conversation_id (int|null): Related conversation ID
+     *                                    - action_type (string, required): Type of action performed
+     *                                    - api_endpoint (string|null): API endpoint used
+     *                                    - model_used (string|null): AI model used
+     *                                    - tokens_used (int): Number of tokens used
+     *                                    - cost_amount (float): Cost of the operation
+     *                                    - response_time_ms (int|null): Response time in milliseconds
+     *                                    - success (int): 1 for success, 0 for failure
+     *                                    - error_message (string|null): Error message if failed
+     *                                    - request_data (string|null): JSON encoded request data
+     *                                    - response_data (string|null): JSON encoded response data
+     *                                    - user_agent (string|null): User agent string
+     *                                    - ip_address (string|null): IP address
+     *                                    - session_data (string|null): JSON encoded session data
      * @return integer|false Analytics ID on success, false on failure
      */
     public function recordUsage(array $data): int|false
@@ -745,10 +812,17 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get usage analytics for a date range
      *
-     * @param  string       $start_date The start date for analytics range.
-     * @param  string       $end_date   The end date for analytics range.
+     * @since  1.0.0
+     * @param  string       $start_date The start date for analytics range (Y-m-d format).
+     * @param  string       $end_date   The end date for analytics range (Y-m-d format).
      * @param  integer|null $userId     Optional user ID to filter analytics by.
-     * @return array<object>
+     * @return array<object> Array of analytics summary objects with keys:
+     *                       - date (string): Date (Y-m-d)
+     *                       - total_requests (int): Total number of requests
+     *                       - total_tokens (int): Total tokens used
+     *                       - total_cost (float): Total cost
+     *                       - avg_response_time (float): Average response time
+     *                       - successful_requests (int): Number of successful requests
      */
     public function getUsageAnalytics(string $start_date, string $end_date, ?int $userId = null): array
     {
@@ -787,8 +861,14 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get quality metrics summary
      *
+     * @since  1.0.0
      * @param  integer|null $courseId The ID of the course to get metrics for.
-     * @return object|null
+     * @return object|null Quality metrics summary object with keys:
+     *                     - average_score (float): Average quality score
+     *                     - min_score (float): Minimum quality score
+     *                     - max_score (float): Maximum quality score
+     *                     - total_assessments (int): Total number of assessments
+     *                     - human_reviewed_count (int): Number of human-reviewed assessments
      */
     public function getQualityMetricsSummary(?int $courseId = null): ?object
     {
@@ -817,10 +897,11 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Execute a database query with error handling
      *
+     * @since  1.0.0
      * @param  string $sql           The SQL query to execute.
      * @param  string $error_message The error message to log on failure.
      * @return void
-     * @throws \Exception
+     * @throws \Exception If query execution fails
      */
     private function executeQuery(string $sql, string $error_message): void
     {
@@ -834,7 +915,8 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get charset and collation for table creation
      *
-     * @return string
+     * @since  1.0.0
+     * @return string Charset and collation string for SQL queries
      */
     private function getCharsetCollation(): string
     {
@@ -854,8 +936,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get conversation by session ID
      *
+     * @since  1.0.0
      * @param  string $sessionId The unique session identifier.
-     * @return object|null
+     * @return object|null Conversation object on success, null if not found
      */
     public function getConversationBySessionId(string $sessionId): ?object
     {
@@ -875,7 +958,8 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Get multiple conversations by session IDs
      * Batch loading to avoid N+1 queries
      *
-     * @param  array $sessionIds Array of session IDs
+     * @since  1.0.0
+     * @param  array<string> $sessionIds Array of session IDs
      * @return array<string, object> Array keyed by session_id
      */
     public function getConversationsBySessionIds(array $sessionIds): array
@@ -908,7 +992,8 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Get multiple conversations by IDs
      * Batch loading to avoid N+1 queries
      *
-     * @param  array $conversationIds Array of conversation IDs
+     * @since  1.0.0
+     * @param  array<int> $conversationIds Array of conversation IDs
      * @return array<int, object> Array keyed by conversation ID
      */
     public function getConversationsByIds(array $conversationIds): array
@@ -941,6 +1026,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Manually add missing indexes to existing tables
      * This can be called to immediately update indexes without waiting for version check
      *
+     * @since  1.0.0
      * @return boolean True if successful, false if any errors occurred
      */
     public function addMissingIndexes(): bool
@@ -973,7 +1059,8 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get list of missing indexes without applying them
      *
-     * @return array List of missing indexes
+     * @since  1.0.0
+     * @return array<array{table: string, index_name: string, column: string}> List of missing indexes
      */
     public function getMissingIndexes(): array
     {
@@ -1003,9 +1090,10 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Check if an index exists on a table
      *
+     * @since  1.0.0
      * @param  string $tableName  The name of the database table.
      * @param  string $index_name The name of the index to check.
-     * @return boolean
+     * @return boolean True if index exists, false otherwise
      */
     private function indexExists(string $tableName, string $index_name): bool
     {
@@ -1027,7 +1115,8 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get status of all plugin tables
      *
-     * @return array Table name => exists (bool)
+     * @since  1.0.0
+     * @return array<string, bool> Table name => exists (bool)
      */
     public function getTableStatus(): array
     {
@@ -1063,7 +1152,8 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Reinstall all tables (drop and recreate)
      *
-     * @return boolean
+     * @since  1.0.0
+     * @return boolean True on success, false on failure
      */
     public function reinstallTables(): bool
     {
@@ -1082,8 +1172,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get pending migrations
      *
+     * @since  1.0.0
      * @param  string|null $target_version Target version to migrate to
-     * @return array List of pending migrations
+     * @return array<array{version: string, description: string, method: string}> List of pending migrations
      */
     public function getPendingMigrations(?string $target_version = null): array
     {
@@ -1117,8 +1208,10 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Run a specific migration
      *
+     * @since  1.0.0
      * @param  string $version The database version to migrate to.
-     * @return boolean
+     * @return boolean True on success, false on failure
+     * @throws \Exception If migration version is unknown
      */
     public function runMigration(string $version): bool
     {
@@ -1144,8 +1237,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get active session count for user
      *
+     * @since  1.0.0
      * @param  integer $userId The ID of the user to count active sessions for.
-     * @return integer
+     * @return integer Number of active sessions
      */
     public function getActiveSessionCount(int $userId): int
     {
@@ -1164,8 +1258,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get oldest active session for user
      *
+     * @since  1.0.0
      * @param  integer $userId The ID of the user to get the oldest active session for.
-     * @return object|null
+     * @return object|null Conversation object on success, null if no active sessions
      */
     public function getOldestActiveSession(int $userId): ?object
     {
@@ -1184,8 +1279,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get expired sessions
      *
+     * @since  1.0.0
      * @param  integer $expired_before_timestamp The timestamp before which sessions are considered expired.
-     * @return array<object>
+     * @return array<object> Array of expired conversation objects
      */
     public function getExpiredSessions(int $expired_before_timestamp): array
     {
@@ -1204,8 +1300,9 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Delete a conversation
      *
+     * @since  1.0.0
      * @param  integer $conversationId The ID of the conversation to delete.
-     * @return boolean
+     * @return boolean True on success, false on failure
      */
     public function deleteConversation(int $conversationId): bool
     {
@@ -1224,6 +1321,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Get active sessions that need saving
      * Returns session IDs for active sessions updated more than specified minutes ago
      *
+     * @since  1.0.0
      * @param  integer $minutes_since_update Sessions not updated in this many minutes
      * @param  integer $limit                Maximum number of sessions to return
      * @return array<string> Array of session IDs
@@ -1254,8 +1352,9 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Batch update conversations to abandoned state
      * Avoids N+1 queries by updating all expired sessions in a single query
      *
-     * @param  array  $conversationIds Array of conversation IDs to update
-     * @param  string $abandoned_at    Timestamp when sessions were abandoned
+     * @since  1.0.0
+     * @param  array<int> $conversationIds Array of conversation IDs to update
+     * @param  string     $abandoned_at    Timestamp when sessions were abandoned (Y-m-d H:i:s format)
      * @return integer Number of rows updated
      */
     public function batchAbandonConversations(array $conversationIds, string $abandoned_at): int
@@ -1293,6 +1392,7 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Save a conversation to the database (IDatabaseService interface)
      *
+     * @since  1.0.0
      * @param  integer $userId   User ID
      * @param  string  $message  User message
      * @param  string  $response AI response
@@ -1322,9 +1422,10 @@ class DatabaseService extends BaseService implements IDatabaseService
     /**
      * Get conversation history for a user (IDatabaseService interface)
      *
+     * @since  1.0.0
      * @param  integer $userId User ID
      * @param  integer $limit  Number of messages to retrieve
-     * @return array Conversation history
+     * @return array<array{id: int, session_id: string, messages: array, created_at: string, updated_at: string}> Conversation history
      */
     public function getConversationHistory(int $userId, int $limit = 50): array
     {
