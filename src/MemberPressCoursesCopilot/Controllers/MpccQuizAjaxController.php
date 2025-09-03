@@ -1285,11 +1285,11 @@ class MpccQuizAjaxController
             $editUrl = add_query_arg($editUrlArgs, admin_url('post.php'));
 
             wp_send_json_success([
-                'quizId'    => $quizId,
-                'editUrl'   => $editUrl,
-                'message'   => __('Quiz created successfully!', 'memberpress-courses-copilot'),
-                'courseId'  => $courseId,
-                'lessonId'  => $lessonId,
+                'quiz_id'    => $quizId,
+                'edit_url'   => $editUrl,
+                'message'    => __('Quiz created successfully!', 'memberpress-courses-copilot'),
+                'course_id'  => $courseId,
+                'lesson_id'  => $lessonId,
             ]);
         } catch (\Exception $e) {
             $this->handleAjaxError($e, 'Failed to create quiz from lesson');
@@ -1397,9 +1397,9 @@ class MpccQuizAjaxController
             }
 
             wp_send_json_success([
-                'lessonId'     => $lessonId,
-                'courseId'     => $courseId,
-                'courseTitle'  => $courseTitle,
+                'lesson_id'     => $lessonId,
+                'course_id'     => $courseId,
+                'course_title'  => $courseTitle,
             ]);
         } catch (\Exception $e) {
             $this->handleAjaxError($e, 'Failed to get lesson course');
@@ -1542,10 +1542,10 @@ class MpccQuizAjaxController
             }
 
             wp_send_json_success([
-                'courseId'     => $courseId,
-                'courseTitle'  => $course->post_title,
-                'lessons'      => $lessons,
-                'lessonCount'  => count($lessons),
+                'course_id'     => $courseId,
+                'course_title'  => $course->post_title,
+                'lessons'       => $lessons,
+                'lesson_count'  => count($lessons),
             ]);
         } catch (\Exception $e) {
             $this->handleAjaxError($e, 'Failed to get course lessons');
