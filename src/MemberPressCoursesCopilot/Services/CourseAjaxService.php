@@ -418,23 +418,23 @@ class CourseAjaxService extends BaseService
 
             // Get current conversation state for course creation.
             $current_step   = $conversationState['current_step'] ?? 'initial';
-            $collected_data = $conversationState['collected_data'] ?? [];
+            $collectedData = $conversationState['collected_data'] ?? [];
 
             // Prepare the full prompt.
             $system_prompt = $this->getSystemPrompt($context);
             $full_prompt   = $system_prompt . "\n\nConversation history:" . $conversation_context . "\n\nUser: " . $message . "\n\nAssistant:";
 
             // Add current state context for course creation.
-            if ($context === 'course_creation' && !empty($collected_data)) {
-                $full_prompt .= "\n\nCurrent collected course data: " . wp_json_encode($collected_data);
+            if ($context === 'course_creation' && !empty($collectedData)) {
+                $full_prompt .= "\n\nCurrent collected course data: " . wp_json_encode($collectedData);
             }
 
             $this->logger->debug('Preparing LLM service call', [
                 'user_id'              => get_current_user_id(),
                 'context'              => $context,
                 'current_step'         => $current_step,
-                'collected_data_keys'  => array_keys($collected_data),
-                'has_course_structure' => isset($collected_data['course_structure']),
+                'collected_data_keys'  => array_keys($collectedData),
+                'has_course_structure' => isset($collectedData['course_structure']),
                 'prompt_length'        => strlen($full_prompt),
             ]);
 
@@ -464,37 +464,37 @@ class CourseAjaxService extends BaseService
                 return;
             }
 
-            $ai_message = $response['content'];
+            $aiMessage = $response['content'];
 
             // Extract any course data from the response if it contains structured data.
-            $course_data     = null;
-            $ready_to_create = false;
+            $courseData     = null;
+            $readyToCreate = false;
 
-            if (preg_match('/```json\s*([\s\S]*?)\s*```/', $ai_message, $matches)) {
-                $json_data = json_decode($matches[1], true);
+            if (preg_match('/```json\s*([\s\S]*?)\s*```/', $aiMessage, $matches)) {
+                $jsonData = json_decode($matches[1], true);
                 if (json_last_error() === JSON_ERROR_NONE) {
-                    $course_data = $json_data;
+                    $courseData = $jsonData;
                     // Remove JSON from message.
-                    $ai_message = trim(str_replace($matches[0], '', $ai_message));
+                    $aiMessage = trim(str_replace($matches[0], '', $aiMessage));
 
                     // Check if we have enough data to create a course.
-                    if (isset($course_data['title']) && isset($course_data['sections']) && count($course_data['sections']) > 0) {
-                        $ready_to_create = true;
+                    if (isset($courseData['title']) && isset($courseData['sections']) && count($courseData['sections']) > 0) {
+                        $readyToCreate = true;
                     }
                 }
             }
 
             // Update conversation state.
-            if ($course_data) {
+            if ($courseData) {
                 // Store course data under 'course_structure' key to match JavaScript expectations.
-                $collected_data['course_structure'] = $course_data;
+                $collectedData['course_structure'] = $courseData;
             }
 
             // Determine next step.
             $next_step = $current_step;
             $actions   = [];
 
-            if ($ready_to_create) {
+            if ($readyToCreate) {
                 $next_step = 'ready_to_create';
                 $actions   = [
                     [
@@ -513,7 +513,7 @@ class CourseAjaxService extends BaseService
             // Update session state and progress if we have a session.
             if ($session && $conversationManager) {
                 $session->setCurrentState($next_step);
-                $session->setContext($collected_data, null);
+                $session->setContext($collectedData, null);
 
                 // Save the session to persist progress.
                 try {
@@ -530,23 +530,23 @@ class CourseAjaxService extends BaseService
                 'user_id'                 => get_current_user_id(),
                 'context'                 => $context,
                 'next_step'               => $next_step,
-                'ready_to_create'         => $ready_to_create,
-                'has_course_data'         => !empty($course_data),
-                'response_message_length' => strlen($ai_message),
+                'ready_to_create'         => $readyToCreate,
+                'has_course_data'         => !empty($courseData),
+                'response_message_length' => strlen($aiMessage),
                 'actions_count'           => count($actions),
             ]);
 
             wp_send_json_success([
-                'message'            => $ai_message,
-                'course_data'        => $course_data,
+                'message'            => $aiMessage,
+                'course_data'        => $courseData,
                 'context'            => $context,
                 'timestamp'          => current_time('timestamp'),
                 'conversation_state' => [
                     'current_step'   => $next_step,
-                    'collected_data' => $collected_data,
+                    'collected_data' => $collectedData,
                 ],
                 'actions'            => $actions,
-                'ready_to_create'    => $ready_to_create,
+                'ready_to_create'    => $readyToCreate,
             ]);
         } catch (\Exception $e) {
             $this->logger->error('AI chat request failed with exception', [
@@ -590,22 +590,22 @@ class CourseAjaxService extends BaseService
             return;
         }
 
-        $course_data = $_POST['course_data'] ?? [];
+        $courseData = $_POST['course_data'] ?? [];
 
         // Sanitize course data before processing.
-        if (is_array($course_data)) {
-            $course_data = $this->sanitizeArray($course_data);
+        if (is_array($courseData)) {
+            $courseData = $this->sanitizeArray($courseData);
         }
 
         // If course_data is a JSON string, decode it.
-        if (is_string($course_data)) {
-            $decoded = json_decode($course_data, true);
+        if (is_string($courseData)) {
+            $decoded = json_decode($courseData, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                $course_data = $decoded;
+                $courseData = $decoded;
                 $this->logger->info('Decoded JSON course_data', [
-                    'decoded_keys' => array_keys($course_data),
-                    'has_title'    => isset($course_data['title']),
-                    'title_value'  => $course_data['title'] ?? 'not set',
+                    'decoded_keys' => array_keys($courseData),
+                    'has_title'    => isset($courseData['title']),
+                    'title_value'  => $courseData['title'] ?? 'not set',
                 ]);
             }
         }
@@ -613,34 +613,34 @@ class CourseAjaxService extends BaseService
         // Log the raw POST data to debug.
         $this->logger->info('Raw course_data received', [
             'raw_data'          => wp_json_encode($_POST['course_data'] ?? 'empty'),
-            'is_array'          => is_array($course_data),
-            'is_empty'          => empty($course_data),
-            'course_data_type'  => gettype($course_data),
-            'course_data_keys'  => is_array($course_data) ? array_keys($course_data) : 'not an array',
-            'has_title_at_root' => isset($course_data['title']),
-            'title_at_root'     => $course_data['title'] ?? 'no title at root',
-            'full_structure'    => wp_json_encode($course_data),
+            'is_array'          => is_array($courseData),
+            'is_empty'          => empty($courseData),
+            'course_data_type'  => gettype($courseData),
+            'course_data_keys'  => is_array($courseData) ? array_keys($courseData) : 'not an array',
+            'has_title_at_root' => isset($courseData['title']),
+            'title_at_root'     => $courseData['title'] ?? 'no title at root',
+            'full_structure'    => wp_json_encode($courseData),
         ]);
 
         // Check if course data is nested under 'course_structure' key.
-        if (isset($course_data['course_structure']) && is_array($course_data['course_structure'])) {
+        if (isset($courseData['course_structure']) && is_array($courseData['course_structure'])) {
             $this->logger->info('Found nested course_structure, extracting it', [
-                'nested_structure_keys' => array_keys($course_data['course_structure']),
-                'nested_has_title'      => isset($course_data['course_structure']['title']),
-                'nested_title'          => $course_data['course_structure']['title'] ?? 'no title in nested',
+                'nested_structure_keys' => array_keys($courseData['course_structure']),
+                'nested_has_title'      => isset($courseData['course_structure']['title']),
+                'nested_title'          => $courseData['course_structure']['title'] ?? 'no title in nested',
             ]);
-            $course_data = $course_data['course_structure'];
+            $courseData = $courseData['course_structure'];
         }
 
         // Log final course data structure after any extraction.
         $this->logger->info('Final course_data structure', [
-            'has_title'      => isset($course_data['title']),
-            'title'          => $course_data['title'] ?? 'NO TITLE FOUND',
-            'keys'           => is_array($course_data) ? array_keys($course_data) : 'not an array',
-            'sections_count' => isset($course_data['sections']) ? count($course_data['sections']) : 0,
+            'has_title'      => isset($courseData['title']),
+            'title'          => $courseData['title'] ?? 'NO TITLE FOUND',
+            'keys'           => is_array($courseData) ? array_keys($courseData) : 'not an array',
+            'sections_count' => isset($courseData['sections']) ? count($courseData['sections']) : 0,
         ]);
 
-        if (empty($course_data)) {
+        if (empty($courseData)) {
             $this->logger->warning('Course creation failed: no course data provided', [
                 'user_id'   => get_current_user_id(),
                 'post_keys' => array_keys($_POST),
@@ -652,21 +652,21 @@ class CourseAjaxService extends BaseService
         try {
             $this->logger->info('Course creation initiated', [
                 'user_id'          => get_current_user_id(),
-                'course_title'     => $course_data['title'] ?? 'Unknown',
-                'sections_count'   => count($course_data['sections'] ?? []),
-                'course_data_keys' => array_keys($course_data),
-                'first_section'    => isset($course_data['sections'][0]) ? wp_json_encode($course_data['sections'][0]) : 'no sections',
+                'course_title'     => $courseData['title'] ?? 'Unknown',
+                'sections_count'   => count($courseData['sections'] ?? []),
+                'course_data_keys' => array_keys($courseData),
+                'first_section'    => isset($courseData['sections'][0]) ? wp_json_encode($courseData['sections'][0]) : 'no sections',
             ]);
 
             // Get the Course Generator Service from container.
             $generator = $this->getCourseGenerator();
 
             // Validate course data.
-            $validation = $generator->validateCourseData($course_data);
+            $validation = $generator->validateCourseData($courseData);
             if (!$validation['valid']) {
                 $this->logger->error('Course creation failed: validation errors', [
                     'user_id'           => get_current_user_id(),
-                    'course_title'      => $course_data['title'] ?? 'Unknown',
+                    'course_title'      => $courseData['title'] ?? 'Unknown',
                     'validation_errors' => $validation['errors'],
                 ]);
                 wp_send_json_error([
@@ -681,12 +681,12 @@ class CourseAjaxService extends BaseService
                 $sessionId = sanitize_text_field($_POST['session_id']);
                 $this->logger->info('Applying lesson drafts to course structure', [
                     'session_id'   => $sessionId,
-                    'course_title' => $course_data['title'] ?? 'Unknown',
+                    'course_title' => $courseData['title'] ?? 'Unknown',
                 ]);
 
                 // Get lesson draft service and map drafts to course structure.
                 $draftService = $this->getLessonDraftService();
-                $course_data  = $draftService->mapDraftsToStructure($sessionId, $course_data);
+                $courseData  = $draftService->mapDraftsToStructure($sessionId, $courseData);
 
                 $this->logger->info('Drafts mapped to course structure', [
                     'session_id'            => $sessionId,
@@ -701,19 +701,19 @@ class CourseAjaxService extends BaseService
                                 ];
                             }, $section['lessons'] ?? []),
                         ];
-                    }, $course_data['sections'] ?? []),
+                    }, $courseData['sections'] ?? []),
                 ]);
             }
 
             // Generate the course.
-            $result = $generator->generateCourse($course_data);
+            $result = $generator->generateCourse($courseData);
 
             if ($result['success']) {
                 $this->logger->info('Course created successfully', [
                     'user_id'        => get_current_user_id(),
                     'course_id'      => $result['course_id'],
-                    'course_title'   => $course_data['title'] ?? 'Unknown',
-                    'sections_count' => count($course_data['sections'] ?? []),
+                    'course_title'   => $courseData['title'] ?? 'Unknown',
+                    'sections_count' => count($courseData['sections'] ?? []),
                 ]);
 
                 // Update session title if we have a session ID.
@@ -724,12 +724,12 @@ class CourseAjaxService extends BaseService
                         $session             = $conversationManager->loadSession($sessionId);
 
                         if ($session && $session->getUserId() === get_current_user_id()) {
-                            $courseTitle = $course_data['title'] ?? 'Unknown Course';
+                            $courseTitle = $courseData['title'] ?? 'Unknown Course';
                             $this->logger->info('Attempting to update session title', [
                                 'session_id'            => $sessionId,
                                 'course_title'          => $courseTitle,
-                                'course_data_has_title' => isset($course_data['title']),
-                                'course_data_keys'      => array_keys($course_data),
+                                'course_data_has_title' => isset($courseData['title']),
+                                'course_data_keys'      => array_keys($courseData),
                             ]);
 
                             $session->setTitle('Course: ' . $courseTitle);
@@ -773,7 +773,7 @@ class CourseAjaxService extends BaseService
             } else {
                 $this->logger->error('Course creation failed', [
                     'user_id'      => get_current_user_id(),
-                    'course_title' => $course_data['title'] ?? 'Unknown',
+                    'course_title' => $courseData['title'] ?? 'Unknown',
                     'error'        => $result['error'],
                 ]);
                 wp_send_json_error([
@@ -784,7 +784,7 @@ class CourseAjaxService extends BaseService
         } catch (\Exception $e) {
             $this->logger->error('Course creation failed with exception', [
                 'user_id'       => get_current_user_id(),
-                'course_title'  => $course_data['title'] ?? 'Unknown',
+                'course_title'  => $courseData['title'] ?? 'Unknown',
                 'error_message' => $e->getMessage(),
                 'error_file'    => $e->getFile(),
                 'error_line'    => $e->getLine(),
