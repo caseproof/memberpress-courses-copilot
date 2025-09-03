@@ -25,18 +25,33 @@ use WP_Error;
  */
 class CourseAjaxService extends BaseService
 {
+    /**
+     * @var ILLMService|null LLM (Language Learning Model) service for AI content generation
+     */
     private ?ILLMService $llmService                   = null;
+    
+    /**
+     * @var IConversationManager|null Service for managing conversation sessions and state
+     */
     private ?IConversationManager $conversationManager = null;
+    
+    /**
+     * @var ICourseGenerator|null Service for generating course structure and content
+     */
     private ?ICourseGenerator $courseGenerator         = null;
+    
+    /**
+     * @var LessonDraftService|null Service for managing lesson draft content during course creation
+     */
     private ?LessonDraftService $draftService          = null;
 
     /**
      * Constructor with dependency injection
      *
-     * @param ILLMService|null          $llmService
-     * @param IConversationManager|null $conversationManager
-     * @param ICourseGenerator|null     $courseGenerator
-     * @param LessonDraftService|null   $draftService
+     * @param ILLMService|null          $llmService          The language model service for AI content generation.
+     * @param IConversationManager|null $conversationManager The conversation manager for session persistence.
+     * @param ICourseGenerator|null     $courseGenerator     The course generator service for creating courses.
+     * @param LessonDraftService|null   $draftService        The lesson draft service for managing drafts.
      */
     public function __construct(
         ?ILLMService $llmService = null,
@@ -161,7 +176,8 @@ class CourseAjaxService extends BaseService
         // Course preview editing endpoints.
         add_action('wp_ajax_mpcc_save_lesson_content', [$this, 'saveLessonContent']);
         add_action('wp_ajax_mpcc_load_lesson_content', [$this, 'loadLessonContent']);
-        add_action('wp_ajax_mpcc_load_all_drafts', [$this, 'loadLessonContent']); // Same handler, loads all drafts for session.
+        // Same handler, loads all drafts for session.
+        add_action('wp_ajax_mpcc_load_all_drafts', [$this, 'loadLessonContent']);
         add_action('wp_ajax_mpcc_generate_lesson_content', [$this, 'generateLessonContent']);
         add_action('wp_ajax_mpcc_reorder_course_items', [$this, 'reorderCourseItems']);
         add_action('wp_ajax_mpcc_delete_course_item', [$this, 'deleteCourseItem']);
@@ -266,16 +282,26 @@ class CourseAjaxService extends BaseService
         } else {
             // Fallback basic interface.
             ?>
-            <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface" data-context="<?php echo esc_attr($context); ?>" data-post-id="<?php echo esc_attr($postId); ?>" style="height: 100%; display: flex; flex-direction: column;">
-                <div id="mpcc-course-chat-messages" class="mpcc-chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; border: none; padding: 20px; background: #f9f9f9;">
+            <div id="mpcc-ai-chat-interface" class="mpcc-ai-interface"
+                 data-context="<?php echo esc_attr($context); ?>"
+                 data-post-id="<?php echo esc_attr($postId); ?>"
+                 style="height: 100%; display: flex; flex-direction: column;">
+                <div id="mpcc-course-chat-messages" class="mpcc-chat-messages"
+                     style="flex: 1; min-height: 0; overflow-y: auto; border: none;
+                            padding: 20px; background: #f9f9f9;">
                     <!-- Messages will be inserted here by JavaScript -->
                 </div>
                 
-                <div id="mpcc-course-chat-input-area" style="border-top: 1px solid #dcdcde; padding: 15px; background: #fff; display: flex; gap: 10px;">
+                <div id="mpcc-course-chat-input-area"
+                     style="border-top: 1px solid #dcdcde; padding: 15px; background: #fff; display: flex; gap: 10px;">
                     <textarea id="mpcc-course-chat-input" 
-                              placeholder="<?php esc_attr_e('Ask me anything about your course...', 'memberpress-courses-copilot'); ?>" 
-                              style="flex: 1; padding: 8px 12px; border: 2px solid #dcdcde; border-radius: 6px; font-size: 14px; resize: none; min-height: 40px; max-height: 120px;"></textarea>
-                    <button type="button" id="mpcc-course-send-message" class="button button-primary" style="padding: 8px 16px; display: flex; align-items: center; gap: 5px;">
+                              placeholder="<?php
+                                  esc_attr_e('Ask me anything about your course...', 'memberpress-courses-copilot');
+                              ?>"
+                              style="flex: 1; padding: 8px 12px; border: 2px solid #dcdcde; border-radius: 6px;
+                                     font-size: 14px; resize: none; min-height: 40px; max-height: 120px;"></textarea>
+                    <button type="button" id="mpcc-course-send-message" class="button button-primary"
+                            style="padding: 8px 16px; display: flex; align-items: center; gap: 5px;">
                         <span class="dashicons dashicons-arrow-right-alt"></span>
                         <?php esc_html_e('Send', 'memberpress-courses-copilot'); ?>
                     </button>
@@ -289,13 +315,19 @@ class CourseAjaxService extends BaseService
                     var message = $('#mpcc-course-chat-input').val().trim();
                     if (message) {
                         // Add user message to chat.
-                        var userMessage = '<div style="margin-bottom: 15px; text-align: right;"><div style="display: inline-block; background: #0073aa; color: white; padding: 10px 15px; border-radius: 18px; max-width: 70%;">' + message + '</div></div>';
+                        var userMessage = '<div style="margin-bottom: 15px; text-align: right;">' +
+                            '<div style="display: inline-block; background: #0073aa; color: white; ' +
+                            'padding: 10px 15px; border-radius: 18px; max-width: 70%;">' + message + '</div></div>';
                         $('#mpcc-chat-messages').append(userMessage);
                         $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
                         $('#mpcc-course-chat-input').val('');
                         
                         // Show typing indicator.
-                        var typingIndicator = '<div id="mpcc-typing" style="margin-bottom: 15px;"><div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; border-radius: 18px;"><span style="animation: pulse 1.5s infinite;">AI is typing...</span></div></div>';
+                        var typingIndicator = '<div id="mpcc-typing" style="margin-bottom: 15px;">' +
+                            '<div style="display: inline-block; background: #f0f0f0; padding: 10px 15px; ' +
+                            'border-radius: 18px;">' +
+                            '<span style="animation: pulse 1.5s infinite;">AI is typing...</span>' +
+                            '</div></div>';
                         $('#mpcc-chat-messages').append(typingIndicator);
                         $('#mpcc-chat-messages').scrollTop($('#mpcc-chat-messages')[0].scrollHeight);
                         
@@ -417,12 +449,13 @@ class CourseAjaxService extends BaseService
             }
 
             // Get current conversation state for course creation.
-            $current_step   = $conversationState['current_step'] ?? 'initial';
+            $current_step  = $conversationState['current_step'] ?? 'initial';
             $collectedData = $conversationState['collected_data'] ?? [];
 
             // Prepare the full prompt.
             $system_prompt = $this->getSystemPrompt($context);
-            $full_prompt   = $system_prompt . "\n\nConversation history:" . $conversation_context . "\n\nUser: " . $message . "\n\nAssistant:";
+            $full_prompt = $system_prompt . "\n\nConversation history:" . $conversation_context
+                         . "\n\nUser: " . $message . "\n\nAssistant:";
 
             // Add current state context for course creation.
             if ($context === 'course_creation' && !empty($collectedData)) {
@@ -459,7 +492,10 @@ class CourseAjaxService extends BaseService
                     'error_message' => $response['message'] ?? 'Unknown error',
                     'full_response' => $response,
                 ]);
-                $error = new WP_Error(ApiResponse::ERROR_AI_SERVICE, 'AI service error: ' . ($response['message'] ?? 'Unknown error'));
+                $error = new WP_Error(
+                    ApiResponse::ERROR_AI_SERVICE,
+                    'AI service error: ' . ($response['message'] ?? 'Unknown error')
+                );
                 ApiResponse::error($error);
                 return;
             }
@@ -467,7 +503,7 @@ class CourseAjaxService extends BaseService
             $aiMessage = $response['content'];
 
             // Extract any course data from the response if it contains structured data.
-            $courseData     = null;
+            $courseData    = null;
             $readyToCreate = false;
 
             if (preg_match('/```json\s*([\s\S]*?)\s*```/', $aiMessage, $matches)) {
@@ -478,7 +514,8 @@ class CourseAjaxService extends BaseService
                     $aiMessage = trim(str_replace($matches[0], '', $aiMessage));
 
                     // Check if we have enough data to create a course.
-                    if (isset($courseData['title']) && isset($courseData['sections']) && count($courseData['sections']) > 0) {
+                    if (isset($courseData['title']) && isset($courseData['sections'])
+                        && count($courseData['sections']) > 0) {
                         $readyToCreate = true;
                     }
                 }
@@ -655,7 +692,9 @@ class CourseAjaxService extends BaseService
                 'course_title'     => $courseData['title'] ?? 'Unknown',
                 'sections_count'   => count($courseData['sections'] ?? []),
                 'course_data_keys' => array_keys($courseData),
-                'first_section'    => isset($courseData['sections'][0]) ? wp_json_encode($courseData['sections'][0]) : 'no sections',
+                'first_section'    => isset($courseData['sections'][0])
+                    ? wp_json_encode($courseData['sections'][0])
+                    : 'no sections',
             ]);
 
             // Get the Course Generator Service from container.
@@ -686,7 +725,7 @@ class CourseAjaxService extends BaseService
 
                 // Get lesson draft service and map drafts to course structure.
                 $draftService = $this->getLessonDraftService();
-                $courseData  = $draftService->mapDraftsToStructure($sessionId, $courseData);
+                $courseData   = $draftService->mapDraftsToStructure($sessionId, $courseData);
 
                 $this->logger->info('Drafts mapped to course structure', [
                     'session_id'            => $sessionId,
@@ -802,22 +841,26 @@ class CourseAjaxService extends BaseService
      */
     private function getSystemPrompt(string $context): string
     {
-        $base_prompt = 'You are an AI assistant specialized in helping create and improve online courses for MemberPress Courses. You have expertise in curriculum design, learning objectives, content structuring, and educational best practices.';
+        $base_prompt = 'You are an AI assistant specialized in helping create and improve online courses '
+                     . 'for MemberPress Courses. You have expertise in curriculum design, learning objectives, '
+                     . 'content structuring, and educational best practices.';
 
         switch ($context) {
             case 'course_creation':
-                return $base_prompt . ' You are helping a user create a new course from scratch. Focus on understanding their topic, target audience, and learning goals. Help them structure a comprehensive curriculum with sections and lessons. 
-
-IMPORTANT: When the user has provided:
-1. The subject/topic of the course
-2. Target audience
-3. Main objectives or what students will build/learn
-4. Approximate duration
-5. Whether it includes hands-on exercises
-
-You MUST generate a complete course structure immediately. Do not ask for more clarification unless absolutely necessary.
-
-Your conversation should be natural and helpful. If you need clarification, ask only 1-2 specific questions. Once you have the basic information above, generate the course structure in the following JSON format wrapped in ```json``` code blocks:
+                return $base_prompt . ' You are helping a user create a new course from scratch. '
+                    . 'Focus on understanding their topic, target audience, and learning goals. '
+                    . 'Help them structure a comprehensive curriculum with sections and lessons. '
+                    . "\n\nIMPORTANT: When the user has provided:\n"
+                    . "1. The subject/topic of the course\n"
+                    . "2. Target audience\n"
+                    . "3. Main objectives or what students will build/learn\n"
+                    . "4. Approximate duration\n"
+                    . "5. Whether it includes hands-on exercises\n\n"
+                    . 'You MUST generate a complete course structure immediately. '
+                    . 'Do not ask for more clarification unless absolutely necessary.\n\n'
+                    . 'Your conversation should be natural and helpful. If you need clarification, '
+                    . 'ask only 1-2 specific questions. Once you have the basic information above, '
+                    . 'generate the course structure in the following JSON format wrapped in ```json``` code blocks:'
 
 ```json
 {
@@ -846,15 +889,24 @@ Your conversation should be natural and helpful. If you need clarification, ask 
 }
 ```
 
-Be conversational and guide the user through the process naturally. When you have the 5 key pieces of information listed above, immediately generate the complete course structure. Do not continue asking questions.
-
-Example: If a user says they want to create a PHP course for people with HTML/CSS knowledge to build a todo app in 4 hours with OOP, PDO, and MVC - you have ALL the information needed. Generate the course immediately.';
+Be conversational and guide the user through the process naturally. '
+                    . 'When you have the 5 key pieces of information listed above, immediately generate '
+                    . 'the complete course structure. Do not continue asking questions.\n\n'
+                    . 'Example: If a user says they want to create a PHP course for people with HTML/CSS '
+                    . 'knowledge to build a todo app in 4 hours with OOP, PDO, and MVC - you have ALL '
+                    . 'the information needed. Generate the course immediately.';
 
             case 'course_editing':
-                return $base_prompt . ' You are helping a user improve an existing course. Focus on enhancing content, improving structure, adding engaging elements, and optimizing the learning experience. Be specific about improvements and provide concrete suggestions. When suggesting course modifications, include structured data in JSON format wrapped in ```json``` code blocks.';
+                return $base_prompt . ' You are helping a user improve an existing course. '
+                    . 'Focus on enhancing content, improving structure, adding engaging elements, '
+                    . 'and optimizing the learning experience. Be specific about improvements '
+                    . 'and provide concrete suggestions. When suggesting course modifications, '
+                    . 'include structured data in JSON format wrapped in ```json``` code blocks.';
 
             default:
-                return $base_prompt . ' Provide helpful, specific guidance for course creation and improvement. When providing course data, use JSON format wrapped in ```json``` code blocks.';
+                return $base_prompt . ' Provide helpful, specific guidance for course creation '
+                    . 'and improvement. When providing course data, use JSON format '
+                    . 'wrapped in ```json``` code blocks.';
         }
     }
 
@@ -1658,9 +1710,12 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                         if (isset($context['course_structure']['sections'])) {
                             foreach ($context['course_structure']['sections'] as &$section) {
                                 if (isset($section['lessons'])) {
-                                    $section['lessons'] = array_filter($section['lessons'], function ($lesson) use ($lessonId) {
-                                        return ($lesson['id'] ?? '') !== $lessonId;
-                                    });
+                                    $section['lessons'] = array_filter(
+                                        $section['lessons'],
+                                        function ($lesson) use ($lessonId) {
+                                            return ($lesson['id'] ?? '') !== $lessonId;
+                                        }
+                                    );
                                     $section['lessons'] = array_values($section['lessons']); // Re-index.
                                 }
                             }
@@ -1709,7 +1764,10 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                                 return ($section['id'] ?? '') !== $sectionId;
                             }
                         );
-                        $context['course_structure']['sections'] = array_values($context['course_structure']['sections']); // Re-index.
+                        // Re-index.
+                        $context['course_structure']['sections'] = array_values(
+                            $context['course_structure']['sections']
+                        );
 
                         $session->setContext($context, null);
                         $conversationManager->saveSession($session);
@@ -1749,7 +1807,12 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      * @param  array  $context      Additional context
      * @return string
      */
-    private function buildLessonContentPrompt(string $courseTitle, string $sectionTitle, string $lessonTitle, array $context): string
+    private function buildLessonContentPrompt(
+        string $courseTitle,
+        string $sectionTitle,
+        string $lessonTitle,
+        array $context
+    ): string
     {
         $prompt = "Generate comprehensive lesson content for an online course.\n\n";
 
@@ -1820,7 +1883,9 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
 
         $message             = sanitize_text_field($_POST['message'] ?? '');
         $courseData          = isset($_POST['course_data']) ? json_decode(wp_unslash($_POST['course_data']), true) : [];
-        $conversationHistory = isset($_POST['conversation_history']) ? json_decode(wp_unslash($_POST['conversation_history']), true) : [];
+        $conversationHistory = isset($_POST['conversation_history'])
+            ? json_decode(wp_unslash($_POST['conversation_history']), true)
+            : [];
 
         // Sanitize arrays.
         if (is_array($courseData)) {
@@ -1951,7 +2016,12 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
                 $prompt .= sprintf("Section %d: %s\n", $sIndex + 1, $section['title'] ?? 'Untitled Section');
                 if (!empty($section['lessons'])) {
                     foreach ($section['lessons'] as $lIndex => $lesson) {
-                        $prompt .= sprintf("  - Lesson %d.%d: %s\n", $sIndex + 1, $lIndex + 1, $lesson['title'] ?? 'Untitled Lesson');
+                        $prompt .= sprintf(
+                            "  - Lesson %d.%d: %s\n",
+                            $sIndex + 1,
+                            $lIndex + 1,
+                            $lesson['title'] ?? 'Untitled Lesson'
+                        );
                     }
                 }
             }
@@ -2111,9 +2181,12 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
      */
     private function buildCourseContextPrompt(array $courseData, string $userMessage): string
     {
-        $prompt  = 'You are an AI course development expert helping a user improve their online course overview/description. ';
-        $prompt .= "Your focus is on the main course content/description, NOT the lessons or curriculum structure.\n";
-        $prompt .= "When the user asks you to update, enhance, or rewrite the course content, provide the ACTUAL new content they can use.\n";
+        $prompt  = 'You are an AI course development expert helping a user improve their '
+                 . 'online course overview/description. ';
+        $prompt .= 'Your focus is on the main course content/description, '
+                 . "NOT the lessons or curriculum structure.\n";
+        $prompt .= 'When the user asks you to update, enhance, or rewrite the course content, '
+                 . "provide the ACTUAL new content they can use.\n";
         $prompt .= "If the user asks for content changes, include [CONTENT_UPDATE] tag in your response.\n\n";
 
         $prompt .= "=== CURRENT COURSE CONTEXT ===\n";

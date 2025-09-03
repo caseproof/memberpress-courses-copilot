@@ -17,14 +17,21 @@ use WP_Error;
  */
 class MpccQuizAjaxController
 {
+    /**
+     * @var MpccQuizAIService Service for AI-powered quiz question generation
+     */
     private MpccQuizAIService $quizAIService;
+    
+    /**
+     * @var Logger Logging service for error tracking and debug information
+     */
     private Logger $logger;
 
     /**
      * Constructor - dependencies can be injected
      *
-     * @param MpccQuizAIService|null $quizAIService
-     * @param Logger|null            $logger
+     * @param MpccQuizAIService|null $quizAIService The quiz AI service for generating quiz questions.
+     * @param Logger|null            $logger        The logger instance for error and debug logging.
      *
      * @example
      * // Basic instantiation with auto-injection
@@ -199,7 +206,10 @@ class MpccQuizAjaxController
             );
 
             if (empty($content)) {
-                ApiResponse::errorMessage('No content available to generate quiz from', ApiResponse::ERROR_MISSING_PARAMETER);
+                ApiResponse::errorMessage(
+                    'No content available to generate quiz from',
+                    ApiResponse::ERROR_MISSING_PARAMETER
+                );
                 return;
             }
 
@@ -447,7 +457,12 @@ class MpccQuizAjaxController
      * @param  integer $courseId     Course ID
      * @return array Formatted response data
      */
-    private function formatSuccessfulQuizResponse(array $result, string $questionType, int $lessonId, int $courseId): array
+    private function formatSuccessfulQuizResponse(
+        array $result,
+        string $questionType,
+        int $lessonId,
+        int $courseId
+    ): array
     {
         // For backward compatibility, if the result is directly an array of questions
         $questions = isset($result['questions']) ? $result['questions'] : $result;
@@ -702,7 +717,8 @@ class MpccQuizAjaxController
      *     'custom_prompt' => '<script>alert("xss")</script>Focus on basics'
      * ];
      * $sanitized = $this->sanitizeArray($rawOptions, 'text');
-     * // Result: ['num_questions' => '10', 'difficulty' => 'medium', 'question_type' => 'multiple_choice', 'custom_prompt' => 'Focus on basics']
+     * // Result: ['num_questions' => '10', 'difficulty' => 'medium', 'question_type' => 'multiple_choice',
+     * //          'custom_prompt' => 'Focus on basics']
      *
      * @example
      * // Sanitize nested question data with HTML content
@@ -806,7 +822,7 @@ class MpccQuizAjaxController
     /**
      * Get lesson content
      *
-     * @param  integer $lessonId
+     * @param  integer $lessonId The ID of the lesson to retrieve content from.
      * @return string
      *
      * @example
@@ -817,7 +833,8 @@ class MpccQuizAjaxController
      * @example
      * // Get content from lesson with only title (fallback behavior)
      * $content = $this->getLessonContent(456);
-     * // Returns: "PHP Functions\n\nLearn about PHP functions...\n\nCourse Context: Introduction to PHP..." (title + excerpt + course context)
+     * // Returns: "PHP Functions\n\nLearn about PHP functions...\n\nCourse Context: Introduction to PHP..."
+     * //          (title + excerpt + course context)
      *
      * @example
      * // Handle non-existent lesson
@@ -867,7 +884,7 @@ class MpccQuizAjaxController
     /**
      * Get course content
      *
-     * @param  integer $courseId
+     * @param  integer $courseId The ID of the course to retrieve content from.
      * @return string
      *
      * @example
@@ -1078,7 +1095,8 @@ class MpccQuizAjaxController
                         $results['errors'][] = "Question {$questionNum}: Options are missing or invalid";
                         $results['valid']    = false;
                     } elseif (count($question['options']) < 3) {
-                        $results['errors'][] = "Question {$questionNum}: At least 3 options are required for multiple select";
+                        $results['errors'][] = "Question {$questionNum}: "
+                            . "At least 3 options are required for multiple select";
                         $results['valid']    = false;
                     }
 
@@ -1088,7 +1106,8 @@ class MpccQuizAjaxController
                         $results['valid']    = false;
                     } elseif (count($question['correct_answers']) < 2) {
                         // Minimum 2 correct answers defines "multiple" selection
-                        $results['errors'][] = "Question {$questionNum}: At least 2 correct answers are required for multiple select";
+                        $results['errors'][] = "Question {$questionNum}: "
+                            . "At least 2 correct answers are required for multiple select";
                         $results['valid']    = false;
                     } else {
                         // Validate referential integrity: all correct answers must reference valid options
@@ -1096,7 +1115,8 @@ class MpccQuizAjaxController
                         $optionKeys = array_keys($question['options'] ?? []);
                         foreach ($question['correct_answers'] as $answer) {
                             if (!in_array($answer, $optionKeys)) {
-                                $results['errors'][] = "Question {$questionNum}: Correct answer '{$answer}' is not in options";
+                                $results['errors'][] = "Question {$questionNum}: "
+                                    . "Correct answer '{$answer}' is not in options";
                                 $results['valid']    = false;
                                 // Break early to avoid spam errors for multiple invalid answers
                                 break;

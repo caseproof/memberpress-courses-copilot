@@ -39,33 +39,39 @@ class EditorAIIntegrationService extends BaseService
             <br>• Provide compelling content that attracts students
             <br>• Suggest improvements to your course overview
             <br>• Help you highlight key benefits and learning outcomes
-            <br><br><em>Note: I focus on the main course content. For lessons and curriculum structure, use the Curriculum tab above.</em>
+            <br><br><em>Note: I focus on the main course content. For lessons and curriculum structure,
+            use the Curriculum tab above.</em>
             <br><br>Would you like me to enhance your course description?",
             'quick_prompts'   => [
                 [
                     'icon'   => 'edit-large',
                     'label'  => 'Course Description',
-                    'prompt' => 'Write a compelling course description that highlights the key benefits and learning outcomes for students.',
+                    'prompt' => 'Write a compelling course description that highlights '
+                              . 'the key benefits and learning outcomes for students.',
                 ],
                 [
                     'icon'   => 'yes-alt',
                     'label'  => 'Learning Objectives',
-                    'prompt' => 'Create clear and specific learning objectives that describe what students will be able to do after completing this course.',
+                    'prompt' => 'Create clear and specific learning objectives that describe '
+                              . 'what students will be able to do after completing this course.',
                 ],
                 [
                     'icon'   => 'visibility',
                     'label'  => 'Improve Overview',
-                    'prompt' => 'Improve the course overview to better communicate the value proposition and attract potential students.',
+                    'prompt' => 'Improve the course overview to better communicate '
+                              . 'the value proposition and attract potential students.',
                 ],
                 [
                     'icon'   => 'awards',
                     'label'  => 'Benefits & Outcomes',
-                    'prompt' => 'Add specific benefits and outcomes students will gain from taking this course, focusing on practical results.',
+                    'prompt' => 'Add specific benefits and outcomes students will gain '
+                              . 'from taking this course, focusing on practical results.',
                 ],
                 [
                     'icon'   => 'list-view',
                     'label'  => 'Prerequisites',
-                    'prompt' => 'Write clear course prerequisites that help students understand if this course is right for their skill level.',
+                    'prompt' => 'Write clear course prerequisites that help students '
+                              . 'understand if this course is right for their skill level.',
                 ],
                 [
                     'icon'   => 'megaphone',
@@ -92,32 +98,38 @@ class EditorAIIntegrationService extends BaseService
                 [
                     'icon'   => 'edit-page',
                     'label'  => 'Write Lesson Content',
-                    'prompt' => 'Write comprehensive lesson content for this topic, including clear explanations, examples, and key takeaways.',
+                    'prompt' => 'Write comprehensive lesson content for this topic, '
+                              . 'including clear explanations, examples, and key takeaways.',
                 ],
                 [
                     'icon'   => 'yes-alt',
                     'label'  => 'Create Learning Objectives',
-                    'prompt' => 'Create 3-5 specific, measurable learning objectives that students should achieve after completing this lesson.',
+                    'prompt' => 'Create 3-5 specific, measurable learning objectives '
+                              . 'that students should achieve after completing this lesson.',
                 ],
                 [
                     'icon'   => 'clipboard',
                     'label'  => 'Add Practice Activities',
-                    'prompt' => 'Design engaging practice activities, exercises, or assignments that reinforce the lesson concepts.',
+                    'prompt' => 'Design engaging practice activities, exercises, '
+                              . 'or assignments that reinforce the lesson concepts.',
                 ],
                 [
                     'icon'   => 'welcome-learn-more',
                     'label'  => 'Write Introduction',
-                    'prompt' => 'Write an engaging lesson introduction that hooks students and clearly explains what they\'ll learn.',
+                    'prompt' => 'Write an engaging lesson introduction that hooks students '
+                              . 'and clearly explains what they\'ll learn.',
                 ],
                 [
                     'icon'   => 'portfolio',
                     'label'  => 'Create Summary',
-                    'prompt' => 'Create a comprehensive lesson summary that reinforces key concepts and provides clear next steps.',
+                    'prompt' => 'Create a comprehensive lesson summary that reinforces '
+                              . 'key concepts and provides clear next steps.',
                 ],
                 [
                     'icon'   => 'admin-settings',
                     'label'  => 'Add Interactive Elements',
-                    'prompt' => 'Add interactive elements like quizzes, polls, discussions, or multimedia to enhance student engagement.',
+                    'prompt' => 'Add interactive elements like quizzes, polls, discussions, '
+                              . 'or multimedia to enhance student engagement.',
                 ],
             ],
         ],
@@ -247,7 +259,9 @@ class EditorAIIntegrationService extends BaseService
                         aiButton.style.borderColor = '#6B4CE6';
                         aiButton.style.height = '36px';
                         aiButton.style.whiteSpace = 'nowrap';
-                        aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\" style=\"margin: 3px 5px 0 0; vertical-align: middle;\"></span>" . esc_js($config['button_text']) . "';
+                        aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\" '
+                            + 'style=\"margin: 3px 5px 0 0; vertical-align: middle;\"></span>'
+                            + '" . esc_js($config['button_text']) . "';
                         
                         // Add click handler
                         aiButton.onclick = function(e) {
@@ -310,34 +324,53 @@ class EditorAIIntegrationService extends BaseService
         ?>
         
         <!-- Using existing modal styles from ai-copilot.css -->
-        <div class="mpcc-modal-overlay mpcc-editor-ai-modal" id="<?php echo esc_attr($config['modal_id']); ?>" role="dialog" aria-modal="true" aria-labelledby="mpcc-editor-ai-title" aria-describedby="mpcc-editor-ai-description" style="display: none;">
+        <div class="mpcc-modal-overlay mpcc-editor-ai-modal" id="<?php echo esc_attr($config['modal_id']); ?>"
+             role="dialog" aria-modal="true" aria-labelledby="mpcc-editor-ai-title"
+             aria-describedby="mpcc-editor-ai-description" style="display: none;">
             <div class="mpcc-modal" style="max-width: 700px; width: 90%;">
                 <div class="mpcc-modal-header">
                     <h3 id="mpcc-editor-ai-title"><?php echo esc_html($config['modal_title']); ?></h3>
-                    <button type="button" class="mpcc-modal-close" aria-label="Close <?php echo esc_attr($config['modal_title']); ?> dialog" style="font-size: 0;">
+                    <button type="button" class="mpcc-modal-close"
+                            aria-label="Close <?php echo esc_attr($config['modal_title']); ?> dialog"
+                            style="font-size: 0;">
                         <span class="dashicons dashicons-no-alt" style="font-size: 20px;" aria-hidden="true"></span>
                     </button>
                 </div>
                 <div class="mpcc-modal-body" style="display: flex; flex-direction: column; height: 500px; padding: 0;">
-                    <div id="mpcc-editor-ai-messages" role="log" aria-label="AI conversation history" aria-live="polite" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;" tabindex="0">
-                        <div class="mpcc-ai-message" role="article" aria-label="AI Assistant introduction" style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
-                            <strong>AI Assistant:</strong> <div class="ai-content" id="mpcc-editor-ai-description"><?php echo $config['assistant_intro']; ?>
+                    <div id="mpcc-editor-ai-messages" role="log" aria-label="AI conversation history"
+                         aria-live="polite" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;"
+                         tabindex="0">
+                        <div class="mpcc-ai-message" role="article" aria-label="AI Assistant introduction"
+                             style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
+                            <strong>AI Assistant:</strong>
+                            <div class="ai-content" id="mpcc-editor-ai-description">
+                                <?php echo $config['assistant_intro']; ?>
                             <?php if ($parentCourse && $post->post_type === self::POST_TYPE_LESSON) : ?>
-                            <br><br>I see this lesson is part of "<strong><?php echo esc_html($parentCourse->post_title); ?></strong>". I'll make sure the content aligns with the course objectives.
+                            <br><br>I see this lesson is part of
+                            "<strong><?php echo esc_html($parentCourse->post_title); ?></strong>".
+                            I'll make sure the content aligns with the course objectives.
                             <?php endif; ?>
-                            <br><br>What would you like <?php echo $post->post_type === self::POST_TYPE_LESSON ? 'this lesson to cover' : 'me to help with'; ?>?</div>
+                            <br><br>What would you like
+                            <?php echo $post->post_type === self::POST_TYPE_LESSON
+                                ? 'this lesson to cover'
+                                : 'me to help with'; ?>?</div>
                         </div>
                     </div>
                     
                     <!-- Quick-Start Buttons Section -->
                     <div class="mpcc-quick-start-section" role="region" aria-label="Quick start options">
                         <div style="margin-bottom: 10px;">
-                            <span id="mpcc-quick-start-label" style="font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Quick Start</span>
+                            <span id="mpcc-quick-start-label"
+                                  style="font-size: 12px; color: #666; font-weight: 500;
+                                         text-transform: uppercase; letter-spacing: 0.5px;">Quick Start</span>
                         </div>
                         <div class="mpcc-quick-start-buttons" role="group" aria-labelledby="mpcc-quick-start-label">
                             <?php foreach ($config['quick_prompts'] as $prompt) : ?>
-                            <button type="button" class="mpcc-quick-start-btn button" data-prompt="<?php echo esc_attr($prompt['prompt']); ?>" aria-label="Use prompt: <?php echo esc_attr($prompt['label']); ?>">
-                                <span class="dashicons dashicons-<?php echo esc_attr($prompt['icon']); ?>" style="font-size: 16px;" aria-hidden="true"></span>
+                            <button type="button" class="mpcc-quick-start-btn button"
+                                    data-prompt="<?php echo esc_attr($prompt['prompt']); ?>"
+                                    aria-label="Use prompt: <?php echo esc_attr($prompt['label']); ?>">
+                                <span class="dashicons dashicons-<?php echo esc_attr($prompt['icon']); ?>"
+                                      style="font-size: 16px;" aria-hidden="true"></span>
                                 <?php echo esc_html($prompt['label']); ?>
                             </button>
                             <?php endforeach; ?>
@@ -346,17 +379,28 @@ class EditorAIIntegrationService extends BaseService
                     
                     <div style="padding: 20px; background: white; border-top: 1px solid #ddd;">
                         <form id="mpcc-editor-ai-form" style="display: flex; gap: 10px; align-items: flex-end;">
-                            <label for="mpcc-editor-ai-input" class="screen-reader-text">Enter your message to AI Assistant</label>
+                            <label for="mpcc-editor-ai-input" class="screen-reader-text">
+                                Enter your message to AI Assistant
+                            </label>
                             <textarea id="mpcc-editor-ai-input" 
                                       aria-label="Type your message to AI Assistant"
                                       aria-describedby="mpcc-editor-ai-help"
-                                      placeholder="<?php echo esc_attr($post->post_type === self::POST_TYPE_LESSON ? 'Describe what you want this lesson to teach...' : 'Ask me anything about your course...'); ?>" 
-                                      style="flex: 1; min-height: 80px; border: 1px solid #ddd; border-radius: 3px; padding: 10px; resize: vertical; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></textarea>
-                            <button type="button" id="mpcc-editor-ai-send" class="button button-primary" aria-label="Send message to AI Assistant" style="height: 36px; padding: 0 20px; white-space: nowrap;">
+                                      placeholder="<?php echo esc_attr($post->post_type === self::POST_TYPE_LESSON
+                                          ? 'Describe what you want this lesson to teach...'
+                                          : 'Ask me anything about your course...'); ?>"
+                                      style="flex: 1; min-height: 80px; border: 1px solid #ddd; border-radius: 3px;
+                                             padding: 10px; resize: vertical; font-size: 14px;
+                                             font-family: -apple-system, BlinkMacSystemFont,
+                                                         'Segoe UI', Roboto, sans-serif;"></textarea>
+                            <button type="button" id="mpcc-editor-ai-send" class="button button-primary"
+                                    aria-label="Send message to AI Assistant"
+                                    style="height: 36px; padding: 0 20px; white-space: nowrap;">
                                 Send
                             </button>
                         </form>
-                        <span id="mpcc-editor-ai-help" class="screen-reader-text">Press Enter to send message, Shift+Enter for new line</span>
+                        <span id="mpcc-editor-ai-help" class="screen-reader-text">
+                            Press Enter to send message, Shift+Enter for new line
+                        </span>
                     </div>
                 </div>
             </div>
@@ -458,7 +502,11 @@ class EditorAIIntegrationService extends BaseService
                 'id'                  => $parentCourse->ID,
                 'title'               => $parentCourse->post_title,
                 'description'         => substr($parentCourse->post_content, 0, 500),
-                'learning_objectives' => get_post_meta($parentCourse->ID, '_mpcs_course_learning_objectives', true) ?: [],
+                'learning_objectives' => get_post_meta(
+                    $parentCourse->ID,
+                    '_mpcs_course_learning_objectives',
+                    true
+                ) ?: [],
                 'target_audience'     => get_post_meta($parentCourse->ID, '_mpcs_course_target_audience', true) ?: '',
             ];
         }
@@ -512,7 +560,9 @@ class EditorAIIntegrationService extends BaseService
                     foreach ($section['lessons'] as $lessonIndex => $lesson) {
                         $lessonData               = [
                             'title'      => $lesson['post_title'] ?? 'Untitled Lesson',
-                            'content'    => isset($lesson['post_content']) ? substr($lesson['post_content'], 0, 200) . '...' : '',
+                            'content'    => isset($lesson['post_content'])
+                                ? substr($lesson['post_content'], 0, 200) . '...'
+                                : '',
                             'order'      => $lessonIndex,
                             'objectives' => $lesson['meta_input']['_mpcs_lesson_objectives'] ?? [],
                             'duration'   => $lesson['meta_input']['_mpcs_lesson_duration'] ?? 0,
@@ -560,7 +610,9 @@ class EditorAIIntegrationService extends BaseService
 
             // Handle context_data - it may come as an array or JSON string
             $contextDataRaw = $_POST['context_data'] ?? '{}';
-            $contextData    = is_array($contextDataRaw) ? $contextDataRaw : json_decode(stripslashes($contextDataRaw), true);
+            $contextData = is_array($contextDataRaw)
+                ? $contextDataRaw
+                : json_decode(stripslashes($contextDataRaw), true);
 
             if (empty($message)) {
                 throw new \Exception('Message is required');
@@ -576,7 +628,9 @@ class EditorAIIntegrationService extends BaseService
 
             // Get LLM service from container with graceful fallback
             $container  = function_exists('mpcc_container') ? mpcc_container() : null;
-            $llmService = $container ? $container->get(\MemberPressCoursesCopilot\Services\LLMService::class) : new \MemberPressCoursesCopilot\Services\LLMService();
+            $llmService = $container
+                ? $container->get(\MemberPressCoursesCopilot\Services\LLMService::class)
+                : new \MemberPressCoursesCopilot\Services\LLMService();
 
             // Build prompt based on post type
             if ($postType === self::POST_TYPE_LESSON) {
@@ -675,9 +729,12 @@ class EditorAIIntegrationService extends BaseService
         $userWantsContent = preg_match('/\b(write|create|generate|make|build|develop)\b/i', $message);
 
         if ($userWantsContent) {
-            $prompt .= 'INSTRUCTION: Provide the lesson content in Markdown format wrapped between [LESSON_CONTENT] and [/LESSON_CONTENT] tags. ';
-            $prompt .= 'Include an engaging introduction, clear explanations with examples, practice activities, and a summary. ';
-            $prompt .= 'Use proper Markdown formatting with headers, bullet points, numbered lists, and emphasis where appropriate. ';
+            $prompt .= 'INSTRUCTION: Provide the lesson content in Markdown format '
+                    . 'wrapped between [LESSON_CONTENT] and [/LESSON_CONTENT] tags. ';
+            $prompt .= 'Include an engaging introduction, clear explanations with examples, '
+                    . 'practice activities, and a summary. ';
+            $prompt .= 'Use proper Markdown formatting with headers, bullet points, '
+                    . 'numbered lists, and emphasis where appropriate. ';
             $prompt .= 'Make the content educational, practical, and engaging for online learners. ';
             $prompt .= 'Do not include any text outside the [LESSON_CONTENT] tags.';
         } else {
@@ -711,7 +768,8 @@ class EditorAIIntegrationService extends BaseService
         }
 
         if (!empty($courseData['section_count']) && !empty($courseData['lesson_count'])) {
-            $prompt .= "Course Structure: {$courseData['section_count']} sections with {$courseData['lesson_count']} lessons\n";
+            $prompt .= "Course Structure: {$courseData['section_count']} sections "
+                    . "with {$courseData['lesson_count']} lessons\n";
         }
 
         $prompt .= "\nUser Request: {$message}\n\n";
@@ -720,8 +778,10 @@ class EditorAIIntegrationService extends BaseService
         $userWantsDescription = preg_match('/\b(write|create|update|improve|enhance|rewrite|new)\b/i', $message);
 
         if ($userWantsDescription) {
-            $prompt .= 'INSTRUCTION: Provide the course description in Markdown format wrapped between [COURSE_CONTENT] and [/COURSE_CONTENT] tags. ';
-            $prompt .= 'Include 3-5 paragraphs covering the overview, benefits, learning outcomes, target audience, and call-to-action. ';
+            $prompt .= 'INSTRUCTION: Provide the course description in Markdown format '
+                    . 'wrapped between [COURSE_CONTENT] and [/COURSE_CONTENT] tags. ';
+            $prompt .= 'Include 3-5 paragraphs covering the overview, benefits, '
+                    . 'learning outcomes, target audience, and call-to-action. ';
             $prompt .= 'Use proper Markdown formatting with headers, bullet points, and emphasis where appropriate. ';
             $prompt .= 'Do not include any text outside the [COURSE_CONTENT] tags.';
         } else {
@@ -747,7 +807,10 @@ class EditorAIIntegrationService extends BaseService
         }
 
         // Fallback: Check if user is requesting content and response seems substantial
-        $requestKeywords     = ['write', 'create', 'generate', 'make', 'build', 'develop', 'update', 'rewrite', 'improve', 'enhance'];
+        $requestKeywords = [
+            'write', 'create', 'generate', 'make', 'build',
+            'develop', 'update', 'rewrite', 'improve', 'enhance'
+        ];
         $userRequestsContent = false;
 
         $lowerMessage = strtolower($userMessage);
