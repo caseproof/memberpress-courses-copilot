@@ -9,15 +9,67 @@
 (function($) {
     'use strict';
 
+    /**
+     * Quiz AI Modal class for generating quiz questions using AI
+     * 
+     * This class handles the entire lifecycle of the quiz generation modal,
+     * including UI creation, lesson detection, question generation, and
+     * applying questions to the Gutenberg editor.
+     * 
+     * @class MPCCQuizAIModal
+     */
     class MPCCQuizAIModal {
+        /**
+         * Constructor - initializes the modal instance
+         * 
+         * @constructor
+         */
         constructor() {
+            /**
+             * @property {boolean} modalOpen - Whether the modal is currently open
+             */
             this.modalOpen = false;
+            
+            /**
+             * @property {Array} generatedQuestions - Array of AI-generated questions
+             */
             this.generatedQuestions = [];
+            
+            /**
+             * @property {number|null} currentLessonId - Currently selected lesson ID
+             */
             this.currentLessonId = null;
+            
+            /**
+             * @property {number|null} currentCourseId - Currently selected course ID
+             */
+            this.currentCourseId = null;
+            
+            /**
+             * @property {string|null} pendingCourseId - Pending course ID from referrer
+             */
+            this.pendingCourseId = null;
+            
+            /**
+             * @property {string|null} detectionMethod - How the context was detected
+             */
+            this.detectionMethod = null;
+            
+            /**
+             * @property {Object|null} logger - Debug logger instance
+             */
             this.logger = window.MPCCDebug ? window.MPCCDebug.createLogger('Quiz AI Modal') : null;
+            
             this.init();
         }
 
+        /**
+         * Initialize the quiz AI modal functionality
+         * 
+         * Sets up the generate button and detects lesson context on quiz edit pages
+         * 
+         * @return {void}
+         */
         init() {
             this.logger?.log('Initializing...');
             
@@ -40,6 +92,11 @@
         
         /**
          * Check if we should auto-open the modal
+         * 
+         * Opens the modal automatically when creating a new quiz from a lesson
+         * or when the auto_open parameter is present in the URL
+         * 
+         * @return {void}
          */
         checkAutoOpenModal() {
             // Check if we have lesson context from URL and it's a new quiz
@@ -69,7 +126,12 @@
         }
 
         /**
-         * Add Generate with AI button to match course/lesson pattern
+         * Add Generate with AI button to the editor toolbar
+         * 
+         * Creates and inserts the AI generation button into the WordPress
+         * block editor toolbar
+         * 
+         * @return {void}
          */
         addGenerateButton() {
             // Wait for editor to be ready
@@ -98,20 +160,24 @@
                         $toolbar.find('.editor-post-publish-button, .editor-post-publish-panel__toggle').first().before(buttonHtml);
                         
                         // Bind click event
-                        $('#mpcc-quiz-generate-ai').on('click', (e) => {
-                            e.preventDefault();
-                            this.openModal();
-                        });
+                        $('#mpcc-quiz-generate-ai').on('click', () => this.openModal());
+                        
+                        this.logger?.log('AI button added to editor');
                     }
-                }, 500);
-                
-                // Stop checking after 10 seconds
-                setTimeout(() => clearInterval(checkInterval), 10000);
+                }, 100);
             });
         }
-
+        
         /**
          * Detect lesson context from various sources
+         * 
+         * Attempts to detect the current lesson and course context from:
+         * 1. URL parameters
+         * 2. Lesson selector field
+         * 3. Referrer URL
+         * 4. Quiz post metadata
+         * 
+         * @return {void}
          */
         detectLessonContext() {
             this.logger?.log('Detecting lesson context...');
@@ -127,90 +193,71 @@
             if (lessonIdFromUrl) {
                 this.currentLessonId = parseInt(lessonIdFromUrl, 10);
                 this.detectionMethod = 'url';
-                this.logger?.log('Detected lesson ID from URL:', this.currentLessonId, 'Type:', typeof this.currentLessonId);
+                this.logger?.log('Detected lesson ID from URL:', this.currentLessonId);
             }
             
             if (courseIdFromUrl) {
                 this.currentCourseId = parseInt(courseIdFromUrl, 10);
-                this.logger?.log('Detected course ID from URL:', this.currentCourseId, 'Type:', typeof this.currentCourseId);
+                this.logger?.log('Detected course ID from URL:', this.currentCourseId);
             }
             
-            // If we have curriculum parameter, try to get course ID from referrer
+            // If we have curriculum parameter, get course ID from referrer
+            // This ONLY applies when curriculum=1, meaning we came from course curriculum tab
             if (fromCurriculum && !this.currentCourseId && document.referrer) {
                 const referrerMatch = document.referrer.match(/post=(\d+)/);
                 if (referrerMatch) {
                     this.currentCourseId = parseInt(referrerMatch[1], 10);
                     this.detectionMethod = 'curriculum-referrer';
-                    this.logger?.log('Detected course ID from curriculum referrer:', this.currentCourseId);
+                    this.logger?.log('Detected course ID from curriculum referrer:', this.currentCourseId, 'from URL:', document.referrer);
                 }
             }
             
             // Method 2: Check referrer URL for lesson edit page
-            const referrer = document.referrer;
-            if (referrer && referrer.includes('post.php')) {
-                const referrerMatch = referrer.match(/post=(\d+)/);
-                if (referrerMatch) {
-                    // Verify it's a lesson by checking post type
-                    $.ajax({
-                        url: '/wp-json/wp/v2/mpcs-lesson/' + referrerMatch[1],
-                        async: false,
-                        success: (lesson) => {
-                            this.currentLessonId = parseInt(lesson.id, 10);
-                            this.detectionMethod = 'referrer';
-                            this.logger?.log('Detected lesson ID from referrer:', this.currentLessonId);
-                        },
-                        error: () => {
-                            // Silently fail - referrer might not be a lesson
-                            this.logger?.debug('Referrer post is not a lesson');
-                        }
-                    });
-                }
-            }
-            
-            // Method 3: Check for lesson selector in the quiz form
             if (!this.currentLessonId) {
-                const $lessonSelect = $('select[name="_mpcs_lesson_id"], select[name="lesson_id"], #lesson_id, .lesson-selector');
-                this.logger?.debug('Looking for lesson selectors, found:', $lessonSelect.length);
-                if ($lessonSelect.length) {
-                    this.logger?.debug('Lesson selector value:', $lessonSelect.val());
-                    if ($lessonSelect.val()) {
-                        this.currentLessonId = parseInt($lessonSelect.val(), 10);
-                        this.detectionMethod = 'form';
-                        this.logger?.log('Detected lesson ID from form field:', this.currentLessonId);
+                const referrer = document.referrer;
+                if (referrer && referrer.includes('post.php')) {
+                    const referrerMatch = referrer.match(/post=(\d+)/);
+                    if (referrerMatch) {
+                        // Verify it's a lesson by checking post type
+                        $.ajax({
+                            url: '/wp-json/wp/v2/mpcs-lesson/' + referrerMatch[1],
+                            async: false,
+                            success: (lesson) => {
+                                this.currentLessonId = parseInt(lesson.id, 10);
+                                this.detectionMethod = 'referrer';
+                                this.logger?.log('Detected lesson ID from referrer:', this.currentLessonId);
+                            },
+                            error: () => {
+                                // Silently fail - referrer might not be a lesson
+                                this.logger?.debug('Referrer post is not a lesson');
+                            }
+                        });
                     }
                 }
             }
             
-            // Method 4: Check post meta fields
+            // Method 3: Check if there's a lesson selector on the page (classic editor)
             if (!this.currentLessonId) {
-                const $metaInput = $('input[name="_lesson_id"], input[name="mpcs_lesson_id"]');
-                if ($metaInput.length && $metaInput.val()) {
-                    this.currentLessonId = parseInt($metaInput.val(), 10);
-                    this.detectionMethod = 'meta';
-                    this.logger?.log('Detected lesson ID from meta field:', this.currentLessonId);
+                const $lessonSelector = $('#_mpcs_lesson_id');
+                if ($lessonSelector.length && $lessonSelector.val()) {
+                    this.currentLessonId = parseInt($lessonSelector.val(), 10);
+                    this.detectionMethod = 'lesson_selector';
+                    this.logger?.log('Detected lesson from selector:', this.currentLessonId);
                 }
             }
             
-            // Method 5: Check if quiz already has associated lesson (for existing quizzes)
-            if (!this.currentLessonId && wp && wp.data) {
-                const postId = wp.data.select('core/editor').getCurrentPostId();
-                if (postId) {
-                    const postMeta = wp.data.select('core/editor').getEditedPostAttribute('meta');
-                    if (postMeta && postMeta._mpcs_lesson_id) {
-                        this.currentLessonId = parseInt(postMeta._mpcs_lesson_id, 10);
-                        this.detectionMethod = 'existing';
-                        this.logger?.log('Detected lesson ID from existing quiz meta:', this.currentLessonId);
-                    }
-                    // Also check for course ID in meta
-                    if (!this.currentCourseId && postMeta && postMeta._mpcs_course_id) {
-                        this.currentCourseId = parseInt(postMeta._mpcs_course_id, 10);
-                        this.logger?.log('Detected course ID from existing quiz meta:', this.currentCourseId);
-                    }
-                }
-            }
-            
-            // Method 6: Try to detect course from page header or referrer
+            // Method 4: Check course selector if exists
             if (!this.currentCourseId) {
+                const $courseSelector = $('#_mpcs_course_id');
+                if ($courseSelector.length && $courseSelector.val()) {
+                    this.currentCourseId = parseInt($courseSelector.val(), 10);
+                    this.logger?.log('Detected course from selector:', this.currentCourseId);
+                }
+            }
+            
+            // Method 5: Try to detect course from page header or referrer
+            // Only do this if we don't already have lesson or course context
+            if (!this.currentCourseId && !this.currentLessonId) {
                 // Check if we're coming from a course curriculum page by looking at the referrer
                 const referrer = document.referrer;
                 if (referrer && referrer.includes('post.php')) {
@@ -227,114 +274,148 @@
                 this.logger?.log('No lesson or course context detected');
             }
         }
-
+        
         /**
-         * Open the AI modal
+         * Start monitoring lesson selector for changes
+         * 
+         * Sets up a mutation observer to watch for changes to the lesson
+         * selector field in the classic editor
+         * 
+         * @return {void}
+         */
+        startLessonMonitoring() {
+            const $lessonSelector = $('#_mpcs_lesson_id');
+            if (!$lessonSelector.length) return;
+            
+            // Watch for changes
+            $lessonSelector.on('change', () => {
+                const newLessonId = parseInt($lessonSelector.val(), 10);
+                if (newLessonId !== this.currentLessonId) {
+                    this.currentLessonId = newLessonId;
+                    this.logger?.log('Lesson selection changed:', this.currentLessonId);
+                    
+                    // Update the modal's lesson dropdown if it's open
+                    if (this.modalOpen && this.currentLessonId) {
+                        $('#mpcc-modal-lesson-select').val(this.currentLessonId).trigger('change');
+                    }
+                }
+            });
+            
+            // Also monitor for dynamic changes (some meta boxes load asynchronously)
+            if (window.MutationObserver) {
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                            const currentVal = parseInt($lessonSelector.val(), 10);
+                            if (currentVal && currentVal !== this.currentLessonId) {
+                                this.currentLessonId = currentVal;
+                                this.logger?.log('Lesson detected via mutation:', this.currentLessonId);
+                            }
+                        }
+                    });
+                });
+                
+                const targetNode = $lessonSelector[0];
+                if (targetNode) {
+                    observer.observe(targetNode, { attributes: true, childList: false, subtree: false });
+                    
+                    // Also observe the parent for dynamic loading
+                    if (targetNode.parentNode) {
+                        observer.observe(targetNode.parentNode, { childList: true, subtree: true });
+                    }
+                }
+            }
+        }
+        
+        /**
+         * Open the quiz generation modal
+         * 
+         * Creates and displays the modal interface with all necessary
+         * controls for quiz generation
+         * 
+         * @return {void}
          */
         openModal() {
             if (this.modalOpen) return;
             
             this.modalOpen = true;
+            this.generatedQuestions = [];
             
+            // Create modal structure
             const modalHtml = `
-                <div id="mpcc-quiz-ai-modal" class="mpcc-modal-overlay">
-                    <div class="mpcc-modal-container">
+                <div id="mpcc-quiz-ai-modal" class="mpcc-modal" style="display: none;">
+                    <div class="mpcc-modal-content">
                         <div class="mpcc-modal-header">
-                            <h2>AI Quiz Generator</h2>
-                            <button class="mpcc-modal-close" type="button">
-                                <span class="dashicons dashicons-no"></span>
+                            <h2>Generate Quiz Questions with AI</h2>
+                            <button type="button" class="mpcc-modal-close" aria-label="Close modal">
+                                <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                         
                         <div class="mpcc-modal-body">
-                            <div class="mpcc-ai-intro">
-                                <p><strong>AI Assistant:</strong></p>
-                                <p>Hi! I'm here to help you create quiz questions. I can:</p>
-                                <ul>
-                                    <li>Generate multiple-choice questions from lesson content</li>
-                                    <li>Create true/false questions for quick assessment</li>
-                                    <li>Generate text answer questions for deeper understanding</li>
-                                    <li>Create multiple select questions for complex topics</li>
-                                    <li>Add explanations for correct answers</li>
-                                    <li>Insert questions directly into your quiz</li>
-                                </ul>
-                                <p>What lesson would you like to create quiz questions from?</p>
-                            </div>
-                            
-                            <div class="mpcc-form-section">
-                                <label>Select Lesson:</label>
-                                <select id="mpcc-modal-lesson-select" class="components-select-control__input">
+                            <div class="mpcc-modal-section">
+                                <label for="mpcc-modal-lesson-select" class="mpcc-label">
+                                    Select Lesson for Quiz Content
+                                </label>
+                                <select id="mpcc-modal-lesson-select" class="mpcc-select">
                                     <option value="">Loading lessons...</option>
                                 </select>
+                                <div id="mpcc-course-context" style="margin-top: 5px; font-size: 12px; color: #666;"></div>
                             </div>
                             
-                            <div class="mpcc-form-section">
-                                <label>Question Type:</label>
-                                <select id="mpcc-modal-question-type" class="components-select-control__input">
-                                    <option value="multiple_choice" selected>Multiple Choice</option>
+                            <div class="mpcc-modal-section">
+                                <label for="mpcc-modal-question-type" class="mpcc-label">
+                                    Question Type
+                                </label>
+                                <select id="mpcc-modal-question-type" class="mpcc-select">
+                                    <option value="multiple_choice">Multiple Choice</option>
                                     <option value="true_false">True/False</option>
-                                    <option value="text_answer">Text Answer</option>
+                                    <option value="text_answer">Short Answer</option>
                                     <option value="multiple_select">Multiple Select</option>
                                 </select>
                             </div>
                             
-                            <div class="mpcc-form-section">
-                                <label>Number of Questions:</label>
-                                <input type="number" id="mpcc-modal-question-count" value="10" min="1" max="20" class="components-text-control__input">
+                            <div class="mpcc-modal-section">
+                                <label for="mpcc-modal-question-count" class="mpcc-label">
+                                    Number of Questions
+                                </label>
+                                <input type="number" id="mpcc-modal-question-count" class="mpcc-input" 
+                                       value="10" min="1" max="50">
                             </div>
                             
-                            <div class="mpcc-quick-actions">
-                                <h3>QUICK START</h3>
-                                <div class="mpcc-action-buttons">
-                                    <button class="mpcc-action-button" data-action="generate-easy">
-                                        <span class="dashicons dashicons-smiley"></span>
-                                        Generate Easy Questions
-                                    </button>
-                                    <button class="mpcc-action-button" data-action="generate-medium">
-                                        <span class="dashicons dashicons-awards"></span>
-                                        Generate Medium Questions
-                                    </button>
-                                    <button class="mpcc-action-button" data-action="generate-hard">
-                                        <span class="dashicons dashicons-superhero"></span>
-                                        Generate Hard Questions
-                                    </button>
-                                </div>
+                            <div class="mpcc-modal-section">
+                                <label for="mpcc-quiz-prompt" class="mpcc-label">
+                                    Additional Instructions (Optional)
+                                </label>
+                                <textarea id="mpcc-quiz-prompt" class="mpcc-textarea" rows="3" 
+                                          placeholder="e.g., Focus on key concepts, make questions challenging..."></textarea>
                             </div>
                             
-                            <div class="mpcc-chat-section">
-                                <textarea 
-                                    id="mpcc-quiz-prompt" 
-                                    class="mpcc-chat-input"
-                                    placeholder="Ask for specific types of questions or provide additional context..."
-                                    rows="3"
-                                ></textarea>
-                                <button id="mpcc-generate-custom" class="components-button is-primary">
+                            <div class="mpcc-modal-actions">
+                                <button type="button" id="mpcc-generate-quiz" class="button button-primary">
+                                    <span class="dashicons dashicons-admin-generic"></span>
                                     Generate Questions
                                 </button>
                             </div>
                             
-                            <div id="mpcc-quiz-results" style="display: none;">
-                                <h3>Generated Questions</h3>
-                                <div class="mpcc-questions-preview"></div>
-                                <div class="mpcc-apply-section">
-                                    <p>Apply these questions to your quiz?</p>
-                                    <button id="mpcc-apply-questions" class="components-button is-primary">
-                                        Apply Questions
-                                    </button>
-                                    <button id="mpcc-copy-questions" class="components-button is-secondary">
-                                        Copy to Clipboard
-                                    </button>
-                                    <button id="mpcc-regenerate" class="components-button is-link">
-                                        Regenerate
-                                    </button>
-                                    <p class="mpcc-helper-text">This will add question blocks to your quiz editor.</p>
-                                </div>
+                            <div id="mpcc-modal-error" class="notice notice-error" style="display: none; margin-top: 20px;">
+                                <p class="error-message"></p>
+                                <p class="error-suggestion" style="margin-top: 10px; font-style: italic;"></p>
                             </div>
                             
-                            <div id="mpcc-quiz-loading" style="display: none;">
-                                <div class="mpcc-loading-spinner">
-                                    <span class="spinner is-active"></span>
-                                    <p>Generating quiz questions...</p>
+                            <div id="mpcc-quiz-results" style="display: none; margin-top: 20px;">
+                                <h3>Generated Questions</h3>
+                                <div id="mpcc-questions-preview"></div>
+                                <div class="mpcc-modal-actions" style="margin-top: 20px;">
+                                    <button type="button" id="mpcc-apply-questions" class="button button-primary">
+                                        Apply Questions
+                                    </button>
+                                    <button type="button" id="mpcc-copy-questions" class="button">
+                                        Copy to Clipboard
+                                    </button>
+                                    <button type="button" id="mpcc-regenerate" class="button">
+                                        Regenerate
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -343,126 +424,336 @@
             `;
             
             $('body').append(modalHtml);
+            
+            // Add CSS if not already added
+            if (!$('#mpcc-modal-styles').length) {
+                const styles = `
+                    <style id="mpcc-modal-styles">
+                        .mpcc-modal {
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                            background: rgba(0, 0, 0, 0.5);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            z-index: 100000;
+                        }
+                        
+                        .mpcc-modal-content {
+                            background: white;
+                            border-radius: 8px;
+                            width: 90%;
+                            max-width: 600px;
+                            max-height: 90vh;
+                            overflow: hidden;
+                            display: flex;
+                            flex-direction: column;
+                        }
+                        
+                        .mpcc-modal-header {
+                            padding: 20px;
+                            border-bottom: 1px solid #ddd;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+                        
+                        .mpcc-modal-header h2 {
+                            margin: 0;
+                            font-size: 20px;
+                            color: #1d2327;
+                        }
+                        
+                        .mpcc-modal-close {
+                            background: none;
+                            border: none;
+                            font-size: 24px;
+                            cursor: pointer;
+                            color: #666;
+                            padding: 0;
+                            width: 30px;
+                            height: 30px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        
+                        .mpcc-modal-close:hover {
+                            color: #000;
+                        }
+                        
+                        .mpcc-modal-body {
+                            padding: 20px;
+                            overflow-y: auto;
+                            flex: 1;
+                        }
+                        
+                        .mpcc-modal-section {
+                            margin-bottom: 20px;
+                        }
+                        
+                        .mpcc-label {
+                            display: block;
+                            margin-bottom: 8px;
+                            font-weight: 600;
+                            color: #1d2327;
+                        }
+                        
+                        .mpcc-select,
+                        .mpcc-input,
+                        .mpcc-textarea {
+                            width: 100%;
+                            padding: 8px 12px;
+                            border: 1px solid #ddd;
+                            border-radius: 4px;
+                            font-size: 14px;
+                        }
+                        
+                        .mpcc-textarea {
+                            resize: vertical;
+                        }
+                        
+                        .mpcc-modal-actions {
+                            display: flex;
+                            gap: 10px;
+                            margin-top: 20px;
+                        }
+                        
+                        .mpcc-modal-actions button {
+                            display: flex;
+                            align-items: center;
+                            gap: 5px;
+                        }
+                        
+                        #mpcc-questions-preview {
+                            border: 1px solid #ddd;
+                            border-radius: 4px;
+                            padding: 15px;
+                            max-height: 300px;
+                            overflow-y: auto;
+                            background: #f9f9f9;
+                        }
+                        
+                        .mpcc-question-item {
+                            margin-bottom: 20px;
+                            padding-bottom: 20px;
+                            border-bottom: 1px solid #e0e0e0;
+                        }
+                        
+                        .mpcc-question-item:last-child {
+                            margin-bottom: 0;
+                            padding-bottom: 0;
+                            border-bottom: none;
+                        }
+                        
+                        .mpcc-question-number {
+                            font-weight: 600;
+                            color: #667eea;
+                            margin-bottom: 5px;
+                        }
+                        
+                        .mpcc-question-text {
+                            margin-bottom: 10px;
+                            font-weight: 500;
+                        }
+                        
+                        .mpcc-question-options {
+                            margin-left: 20px;
+                        }
+                        
+                        .mpcc-question-option {
+                            margin-bottom: 5px;
+                        }
+                        
+                        .mpcc-question-option.correct {
+                            color: #28a745;
+                            font-weight: 500;
+                        }
+                        
+                        .mpcc-notice-info {
+                            background: #e7f3ff;
+                            border-left: 4px solid #2196F3;
+                            padding: 12px;
+                            margin-bottom: 20px;
+                        }
+                        
+                        .mpcc-loading {
+                            display: inline-block;
+                            width: 20px;
+                            height: 20px;
+                            border: 3px solid #f3f3f3;
+                            border-top: 3px solid #667eea;
+                            border-radius: 50%;
+                            animation: spin 1s linear infinite;
+                            margin-right: 10px;
+                            vertical-align: middle;
+                        }
+                        
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                        
+                        @keyframes pulse {
+                            0% { opacity: 1; }
+                            50% { opacity: 0.5; }
+                            100% { opacity: 1; }
+                        }
+                    </style>
+                `;
+                $('head').append(styles);
+            }
+            
+            // Show modal with fade effect
+            $('#mpcc-quiz-ai-modal').fadeIn(200);
+            
+            // Load lessons
             this.loadContextualLessons();
+            
+            // Pre-select lesson if we have one
+            if (this.currentLessonId) {
+                setTimeout(() => {
+                    $('#mpcc-modal-lesson-select').val(this.currentLessonId).trigger('change');
+                    this.showAutoDetectionFeedback();
+                }, 500);
+            }
+            
+            // Bind events
             this.bindModalEvents();
+            
+            // Start monitoring for lesson changes
             this.startLessonMonitoring();
+            
+            this.logger?.log('Modal opened');
         }
         
         /**
-         * Monitor for lesson changes in the quiz editor
-         */
-        startLessonMonitoring() {
-            // Monitor form field changes
-            this.lessonMonitorInterval = setInterval(() => {
-                if (!this.modalOpen) {
-                    clearInterval(this.lessonMonitorInterval);
-                    return;
-                }
-                
-                const $lessonSelect = $('select[name="_mpcs_lesson_id"], select[name="lesson_id"], #lesson_id, .lesson-selector');
-                if ($lessonSelect.length) {
-                    const newLessonId = $lessonSelect.val();
-                    if (newLessonId && newLessonId !== this.currentLessonId) {
-                        this.logger?.log('Lesson changed to:', newLessonId);
-                        this.currentLessonId = newLessonId;
-                        this.detectionMethod = 'form-update';
-                        $('#mpcc-modal-lesson-select').val(newLessonId);
-                        this.showAutoDetectionFeedback();
-                    }
-                }
-            }, 1000);
-        }
-
-        /**
-         * Load lessons based on context - optimized to only load what's needed
+         * Load lessons based on current context
+         * 
+         * Determines the best loading strategy based on available context:
+         * - If course ID is available, loads only that course's lessons
+         * - If lesson ID is available, loads the lesson with its siblings
+         * - Otherwise, loads recent lessons
+         * 
+         * @return {void}
          */
         loadContextualLessons() {
             this.logger?.log('Loading contextual lessons', {
                 currentLessonId: this.currentLessonId,
                 currentCourseId: this.currentCourseId,
+                pendingCourseId: this.pendingCourseId,
                 detectionMethod: this.detectionMethod
             });
             
             const $select = $('#mpcc-modal-lesson-select');
             $select.empty().append('<option value="">Loading lessons...</option>');
             
+            // If we have a pending course ID from referrer, use it (only if no lesson context)
+            if (this.pendingCourseId && !this.currentCourseId && !this.currentLessonId) {
+                this.currentCourseId = parseInt(this.pendingCourseId, 10);
+                this.logger?.log('Using pending course ID from referrer:', this.currentCourseId);
+            }
+            
             // Case 1: We have a course ID - load only that course's lessons
-            if (this.currentCourseId) {
-                this.logger?.log('Loading lessons for specific course:', this.currentCourseId);
+            if (this.currentCourseId && this.currentCourseId > 0) {
+                this.logger?.log('Loading lessons for course:', this.currentCourseId);
                 this.loadCourseLessonsOnly();
-                return;
-            }
-            
-            // Case 2: We have a lesson ID - load just that lesson and its course siblings
-            if (this.currentLessonId) {
-                this.logger?.log('Loading lessons based on current lesson:', this.currentLessonId);
+            } else if (this.currentLessonId && this.currentLessonId > 0) {
+                this.logger?.log('Loading lesson with siblings:', this.currentLessonId);
                 this.loadLessonWithSiblings();
-                return;
+            } else {
+                this.logger?.log('Loading recent lessons - no course or lesson context');
+                this.loadRecentLessons();
             }
-            
-            // Case 3: No context - load recent lessons with pagination
-            this.logger?.log('No context found, loading recent lessons');
-            this.loadRecentLessons();
         }
         
         /**
-         * Load only lessons from a specific course
+         * Load lessons for a specific course only
+         * 
+         * Fetches all lessons belonging to the current course via AJAX
+         * 
+         * @return {void}
          */
         loadCourseLessonsOnly() {
             const $select = $('#mpcc-modal-lesson-select');
             
+            // Validate course ID before making AJAX call
+            if (!this.currentCourseId || this.currentCourseId <= 0) {
+                this.logger?.error('Invalid course ID for loading lessons:', this.currentCourseId);
+                $select.html('<option value="">No course selected</option>');
+                this.showModalError('No course context available for lesson filtering');
+                return;
+            }
+            
+            $select.html('<option value="">Loading course lessons...</option>');
+            
+            // Check if mpcc_ajax is defined
+            if (typeof mpcc_ajax === 'undefined') {
+                this.logger?.error('mpcc_ajax is not defined');
+                this.showModalError('Configuration error: AJAX settings not loaded');
+                return;
+            }
+            
             $.ajax({
                 url: mpcc_ajax.ajax_url,
                 type: 'POST',
+                dataType: 'json',
                 data: {
                     action: 'mpcc_get_course_lessons',
                     course_id: this.currentCourseId,
                     nonce: mpcc_ajax.nonce
                 },
                 success: (response) => {
-                    if (response.success && response.data) {
-                        this.logger?.log('Course lessons response:', response.data);
+                    if (response.success && response.data.lessons) {
+                        const lessons = response.data.lessons;
+                        $select.empty();
+                        $select.append('<option value="">Select a lesson...</option>');
                         
-                        if (response.data.lessons && response.data.lessons.length > 0) {
-                            this.logger?.log('Loaded course lessons:', response.data.lessons.length);
-                            
-                            // Convert to expected format
-                            const lessons = response.data.lessons.map(lesson => ({
-                                id: lesson.id,
-                                title: { rendered: lesson.title }
-                            }));
-                            
-                            this.populateLessonDropdown($select, lessons);
-                        } else {
-                            // No lessons in this course
-                            $select.empty().append('<option value="">No lessons found in this course</option>');
-                        }
+                        lessons.forEach(lesson => {
+                            const selected = lesson.id === this.currentLessonId ? 'selected' : '';
+                            $select.append(`<option value="${lesson.id}" ${selected}>${lesson.title}</option>`);
+                        });
                         
+                        // Show course context
                         if (response.data.course_title) {
                             this.showCourseContext(response.data.course_title);
                         }
+                        
+                        this.logger?.log(`Loaded ${lessons.length} lessons from course`);
                     } else {
-                        $select.empty().append('<option value="">Failed to load lessons</option>');
+                        this.loadRecentLessons();
                     }
                 },
                 error: (xhr, status, error) => {
-                    this.logger?.error('Failed to load course lessons:', {
-                        status: status,
+                    this.logger?.error('Failed to load course lessons', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
                         error: error,
-                        response: xhr.responseText
+                        responseText: xhr.responseText
                     });
-                    $select.empty().append('<option value="">Failed to load course lessons</option>');
+                    
+                    if (xhr.status === 400) {
+                        this.showModalError('Invalid request to server. Please refresh the page and try again.');
+                    } else {
+                        this.loadRecentLessons();
+                    }
                 }
             });
         }
         
         /**
-         * Load a specific lesson and its course siblings
+         * Load a lesson with its course siblings
+         * 
+         * First gets the course ID for the lesson, then loads all
+         * lessons from that course
+         * 
+         * @return {void}
          */
         loadLessonWithSiblings() {
-            const $select = $('#mpcc-modal-lesson-select');
-            
-            // First get the lesson's course
+            // First, get the course ID for this lesson
             $.ajax({
                 url: mpcc_ajax.ajax_url,
                 type: 'POST',
@@ -490,6 +781,10 @@
         
         /**
          * Load a single lesson when no course context is found
+         * 
+         * Fetches just the current lesson via REST API
+         * 
+         * @return {void}
          */
         loadSingleLesson() {
             const $select = $('#mpcc-modal-lesson-select');
@@ -522,6 +817,10 @@
         
         /**
          * Load recent lessons when no context is available
+         * 
+         * Fetches the 50 most recently modified lessons as a fallback
+         * 
+         * @return {void}
          */
         loadRecentLessons() {
             const $select = $('#mpcc-modal-lesson-select');
@@ -542,6 +841,9 @@
         
         /**
          * Legacy method for backward compatibility
+         * 
+         * @deprecated Use loadContextualLessons() instead
+         * @return {void}
          */
         loadLessons() {
             this.loadContextualLessons();
@@ -549,6 +851,9 @@
         
         /**
          * Legacy method - redirects to new optimized loading
+         * 
+         * @deprecated Use loadContextualLessons() instead
+         * @return {void}
          */
         loadLessonsForCourse() {
             this.loadContextualLessons();
@@ -556,6 +861,10 @@
         
         /**
          * Filter lessons individually by checking course association
+         * 
+         * @param {Array} lessons - Array of lesson objects
+         * @param {jQuery} $select - Select element to populate
+         * @return {void}
          */
         filterLessonsIndividually(lessons, $select) {
                         const filteredLessons = [];
@@ -577,172 +886,161 @@
                                 }
                             }).then(response => {
                                 if (response.success && response.data) {
-                                    // Debug logging
-                                    this.logger?.debug('Lesson course check', {
-                                        lessonId: lesson.id,
-                                        courseid: response.data.course_id,
-                                        currentCourse: this.currentCourseId
-                                    });
-                                    
-                                    // Compare as strings to avoid type mismatch
-                                    if (String(response.data.course_id) === String(this.currentCourseId)) {
-                                        this.logger?.debug('Lesson matches course!', { lessonId: lesson.id });
-                                        filteredLessons.push(lesson);
-                                    }
+                                    return {
+                                        lesson: lesson,
+                                        courseId: response.data.course_id,
+                                        courseTitle: response.data.course_title
+                                    };
                                 }
-                            }).catch((error) => {
-                                // Log errors for debugging
-                                this.logger?.error('Error checking lesson', { lessonId: lesson.id, error });
+                                return { lesson: lesson, courseId: null, courseTitle: null };
+                            }).catch(() => {
+                                return { lesson: lesson, courseId: null, courseTitle: null };
                             });
                         });
                         
-                        // Wait for all lesson checks to complete
-                        Promise.all(lessonPromises).then(() => {
-                            this.logger?.log(`Found ${filteredLessons.length} lessons for course`);
-                            this.populateLessonDropdown($select, filteredLessons);
+                        // Wait for all requests to complete
+                        Promise.all(lessonPromises).then(results => {
+                            $select.empty();
+                            $select.append('<option value="">Select a lesson...</option>');
+                            
+                            // Group by course
+                            const courseGroups = {};
+                            const noCourse = [];
+                            
+                            results.forEach(result => {
+                                if (result.courseId) {
+                                    if (!courseGroups[result.courseId]) {
+                                        courseGroups[result.courseId] = {
+                                            title: result.courseTitle || `Course ${result.courseId}`,
+                                            lessons: []
+                                        };
+                                    }
+                                    courseGroups[result.courseId].lessons.push(result.lesson);
+                                } else {
+                                    noCourse.push(result.lesson);
+                                }
+                            });
+                            
+                            // Add current course lessons first
+                            if (courseGroups[this.currentCourseId]) {
+                                const group = courseGroups[this.currentCourseId];
+                                const $optgroup = $(`<optgroup label="${group.title} (Current Course)"></optgroup>`);
+                                group.lessons.forEach(lesson => {
+                                    const selected = lesson.id === this.currentLessonId ? 'selected' : '';
+                                    $optgroup.append(`<option value="${lesson.id}" ${selected}>${lesson.title.rendered || lesson.title}</option>`);
+                                });
+                                $select.append($optgroup);
+                            }
+                            
+                            // Add other courses
+                            Object.keys(courseGroups).forEach(courseId => {
+                                if (courseId != this.currentCourseId) {
+                                    const group = courseGroups[courseId];
+                                    const $optgroup = $(`<optgroup label="${group.title}"></optgroup>`);
+                                    group.lessons.forEach(lesson => {
+                                        $optgroup.append(`<option value="${lesson.id}">${lesson.title.rendered || lesson.title}</option>`);
+                                    });
+                                    $select.append($optgroup);
+                                }
+                            });
+                            
+                            // Add lessons without courses
+                            if (noCourse.length > 0) {
+                                const $optgroup = $(`<optgroup label="Other Lessons"></optgroup>`);
+                                noCourse.forEach(lesson => {
+                                    $optgroup.append(`<option value="${lesson.id}">${lesson.title.rendered || lesson.title}</option>`);
+                                });
+                                $select.append($optgroup);
+                            }
                         });
-        }
-        
+                    }
+                
         /**
-         * Populate lesson dropdown
-         */
+         * Populate lesson dropdown with lessons
+         * 
+         * @param {jQuery} $select - Select element to populate
+         * @param {Array} lessons - Array of lesson objects
+         * @return {void}
+         */        
         populateLessonDropdown($select, lessons) {
-            // Clear the select first
             $select.empty();
-            
-            if (lessons.length === 0) {
-                $select.append('<option value="">No lessons found</option>');
-                return;
-            }
-            
             $select.append('<option value="">Select a lesson...</option>');
             
-            let lessonFound = false;
-            
-            // If we have a current lesson ID but it's not in the list, fetch it separately
-            if (this.currentLessonId && !lessons.find(l => l.id == this.currentLessonId)) {
-                this.logger?.log('Current lesson not in loaded list, fetching separately', this.currentLessonId);
-                
-                // Add the current lesson first if we can fetch it
-                $.ajax({
-                    url: `/wp-json/wp/v2/mpcs-lesson/${this.currentLessonId}`,
-                    async: false,
-                    success: (lesson) => {
-                        $select.append(`<option value="${lesson.id}" selected>${lesson.title.rendered} *</option>`);
-                        lessonFound = true;
-                        this.logger?.log('Added current lesson from separate fetch', lesson);
-                    },
-                    error: () => {
-                        this.logger?.error('Failed to fetch current lesson', this.currentLessonId);
-                    }
-                });
-            }
-            
-            // Add all the loaded lessons
-            lessons.forEach((lesson) => {
-                // Convert both to strings for comparison to handle type mismatches
-                const isSelected = String(this.currentLessonId) === String(lesson.id);
-                const selected = isSelected ? 'selected' : '';
-                if (isSelected) {
-                    lessonFound = true;
-                    this.logger?.log('Found matching lesson', {
-                        currentLessonId: this.currentLessonId,
-                        currentLessonIdType: typeof this.currentLessonId,
-                        lessonId: lesson.id,
-                        lessonIdType: typeof lesson.id,
-                        title: lesson.title.rendered
-                    });
-                }
-                $select.append(`<option value="${lesson.id}" ${selected}>${lesson.title.rendered}</option>`);
+            lessons.forEach(lesson => {
+                const selected = lesson.id === this.currentLessonId ? 'selected' : '';
+                const title = lesson.title.rendered || lesson.title;
+                $select.append(`<option value="${lesson.id}" ${selected}>${title}</option>`);
             });
-            
-            this.logger?.debug('Lesson selection status', { lessonFound, detectionMethod: this.detectionMethod });
-            
-            // Show auto-detection feedback
-            if (lessonFound && this.detectionMethod) {
-                this.logger?.debug('Showing auto-detection feedback');
-                this.showAutoDetectionFeedback();
-            }
         }
         
         /**
-         * Show course context indicator
+         * Show course context information
+         * 
+         * @param {string} courseTitle - Title of the course
+         * @return {void}
          */
         showCourseContext(courseTitle) {
-            // Add course context indicator above the form
-            const $modalBody = $('.mpcc-modal-body');
-            
-            // Remove any existing course context
-            $modalBody.find('.mpcc-course-context').remove();
-            
-            // Add course context banner
-            const $courseContext = $(`
-                <div class="mpcc-course-context">
-                    <span class="dashicons dashicons-welcome-learn-more"></span>
-                    <span>Creating quiz for course: <strong>${courseTitle}</strong></span>
-                </div>
-            `);
-            
-            $modalBody.find('.mpcc-form-section').first().before($courseContext);
+            $('#mpcc-course-context').html(`<em>Course: ${courseTitle}</em>`);
         }
         
         /**
-         * Show visual feedback when lesson is auto-detected
+         * Show auto-detection feedback to user
+         * 
+         * Displays a message indicating how the lesson context was detected
+         * 
+         * @return {void}
          */
         showAutoDetectionFeedback() {
-            const $formSection = $('#mpcc-modal-lesson-select').closest('.mpcc-form-section');
-            
-            // Remove any existing indicators
-            $formSection.find('.mpcc-auto-detected').remove();
-            
-            // Add auto-detected indicator
-            const detectionMessages = {
-                'url': 'Auto-detected from URL',
-                'referrer': 'Auto-detected from previous page',
-                'form': 'Auto-detected from quiz form',
-                'meta': 'Auto-detected from quiz settings',
-                'existing': 'Previously selected lesson',
-                'form-update': 'Updated from quiz form'
-            };
-            
-            const message = detectionMessages[this.detectionMethod] || 'Auto-detected';
-            
-            const $indicator = $(`
-                <div class="mpcc-auto-detected">
-                    <span class="dashicons dashicons-yes-alt"></span>
-                    <span class="mpcc-auto-detected-text">${message}</span>
-                </div>
-            `);
-            
-            $formSection.append($indicator);
-            
-            // Add highlight animation to the select field
-            $formSection.addClass('mpcc-highlight');
-            setTimeout(() => {
-                $formSection.removeClass('mpcc-highlight');
-            }, 2000);
+            if (this.currentLessonId && this.detectionMethod) {
+                let message = 'Lesson pre-selected ';
+                switch (this.detectionMethod) {
+                    case 'url_param':
+                        message += 'from lesson context';
+                        break;
+                    case 'lesson_selector':
+                        message += 'from quiz settings';
+                        break;
+                    case 'quiz_meta':
+                        message += 'from saved quiz data';
+                        break;
+                    default:
+                        message += 'automatically';
+                }
+                
+                const $notice = $(`<div class="mpcc-notice-info">${message}</div>`);
+                $('#mpcc-modal-lesson-select').after($notice);
+                
+                setTimeout(() => {
+                    $notice.fadeOut(() => $notice.remove());
+                }, 3000);
+            }
         }
-
+        
         /**
-         * Bind modal events
+         * Bind modal event handlers
+         * 
+         * Sets up all click and interaction handlers for the modal
+         * 
+         * @return {void}
          */
         bindModalEvents() {
-            // Close modal
-            $('.mpcc-modal-close, #mpcc-quiz-ai-modal').on('click', (e) => {
-                if (e.target === e.currentTarget) {
+            // Close button
+            $('.mpcc-modal-close').on('click', () => this.closeModal());
+            
+            // Click outside modal
+            $('#mpcc-quiz-ai-modal').on('click', (e) => {
+                if (e.target.id === 'mpcc-quiz-ai-modal') {
                     this.closeModal();
                 }
             });
             
-            // Quick action buttons
-            $('.mpcc-action-button').on('click', (e) => {
-                const action = $(e.currentTarget).data('action');
-                const difficulty = action.split('-')[1];
-                this.generateQuestions(difficulty);
+            // Generate button
+            $('#mpcc-generate-quiz').on('click', () => {
+                this.generateQuestions('medium');
             });
             
-            // Custom generation
-            $('#mpcc-generate-custom').on('click', () => {
+            // Custom prompt
+            $('#mpcc-quiz-prompt').on('input', () => {
                 this.generateQuestions('custom');
             });
             
@@ -761,9 +1059,14 @@
                 this.generateQuestions('medium');
             });
         }
-
         /**
          * Generate quiz questions
+         * 
+         * Sends AJAX request to generate questions based on selected lesson
+         * and configuration options
+         * 
+         * @param {string} difficulty - Difficulty level for questions
+         * @return {void}
          */
         generateQuestions(difficulty = 'medium') {
             const lessonId = $('#mpcc-modal-lesson-select').val();
@@ -780,169 +1083,147 @@
             const questionType = $('#mpcc-modal-question-type').val() || 'multiple_choice';
             const customPrompt = $('#mpcc-quiz-prompt').val();
             
-            this.logger?.log('Generating questions', { type: questionType, count: questionCount, difficulty });
+            // Show loading state
+            const $button = $('#mpcc-generate-quiz');
+            const originalText = $button.html();
+            $button.prop('disabled', true).html('<span class="mpcc-loading"></span> Generating...');
             
-            // Clear any previous errors
-            $('#mpcc-modal-error').hide().empty();
-            
+            // Hide previous results and errors
             $('#mpcc-quiz-results').hide();
-            $('#mpcc-quiz-loading').show();
+            $('#mpcc-modal-error').hide();
             
+            // Make AJAX request
             $.ajax({
                 url: mpcc_ajax.ajax_url,
                 type: 'POST',
+                dataType: 'json',
                 data: {
                     action: 'mpcc_generate_quiz',
-                    lesson_id: parseInt(lessonId),
+                    lesson_id: lessonId,
                     nonce: mpcc_ajax.nonce,
-                    'options[num_questions]': questionCount,
-                    'options[question_type]': questionType,
-                    'options[difficulty]': difficulty,
-                    'options[custom_prompt]': customPrompt
+                    options: JSON.stringify({
+                        num_questions: questionCount,
+                        difficulty: difficulty,
+                        custom_prompt: customPrompt,
+                        question_type: questionType
+                    })
                 },
                 success: (response) => {
                     if (response.success && response.data.questions) {
                         this.generatedQuestions = response.data.questions;
-                        this.displayQuestions();
+                        this.displayQuestions(response.data.questions);
                         
-                        // Clear any previous errors
-                        $('#mpcc-modal-error').hide();
+                        // Show suggestion if provided
+                        if (response.data.suggestion) {
+                            this.showNotice(response.data.suggestion, 'info');
+                        }
                     } else {
-                        // Handle validation errors that come back as success response
-                        const errorMessage = response.data?.message || 'Failed to generate questions';
-                        const suggestion = response.data?.suggestion || '';
-                        
-                        this.showNotice(errorMessage, 'error');
-                        this.showModalError(errorMessage, suggestion);
+                        const errorMsg = response.data?.message || 'Failed to generate questions';
+                        const suggestion = response.data?.data?.suggestion || response.data?.suggestion || null;
+                        this.showModalError(errorMsg, suggestion);
                     }
                 },
                 error: (xhr, status, error) => {
-                    this.logger?.error('AJAX error', { status, error });
+                    this.logger?.error('Quiz generation failed', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        error: error,
+                        responseText: xhr.responseText,
+                        responseJSON: xhr.responseJSON
+                    });
                     
-                    let errorMessage = 'Failed to generate questions';
-                    let suggestion = '';
+                    let errorMsg = 'An error occurred while generating questions';
+                    let suggestion = null;
                     
-                    // Try to extract error message from response
-                    if (xhr.responseJSON) {
-                        // Check for the new error structure with nested data
-                        if (xhr.responseJSON.data && xhr.responseJSON.data.error) {
-                            const errorObj = xhr.responseJSON.data.error;
-                            errorMessage = errorObj.message || errorMessage;
-                            
-                            // Extract suggestion from error data
-                            if (errorObj.data && errorObj.data.suggestion) {
-                                suggestion = errorObj.data.suggestion;
-                            }
-                        } 
-                        // Check for WordPress error structure
-                        else if (xhr.responseJSON.error) {
-                            const errorObj = xhr.responseJSON.error;
-                            errorMessage = errorObj.message || errorMessage;
-                            
-                            // Extract suggestion from error data
-                            if (errorObj.data && errorObj.data.suggestion) {
-                                suggestion = errorObj.data.suggestion;
-                            }
-                        }
-                        // Fall back to old structure
-                        else if (xhr.responseJSON.data) {
-                            if (xhr.responseJSON.data.message) {
-                                errorMessage = xhr.responseJSON.data.message;
-                            }
-                            if (xhr.responseJSON.data.suggestion) {
-                                suggestion = xhr.responseJSON.data.suggestion;
-                            }
-                        }
-                    } else if (xhr.responseText) {
-                        // Try to parse response text if JSON parsing failed
-                        try {
-                            const response = JSON.parse(xhr.responseText);
-                            if (response.data && response.data.message) {
-                                errorMessage = response.data.message;
-                            }
-                        } catch (e) {
-                            // If all else fails, show the status text
-                            errorMessage = xhr.statusText || error || 'Unknown error occurred';
-                        }
+                    if (xhr.status === 400) {
+                        errorMsg = 'Invalid request. The server rejected the request.';
+                        suggestion = 'Please check the browser console for details and contact support if this persists.';
+                    } else if (xhr.status === 403) {
+                        errorMsg = 'Security check failed.';
+                        suggestion = 'Please refresh the page and try again.';
+                    } else if (xhr.responseJSON && xhr.responseJSON.data) {
+                        errorMsg = xhr.responseJSON.data.message || errorMsg;
+                        suggestion = xhr.responseJSON.data.data?.suggestion || xhr.responseJSON.data.suggestion || null;
                     }
                     
-                    // Show the error notice with suggestion if available
-                    const fullMessage = suggestion ? `${errorMessage}\n\n${suggestion}` : errorMessage;
-                    this.showNotice(fullMessage, 'error');
-                    
-                    // Also show error in the modal for better visibility
-                    this.showModalError(errorMessage, suggestion);
+                    this.showModalError(errorMsg, suggestion);
                 },
                 complete: () => {
-                    $('#mpcc-quiz-loading').hide();
+                    $button.prop('disabled', false).html(originalText);
                 }
             });
         }
-
+        
         /**
-         * Display generated questions
+         * Display generated questions in preview
+         * 
+         * Renders the generated questions in a preview format within the modal
+         * 
+         * @param {Array} questions - Array of question objects
+         * @return {void}
          */
-        displayQuestions() {
-            const $container = $('.mpcc-questions-preview');
+        displayQuestions(questions) {
+            const $container = $('#mpcc-questions-preview');
             $container.empty();
             
-            this.generatedQuestions.forEach((question, index) => {
-                // Get the question text based on question type
-                let questionText = '';
-                if (question.type === 'true_false') {
-                    questionText = question.statement || question.question || '';
-                } else {
-                    questionText = question.question || question.text || '';
-                }
-                
-                let questionHtml = `
-                    <div class="mpcc-question-preview">
-                        <h4>Question ${index + 1}</h4>
-                        <p class="mpcc-question-text">${questionText}</p>
-                `;
+            questions.forEach((question, index) => {
+                const questionNum = index + 1;
+                let questionHtml = `<div class="mpcc-question-item">`;
+                questionHtml += `<div class="mpcc-question-number">Question ${questionNum}</div>`;
                 
                 // Handle different question types
                 if (question.type === 'true_false') {
-                    // Convert boolean to string for comparison
-                    const correctAnswer = String(question.correct_answer);
-                    questionHtml += `
-                        <ul class="mpcc-question-options">
-                            <li class="${correctAnswer === 'true' ? 'correct' : ''}">True</li>
-                            <li class="${correctAnswer === 'false' ? 'correct' : ''}">False</li>
-                        </ul>
-                    `;
+                    questionHtml += `<div class="mpcc-question-text">${question.statement || question.question}</div>`;
+                    questionHtml += `<div class="mpcc-question-options">`;
+                    const correctAnswer = String(question.correct_answer) === 'true' ? 'True' : 'False';
+                    const incorrectAnswer = String(question.correct_answer) === 'true' ? 'False' : 'True';
+                    questionHtml += `<div class="mpcc-question-option correct">✓ ${correctAnswer}</div>`;
+                    questionHtml += `<div class="mpcc-question-option">✗ ${incorrectAnswer}</div>`;
+                    questionHtml += `</div>`;
                 } else if (question.type === 'text_answer') {
-                    questionHtml += `
-                        <div class="mpcc-text-answer">
-                            <p><strong>Expected Answer:</strong> ${question.correct_answer || question.expected_answer || 'Open-ended response'}</p>
-                        </div>
-                    `;
+                    questionHtml += `<div class="mpcc-question-text">${question.question}</div>`;
+                    questionHtml += `<div class="mpcc-question-options">`;
+                    questionHtml += `<div class="mpcc-question-option correct">Expected: ${question.correct_answer || question.expected_answer || 'Open-ended response'}</div>`;
+                    if (question.alternative_answers && question.alternative_answers.length > 0) {
+                        questionHtml += `<div class="mpcc-question-option">Also accepts: ${question.alternative_answers.join(', ')}</div>`;
+                    }
+                    questionHtml += `</div>`;
                 } else if (question.type === 'multiple_select') {
-                    questionHtml += `
-                        <ul class="mpcc-question-options">
-                            ${Object.entries(question.options).map(([key, value]) => {
-                                const isCorrect = question.correct_answers ? question.correct_answers.includes(key) : false;
-                                return `<li class="${isCorrect ? 'correct' : ''}">${key}) ${value}</li>`;
-                            }).join('')}
-                        </ul>
-                    `;
+                    questionHtml += `<div class="mpcc-question-text">${question.question}</div>`;
+                    questionHtml += `<div class="mpcc-question-options">`;
+                    
+                    if (question.options) {
+                        Object.entries(question.options).forEach(([key, value]) => {
+                            const isCorrect = question.correct_answers && question.correct_answers.includes(key);
+                            const optionClass = isCorrect ? 'correct' : '';
+                            const prefix = isCorrect ? '☑' : '☐';
+                            questionHtml += `<div class="mpcc-question-option ${optionClass}">${prefix} ${value}</div>`;
+                        });
+                    }
+                    questionHtml += `</div>`;
                 } else {
-                    // Default to multiple-choice display
-                    questionHtml += `
-                        <ul class="mpcc-question-options">
-                            ${Object.entries(question.options).map(([key, value]) => `
-                                <li class="${key === question.correct_answer ? 'correct' : ''}">
-                                    ${key}) ${value}
-                                </li>
-                            `).join('')}
-                        </ul>
-                    `;
+                    // Multiple choice
+                    questionHtml += `<div class="mpcc-question-text">${question.question}</div>`;
+                    questionHtml += `<div class="mpcc-question-options">`;
+                    
+                    if (question.options) {
+                        Object.entries(question.options).forEach(([key, value]) => {
+                            const isCorrect = key === question.correct_answer;
+                            const optionClass = isCorrect ? 'correct' : '';
+                            const prefix = isCorrect ? '✓' : '';
+                            questionHtml += `<div class="mpcc-question-option ${optionClass}">${prefix} ${key}) ${value}</div>`;
+                        });
+                    }
+                    questionHtml += `</div>`;
                 }
                 
-                questionHtml += `
-                        ${question.explanation ? `<p class="mpcc-explanation"><em>Explanation: ${question.explanation}</em></p>` : ''}
-                    </div>
-                `;
+                if (question.explanation) {
+                    questionHtml += `<div style="margin-top: 10px; font-style: italic; color: #666;">
+                        <strong>Explanation:</strong> ${question.explanation}
+                    </div>`;
+                }
+                
+                questionHtml += `</div>`;
                 
                 $container.append(questionHtml);
             });
@@ -952,6 +1233,14 @@
 
         /**
          * Apply questions to the editor
+         * 
+         * Inserts generated questions as blocks in the Gutenberg editor.
+         * This method handles the complex process of creating question blocks,
+         * reserving IDs, and updating the UI.
+         * 
+         * @async
+         * @return {Promise<void>}
+         * @throws {Error} If block insertion fails
          */
         async applyQuestions() {
             if (!this.generatedQuestions.length) return;
@@ -991,6 +1280,13 @@
         
         /**
          * Create a question block from question data
+         * 
+         * @async
+         * @param {Object} question - Question data object
+         * @param {number} index - Question index
+         * @param {number} quizId - Quiz post ID
+         * @param {Object} dispatch - WordPress data dispatcher
+         * @return {Promise<Object>} Created block object
          */
         async createQuestionBlock(question, index, quizId, dispatch) {
             // Determine the block type
@@ -1029,6 +1325,9 @@
         
         /**
          * Get the block type for a question type
+         * 
+         * @param {string} questionType - Question type identifier
+         * @return {string} WordPress block type name
          */
         getBlockTypeForQuestion(questionType) {
             const type = questionType || 'multiple_choice';
@@ -1047,6 +1346,10 @@
         
         /**
          * Prepare question data based on type
+         * 
+         * @param {Object} question - Raw question object
+         * @param {number} index - Question index
+         * @return {Object} Formatted question data
          */
         prepareQuestionData(question, index) {
             const questionType = question.type || 'multiple_choice';
@@ -1084,6 +1387,10 @@
         
         /**
          * Prepare true/false question data
+         * 
+         * @param {Object} question - Raw question object
+         * @param {Object} baseData - Base question data
+         * @return {Object} Formatted true/false question data
          */
         prepareTrueFalseData(question, baseData) {
             // Convert to boolean - handle both string and boolean values
@@ -1094,6 +1401,10 @@
         
         /**
          * Prepare text answer question data
+         * 
+         * @param {Object} question - Raw question object
+         * @param {Object} baseData - Base question data
+         * @return {Object} Formatted text answer question data
          */
         prepareTextAnswerData(question, baseData) {
             baseData.expectedAnswer = question.correct_answer || question.expected_answer || '';
@@ -1103,6 +1414,10 @@
         
         /**
          * Prepare multiple select question data
+         * 
+         * @param {Object} question - Raw question object
+         * @param {Object} baseData - Base question data
+         * @return {Object} Formatted multiple select question data
          */
         prepareMultipleSelectData(question, baseData) {
             // For multiple select, we need answers array with indices of correct answers
@@ -1124,6 +1439,10 @@
         
         /**
          * Prepare multiple choice question data
+         * 
+         * @param {Object} question - Raw question object
+         * @param {Object} baseData - Base question data
+         * @return {Object} Formatted multiple choice question data
          */
         prepareMultipleChoiceData(question, baseData) {
             // Multiple choice - single correct answer
@@ -1140,6 +1459,12 @@
         
         /**
          * Reserve a question ID from the API
+         * 
+         * @async
+         * @param {number} quizId - Quiz post ID
+         * @param {string} clientId - Block client ID
+         * @param {Object} dispatch - WordPress data dispatcher
+         * @return {Promise<number>} Reserved question ID or 0 if failed
          */
         async reserveQuestionId(quizId, clientId, dispatch) {
             let questionId = 0;
@@ -1159,6 +1484,9 @@
         
         /**
          * Insert blocks into editor and update UI
+         * 
+         * @param {Array} blocks - Array of block objects to insert
+         * @return {void}
          */
         insertBlocksAndUpdateUI(blocks) {
             wp.data.dispatch('core/block-editor').insertBlocks(blocks);
@@ -1182,6 +1510,8 @@
         
         /**
          * Log debug information about inserted blocks
+         * 
+         * @return {void}
          */
         logDebugInfo() {
             setTimeout(() => {
@@ -1234,6 +1564,8 @@
         
         /**
          * Highlight the save button to draw user attention
+         * 
+         * @return {void}
          */
         highlightSaveButton() {
             setTimeout(() => {
@@ -1251,6 +1583,10 @@
 
         /**
          * Copy questions to clipboard
+         * 
+         * Formats the generated questions as text and copies to clipboard
+         * 
+         * @return {void}
          */
         copyQuestions() {
             const questionsText = this.generatedQuestions.map((q, i) => {
@@ -1296,6 +1632,10 @@
 
         /**
          * Close modal
+         * 
+         * Removes the modal from DOM and cleans up any active intervals
+         * 
+         * @return {void}
          */
         closeModal() {
             $('#mpcc-quiz-ai-modal').remove();
@@ -1306,55 +1646,79 @@
                 clearInterval(this.lessonMonitorInterval);
                 this.lessonMonitorInterval = null;
             }
-        }
-
-        /**
-         * Show notice
-         */
-        showNotice(message, type = 'info') {
-            wp.data.dispatch('core/notices').createNotice(
-                type,
-                message,
-                {
-                    type: 'snackbar',
-                    isDismissible: true
-                }
-            );
-        }
-
-        /**
-         * Show error directly in the modal
-         */
-        showModalError(errorMessage, suggestion = '') {
-            // Hide loading state
-            $('#mpcc-quiz-loading').hide();
             
-            // Check if error container exists, if not create it
-            let $errorContainer = $('#mpcc-modal-error');
-            if (!$errorContainer.length) {
-                $errorContainer = $('<div id="mpcc-modal-error" class="mpcc-modal-error"></div>');
-                $('.mpcc-modal-body').prepend($errorContainer);
-            }
-            
-            // Build error HTML
-            let errorHtml = `
-                <div class="notice notice-error">
-                    <p><strong>Error:</strong> ${errorMessage}</p>
-                    ${suggestion ? `<p><em>${suggestion}</em></p>` : ''}
+            this.logger?.log('Modal closed');
+        }
+        
+        /**
+         * Show notice message
+         * 
+         * Displays a WordPress-style admin notice
+         * 
+         * @param {string} message - Message to display
+         * @param {string} type - Notice type (success, error, warning, info)
+         * @return {void}
+         */
+        showNotice(message, type = 'success') {
+            const noticeHtml = `
+                <div class="notice notice-${type} is-dismissible">
+                    <p>${message}</p>
                 </div>
             `;
             
-            // Show error
-            $errorContainer.html(errorHtml).show();
+            // Remove any existing notices
+            $('.mpcc-ai-notice').remove();
+            
+            // Add notice after the h1
+            const $notice = $(noticeHtml).addClass('mpcc-ai-notice');
+            $('.wrap h1').first().after($notice);
+            
+            // Auto-dismiss after 5 seconds for success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    $notice.fadeOut(() => $notice.remove());
+                }, 5000);
+            }
+            
+            // Make dismissible
+            $notice.on('click', '.notice-dismiss', function() {
+                $(this).parent().fadeOut(() => $(this).parent().remove());
+            });
+        }
+        
+        /**
+         * Show error in modal
+         * 
+         * Displays an error message within the modal with optional suggestion
+         * 
+         * @param {string} message - Error message
+         * @param {string|null} suggestion - Optional suggestion for fixing the error
+         * @return {void}
+         */
+        showModalError(message, suggestion = null) {
+            const $error = $('#mpcc-modal-error');
+            $error.find('.error-message').text(message);
+            
+            if (suggestion) {
+                $error.find('.error-suggestion').text(suggestion).show();
+            } else {
+                $error.find('.error-suggestion').hide();
+            }
+            
+            $error.show();
             
             // Auto-hide after 10 seconds
             setTimeout(() => {
-                $errorContainer.fadeOut();
+                $error.fadeOut();
             }, 10000);
         }
     }
 
-    // Initialize
-    new MPCCQuizAIModal();
+    // Initialize on document ready
+    $(document).ready(() => {
+        if (typeof wp !== 'undefined' && wp.data && wp.blocks) {
+            new MPCCQuizAIModal();
+        }
+    });
 
 })(jQuery);

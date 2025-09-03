@@ -573,16 +573,96 @@ Content to create questions from:
     }
 
     // Stub implementations for interface methods
-    public function generateQuizFromLesson(int $lesson_id, array $options = []): array { return []; }
-    public function generateQuizFromCourse(int $course_id, array $options = []): array { return []; }
-    public function generateQuestion(string $content, string $question_type, array $options = []): array { return []; }
-    public function regenerateQuestion(array $question, array $options = []): array { return []; }
-    public function validateQuestions(array $questions): array { return []; }
-    public function getQuizTemplates(): array { return []; }
-    public function applyTemplate($template, string $content): array { return []; }
-    public function generateQuizAnalytics(int $quiz_id): array { return []; }
-    public function optimizeQuiz(int $quiz_id, array $performance_data): array { return []; }
-    public function generateFeedback(array $question, string $user_answer): string { return ''; }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function generateQuizFromLesson(int $lesson_id, array $options = []): array { 
+        throw new \BadMethodCallException('generateQuizFromLesson() is not implemented. This method must generate quiz questions from lesson content.');
+    }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function generateQuizFromCourse(int $course_id, array $options = []): array { 
+        throw new \BadMethodCallException('generateQuizFromCourse() is not implemented. This method must generate quiz questions from course content.');
+    }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function generateQuestion(string $content, string $question_type, array $options = []): array { 
+        throw new \BadMethodCallException('generateQuestion() is not implemented. This method must generate a question of the specified type from the provided content.');
+    }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function regenerateQuestion(array $question, array $options = []): array { 
+        throw new \BadMethodCallException('regenerateQuestion() is not implemented. This method must regenerate a question with variations based on the original.');
+    }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function validateQuestions(array $questions): array { 
+        throw new \BadMethodCallException('validateQuestions() is not implemented. This method must validate quiz questions for correctness and completeness.');
+    }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function getQuizTemplates(): array { 
+        throw new \BadMethodCallException('getQuizTemplates() is not implemented. This method must return available quiz templates.');
+    }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function applyTemplate($template, string $content): array { 
+        throw new \BadMethodCallException('applyTemplate() is not implemented. This method must apply a quiz template to generate questions from content.');
+    }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function generateQuizAnalytics(int $quiz_id): array { 
+        throw new \BadMethodCallException('generateQuizAnalytics() is not implemented. This method must generate analytics for the specified quiz.');
+    }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function optimizeQuiz(int $quiz_id, array $performance_data): array { 
+        throw new \BadMethodCallException('optimizeQuiz() is not implemented. This method must optimize quiz based on performance data.');
+    }
+    /**
+     * @throws \BadMethodCallException
+     */
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function generateFeedback(array $question, string $user_answer): string { 
+        throw new \BadMethodCallException('generateFeedback() is not implemented. This method must generate feedback for user answers.');
+    }
     public function getSupportedQuestionTypes(): array { 
         return [
             'multiple_choice',
@@ -591,5 +671,10 @@ Content to create questions from:
             'multiple_select'
         ]; 
     }
-    public function estimateDifficulty(array $questions): string { return 'medium'; }
+    /**
+     * @throws \BadMethodCallException
+     */
+    public function estimateDifficulty(array $questions): string { 
+        throw new \BadMethodCallException('estimateDifficulty() is not implemented. This method must estimate the difficulty level of quiz questions.');
+    }
 }
