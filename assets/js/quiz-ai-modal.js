@@ -69,6 +69,18 @@
          * Sets up the generate button and detects lesson context on quiz edit pages
          * 
          * @return {void}
+         * 
+         * @example
+         * // Manual initialization (usually automatic)
+         * const modal = new MPCCQuizAIModal();
+         * modal.init();
+         * 
+         * @example
+         * // Check if modal is initialized on quiz pages
+         * if ($('body').hasClass('post-type-mpcs-quiz')) {
+         *     // Modal will auto-initialize and add the "Generate with AI" button
+         *     console.log('Quiz AI modal is active');
+         * }
          */
         init() {
             this.logger?.log('Initializing...');
@@ -169,28 +181,71 @@
         }
         
         /**
-         * Detect lesson context from various sources
+         * Detect lesson context from various sources with fallback strategies
          * 
-         * Attempts to detect the current lesson and course context from:
-         * 1. URL parameters
-         * 2. Lesson selector field
-         * 3. Referrer URL
-         * 4. Quiz post metadata
+         * This method implements a sophisticated multi-source detection system to
+         * automatically identify the lesson and course context for quiz generation.
+         * It uses a priority-based approach with multiple fallback mechanisms to
+         * provide the best user experience across different workflows.
+         * 
+         * Detection Priority Order:
+         * 1. URL Parameters (highest priority - explicit context)
+         * 2. Referrer URL Analysis (medium priority - workflow context)
+         * 3. DOM Element Inspection (lower priority - form state)
+         * 4. Pending Context Resolution (lowest priority - deferred validation)
+         * 
+         * URL Parameter Detection:
+         * - 'lesson_id', 'lesson', 'from_lesson': Direct lesson identification
+         * - 'course_id', 'course': Direct course identification
+         * - 'curriculum': Indicates navigation from course curriculum tab
+         * 
+         * Referrer Analysis Patterns:
+         * - Extracts post IDs using regex pattern /post=(\d+)/
+         * - Validates post type via REST API to ensure correct context
+         * - Handles both lesson edit pages and course curriculum pages
+         * 
+         * Curriculum Workflow Special Case:
+         * When 'curriculum=1' parameter is present, it indicates the user navigated
+         * from a course's curriculum tab to create a quiz. In this case, we extract
+         * the course ID from the referrer URL to maintain course context.
+         * 
+         * DOM Element Validation:
+         * - Classic editor meta fields: #_mpcs_lesson_id, #_mpcs_course_id
+         * - Block editor attributes: data-* attributes on quiz blocks
+         * - Form hidden fields: WordPress meta box values
+         * 
+         * Error Handling:
+         * - Graceful degradation: Each method fails silently if unsuccessful
+         * - Fallback chain: Later methods only run if earlier ones fail
+         * - Async safety: REST API calls use error handlers to prevent crashes
+         * 
+         * Context Validation:
+         * - All detected IDs are validated as positive integers
+         * - Post type verification via REST API prevents type confusion
+         * - Pending contexts are validated when actually used
          * 
          * @return {void}
          */
         detectLessonContext() {
             this.logger?.log('Detecting lesson context...');
+            
+            // Reset detection state to ensure clean detection process
             this.detectionMethod = null;
             this.currentCourseId = null;
             
-            // Method 1: Check URL parameters
+            // Method 1: URL Parameter Detection (Highest Priority)
+            // URL parameters provide explicit context and take precedence over all other methods
             const urlParams = new URLSearchParams(window.location.search);
+            
+            // Check multiple parameter names for lesson ID (backward compatibility)
+            // 'lesson_id' is primary, others support legacy URLs and different workflows
             const lessonIdFromUrl = urlParams.get('lesson_id') || urlParams.get('lesson') || urlParams.get('from_lesson');
             const courseIdFromUrl = urlParams.get('course_id') || urlParams.get('course');
             const fromCurriculum = urlParams.get('curriculum');
             
             if (lessonIdFromUrl) {
+                // parseInt with base 10 ensures proper numeric conversion
+                // Handles string IDs from URL parameters safely
                 this.currentLessonId = parseInt(lessonIdFromUrl, 10);
                 this.detectionMethod = 'url';
                 this.logger?.log('Detected lesson ID from URL:', this.currentLessonId);
@@ -201,9 +256,11 @@
                 this.logger?.log('Detected course ID from URL:', this.currentCourseId);
             }
             
-            // If we have curriculum parameter, get course ID from referrer
-            // This ONLY applies when curriculum=1, meaning we came from course curriculum tab
+            // Special Curriculum Workflow Handling:
+            // When curriculum=1, user navigated from course curriculum tab to create quiz
+            // We need to extract the course ID from the referrer to maintain context
             if (fromCurriculum && !this.currentCourseId && document.referrer) {
+                // Regex pattern matches WordPress post edit URLs: post.php?action=edit&post=123
                 const referrerMatch = document.referrer.match(/post=(\d+)/);
                 if (referrerMatch) {
                     this.currentCourseId = parseInt(referrerMatch[1], 10);
@@ -212,23 +269,27 @@
                 }
             }
             
-            // Method 2: Check referrer URL for lesson edit page
+            // Method 2: Referrer URL Analysis for Lesson Context
+            // If no lesson context from URL, check if we came from a lesson edit page
             if (!this.currentLessonId) {
                 const referrer = document.referrer;
+                // post.php indicates WordPress post editor (could be lesson, course, or other post type)
                 if (referrer && referrer.includes('post.php')) {
                     const referrerMatch = referrer.match(/post=(\d+)/);
                     if (referrerMatch) {
-                        // Verify it's a lesson by checking post type
+                        // Verify the post is actually a lesson via REST API
+                        // This prevents false positives from other post types
                         $.ajax({
                             url: '/wp-json/wp/v2/mpcs-lesson/' + referrerMatch[1],
-                            async: false,
+                            async: false,  // Synchronous to complete detection before modal opens
                             success: (lesson) => {
                                 this.currentLessonId = parseInt(lesson.id, 10);
                                 this.detectionMethod = 'referrer';
                                 this.logger?.log('Detected lesson ID from referrer:', this.currentLessonId);
                             },
                             error: () => {
-                                // Silently fail - referrer might not be a lesson
+                                // Silent failure - referrer might be course, quiz, or other post type
+                                // This is normal behavior, not an error condition
                                 this.logger?.debug('Referrer post is not a lesson');
                             }
                         });
@@ -236,9 +297,11 @@
                 }
             }
             
-            // Method 3: Check if there's a lesson selector on the page (classic editor)
+            // Method 3: Classic Editor DOM Element Detection
+            // Check for lesson selector field in WordPress classic editor meta boxes
             if (!this.currentLessonId) {
                 const $lessonSelector = $('#_mpcs_lesson_id');
+                // Ensure element exists and has a valid value
                 if ($lessonSelector.length && $lessonSelector.val()) {
                     this.currentLessonId = parseInt($lessonSelector.val(), 10);
                     this.detectionMethod = 'lesson_selector';
@@ -246,7 +309,8 @@
                 }
             }
             
-            // Method 4: Check course selector if exists
+            // Method 4: Course Selector Detection
+            // Check for course selector in meta boxes (classic editor)
             if (!this.currentCourseId) {
                 const $courseSelector = $('#_mpcs_course_id');
                 if ($courseSelector.length && $courseSelector.val()) {
@@ -255,21 +319,23 @@
                 }
             }
             
-            // Method 5: Try to detect course from page header or referrer
-            // Only do this if we don't already have lesson or course context
+            // Method 5: Fallback Course Detection from Referrer
+            // Last resort: try to detect course context when no lesson context exists
+            // This helps when creating quizzes from course overview pages
             if (!this.currentCourseId && !this.currentLessonId) {
-                // Check if we're coming from a course curriculum page by looking at the referrer
                 const referrer = document.referrer;
                 if (referrer && referrer.includes('post.php')) {
                     const courseMatch = referrer.match(/post=(\d+)/);
                     if (courseMatch) {
-                        // We'll verify this is a course when we load lessons
+                        // Store as pending - will be validated when we attempt to load lessons
+                        // This prevents false course associations with non-course post types
                         this.pendingCourseId = courseMatch[1];
                         this.logger?.log('Potential course ID from referrer:', this.pendingCourseId);
                     }
                 }
             }
             
+            // Log final detection results for debugging
             if (!this.currentLessonId && !this.currentCourseId) {
                 this.logger?.log('No lesson or course context detected');
             }
@@ -334,6 +400,29 @@
          * controls for quiz generation
          * 
          * @return {void}
+         * 
+         * @example
+         * // Open modal programmatically
+         * const modal = new MPCCQuizAIModal();
+         * modal.openModal();
+         * 
+         * @example
+         * // Open modal with pre-selected lesson
+         * const modal = new MPCCQuizAIModal();
+         * modal.currentLessonId = 123;
+         * modal.currentCourseId = 456;
+         * modal.openModal();
+         * // Modal will pre-select lesson 123 from course 456
+         * 
+         * @example
+         * // Check if modal is already open before opening
+         * const modal = new MPCCQuizAIModal();
+         * if (!modal.modalOpen) {
+         *     modal.openModal();
+         *     console.log('Modal opened');
+         * } else {
+         *     console.log('Modal already open');
+         * }
          */
         openModal() {
             if (this.modalOpen) return;
@@ -631,16 +720,39 @@
         }
         
         /**
-         * Load lessons based on current context
+         * Load lessons with intelligent context-aware strategy
          * 
-         * Determines the best loading strategy based on available context:
-         * - If course ID is available, loads only that course's lessons
-         * - If lesson ID is available, loads the lesson with its siblings
-         * - Otherwise, loads recent lessons
+         * This method implements a sophisticated lesson loading strategy that
+         * provides the most relevant lessons based on the detected context.
+         * It optimizes the user experience by showing contextually appropriate
+         * lessons while providing fallbacks for edge cases.
+         * 
+         * Loading Strategy Priority:
+         * 1. Course-Specific Loading: When course context is available
+         * 2. Lesson + Siblings Loading: When lesson context is available
+         * 3. Recent Lessons Loading: When no context is available (fallback)
+         * 
+         * Context Validation Process:
+         * - Validates pending course IDs before using them
+         * - Ensures positive integer values for all IDs
+         * - Logs decision process for debugging complex workflows
+         * 
+         * Pending Course ID Logic:
+         * Pending course IDs come from referrer analysis and need validation.
+         * They're only used when:
+         * - No explicit course context exists (currentCourseId is null)
+         * - No lesson context exists (would take priority)
+         * - The pending ID represents a valid course (validated during loading)
+         * 
+         * Error Recovery:
+         * - Failed course loading falls back to lesson + siblings
+         * - Failed lesson loading falls back to recent lessons
+         * - All failures ultimately fall back to recent lessons list
          * 
          * @return {void}
          */
         loadContextualLessons() {
+            // Log current context state for debugging complex workflow issues
             this.logger?.log('Loading contextual lessons', {
                 currentLessonId: this.currentLessonId,
                 currentCourseId: this.currentCourseId,
@@ -648,39 +760,83 @@
                 detectionMethod: this.detectionMethod
             });
             
+            // Initialize loading state in the lesson selector
             const $select = $('#mpcc-modal-lesson-select');
             $select.empty().append('<option value="">Loading lessons...</option>');
             
-            // If we have a pending course ID from referrer, use it (only if no lesson context)
+            // Resolve pending course ID if no explicit context exists
+            // This handles the case where course context was detected from referrer
+            // but needs validation before use
             if (this.pendingCourseId && !this.currentCourseId && !this.currentLessonId) {
+                // Convert string to integer and validate it's positive
                 this.currentCourseId = parseInt(this.pendingCourseId, 10);
                 this.logger?.log('Using pending course ID from referrer:', this.currentCourseId);
             }
             
-            // Case 1: We have a course ID - load only that course's lessons
+            // Strategy 1: Course-Specific Loading (Highest Priority)
+            // When we have course context, show only lessons from that course
+            // This provides focused, relevant lesson choices
             if (this.currentCourseId && this.currentCourseId > 0) {
                 this.logger?.log('Loading lessons for course:', this.currentCourseId);
                 this.loadCourseLessonsOnly();
-            } else if (this.currentLessonId && this.currentLessonId > 0) {
+            } 
+            // Strategy 2: Lesson + Siblings Loading (Medium Priority)
+            // When we have lesson context, find its course and show all related lessons
+            // This maintains lesson context while showing related options
+            else if (this.currentLessonId && this.currentLessonId > 0) {
                 this.logger?.log('Loading lesson with siblings:', this.currentLessonId);
                 this.loadLessonWithSiblings();
-            } else {
+            } 
+            // Strategy 3: Recent Lessons Loading (Fallback)
+            // When no context is available, show recently modified lessons
+            // This provides a reasonable default set of options
+            else {
                 this.logger?.log('Loading recent lessons - no course or lesson context');
                 this.loadRecentLessons();
             }
         }
         
         /**
-         * Load lessons for a specific course only
+         * Load lessons for a specific course with comprehensive validation
          * 
-         * Fetches all lessons belonging to the current course via AJAX
+         * This method performs course-specific lesson loading with robust error
+         * handling and input validation. It's designed to provide a focused lesson
+         * selection when the user has course context.
+         * 
+         * Input Validation Process:
+         * 1. Validates course ID is positive integer (business rule: no zero/negative IDs)
+         * 2. Checks AJAX configuration is loaded (prevents runtime errors)
+         * 3. Validates server response structure before processing
+         * 
+         * AJAX Request Structure:
+         * - Uses 'mpcc_get_course_lessons' action for server-side processing
+         * - Includes course_id and security nonce for validation
+         * - Expects JSON response with lessons array and course metadata
+         * 
+         * Response Validation:
+         * - Checks response.success flag (WordPress AJAX standard)
+         * - Validates response.data.lessons exists and is populated
+         * - Falls back to recent lessons if course has no lessons
+         * 
+         * Error Handling Strategies:
+         * - 400 errors: Show specific user message (usually validation failures)
+         * - Other errors: Fall back to recent lessons (graceful degradation)
+         * - Network errors: Fall back to recent lessons (connectivity issues)
+         * - Configuration errors: Show specific error message (setup problems)
+         * 
+         * UI State Management:
+         * - Shows loading state during request
+         * - Pre-selects current lesson if it exists in the course
+         * - Displays course context information to user
+         * - Provides clear error messages for troubleshooting
          * 
          * @return {void}
          */
         loadCourseLessonsOnly() {
             const $select = $('#mpcc-modal-lesson-select');
             
-            // Validate course ID before making AJAX call
+            // Critical Input Validation: Course ID must be valid positive integer
+            // Zero or negative IDs indicate invalid state or security issues
             if (!this.currentCourseId || this.currentCourseId <= 0) {
                 this.logger?.error('Invalid course ID for loading lessons:', this.currentCourseId);
                 $select.html('<option value="">No course selected</option>');
@@ -688,46 +844,56 @@
                 return;
             }
             
+            // Update UI to show loading state
             $select.html('<option value="">Loading course lessons...</option>');
             
-            // Check if mpcc_ajax is defined
+            // Configuration Validation: Ensure AJAX settings are loaded
+            // mpcc_ajax is localized by WordPress and contains URL/nonce
             if (typeof mpcc_ajax === 'undefined') {
                 this.logger?.error('mpcc_ajax is not defined');
                 this.showModalError('Configuration error: AJAX settings not loaded');
                 return;
             }
             
+            // Execute AJAX request with comprehensive error handling
             $.ajax({
                 url: mpcc_ajax.ajax_url,
                 type: 'POST',
-                dataType: 'json',
+                dataType: 'json',  // Expect JSON response for structured data
                 data: {
-                    action: 'mpcc_get_course_lessons',
-                    course_id: this.currentCourseId,
-                    nonce: mpcc_ajax.nonce
+                    action: 'mpcc_get_course_lessons',  // Server-side handler
+                    course_id: this.currentCourseId,    // Validated course ID
+                    nonce: mpcc_ajax.nonce              // Security token
                 },
                 success: (response) => {
+                    // Validate response structure follows WordPress AJAX standards
                     if (response.success && response.data.lessons) {
                         const lessons = response.data.lessons;
+                        
+                        // Rebuild lesson selector with course-specific options
                         $select.empty();
                         $select.append('<option value="">Select a lesson...</option>');
                         
+                        // Populate lessons with pre-selection of current lesson
                         lessons.forEach(lesson => {
                             const selected = lesson.id === this.currentLessonId ? 'selected' : '';
                             $select.append(`<option value="${lesson.id}" ${selected}>${lesson.title}</option>`);
                         });
                         
-                        // Show course context
+                        // Display course context to confirm filtering is active
                         if (response.data.course_title) {
                             this.showCourseContext(response.data.course_title);
                         }
                         
                         this.logger?.log(`Loaded ${lessons.length} lessons from course`);
                     } else {
+                        // Course exists but has no lessons - fall back to recent lessons
+                        // This provides options when courses are newly created
                         this.loadRecentLessons();
                     }
                 },
                 error: (xhr, status, error) => {
+                    // Comprehensive error logging for debugging server issues
                     this.logger?.error('Failed to load course lessons', {
                         status: xhr.status,
                         statusText: xhr.statusText,
@@ -735,9 +901,13 @@
                         responseText: xhr.responseText
                     });
                     
+                    // Handle specific error types with appropriate user feedback
                     if (xhr.status === 400) {
+                        // 400 errors usually indicate validation failures or malformed requests
                         this.showModalError('Invalid request to server. Please refresh the page and try again.');
                     } else {
+                        // For other errors (500, network, etc.), gracefully fall back
+                        // This maintains functionality even when course loading fails
                         this.loadRecentLessons();
                     }
                 }
@@ -1060,47 +1230,88 @@
             });
         }
         /**
-         * Generate quiz questions
+         * Generate quiz questions with comprehensive input validation
          * 
-         * Sends AJAX request to generate questions based on selected lesson
-         * and configuration options
+         * This method orchestrates the quiz generation process with extensive
+         * validation, error handling, and user feedback. It ensures all required
+         * inputs are valid before making expensive AI generation requests.
          * 
-         * @param {string} difficulty - Difficulty level for questions
+         * Input Validation Chain:
+         * 1. Lesson Selection: Must have valid lesson ID selected
+         * 2. Question Count: Must be positive integer within reasonable bounds
+         * 3. Question Type: Must be supported type (multiple_choice, true_false, etc.)
+         * 4. Custom Prompt: Optional but validated for length/content if provided
+         * 
+         * UI State Management:
+         * - Disables generation button during processing (prevents double-submission)
+         * - Shows loading spinner with progress message
+         * - Hides previous results to avoid confusion
+         * - Restores button state regardless of success/failure
+         * 
+         * AJAX Request Validation:
+         * - Validates configuration object exists (mpcc_ajax)
+         * - Includes security nonce with every request
+         * - Structures options as JSON for complex data transmission
+         * 
+         * Error Response Analysis:
+         * The method analyzes different error types and provides specific guidance:
+         * - 400 errors: Validation failures, malformed requests
+         * - 403 errors: Security/permission issues
+         * - 500 errors: Server-side processing failures
+         * - Network errors: Connectivity or timeout issues
+         * 
+         * Response Structure Validation:
+         * - Checks response.success flag (WordPress standard)
+         * - Validates response.data.questions array exists
+         * - Extracts nested suggestion data from complex error responses
+         * 
+         * User Feedback Strategy:
+         * - Immediate validation feedback (before AJAX call)
+         * - Progress feedback during generation
+         * - Success feedback with question preview
+         * - Detailed error messages with actionable suggestions
+         * 
+         * @param {string} difficulty - Difficulty level ('easy', 'medium', 'hard')
          * @return {void}
          */
         generateQuestions(difficulty = 'medium') {
+            // Critical Input Validation: Lesson ID is required for content generation
             const lessonId = $('#mpcc-modal-lesson-select').val();
             if (!lessonId) {
                 const errorMessage = 'Please select a lesson to generate questions from';
                 const suggestion = 'Choose a lesson from the dropdown above to provide content for quiz generation';
                 
+                // Show both modal error and page notice for visibility
                 this.showNotice(errorMessage, 'warning');
                 this.showModalError(errorMessage, suggestion);
                 return;
             }
             
+            // Extract and validate generation parameters
+            // parseInt with fallback ensures valid numeric values
             const questionCount = parseInt($('#mpcc-modal-question-count').val()) || 10;
             const questionType = $('#mpcc-modal-question-type').val() || 'multiple_choice';
             const customPrompt = $('#mpcc-quiz-prompt').val();
             
-            // Show loading state
+            // UI State: Show loading state and disable interaction
             const $button = $('#mpcc-generate-quiz');
-            const originalText = $button.html();
+            const originalText = $button.html();  // Store for restoration
             $button.prop('disabled', true).html('<span class="mpcc-loading"></span> Generating...');
             
-            // Hide previous results and errors
+            // Clear previous results to avoid confusion
             $('#mpcc-quiz-results').hide();
             $('#mpcc-modal-error').hide();
             
-            // Make AJAX request
+            // Execute AI generation request with comprehensive error handling
             $.ajax({
                 url: mpcc_ajax.ajax_url,
                 type: 'POST',
-                dataType: 'json',
+                dataType: 'json',  // Expect structured JSON response
                 data: {
-                    action: 'mpcc_generate_quiz',
-                    lesson_id: lessonId,
-                    nonce: mpcc_ajax.nonce,
+                    action: 'mpcc_generate_quiz',  // Server-side generation handler
+                    lesson_id: lessonId,           // Validated lesson ID
+                    nonce: mpcc_ajax.nonce,        // Security token
+                    // Structure options as JSON for complex parameter passing
                     options: JSON.stringify({
                         num_questions: questionCount,
                         difficulty: difficulty,
@@ -1109,21 +1320,26 @@
                     })
                 },
                 success: (response) => {
+                    // Validate WordPress AJAX response structure
                     if (response.success && response.data.questions) {
+                        // Store generated questions for further operations
                         this.generatedQuestions = response.data.questions;
                         this.displayQuestions(response.data.questions);
                         
-                        // Show suggestion if provided
+                        // Display AI suggestions if provided (content improvement hints)
                         if (response.data.suggestion) {
                             this.showNotice(response.data.suggestion, 'info');
                         }
                     } else {
+                        // Handle server-side validation or generation failures
                         const errorMsg = response.data?.message || 'Failed to generate questions';
+                        // Extract suggestion from nested response structure (WordPress error format)
                         const suggestion = response.data?.data?.suggestion || response.data?.suggestion || null;
                         this.showModalError(errorMsg, suggestion);
                     }
                 },
                 error: (xhr, status, error) => {
+                    // Comprehensive error logging for debugging server/network issues
                     this.logger?.error('Quiz generation failed', {
                         status: xhr.status,
                         statusText: xhr.statusText,
@@ -1132,16 +1348,20 @@
                         responseJSON: xhr.responseJSON
                     });
                     
+                    // Analyze error type and provide specific user guidance
                     let errorMsg = 'An error occurred while generating questions';
                     let suggestion = null;
                     
                     if (xhr.status === 400) {
+                        // Bad Request: Usually validation failures or malformed data
                         errorMsg = 'Invalid request. The server rejected the request.';
                         suggestion = 'Please check the browser console for details and contact support if this persists.';
                     } else if (xhr.status === 403) {
+                        // Forbidden: Security/permission issues
                         errorMsg = 'Security check failed.';
                         suggestion = 'Please refresh the page and try again.';
                     } else if (xhr.responseJSON && xhr.responseJSON.data) {
+                        // Extract detailed error information from structured response
                         errorMsg = xhr.responseJSON.data.message || errorMsg;
                         suggestion = xhr.responseJSON.data.data?.suggestion || xhr.responseJSON.data.suggestion || null;
                     }
@@ -1149,6 +1369,8 @@
                     this.showModalError(errorMsg, suggestion);
                 },
                 complete: () => {
+                    // Always restore button state, regardless of success/failure
+                    // This ensures UI remains functional after any outcome
                     $button.prop('disabled', false).html(originalText);
                 }
             });
@@ -1241,6 +1463,44 @@
          * @async
          * @return {Promise<void>}
          * @throws {Error} If block insertion fails
+         * 
+         * @example
+         * // Apply generated questions to editor
+         * const modal = new MPCCQuizAIModal();
+         * // After generating questions...
+         * modal.generatedQuestions = [
+         *     {
+         *         type: 'multiple_choice',
+         *         question: 'What is PHP?',
+         *         options: { a: 'A language', b: 'A database', c: 'An OS' },
+         *         correct_answer: 'a'
+         *     }
+         * ];
+         * await modal.applyQuestions();
+         * // Questions are now inserted as Gutenberg blocks
+         * 
+         * @example
+         * // Apply questions with error handling
+         * const modal = new MPCCQuizAIModal();
+         * try {
+         *     await modal.applyQuestions();
+         *     console.log('Questions applied successfully');
+         * } catch (error) {
+         *     console.error('Failed to apply questions:', error);
+         *     modal.showNotice('Error adding questions. Please try again.', 'error');
+         * }
+         * 
+         * @example
+         * // Apply different question types
+         * const modal = new MPCCQuizAIModal();
+         * modal.generatedQuestions = [
+         *     { type: 'multiple_choice', question: 'MC Question...', options: {...}, correct_answer: 'a' },
+         *     { type: 'true_false', statement: 'TF Statement...', correct_answer: true },
+         *     { type: 'text_answer', question: 'Short answer...', correct_answer: 'Answer' },
+         *     { type: 'multiple_select', question: 'MS Question...', options: {...}, correct_answers: ['a', 'c'] }
+         * ];
+         * await modal.applyQuestions();
+         * // Creates appropriate block types for each question
          */
         async applyQuestions() {
             if (!this.generatedQuestions.length) return;

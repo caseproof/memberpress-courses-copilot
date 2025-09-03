@@ -80,11 +80,57 @@ class LLMService extends BaseService implements ILLMService
      * @throws \Exception When gateway URL is not configured
      * 
      * @example
+     * // Generate course structure with specific temperature
+     * $llmService = new LLMService();
      * $response = $llmService->generateContent(
-     *     'Create a course outline for PHP programming',
+     *     'Create a comprehensive course outline for advanced PHP programming',
      *     'course_structure',
-     *     ['temperature' => 0.5]
+     *     ['temperature' => 0.5, 'max_tokens' => 3000]
      * );
+     * if (!$response['error']) {
+     *     echo $response['content']; // Generated course outline
+     *     echo "Tokens used: " . $response['usage']['total_tokens'];
+     * }
+     * 
+     * @example
+     * // Generate lesson content with conversation context
+     * $conversationHistory = [
+     *     ['role' => 'assistant', 'content' => 'What topic would you like to cover?'],
+     *     ['role' => 'user', 'content' => 'I want to teach about PHP arrays']
+     * ];
+     * $response = $llmService->generateContent(
+     *     'Create detailed lesson content about PHP arrays including examples',
+     *     'lesson_content',
+     *     [
+     *         'temperature' => 0.7,
+     *         'max_tokens' => 4000,
+     *         'messages' => $conversationHistory
+     *     ]
+     * );
+     * 
+     * @example
+     * // Handle errors with timeout
+     * try {
+     *     $response = $llmService->generateContent(
+     *         'Generate a quiz about machine learning',
+     *         'quiz_questions',
+     *         ['timeout' => 30] // 30 second timeout
+     *     );
+     *     
+     *     if ($response['error']) {
+     *         error_log('LLM Error: ' . $response['message']);
+     *         return false;
+     *     }
+     * } catch (Exception $e) {
+     *     error_log('LLM Exception: ' . $e->getMessage());
+     * }
+     * 
+     * @example
+     * // Different content types use different models
+     * $responses = [];
+     * $responses['structure'] = $llmService->generateContent('Course outline', 'course_structure'); // Uses Claude
+     * $responses['quiz'] = $llmService->generateContent('Quiz questions', 'quiz_questions'); // Uses GPT-4
+     * $responses['content'] = $llmService->generateContent('Lesson content', 'lesson_content'); // Uses Claude
      */
     public function generateContent(string $prompt, string $contentType = 'general', array $options = []): array
     {
@@ -209,6 +255,45 @@ class LLMService extends BaseService implements ILLMService
     
     /**
      * Determine course template type from user input
+     * 
+     * @param string $userInput User's course description or input
+     * @return string|null Template type or null for general template
+     * 
+     * @example
+     * // Analyze technical course description
+     * $llmService = new LLMService();
+     * $templateType = $llmService->determineTemplateType(
+     *     'Create a course about JavaScript programming and web development'
+     * );
+     * // Returns: 'technical'
+     * 
+     * @example
+     * // Analyze business course description
+     * $templateType = $llmService->determineTemplateType(
+     *     'I want to teach people about digital marketing strategies and customer acquisition'
+     * );
+     * // Returns: 'business'
+     * 
+     * @example
+     * // Handle ambiguous descriptions
+     * $templateType = $llmService->determineTemplateType(
+     *     'A course about general life skills'
+     * );
+     * // Returns: null (falls back to general template)
+     * 
+     * @example
+     * // Error handling
+     * try {
+     *     $templateType = $llmService->determineTemplateType($userInput);
+     *     if ($templateType) {
+     *         echo "Using template: " . $templateType;
+     *     } else {
+     *         echo "Using general template";
+     *     }
+     * } catch (Exception $e) {
+     *     error_log('Template determination failed: ' . $e->getMessage());
+     *     $templateType = null; // Fallback to general
+     * }
      */
     public function determineTemplateType(string $userInput): ?string
     {
@@ -233,6 +318,54 @@ class LLMService extends BaseService implements ILLMService
     
     /**
      * Extract course requirements from user message
+     * 
+     * @param string $message User's course description message
+     * @return array Extracted course requirements
+     * @throws \Exception When extraction fails
+     * 
+     * @example
+     * // Extract requirements from detailed course description
+     * $llmService = new LLMService();
+     * $requirements = $llmService->extractCourseRequirements(
+     *     'I want to create a beginner-friendly course about React.js for new developers. ' .
+     *     'It should cover components, hooks, and state management. ' .
+     *     'The course should take about 20 hours and require basic JavaScript knowledge.'
+     * );
+     * // Returns:
+     * // [
+     * //     'title' => 'React.js for Beginners',
+     * //     'description' => 'A comprehensive introduction to React.js...',
+     * //     'difficulty_level' => 'beginner',
+     * //     'target_audience' => 'New developers',
+     * //     'learning_objectives' => ['Learn React components', 'Understand hooks', 'Master state management'],
+     * //     'estimated_duration' => '20 hours',
+     * //     'prerequisites' => ['Basic JavaScript knowledge'],
+     * //     'topics' => ['React components', 'Hooks', 'State management'],
+     * //     'raw_input' => $message,
+     * //     'timestamp' => 1234567890,
+     * //     'extraction_method' => 'ai'
+     * // ]
+     * 
+     * @example
+     * // Extract from minimal input
+     * $requirements = $llmService->extractCourseRequirements('Python for data science');
+     * // Returns structured data with AI-inferred details
+     * 
+     * @example
+     * // Handle extraction errors
+     * try {
+     *     $requirements = $llmService->extractCourseRequirements($userMessage);
+     *     $courseTitle = $requirements['title'];
+     *     $difficulty = $requirements['difficulty_level'];
+     * } catch (Exception $e) {
+     *     error_log('Course requirement extraction failed: ' . $e->getMessage());
+     *     // Provide fallback requirements
+     *     $requirements = [
+     *         'title' => 'Custom Course',
+     *         'difficulty_level' => 'intermediate',
+     *         'target_audience' => 'General learners'
+     *     ];
+     * }
      */
     public function extractCourseRequirements(string $message): array
     {
@@ -272,6 +405,59 @@ class LLMService extends BaseService implements ILLMService
     
     /**
      * Generate lesson content with streaming support
+     * 
+     * @param string $sectionTitle Section title for context
+     * @param int $lessonNumber Lesson number in sequence
+     * @param array $requirements Course and lesson requirements
+     * @param callable|null $onChunk Optional callback for streaming chunks
+     * @return string Generated lesson content
+     * 
+     * @example
+     * // Generate lesson content without streaming
+     * $llmService = new LLMService();
+     * $requirements = [
+     *     'course_title' => 'Advanced PHP Programming',
+     *     'lesson_title' => 'Object-Oriented Programming',
+     *     'difficulty_level' => 'intermediate',
+     *     'target_audience' => 'PHP developers',
+     *     'learning_objectives' => ['Understand OOP concepts', 'Create classes and objects'],
+     *     'prerequisites' => ['Basic PHP knowledge']
+     * ];
+     * $content = $llmService->generateLessonContentStream(
+     *     'PHP Fundamentals',
+     *     3,
+     *     $requirements
+     * );
+     * // Returns: Complete lesson content as string
+     * 
+     * @example
+     * // Generate with streaming callback
+     * $content = $llmService->generateLessonContentStream(
+     *     'Web Development Basics',
+     *     1,
+     *     $requirements,
+     *     function($chunk) {
+     *         echo $chunk; // Output each chunk as it's generated
+     *         flush();     // Send to browser immediately
+     *     }
+     * );
+     * 
+     * @example
+     * // Generate with full context
+     * $requirements = [
+     *     'course_title' => 'React Development Bootcamp',
+     *     'lesson_title' => 'Component Lifecycle',
+     *     'difficulty_level' => 'advanced',
+     *     'target_audience' => 'Experienced JavaScript developers',
+     *     'course_context' => 'This bootcamp covers modern React development patterns',
+     *     'prerequisites' => ['ES6 JavaScript', 'HTML/CSS', 'Basic React knowledge'],
+     *     'learning_objectives' => [
+     *         'Understand component lifecycle methods',
+     *         'Implement useEffect hooks properly',
+     *         'Optimize component performance'
+     *     ]
+     * ];
+     * $content = $llmService->generateLessonContentStream('Advanced React', 5, $requirements);
      */
     public function generateLessonContentStream(string $sectionTitle, int $lessonNumber, array $requirements, callable $onChunk = null): string
     {
@@ -345,6 +531,64 @@ class LLMService extends BaseService implements ILLMService
     
     /**
      * Generate lesson content
+     * 
+     * @param string $sectionTitle Section title for context
+     * @param int $lessonNumber Lesson number in sequence
+     * @param array $requirements Course and lesson requirements
+     * @return string Generated lesson content
+     * @throws \Exception When content generation fails
+     * 
+     * @example
+     * // Generate standard lesson content
+     * $llmService = new LLMService();
+     * $requirements = [
+     *     'course_title' => 'Introduction to Python',
+     *     'lesson_title' => 'Variables and Data Types',
+     *     'difficulty_level' => 'beginner',
+     *     'target_audience' => 'Programming newcomers',
+     *     'learning_objectives' => ['Understand variables', 'Use different data types'],
+     *     'prerequisites' => ['Basic computer literacy']
+     * ];
+     * $content = $llmService->generateLessonContent('Python Basics', 2, $requirements);
+     * // Returns: Formatted lesson content with headings, examples, and exercises
+     * 
+     * @example
+     * // Generate with extensive context
+     * $requirements = [
+     *     'course_title' => 'Full Stack Web Development',
+     *     'lesson_title' => 'REST API Design',
+     *     'difficulty_level' => 'advanced',
+     *     'target_audience' => 'Experienced developers',
+     *     'course_context' => 'Building modern web applications with React and Node.js',
+     *     'prerequisites' => ['JavaScript ES6+', 'Node.js basics', 'Database concepts'],
+     *     'learning_objectives' => [
+     *         'Design RESTful APIs',
+     *         'Implement proper HTTP methods',
+     *         'Handle authentication and authorization',
+     *         'Optimize API performance'
+     *     ]
+     * ];
+     * $content = $llmService->generateLessonContent('Backend Development', 8, $requirements);
+     * 
+     * @example
+     * // Error handling in course generation workflow
+     * try {
+     *     $content = $llmService->generateLessonContent($sectionTitle, $lessonNum, $requirements);
+     *     
+     *     // Validate content length
+     *     if (strlen($content) < 500) {
+     *         throw new Exception('Generated content too short');
+     *     }
+     *     
+     *     return $content;
+     * } catch (Exception $e) {
+     *     $this->logger->error('Lesson generation failed', [
+     *         'section' => $sectionTitle,
+     *         'lesson_number' => $lessonNum,
+     *         'error' => $e->getMessage()
+     *     ]);
+     *     throw $e;
+     * }
      */
     public function generateLessonContent(string $sectionTitle, int $lessonNumber, array $requirements): string
     {
@@ -544,6 +788,60 @@ class LLMService extends BaseService implements ILLMService
     
     /**
      * Generate quiz questions for a lesson
+     * 
+     * @param string $lessonTitle Title of the lesson
+     * @param string $lessonContent Content to generate questions from
+     * @param array $options Generation options
+     * @return array Array of generated questions
+     * 
+     * @example
+     * // Generate multiple choice questions
+     * $llmService = new LLMService();
+     * $questions = $llmService->generateLessonQuiz(
+     *     'PHP Variables',
+     *     'Variables in PHP are used to store data. PHP variables start with $ sign...',
+     *     [
+     *         'num_questions' => 5,
+     *         'question_types' => ['multiple_choice'],
+     *         'difficulty' => 'beginner'
+     *     ]
+     * );
+     * // Returns:
+     * // [
+     * //     {
+     * //         'type' => 'multiple_choice',
+     * //         'question' => 'How do PHP variables start?',
+     * //         'options' => ['$', '@', '#', '%'],
+     * //         'correct' => 0,
+     * //         'explanation' => 'PHP variables always start with the $ symbol'
+     * //     },
+     * //     ...
+     * // ]
+     * 
+     * @example
+     * // Generate mixed question types
+     * $questions = $llmService->generateLessonQuiz(
+     *     'JavaScript Fundamentals',
+     *     $lessonContent,
+     *     [
+     *         'num_questions' => 8,
+     *         'question_types' => ['multiple_choice', 'true_false'],
+     *         'difficulty' => 'intermediate'
+     *     ]
+     * );
+     * 
+     * @example
+     * // Handle generation errors
+     * try {
+     *     $questions = $llmService->generateLessonQuiz($title, $content, $options);
+     *     if (empty($questions)) {
+     *         throw new Exception('No questions generated');
+     *     }
+     *     return $questions;
+     * } catch (Exception $e) {
+     *     error_log('Quiz generation failed: ' . $e->getMessage());
+     *     return [];
+     * }
      */
     public function generateLessonQuiz(string $lessonTitle, string $lessonContent, array $options = []): array
     {
@@ -733,6 +1031,48 @@ class LLMService extends BaseService implements ILLMService
      * @param string $message The user message
      * @param array $conversationHistory Previous messages in the conversation
      * @return array Response from the LLM
+     * 
+     * @example
+     * // Start a new conversation
+     * $llmService = new LLMService();
+     * $response = $llmService->sendMessage(
+     *     'Help me create a course about web development',
+     *     []
+     * );
+     * if (!$response['error']) {
+     *     echo $response['content']; // AI assistant response
+     *     echo "Model used: " . $response['model'];
+     * }
+     * 
+     * @example
+     * // Continue an existing conversation
+     * $conversationHistory = [
+     *     ['role' => 'user', 'content' => 'I want to create a course'],
+     *     ['role' => 'assistant', 'content' => 'What subject would you like to teach?'],
+     *     ['role' => 'user', 'content' => 'JavaScript programming']
+     * ];
+     * $response = $llmService->sendMessage(
+     *     'Make it focus on modern ES6+ features',
+     *     $conversationHistory
+     * );
+     * 
+     * @example
+     * // Handle conversation in a loop
+     * $history = [];
+     * $userMessages = ['Hello', 'I want to learn PHP', 'Focus on web development'];
+     * 
+     * foreach ($userMessages as $message) {
+     *     $response = $llmService->sendMessage($message, $history);
+     *     
+     *     if (!$response['error']) {
+     *         // Add user message and response to history
+     *         $history[] = ['role' => 'user', 'content' => $message];
+     *         $history[] = ['role' => 'assistant', 'content' => $response['content']];
+     *         
+     *         echo "User: " . $message . "\\n";
+     *         echo "AI: " . $response['content'] . "\\n\\n";
+     *     }
+     * }
      */
     public function sendMessage(string $message, array $conversationHistory = []): array
     {
@@ -790,6 +1130,49 @@ class LLMService extends BaseService implements ILLMService
      *
      * @param array $courseData Course generation parameters
      * @return array Generated course content
+     * 
+     * @example
+     * // Generate a complete course
+     * $llmService = new LLMService();
+     * $courseData = [
+     *     'title' => 'Modern JavaScript Development',
+     *     'description' => 'Learn modern JavaScript including ES6+, async programming, and frameworks'
+     * ];
+     * $result = $llmService->generateCourse($courseData);
+     * 
+     * if (!$result['error']) {
+     *     echo "Generated course content: " . $result['content'];
+     *     echo "Template type: " . $result['template_type'];
+     *     $requirements = $result['requirements'];
+     *     echo "Target audience: " . $requirements['target_audience'];
+     *     echo "Difficulty: " . $requirements['difficulty_level'];
+     * }
+     * 
+     * @example
+     * // Generate course with minimal data
+     * $result = $llmService->generateCourse([
+     *     'title' => 'Python Basics',
+     *     'description' => 'Introduction to Python programming'
+     * ]);
+     * // AI will infer missing details like target audience, difficulty level
+     * 
+     * @example
+     * // Error handling in course generation
+     * try {
+     *     $result = $llmService->generateCourse($courseData);
+     *     
+     *     if ($result['error']) {
+     *         throw new Exception($result['message']);
+     *     }
+     *     
+     *     // Process successful generation
+     *     $courseContent = $result['content'];
+     *     $extractedRequirements = $result['requirements'];
+     *     
+     * } catch (Exception $e) {
+     *     error_log('Course generation failed: ' . $e->getMessage());
+     *     return ['error' => true, 'message' => 'Failed to generate course'];
+     * }
      */
     public function generateCourse(array $courseData): array
     {

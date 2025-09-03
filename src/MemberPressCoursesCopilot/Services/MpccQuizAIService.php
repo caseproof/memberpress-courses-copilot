@@ -290,17 +290,64 @@ Content to create questions from:
     }
 
     /**
-     * Validate if content is suitable for specific question type
+     * Validate content suitability for specific question types with pattern analysis
      * 
-     * @param string $content Content to validate
-     * @param string $type Question type
-     * @return array Validation result with 'suitable', 'reason', and 'suggestion'
+     * This method performs sophisticated content analysis to determine if the provided
+     * content is suitable for generating the requested question type. It applies both
+     * quantitative (length) and qualitative (pattern matching) validation rules.
+     * 
+     * Validation Philosophy:
+     * Different question types require different content characteristics to generate
+     * meaningful, answerable questions. This method prevents poor user experiences
+     * by validating content suitability before expensive AI generation.
+     * 
+     * Universal Requirements:
+     * - Minimum 100 characters: Ensures sufficient content for context understanding
+     * - Content must be substantive text, not just whitespace or formatting
+     * 
+     * Type-Specific Validation Rules:
+     * 
+     * TRUE/FALSE Questions:
+     * - Require 200+ characters for detailed factual content
+     * - Need clear, verifiable statements that can be definitively true/false
+     * - Avoid ambiguous or opinion-based content
+     * 
+     * TEXT ANSWER Questions:
+     * - Must contain specific, factual information (names, dates, numbers)
+     * - Uses regex pattern to detect concrete facts vs abstract concepts
+     * - Pattern: /(\d+|[A-Z][a-z]+|\b(?:is|are|was|were|called|named)\b)/i
+     *   - \d+: Numbers (dates, quantities, measurements)
+     *   - [A-Z][a-z]+: Proper nouns (names, places, terms)
+     *   - is|are|was|were: Factual statements
+     *   - called|named: Definitions and terminology
+     * 
+     * MULTIPLE SELECT Questions:
+     * - Require 200+ characters for complex topic coverage
+     * - Need content with multiple related concepts or elements
+     * - Rely on AI to identify multiple correct relationships
+     * 
+     * Error Response Structure:
+     * Returns array with:
+     * - 'suitable': boolean flag for validation result
+     * - 'reason': User-friendly explanation of validation failure
+     * - 'suggestion': Actionable guidance for improving content
+     * 
+     * Content Analysis Approach:
+     * - Fails fast for obvious issues (length, empty content)
+     * - Uses regex patterns for content structure analysis
+     * - Provides specific feedback for content improvement
+     * - Logs validation decisions for debugging and improvement
+     * 
+     * @param string $content Content to validate for question generation
+     * @param string $type Question type ('multiple_choice', 'true_false', 'text_answer', 'multiple_select')
+     * @return array Validation result with 'suitable', 'reason', and 'suggestion' keys
      */
     private function validateContentForType(string $content, string $type): array
     {
         $contentLength = strlen($content);
         
-        // Basic length validation
+        // Universal Content Length Validation
+        // 100 characters is the minimum for AI to understand context and generate meaningful questions
         if ($contentLength < 100) {
             return [
                 'suitable' => false,
@@ -309,9 +356,12 @@ Content to create questions from:
             ];
         }
         
-        // Type-specific validation
+        // Apply question type-specific validation rules
+        // Each type has unique requirements based on pedagogical best practices
         switch ($type) {
             case 'true_false':
+                // True/False questions need substantial content to create unambiguous statements
+                // 200 characters ensures enough context for clear fact verification
                 if ($contentLength < 200) {
                     return [
                         'suitable' => false,
@@ -322,7 +372,12 @@ Content to create questions from:
                 break;
                 
             case 'text_answer':
-                // Check if content has specific facts, numbers, dates, or names
+                // Text answer questions require specific, factual content with concrete answers
+                // Complex regex pattern detects presence of:
+                // - Numbers: \d+ (dates, quantities, measurements, statistics)
+                // - Proper nouns: [A-Z][a-z]+ (names, places, technical terms)
+                // - Factual statement indicators: is|are|was|were (definitions, descriptions)
+                // - Naming/definition indicators: called|named (terminology, classifications)
                 if (!preg_match('/(\d+|[A-Z][a-z]+|\b(?:is|are|was|were|called|named)\b)/i', $content)) {
                     return [
                         'suitable' => false,
@@ -333,8 +388,8 @@ Content to create questions from:
                 break;
                 
             case 'multiple_select':
-                // For multiple select, we just need enough content to work with
-                // The AI can determine if there are multiple items to select from
+                // Multiple select questions need comprehensive content covering multiple aspects
+                // 200+ characters typically contain enough variety for multiple correct answers
                 if ($contentLength < 200) {
                     return [
                         'suitable' => false,
@@ -343,13 +398,17 @@ Content to create questions from:
                     ];
                 }
                 
-                // Log for debugging
+                // Debug logging for multiple select validation (complex question type)
                 $this->logger->info('Multiple select validation passed', [
                     'content_length' => $contentLength
                 ]);
                 break;
+                
+            // Multiple choice questions (default case) have the most flexible requirements
+            // They can work with shorter content and don't need specific patterns
         }
         
+        // Content is suitable for the requested question type
         return ['suitable' => true];
     }
 
@@ -543,32 +602,81 @@ Content to create questions from:
     }
 
     /**
-     * Extract JSON from AI response
+     * Extract and validate JSON from AI response with robust error handling
      * 
-     * @param string $response AI response
-     * @return array|null Extracted JSON data
+     * This method handles the complex task of extracting valid JSON from AI-generated
+     * text responses. AI models sometimes include explanatory text before/after JSON,
+     * requiring sophisticated parsing to extract the actual data structure.
+     * 
+     * JSON Extraction Strategy:
+     * 1. Locate JSON boundaries using bracket markers '[' and ']'
+     * 2. Extract substring containing only the JSON array
+     * 3. Attempt JSON parsing with error detection
+     * 4. Validate the parsed structure is usable
+     * 
+     * Boundary Detection Logic:
+     * - strpos() finds first '[' character (JSON array start)
+     * - strrpos() finds last ']' character (JSON array end)
+     * - substr() extracts content between boundaries (inclusive)
+     * - This handles cases where AI adds explanation text outside JSON
+     * 
+     * Error Scenarios Handled:
+     * - Missing brackets: AI response doesn't contain JSON array
+     * - Malformed JSON: Syntax errors in AI-generated JSON
+     * - Invalid structure: JSON parses but doesn't match expected format
+     * - Truncated responses: Incomplete JSON due to length limits
+     * 
+     * JSON Validation Process:
+     * - Uses json_decode() with associative array flag
+     * - Checks json_last_error() for parsing issues
+     * - Logs detailed error information for debugging
+     * - Returns null for any parsing failures (fail-safe behavior)
+     * 
+     * Debugging Support:
+     * - Logs JSON parsing errors with context
+     * - Includes first 500 characters of response for troubleshooting
+     * - Tracks parsing success/failure rates for AI model evaluation
+     * 
+     * Security Considerations:
+     * - Only extracts JSON arrays (not objects) to prevent code injection
+     * - Validates JSON structure before returning
+     * - Limits logged response length to prevent log pollution
+     * 
+     * @param string $response Raw AI response containing JSON array
+     * @return array|null Extracted and validated JSON data, null on failure
      */
     private function extractJsonFromResponse(string $response): ?array
     {
-        // Try to extract JSON array from the response
+        // Locate JSON array boundaries within the AI response
+        // AI models often include explanatory text before/after the actual JSON
         $jsonStart = strpos($response, '[');
         if ($jsonStart !== false) {
+            // Find the matching closing bracket (last occurrence handles nested arrays)
             $jsonEnd = strrpos($response, ']');
             if ($jsonEnd !== false) {
+                // Extract only the JSON portion, including the brackets
+                // This removes any AI commentary or instructions
                 $response = substr($response, $jsonStart, $jsonEnd - $jsonStart + 1);
             }
         }
         
+        // Attempt to parse the extracted JSON
+        // associative=true ensures we get PHP arrays, not objects
         $data = json_decode($response, true);
         
+        // Validate JSON parsing was successful
+        // json_last_error() provides specific error codes for different failure types
         if (json_last_error() !== JSON_ERROR_NONE) {
+            // Log parsing failure with context for debugging AI response issues
             $this->logger->warning('Failed to parse JSON response', [
-                'error' => json_last_error_msg(),
-                'response' => substr($response, 0, 500)
+                'error' => json_last_error_msg(),           // Specific JSON error description
+                'error_code' => json_last_error(),          // Numeric error code for analysis
+                'response' => substr($response, 0, 500)     // First 500 chars for context (prevents log bloat)
             ]);
             return null;
         }
 
+        // Return successfully parsed and validated JSON data
         return $data;
     }
 

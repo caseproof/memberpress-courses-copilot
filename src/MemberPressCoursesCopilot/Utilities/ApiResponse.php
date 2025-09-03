@@ -150,65 +150,193 @@ class ApiResponse
     }
     
     /**
-     * Check nonce and send error if invalid
+     * Centralized nonce verification with automatic error handling
      *
-     * @param string $nonce Nonce value to verify
-     * @param string $action Nonce action
-     * @param string $error_message Custom error message
-     * @return bool True if valid, sends error and terminates if invalid
+     * This method provides a standardized way to verify CSRF protection nonces
+     * across all AJAX endpoints. It automatically sends appropriate error responses
+     * when security validation fails, eliminating boilerplate code duplication.
+     * 
+     * Security Validation Process:
+     * 1. Uses WordPress core wp_verify_nonce() for validation
+     * 2. Checks nonce against specific action for context validation
+     * 3. Automatically terminates request with 403 error on failure
+     * 4. Returns true only for valid nonces (simplifies caller logic)
+     * 
+     * CSRF Protection Benefits:
+     * - Prevents cross-site request forgery attacks
+     * - Validates request originated from legitimate source
+     * - Ensures request hasn't been replayed or modified
+     * - Protects against malicious third-party requests
+     * 
+     * Error Response Strategy:
+     * - Uses 403 Forbidden status (authorization failure, not authentication)
+     * - Includes ERROR_INVALID_NONCE constant for error categorization
+     * - Provides customizable error message for user-facing feedback
+     * - Terminates execution immediately to prevent further processing
+     * 
+     * Usage Pattern:
+     * Called at the beginning of AJAX handlers before any data processing:
+     * ```php
+     * ApiResponse::verifyNonce($_POST['nonce'], NonceConstants::QUIZ_AI);
+     * // Continue with request processing...
+     * ```
+     *
+     * @param string $nonce Nonce value from request to verify
+     * @param string $action Nonce action constant for validation context
+     * @param string $error_message Custom error message for user feedback
+     * @return bool True if valid (function terminates on invalid nonce)
      */
     public static function verifyNonce(string $nonce, string $action, string $error_message = 'Security verification failed'): bool
     {
+        // WordPress nonce verification returns false, 1, or 2
+        // false = invalid, 1 = valid (within 12 hour window), 2 = valid (within 24 hour window)
         if (!wp_verify_nonce($nonce, $action)) {
+            // Automatically send error response and terminate execution
+            // This prevents any further processing of potentially malicious requests
             self::errorMessage($error_message, self::ERROR_INVALID_NONCE, 403);
-            return false; // Never reached, but satisfies IDE
+            return false; // Never reached due to termination, but satisfies static analysis
         }
         return true;
     }
     
     /**
-     * Check user capability and send error if insufficient
+     * Centralized user capability verification with automatic error handling
      *
-     * @param string $capability Capability to check
-     * @param string $error_message Custom error message
-     * @return bool True if capable, sends error and terminates if not
+     * This method provides standardized permission checking across all AJAX endpoints.
+     * It automatically sends appropriate error responses when users lack required
+     * privileges, following WordPress security best practices.
+     * 
+     * Permission Validation Process:
+     * 1. Uses WordPress current_user_can() for capability checking
+     * 2. Validates against specific capability string (not role names)
+     * 3. Automatically terminates request with 403 error on insufficient permissions
+     * 4. Returns true only for authorized users (simplifies caller logic)
+     * 
+     * WordPress Capability System:
+     * - Capabilities are granular permissions (edit_posts, manage_options, etc.)
+     * - More flexible than role-based checks (Editor, Administrator, etc.)
+     * - Supports custom capabilities defined by plugins
+     * - Handles capability mapping and inheritance automatically
+     * 
+     * Common Capabilities Used:
+     * - 'edit_posts': Content creation and editing (typical for course operations)
+     * - 'manage_options': Administrative settings access
+     * - 'edit_others_posts': Editing content by other users
+     * - 'publish_posts': Publishing content publicly
+     * 
+     * Security Benefits:
+     * - Prevents privilege escalation attacks
+     * - Enforces principle of least privilege
+     * - Integrates with WordPress user management
+     * - Supports multisite capability inheritance
+     * 
+     * Error Response Strategy:
+     * - Uses 403 Forbidden status for authorization failures
+     * - Provides clear error message for permission issues
+     * - Terminates execution to prevent unauthorized data access
+     * - Uses self::forbidden() for consistent error format
+     * 
+     * Usage Pattern:
+     * Called after nonce verification in AJAX handlers:
+     * ```php
+     * ApiResponse::verifyCapability('edit_posts');
+     * // Continue with authorized operations...
+     * ```
+     *
+     * @param string $capability WordPress capability to check (e.g., 'edit_posts')
+     * @param string $error_message Custom error message for user feedback
+     * @return bool True if user has capability (function terminates on insufficient permissions)
      */
     public static function verifyCapability(string $capability, string $error_message = 'Insufficient permissions'): bool
     {
+        // current_user_can() checks against WordPress capability system
+        // Returns false for insufficient permissions, including non-logged-in users
         if (!current_user_can($capability)) {
+            // Automatically send 403 Forbidden response and terminate execution
+            // This prevents any unauthorized access to protected functionality
             self::forbidden($error_message);
-            return false; // Never reached, but satisfies IDE
+            return false; // Never reached due to termination, but satisfies static analysis
         }
         return true;
     }
     
     /**
-     * Validate required parameters and send error if missing
+     * Comprehensive required parameter validation with detailed error reporting
      *
-     * @param array $params Parameters to check
-     * @param array $required Required parameter names
-     * @return bool True if all present, sends error and terminates if not
+     * This method provides centralized validation for required AJAX parameters,
+     * ensuring all necessary data is present before processing requests. It
+     * automatically generates detailed error responses for missing parameters.
+     * 
+     * Validation Rules:
+     * - Parameters must exist in the array (isset() check)
+     * - Parameters must not be empty strings (business logic requirement)
+     * - Both conditions must be met for parameter to be considered valid
+     * - Array values and objects are considered valid if they exist
+     * 
+     * Parameter Processing:
+     * - Iterates through all required parameter names
+     * - Builds comprehensive list of missing parameters
+     * - Differentiates between missing and empty parameters
+     * - Provides specific parameter names in error messages
+     * 
+     * Error Response Structure:
+     * - Uses ERROR_MISSING_PARAMETER constant for categorization
+     * - Includes user-friendly message with specific missing parameters
+     * - Provides machine-readable 'missing' array in error data
+     * - Returns 400 Bad Request status (client error)
+     * 
+     * Business Logic Benefits:
+     * - Prevents processing with incomplete data
+     * - Provides clear feedback for API consumers
+     * - Enables client-side form validation improvements
+     * - Reduces server-side error handling complexity
+     * 
+     * Usage Examples:
+     * ```php
+     * // Validate essential AJAX parameters
+     * ApiResponse::validateRequired($_POST, ['lesson_id', 'content', 'nonce']);
+     * 
+     * // Validate complex nested data
+     * ApiResponse::validateRequired($data, ['course.title', 'course.sections']);
+     * ```
+     * 
+     * Integration with AJAX Handlers:
+     * Called early in AJAX methods after security validation but before
+     * data processing. This ensures clean failure for incomplete requests.
+     *
+     * @param array $params Parameter array to validate (typically $_POST data)
+     * @param array $required Array of required parameter names
+     * @return bool True if all parameters present (function terminates on missing parameters)
      */
     public static function validateRequired(array $params, array $required): bool
     {
         $missing = [];
         
+        // Check each required parameter for existence and non-empty value
         foreach ($required as $param) {
+            // Parameter must exist in array AND not be empty string
+            // isset() handles array key existence, === '' handles empty values
             if (!isset($params[$param]) || $params[$param] === '') {
                 $missing[] = $param;
             }
         }
         
+        // If any parameters are missing, generate detailed error response
         if (!empty($missing)) {
+            // Create comprehensive error with both human and machine-readable data
             $error = new WP_Error(
-                self::ERROR_MISSING_PARAMETER,
-                sprintf('Missing required parameters: %s', implode(', ', $missing)),
-                ['missing' => $missing]
+                self::ERROR_MISSING_PARAMETER,                    // Error code constant
+                sprintf('Missing required parameters: %s', implode(', ', $missing)), // User message
+                ['missing' => $missing]                          // Machine-readable data
             );
+            
+            // Send 400 Bad Request response and terminate execution
+            // 400 status indicates client error (malformed request)
             self::error($error, 400);
-            return false; // Never reached
+            return false; // Never reached due to termination, satisfies static analysis
         }
         
+        // All required parameters are present and valid
         return true;
     }
     

@@ -31,6 +31,23 @@
 
         /**
          * Check if we're on a lesson edit page
+         * 
+         * @return {boolean} True if on lesson edit page
+         * 
+         * @example
+         * // Check page type in your own code
+         * const integration = new MPCCLessonQuizIntegration();
+         * if (integration.isLessonEditPage()) {
+         *     console.log('On lesson edit page - quiz integration will be active');
+         *     // Add your lesson-specific functionality here
+         * }
+         * 
+         * @example
+         * // Use for conditional loading
+         * if (new MPCCLessonQuizIntegration().isLessonEditPage()) {
+         *     // Load lesson-specific scripts
+         *     loadLessonSpecificFeatures();
+         * }
          */
         isLessonEditPage() {
             // Check body class
@@ -45,6 +62,27 @@
 
         /**
          * Add Create Quiz button to lesson editor
+         * 
+         * @return {void}
+         * 
+         * @example
+         * // Manual button addition (usually automatic)
+         * const integration = new MPCCLessonQuizIntegration();
+         * integration.addCreateQuizButton();
+         * // Adds "Create Quiz" button to lesson editor toolbar
+         * 
+         * @example
+         * // Check if button was added successfully
+         * const integration = new MPCCLessonQuizIntegration();
+         * integration.addCreateQuizButton();
+         * 
+         * setTimeout(() => {
+         *     if ($('#mpcc-lesson-create-quiz').length) {
+         *         console.log('Create Quiz button added successfully');
+         *     } else {
+         *         console.log('Button not added - may not be on lesson page');
+         *     }
+         * }, 1000);
          */
         addCreateQuizButton() {
             // Wait for editor to be ready
@@ -117,6 +155,37 @@
 
         /**
          * Create quiz from current lesson
+         * 
+         * @param {number} lessonId - The lesson ID to create quiz from
+         * @return {void}
+         * 
+         * @example
+         * // Create quiz from specific lesson
+         * const integration = new MPCCLessonQuizIntegration();
+         * integration.createQuizFromLesson(123);
+         * // Creates new quiz associated with lesson 123 and redirects to quiz editor
+         * 
+         * @example
+         * // Create quiz with confirmation
+         * const integration = new MPCCLessonQuizIntegration();
+         * const lessonId = integration.getCurrentLessonId();
+         * 
+         * if (confirm('Create a new quiz for this lesson?')) {
+         *     integration.createQuizFromLesson(lessonId);
+         * }
+         * 
+         * @example
+         * // Handle the full workflow
+         * const integration = new MPCCLessonQuizIntegration();
+         * const lessonId = integration.getCurrentLessonId();
+         * 
+         * if (lessonId) {
+         *     console.log(`Creating quiz for lesson ${lessonId}`);
+         *     integration.createQuizFromLesson(lessonId);
+         *     // User will be redirected to quiz editor with AI modal auto-opening
+         * } else {
+         *     console.error('No lesson ID found');
+         * }
          */
         createQuizFromLesson(lessonId) {
             // Show confirmation
@@ -175,6 +244,51 @@
 
         /**
          * Get course ID from lesson metadata
+         * 
+         * @param {number} lessonId - The lesson ID to get course for
+         * @return {Promise<number>} Promise that resolves to course ID
+         * 
+         * @example
+         * // Get course ID for a lesson
+         * const integration = new MPCCLessonQuizIntegration();
+         * integration.getLessonCourseId(123).then(courseId => {
+         *     console.log(`Lesson 123 belongs to course ${courseId}`);
+         * }).catch(error => {
+         *     console.error('No course found for lesson:', error);
+         * });
+         * 
+         * @example
+         * // Use with async/await
+         * const integration = new MPCCLessonQuizIntegration();
+         * 
+         * async function createQuizWithCourse() {
+         *     try {
+         *         const courseId = await integration.getLessonCourseId(456);
+         *         console.log(`Creating quiz for lesson 456 in course ${courseId}`);
+         *         // Proceed with quiz creation knowing the course
+         *     } catch (error) {
+         *         console.log('Lesson not associated with course, proceeding anyway');
+         *     }
+         * }
+         * 
+         * @example
+         * // Handle both success and failure cases
+         * const integration = new MPCCLessonQuizIntegration();
+         * const lessonId = 789;
+         * 
+         * integration.getLessonCourseId(lessonId)
+         *     .then(courseId => {
+         *         if (courseId) {
+         *             console.log(`Lesson ${lessonId} → Course ${courseId}`);
+         *             return { lessonId, courseId };
+         *         } else {
+         *             console.log(`Lesson ${lessonId} has no course association`);
+         *             return { lessonId, courseId: null };
+         *         }
+         *     })
+         *     .then(data => {
+         *         // Proceed with quiz creation using data.lessonId and data.courseId
+         *     });
          */
         getLessonCourseId(lessonId) {
             return new Promise((resolve, reject) => {

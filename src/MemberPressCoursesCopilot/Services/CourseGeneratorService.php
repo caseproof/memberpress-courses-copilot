@@ -355,33 +355,99 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
     }
     
     /**
-     * Validate course data before generation
+     * Comprehensive course data validation with structural integrity checks
+     * 
+     * This method performs thorough validation of course data structure to ensure
+     * successful course generation. It validates both required fields and structural
+     * consistency across the entire course hierarchy.
+     * 
+     * Validation Hierarchy:
+     * 1. Course Level: Title, description, and basic metadata
+     * 2. Section Level: Each section's title and lesson array
+     * 3. Lesson Level: Each lesson's title and content structure
+     * 
+     * Required Field Validation:
+     * - Course title: Essential for course identification and SEO
+     * - Sections array: Must exist and contain at least one section
+     * - Section titles: Required for navigation and course structure
+     * - Lesson arrays: Each section must have at least one lesson
+     * 
+     * Structural Validation Rules:
+     * - Sections must be array type (not string or object)
+     * - Each section must have lessons array (empty sections not allowed)
+     * - Maintains pedagogical standards (courses need content structure)
+     * 
+     * Error Reporting Strategy:
+     * - User-friendly error messages with specific context
+     * - Section/lesson numbering for easy identification
+     * - Descriptive field names for clear guidance
+     * - Aggregated error list for comprehensive feedback
+     * 
+     * Business Logic Validation:
+     * - Enforces minimum course structure requirements
+     * - Prevents creation of empty or invalid courses
+     * - Ensures course meets educational content standards
+     * - Validates data types to prevent runtime errors
+     * 
+     * Return Structure:
+     * - 'valid': Boolean flag for overall validation result
+     * - 'errors': Array of specific validation failure messages
+     * - Used by validateParams() for interface compliance
+     * 
+     * @param array $courseData Complete course structure to validate
+     * @return array Validation result with 'valid' flag and 'errors' array
      */
     public function validateCourseData(array $courseData): array
     {
         $errors = [];
         
+        // Course Level Validation: Essential course metadata
         if (empty($courseData['title'])) {
+            // Course title is mandatory for WordPress post creation and user identification
             $errors[] = 'Course title is required';
         }
         
+        // Course Structure Validation: Sections are the backbone of course organization
         if (empty($courseData['sections']) || !is_array($courseData['sections'])) {
+            // Courses must have at least one section for meaningful content organization
             $errors[] = 'At least one section is required';
         } else {
+            // Section Level Validation: Each section must be properly structured
             foreach ($courseData['sections'] as $index => $section) {
+                // Use 1-based numbering for user-friendly error messages
+                $sectionNum = $index + 1;
+                
+                // Section title validation
                 if (empty($section['title'])) {
-                    $errors[] = "Section " . ($index + 1) . " title is required";
+                    $errors[] = "Section {$sectionNum} title is required";
                 }
                 
+                // Section content validation: lessons array is mandatory
                 if (empty($section['lessons']) || !is_array($section['lessons'])) {
-                    $errors[] = "Section " . ($index + 1) . " must have at least one lesson";
+                    // Empty sections provide no educational value and break course flow
+                    $errors[] = "Section {$sectionNum} must have at least one lesson";
+                } else {
+                    // Lesson Level Validation: Each lesson must have essential content
+                    foreach ($section['lessons'] as $lessonIndex => $lesson) {
+                        $lessonNum = $lessonIndex + 1;
+                        
+                        // Lesson title is required for navigation and identification
+                        if (empty($lesson['title'])) {
+                            $errors[] = "Section {$sectionNum}, Lesson {$lessonNum} title is required";
+                        }
+                        
+                        // Additional lesson validation could be added here
+                        // - Content length validation
+                        // - Duration format validation
+                        // - Lesson type validation
+                    }
                 }
             }
         }
         
         return [
-            'valid' => empty($errors),
-            'errors' => $errors
+            'valid' => empty($errors),  // Valid only if no errors found
+            'errors' => $errors         // Complete list of validation failures
         ];
     }
     
@@ -463,14 +529,38 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
     }
     
     /**
-     * Validate course generation parameters (ICourseGenerator interface)
+     * Interface-compliant parameter validation for course generation
      *
-     * @param array $courseParams Parameters to validate
-     * @return bool True if valid, false otherwise
+     * This method provides a simplified boolean validation interface while
+     * leveraging the comprehensive validateCourseData() method internally.
+     * It's designed to meet the ICourseGenerator interface requirements.
+     * 
+     * Implementation Strategy:
+     * - Delegates to validateCourseData() for actual validation logic
+     * - Converts detailed validation results to simple boolean
+     * - Maintains consistency with detailed validation rules
+     * - Provides interface compatibility for external callers
+     * 
+     * Usage Context:
+     * - Called by external services that need simple pass/fail validation
+     * - Used in conditional logic where detailed errors aren't needed
+     * - Provides interface compliance for dependency injection
+     * - Enables polymorphic usage with other course generators
+     * 
+     * Design Pattern:
+     * This follows the Adapter pattern, providing a simplified interface
+     * to the more complex validateCourseData() method while maintaining
+     * full validation capability.
+     *
+     * @param array $courseParams Course parameters to validate
+     * @return bool True if all validation rules pass, false if any fail
      */
     public function validateParams(array $courseParams): bool
     {
+        // Delegate to comprehensive validation method
         $validation = $this->validateCourseData($courseParams);
+        
+        // Return simple boolean result for interface compliance
         return $validation['valid'];
     }
 }

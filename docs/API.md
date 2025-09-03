@@ -4,12 +4,26 @@
 
 The MemberPress Courses Copilot plugin provides AJAX endpoints for AI-powered course creation and management. All endpoints require proper authentication and nonce verification.
 
+**Note:** This document provides a condensed API overview. For complete API documentation with detailed examples and error handling, see [API_REFERENCE.md](API_REFERENCE.md).
+
 ## Authentication
 
 All AJAX endpoints require:
 1. Valid WordPress user session
 2. Appropriate user capabilities (typically `edit_posts` or `publish_posts`)
 3. Valid nonce verification
+
+## Quick Reference
+
+### Endpoint Categories
+
+| Category | Endpoints | Purpose |
+|----------|-----------|---------|
+| **Course Creation** | `mpcc_chat_message`, `mpcc_create_course` | AI course generation |
+| **Session Management** | `mpcc_load_session`, `mpcc_save_conversation` | Conversation persistence |
+| **Quiz Generation** | `mpcc_generate_quiz`, `mpcc_create_quiz_from_lesson` | AI quiz creation |
+| **Content Management** | `mpcc_save_lesson_content`, `mpcc_generate_lesson_content` | Lesson content handling |
+| **Integration** | `mpcc_load_ai_interface`, `mpcc_ai_chat` | MemberPress integration |
 
 ## AJAX Endpoints
 

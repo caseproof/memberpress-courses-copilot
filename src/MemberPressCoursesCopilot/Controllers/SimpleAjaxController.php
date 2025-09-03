@@ -71,25 +71,78 @@ class SimpleAjaxController
     }
     
     /**
-     * Sanitize array data recursively
+     * Recursively sanitize complex array data with type-aware validation
      *
-     * @param array $data Data to sanitize
-     * @param string $type Sanitization type
-     * @return array Sanitized array
+     * This method provides comprehensive sanitization for deeply nested arrays
+     * containing user input from AJAX requests. It's specifically designed to
+     * handle complex data structures like conversation histories and course
+     * configurations that may contain mixed data types.
+     * 
+     * Recursive Sanitization Strategy:
+     * - Preserves array structure while cleaning all scalar values
+     * - Applies appropriate WordPress sanitization based on data type
+     * - Handles unlimited nesting depth for complex JSON structures
+     * - Maintains array keys for associative arrays
+     * 
+     * Type-Specific Sanitization Rules:
+     * - 'text': Standard text fields, removes HTML and encodes entities
+     * - 'textarea': Preserves line breaks, removes dangerous HTML
+     * - 'email': Validates email format and removes invalid characters
+     * - 'url': Validates URLs, removes dangerous protocols
+     * - 'int': Converts to integer, handles type coercion safely
+     * - 'float': Preserves decimal precision for numeric data
+     * - 'boolean': Handles string boolean representations ('true', '1')
+     * - 'html': Allows safe HTML tags for rich content fields
+     * 
+     * Security Considerations:
+     * - Prevents XSS attacks through comprehensive HTML sanitization
+     * - Handles malicious nested data structures safely
+     * - Ensures type consistency to prevent injection attacks
+     * - Uses WordPress core sanitization functions (tested and secure)
+     * 
+     * Use Cases in Course Editor:
+     * - Conversation histories with mixed text/metadata
+     * - Course structures with nested sections/lessons
+     * - User preferences and configuration options
+     * - Form data from complex multi-step wizards
+     *
+     * @param array $data Nested array data to sanitize (preserves structure)
+     * @param string $type Sanitization strategy to apply recursively
+     * @return array Fully sanitized array with identical structure
      */
     protected function sanitizeArray(array $data, string $type = 'text'): array {
         return array_map(function($item) use ($type) {
+            // Handle nested arrays by recursive call
+            // This preserves complex data structures while ensuring all values are clean
             if (is_array($item)) {
                 return $this->sanitizeArray($item, $type);
             }
+            
+            // Apply type-specific sanitization using PHP 8 match expression
+            // Each sanitization function is optimized for its specific data type
             return match($type) {
+                // Textarea: Allows line breaks but removes script tags and dangerous HTML
                 'textarea' => sanitize_textarea_field($item),
+                
+                // Email: Validates format according to RFC standards
                 'email' => sanitize_email($item),
+                
+                // URL: Validates protocol, removes javascript: and other dangerous schemes
                 'url' => esc_url_raw($item),
+                
+                // Integer: Converts to whole number, handles non-numeric input gracefully
                 'int' => intval($item),
+                
+                // Float: Preserves decimal precision for measurements and calculations
                 'float' => floatval($item),
+                
+                // Boolean: Converts string representations to actual boolean values
                 'boolean' => filter_var($item, FILTER_VALIDATE_BOOLEAN),
+                
+                // HTML: Allows safe HTML tags based on post content rules
                 'html' => wp_kses_post($item),
+                
+                // Default text: Removes all HTML and encodes special characters
                 default => sanitize_text_field($item)
             };
         }, $data);
@@ -101,8 +154,12 @@ class SimpleAjaxController
     public function handleChatMessage(): void
     {
         try {
-            // Verify nonce
+            // Critical Security Validation: Verify CSRF protection nonce
+            // This prevents unauthorized requests from external sites or malicious scripts
+            // Uses EDITOR_NONCE constant for consistency across course editor operations
             if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
+                // Send standardized error response with specific error code
+                // 403 status indicates authorization failure (not authentication)
                 ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
                 return;
             }
@@ -217,8 +274,12 @@ class SimpleAjaxController
     public function handleLoadSession(): void
     {
         try {
-            // Verify nonce
+            // Critical Security Validation: Verify CSRF protection nonce
+            // This prevents unauthorized requests from external sites or malicious scripts
+            // Uses EDITOR_NONCE constant for consistency across course editor operations
             if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
+                // Send standardized error response with specific error code
+                // 403 status indicates authorization failure (not authentication)
                 ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
                 return;
             }
@@ -291,8 +352,12 @@ class SimpleAjaxController
     public function handleSaveConversation(): void
     {
         try {
-            // Verify nonce
+            // Critical Security Validation: Verify CSRF protection nonce
+            // This prevents unauthorized requests from external sites or malicious scripts
+            // Uses EDITOR_NONCE constant for consistency across course editor operations
             if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
+                // Send standardized error response with specific error code
+                // 403 status indicates authorization failure (not authentication)
                 ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
                 return;
             }
@@ -408,8 +473,12 @@ class SimpleAjaxController
     public function handleCreateCourse(): void
     {
         try {
-            // Verify nonce
+            // Critical Security Validation: Verify CSRF protection nonce
+            // This prevents unauthorized requests from external sites or malicious scripts
+            // Uses EDITOR_NONCE constant for consistency across course editor operations
             if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::EDITOR_NONCE, false)) {
+                // Send standardized error response with specific error code
+                // 403 status indicates authorization failure (not authentication)
                 ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
                 return;
             }
@@ -787,11 +856,20 @@ If modifying an existing course, include ALL sections and lessons (both existing
     public function handleUpdateSessionTitle(): void
     {
         try {
-            // Verify nonce - accept multiple nonce types
+            // Multi-Nonce Security Validation for Cross-Context Operations
+            // This method accepts multiple nonce types because session title updates
+            // can be triggered from different parts of the application:
+            // - EDITOR_NONCE: From main course editor interface
+            // - COURSES_INTEGRATION: From course integration workflows
+            // - AI_INTERFACE: From AI chat interface operations
             $nonce = $_POST['nonce'] ?? '';
+            
+            // Check against all accepted nonce types (logical OR)
+            // At least one must be valid for the operation to proceed
             if (!NonceConstants::verify($nonce, NonceConstants::EDITOR_NONCE, false) && 
                 !NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false) &&
                 !NonceConstants::verify($nonce, NonceConstants::AI_INTERFACE, false)) {
+                // All nonce validations failed - this is a security violation
                 throw new \Exception('Security check failed');
             }
             
