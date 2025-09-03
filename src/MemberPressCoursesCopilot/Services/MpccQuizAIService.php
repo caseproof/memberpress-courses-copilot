@@ -52,7 +52,7 @@ class MpccQuizAIService extends BaseService implements IQuizAIService
         $this->logger->info('Generating questions', [
             'type'           => $type,
             'count'          => $count,
-            'content_length' => strlen($content),
+            'contentLength' => strlen($content),
         ]);
 
         // Validate content suitability
@@ -102,8 +102,8 @@ class MpccQuizAIService extends BaseService implements IQuizAIService
     public function generateMultipleChoiceQuestions(string $content, int $count = 5): array
     {
         $this->logger->info('Generating multiple-choice questions', [
-            'content_length' => strlen($content),
-            'question_count' => $count,
+            'contentLength' => strlen($content),
+            'questionCount' => $count,
         ]);
 
         $prompt = $this->buildMultipleChoicePrompt($content, $count);
@@ -198,8 +198,8 @@ Content to create questions from:
     public function generateTrueFalseQuestions(string $content, int $count = 5): array
     {
         $this->logger->info('Generating true/false questions', [
-            'content_length' => strlen($content),
-            'question_count' => $count,
+            'contentLength' => strlen($content),
+            'questionCount' => $count,
         ]);
 
         $prompt = $this->buildTrueFalsePrompt($content, $count);
@@ -231,8 +231,8 @@ Content to create questions from:
     public function generateTextAnswerQuestions(string $content, int $count = 5): array
     {
         $this->logger->info('Generating text answer questions', [
-            'content_length' => strlen($content),
-            'question_count' => $count,
+            'contentLength' => strlen($content),
+            'questionCount' => $count,
         ]);
 
         $prompt = $this->buildTextAnswerPrompt($content, $count);
@@ -264,8 +264,8 @@ Content to create questions from:
     public function generateMultipleSelectQuestions(string $content, int $count = 5): array
     {
         $this->logger->info('Generating multiple select questions', [
-            'content_length' => strlen($content),
-            'question_count' => $count,
+            'contentLength' => strlen($content),
+            'questionCount' => $count,
         ]);
 
         $prompt = $this->buildMultipleSelectPrompt($content, $count);
@@ -398,7 +398,7 @@ Content to create questions from:
 
                 // Debug logging for multiple select validation (complex question type)
                 $this->logger->info('Multiple select validation passed', [
-                    'content_length' => $contentLength,
+                    'contentLength' => $contentLength,
                 ]);
                 break;
 
@@ -685,7 +685,7 @@ Content to create questions from:
     /**
      * @throws \BadMethodCallException
      */
-    public function generateQuizFromLesson(int $lesson_id, array $options = []): array
+    public function generateQuizFromLesson(int $lessonId, array $options = []): array
     {
         throw new \BadMethodCallException('generateQuizFromLesson() is not implemented. This method must generate quiz questions from lesson content.');
     }
@@ -695,7 +695,7 @@ Content to create questions from:
     /**
      * @throws \BadMethodCallException
      */
-    public function generateQuizFromCourse(int $course_id, array $options = []): array
+    public function generateQuizFromCourse(int $courseId, array $options = []): array
     {
         throw new \BadMethodCallException('generateQuizFromCourse() is not implemented. This method must generate quiz questions from course content.');
     }
@@ -705,7 +705,7 @@ Content to create questions from:
     /**
      * @throws \BadMethodCallException
      */
-    public function generateQuestion(string $content, string $question_type, array $options = []): array
+    public function generateQuestion(string $content, string $questionType, array $options = []): array
     {
         throw new \BadMethodCallException('generateQuestion() is not implemented. This method must generate a question of the specified type from the provided content.');
     }
@@ -755,7 +755,7 @@ Content to create questions from:
     /**
      * @throws \BadMethodCallException
      */
-    public function generateQuizAnalytics(int $quiz_id): array
+    public function generateQuizAnalytics(int $quizId): array
     {
         throw new \BadMethodCallException('generateQuizAnalytics() is not implemented. This method must generate analytics for the specified quiz.');
     }
@@ -765,7 +765,7 @@ Content to create questions from:
     /**
      * @throws \BadMethodCallException
      */
-    public function optimizeQuiz(int $quiz_id, array $performance_data): array
+    public function optimizeQuiz(int $quizId, array $performanceData): array
     {
         throw new \BadMethodCallException('optimizeQuiz() is not implemented. This method must optimize quiz based on performance data.');
     }
@@ -775,7 +775,7 @@ Content to create questions from:
     /**
      * @throws \BadMethodCallException
      */
-    public function generateFeedback(array $question, string $user_answer): string
+    public function generateFeedback(array $question, string $userAnswer): string
     {
         throw new \BadMethodCallException('generateFeedback() is not implemented. This method must generate feedback for user answers.');
     }

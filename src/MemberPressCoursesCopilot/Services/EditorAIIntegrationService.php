@@ -300,9 +300,9 @@ class EditorAIIntegrationService extends BaseService
         NonceConstants::field(NonceConstants::AI_ASSISTANT, 'mpcc_editor_ai_nonce');
 
         // Get parent course information for lessons
-        $parent_course = null;
+        $parentCourse = null;
         if ($post->post_type === self::POST_TYPE_LESSON) {
-            $parent_course = $this->getParentCourse($post);
+            $parentCourse = $this->getParentCourse($post);
         }
 
         // Enqueue modal styles
@@ -322,8 +322,8 @@ class EditorAIIntegrationService extends BaseService
                     <div id="mpcc-editor-ai-messages" role="log" aria-label="AI conversation history" aria-live="polite" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;" tabindex="0">
                         <div class="mpcc-ai-message" role="article" aria-label="AI Assistant introduction" style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
                             <strong>AI Assistant:</strong> <div class="ai-content" id="mpcc-editor-ai-description"><?php echo $config['assistant_intro']; ?>
-                            <?php if ($parent_course && $post->post_type === self::POST_TYPE_LESSON) : ?>
-                            <br><br>I see this lesson is part of "<strong><?php echo esc_html($parent_course->post_title); ?></strong>". I'll make sure the content aligns with the course objectives.
+                            <?php if ($parentCourse && $post->post_type === self::POST_TYPE_LESSON) : ?>
+                            <br><br>I see this lesson is part of "<strong><?php echo esc_html($parentCourse->post_title); ?></strong>". I'll make sure the content aligns with the course objectives.
                             <?php endif; ?>
                             <br><br>What would you like <?php echo $post->post_type === self::POST_TYPE_LESSON ? 'this lesson to cover' : 'me to help with'; ?>?</div>
                         </div>
@@ -374,7 +374,7 @@ class EditorAIIntegrationService extends BaseService
             'modalId'        => $config['modal_id'],
             'ajaxAction'     => $config['ajax_action'],
             'updateAction'   => $config['update_action'],
-            'contextData'    => $this->getContextData($post, $parent_course),
+            'contextData'    => $this->getContextData($post, $parentCourse),
             'lessonPostType' => self::POST_TYPE_LESSON,
         ]);
     }
@@ -385,9 +385,9 @@ class EditorAIIntegrationService extends BaseService
     private function getParentCourse(\WP_Post $lesson): ?\WP_Post
     {
         // Check if lesson has a parent course meta
-        $course_id = get_post_meta($lesson->ID, '_mpcs_course_id', true);
-        if ($course_id) {
-            return get_post($course_id);
+        $courseId = get_post_meta($lesson->ID, '_mpcs_course_id', true);
+        if ($courseId) {
+            return get_post($courseId);
         }
 
         // Alternative: Check if lesson is referenced in any course
@@ -407,8 +407,8 @@ class EditorAIIntegrationService extends BaseService
             if (is_array($sections)) {
                 foreach ($sections as $section) {
                     if (isset($section['lessons']) && is_array($section['lessons'])) {
-                        foreach ($section['lessons'] as $section_lesson) {
-                            if (isset($section_lesson['ID']) && $section_lesson['ID'] == $lesson->ID) {
+                        foreach ($section['lessons'] as $sectionLesson) {
+                            if (isset($sectionLesson['ID']) && $sectionLesson['ID'] == $lesson->ID) {
                                 return $course;
                             }
                         }
@@ -423,10 +423,10 @@ class EditorAIIntegrationService extends BaseService
     /**
      * Get comprehensive context data for AI
      */
-    private function getContextData(\WP_Post $post, ?\WP_Post $parent_course = null): array
+    private function getContextData(\WP_Post $post, ?\WP_Post $parentCourse = null): array
     {
         if ($post->post_type === self::POST_TYPE_LESSON) {
-            return $this->getLessonContextData($post, $parent_course);
+            return $this->getLessonContextData($post, $parentCourse);
         } else {
             return $this->getCourseContextData($post);
         }
@@ -435,7 +435,7 @@ class EditorAIIntegrationService extends BaseService
     /**
      * Get comprehensive lesson context data for AI
      */
-    private function getLessonContextData(\WP_Post $post, ?\WP_Post $parent_course = null): array
+    private function getLessonContextData(\WP_Post $post, ?\WP_Post $parentCourse = null): array
     {
         // Basic lesson information
         $lessonData = [
@@ -453,13 +453,13 @@ class EditorAIIntegrationService extends BaseService
         $lessonData['downloads']  = get_post_meta($post->ID, '_mpcs_lesson_downloads', true) ?: [];
 
         // Include parent course information
-        if ($parent_course) {
+        if ($parentCourse) {
             $lessonData['course'] = [
-                'id'                  => $parent_course->ID,
-                'title'               => $parent_course->post_title,
-                'description'         => substr($parent_course->post_content, 0, 500),
-                'learning_objectives' => get_post_meta($parent_course->ID, '_mpcs_course_learning_objectives', true) ?: [],
-                'target_audience'     => get_post_meta($parent_course->ID, '_mpcs_course_target_audience', true) ?: '',
+                'id'                  => $parentCourse->ID,
+                'title'               => $parentCourse->post_title,
+                'description'         => substr($parentCourse->post_content, 0, 500),
+                'learning_objectives' => get_post_meta($parentCourse->ID, '_mpcs_course_learning_objectives', true) ?: [],
+                'target_audience'     => get_post_meta($parentCourse->ID, '_mpcs_course_target_audience', true) ?: '',
             ];
         }
 

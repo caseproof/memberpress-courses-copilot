@@ -115,13 +115,13 @@ class CourseEditorPage
         // Log that we're rendering the page
         error_log('MPCC: Rendering course editor page');
 
-        $session_id = $this->getOrCreateSessionId();
+        $sessionId = $this->getOrCreateSessionId();
 
         // If no session ID, we'll let JavaScript create one when needed
-        if (empty($session_id)) {
-            $session_id = 'pending';
+        if (empty($sessionId)) {
+            $sessionId = 'pending';
         }
-        $course_id = isset($_GET['course_id']) ? (int) $_GET['course_id'] : 0;
+        $courseId = isset($_GET['course_id']) ? (int) $_GET['course_id'] : 0;
 
         // Include the template
         include MEMBERPRESS_COURSES_COPILOT_PLUGIN_DIR . 'templates/admin/course-editor-page.php';
