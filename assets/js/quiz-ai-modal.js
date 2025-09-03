@@ -255,7 +255,8 @@
             }
             
             // Method 5: Try to detect course from page header or referrer
-            if (!this.currentCourseId) {
+            // Only do this if we don't already have lesson or course context
+            if (!this.currentCourseId && !this.currentLessonId) {
                 // Check if we're coming from a course curriculum page by looking at the referrer
                 const referrer = document.referrer;
                 if (referrer && referrer.includes('post.php')) {
@@ -639,12 +640,23 @@
          * @return {void}
          */
         loadContextualLessons() {
-            // If we have a pending course ID from referrer, use it
-            if (this.pendingCourseId && !this.currentCourseId) {
-                this.currentCourseId = this.pendingCourseId;
+            this.logger?.log('Loading contextual lessons', {
+                currentLessonId: this.currentLessonId,
+                currentCourseId: this.currentCourseId,
+                pendingCourseId: this.pendingCourseId,
+                detectionMethod: this.detectionMethod
+            });
+            
+            const $select = $('#mpcc-modal-lesson-select');
+            $select.empty().append('<option value="">Loading lessons...</option>');
+            
+            // If we have a pending course ID from referrer, use it (only if no lesson context)
+            if (this.pendingCourseId && !this.currentCourseId && !this.currentLessonId) {
+                this.currentCourseId = parseInt(this.pendingCourseId, 10);
                 this.logger?.log('Using pending course ID from referrer:', this.currentCourseId);
             }
             
+            // Case 1: We have a course ID - load only that course's lessons
             if (this.currentCourseId) {
                 this.logger?.log('Loading lessons for course:', this.currentCourseId);
                 this.loadCourseLessonsOnly();
