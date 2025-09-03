@@ -50,8 +50,8 @@ class MpccQuizAIService extends BaseService implements IQuizAIService
         $count = $options['count'] ?? 5;
 
         $this->logger->info('Generating questions', [
-            'type'           => $type,
-            'count'          => $count,
+            'type'          => $type,
+            'count'         => $count,
             'contentLength' => strlen($content),
         ]);
 

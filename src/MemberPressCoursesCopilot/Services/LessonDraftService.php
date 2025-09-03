@@ -200,7 +200,7 @@ class LessonDraftService
         global $wpdb;
 
         $tableName = $this->table->getTableName();
-        $success    = true;
+        $success   = true;
 
         foreach ($lesson_orders as $lesson_id => $order) {
             $result = $wpdb->update(

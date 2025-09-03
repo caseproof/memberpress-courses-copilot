@@ -49,7 +49,7 @@ class DatabaseBackupService extends BaseService
     {
         parent::__construct();
         global $wpdb;
-        $this->wpdb         = $wpdb;
+        $this->wpdb        = $wpdb;
         $this->tablePrefix = $wpdb->prefix . 'mpcc_';
 
         // Set up backup directory
