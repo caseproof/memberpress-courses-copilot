@@ -122,8 +122,7 @@ class NonceConstants
         string $name = '_wpnonce',
         bool $referer = true,
         bool $echo = true
-    ): string
-    {
+    ): string {
         return wp_nonce_field($action, $name, $referer, $echo);
     }
 }

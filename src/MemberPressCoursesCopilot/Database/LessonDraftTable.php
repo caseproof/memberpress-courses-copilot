@@ -86,8 +86,8 @@ class LessonDraftTable
     /**
      * Clean up old drafts (older than 30 days)
      *
-     * @param int $days Number of days to keep drafts.
-     * @return int|false Number of rows deleted or false on error.
+     * @param  integer $days Number of days to keep drafts.
+     * @return integer|false Number of rows deleted or false on error.
      */
     public function cleanupOldDrafts($days = 30)
     {

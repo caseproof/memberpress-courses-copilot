@@ -167,8 +167,8 @@ final class Plugin
         }
 
         // Get services from container.
-        $settingsPage      = $this->container->get(\MemberPressCoursesCopilot\Admin\SettingsPage::class);
-        $adminMenu         = $this->container->get(\MemberPressCoursesCopilot\Admin\AdminMenu::class);
+        $settingsPage     = $this->container->get(\MemberPressCoursesCopilot\Admin\SettingsPage::class);
+        $adminMenu        = $this->container->get(\MemberPressCoursesCopilot\Admin\AdminMenu::class);
         $courseEditorPage = $this->container->get(\MemberPressCoursesCopilot\Admin\CourseEditorPage::class);
 
         // Initialize services
