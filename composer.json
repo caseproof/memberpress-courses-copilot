@@ -25,10 +25,11 @@
         "php": ">=8.0"
     },
     "require-dev": {
+        "caseproof/coding-standards-php": "^0.7.2",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.1",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
         "phpunit/phpunit": "^9.0",
-        "wp-coding-standards/wpcs": "^3.0",
-        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
-        "phpcompatibility/phpcompatibility-wp": "^2.1"
+        "wp-coding-standards/wpcs": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -45,10 +46,10 @@
     },
     "scripts": {
         "cs-check": [
-            "phpcs --standard=CaseproofWP src/ --extensions=php"
+            "phpcs --standard=Caseproof-WP-Standard src/ --extensions=php"
         ],
         "cs-fix": [
-            "phpcbf --standard=CaseproofWP src/ --extensions=php"
+            "phpcbf --standard=Caseproof-WP-Standard src/ --extensions=php"
         ],
         "test": [
             "phpunit"
@@ -70,5 +71,11 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": {
+        "caseproof": {
+            "type": "composer",
+            "url": "https://pkgs.cspf.co"
+        }
+    }
 }
