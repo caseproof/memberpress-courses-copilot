@@ -1,6 +1,5 @@
 <?php
 
-
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Services\BaseService;
@@ -179,7 +178,9 @@ class CourseAjaxService extends BaseService
     public function loadAIInterface(): void
     {
         // Verify nonce
-        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::AI_INTERFACE, false)) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (!NonceConstants::verify($nonce, NonceConstants::AI_INTERFACE, false)) {
             $this->logger->warning('AI interface load failed: invalid nonce', [
                 'user_id'    => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
@@ -199,7 +200,9 @@ class CourseAjaxService extends BaseService
             return;
         }
 
-        $context = sanitize_text_field($_POST['context'] ?? '');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        $context = isset($_POST['context']) ? sanitize_text_field(wp_unslash($_POST['context'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
         $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
 
         try {
@@ -320,7 +323,9 @@ class CourseAjaxService extends BaseService
     public function handleAIChat(): void
     {
         // Verify nonce
-        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('AI chat request failed: invalid nonce', [
                 'user_id'    => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
@@ -340,12 +345,18 @@ class CourseAjaxService extends BaseService
             return;
         }
 
-        $message              = sanitize_textarea_field($_POST['message'] ?? '');
-        $context              = sanitize_text_field($_POST['context'] ?? 'course_editing');
-        $post_id              = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
-        $conversation_history = $_POST['conversation_history'] ?? [];
-        $conversation_state   = $_POST['conversation_state'] ?? [];
-        $sessionId            = sanitize_text_field($_POST['session_id'] ?? '');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        $message = isset($_POST['message']) ? sanitize_textarea_field(wp_unslash($_POST['message'])) : '';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        $context = isset($_POST['context']) ? sanitize_text_field(wp_unslash($_POST['context'])) : 'course_editing';
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        $post_id = isset($_POST['post_id']) ? (int) $_POST['post_id'] : 0;
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        $conversation_history = isset($_POST['conversation_history']) ? wp_unslash($_POST['conversation_history']) : [];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        $conversation_state = isset($_POST['conversation_state']) ? wp_unslash($_POST['conversation_state']) : [];
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Already verified above
+        $sessionId = isset($_POST['session_id']) ? sanitize_text_field(wp_unslash($_POST['session_id'])) : '';
 
         // Sanitize arrays
         $conversation_history = $this->sanitizeArray($conversation_history, 'textarea');
@@ -855,7 +866,9 @@ Example: If a user says they want to create a PHP course for people with HTML/CS
     public function handlePing(): void
     {
         // Verify nonce
-        if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::COURSES_INTEGRATION, false)) {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce is verified in the next line
+        $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+        if (!NonceConstants::verify($nonce, NonceConstants::COURSES_INTEGRATION, false)) {
             $this->logger->warning('Ping request failed: invalid nonce', [
                 'user_id'    => get_current_user_id(),
                 'request_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',

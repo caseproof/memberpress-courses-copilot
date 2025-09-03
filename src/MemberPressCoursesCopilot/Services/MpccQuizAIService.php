@@ -1,6 +1,5 @@
 <?php
 
-
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Interfaces\IQuizAIService;
