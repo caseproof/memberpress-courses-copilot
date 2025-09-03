@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MemberPressCoursesCopilot\Models;
 
 use MemberPressCoursesCopilot\Utilities\Logger;

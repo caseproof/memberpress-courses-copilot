@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MemberPressCoursesCopilot\Services;
 
 use MemberPressCoursesCopilot\Interfaces\ILLMService;
@@ -24,20 +26,20 @@ use WP_Error;
  */
 class LLMService extends BaseService implements ILLMService
 {
-    // Auth gateway URL - can be overridden via wp-config.php constant
+    // Auth gateway URL - can be overridden via wp-config.php constant.
     private string $authGatewayUrl;
 
-    // License key for authentication with the gateway
-    // In production, this should come from MemberPress license system
+    // License key for authentication with the gateway.
+    // In production, this should come from MemberPress license system.
     // See /docs/todo/LICENSING_IMPLEMENTATION.md for implementation details
-    private const LICENSE_KEY = 'dev-license-key-001'; // Placeholder - not a real credential
+    private const LICENSE_KEY = 'dev-license-key-001'; // Placeholder - not a real credential.
 
     /**
      * Constructor
      */
     public function __construct()
     {
-        parent::__construct(); // Initialize logger from BaseService
+        parent::__construct(); // Initialize logger from BaseService.
 
         // Set auth gateway URL from constant if defined, otherwise use default
         $this->authGatewayUrl = defined('MPCC_AUTH_GATEWAY_URL')

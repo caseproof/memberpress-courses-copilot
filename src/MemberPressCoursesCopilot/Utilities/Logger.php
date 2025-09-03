@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Logger Utility for MemberPress Courses Copilot
  *
