@@ -53,9 +53,9 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param string $sessionId   Unique identifier for the session
-     * @param int    $userId      User ID associated with this session
-     * @param string $contextType Context type for the session (default: 'course_creation')
+     * @param string  $sessionId   Unique identifier for the session
+     * @param integer $userId      User ID associated with this session
+     * @param string  $contextType Context type for the session (default: 'course_creation')
      */
     public function __construct(string $sessionId, int $userId, string $contextType = 'course_creation')
     {
@@ -128,7 +128,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param int $count Number of recent messages to retrieve (default: 10)
+     * @param integer $count Number of recent messages to retrieve (default: 10)
      *
      * @return array Array of recent messages
      */
@@ -447,7 +447,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @return bool True if session is active, false otherwise
+     * @return boolean True if session is active, false otherwise
      */
     public function isActive(): bool
     {
@@ -459,9 +459,9 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param int $timeoutMinutes Timeout duration in minutes (default: 60)
+     * @param integer $timeoutMinutes Timeout duration in minutes (default: 60)
      *
-     * @return bool True if session is expired, false otherwise
+     * @return boolean True if session is expired, false otherwise
      */
     public function isExpired(int $timeoutMinutes = 60): bool
     {
@@ -473,9 +473,9 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param int $timeoutMinutes Timeout duration in minutes (default: 60)
+     * @param integer $timeoutMinutes Timeout duration in minutes (default: 60)
      *
-     * @return int Time remaining in seconds until expiry
+     * @return integer Time remaining in seconds until expiry
      */
     public function getTimeUntilExpiry(int $timeoutMinutes = 60): int
     {
@@ -488,7 +488,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @return int Pause duration in seconds (0 if not paused)
+     * @return integer Pause duration in seconds (0 if not paused)
      */
     public function getPauseDuration(): int
     {
@@ -589,9 +589,9 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param int|null $intervalSeconds Optional auto-save interval in seconds
+     * @param integer|null $intervalSeconds Optional auto-save interval in seconds
      *
-     * @return bool True if auto-save is needed, false otherwise
+     * @return boolean True if auto-save is needed, false otherwise
      */
     public function shouldAutoSave(int $intervalSeconds = null): bool
     {
@@ -631,7 +631,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @return bool True if session has unsaved changes, false otherwise
+     * @return boolean True if session has unsaved changes, false otherwise
      */
     public function hasUnsavedChanges(): bool
     {
@@ -900,7 +900,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @return int User ID
+     * @return integer User ID
      */
     public function getUserId(): int
     {
@@ -924,7 +924,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @return int|null Database ID or null if not saved
+     * @return integer|null Database ID or null if not saved
      */
     public function getDatabaseId(): ?int
     {
@@ -936,7 +936,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param int $id Database ID
+     * @param integer $id Database ID
      *
      * @return void
      */
@@ -977,7 +977,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @return int Unix timestamp of creation
+     * @return integer Unix timestamp of creation
      */
     public function getCreatedAt(): int
     {
@@ -989,7 +989,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param int $timestamp Unix timestamp
+     * @param integer $timestamp Unix timestamp
      *
      * @return void
      */
@@ -1003,7 +1003,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @return int Unix timestamp of last update
+     * @return integer Unix timestamp of last update
      */
     public function getLastUpdated(): int
     {
@@ -1015,7 +1015,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param int $timestamp Unix timestamp
+     * @param integer $timestamp Unix timestamp
      *
      * @return void
      */
@@ -1029,7 +1029,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @return int Unix timestamp of last save
+     * @return integer Unix timestamp of last save
      */
     public function getLastSaved(): int
     {
@@ -1041,7 +1041,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @return int Total number of tokens
+     * @return integer Total number of tokens
      */
     public function getTotalTokens(): int
     {
@@ -1053,7 +1053,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param int $tokens Total number of tokens
+     * @param integer $tokens Total number of tokens
      *
      * @return void
      */
@@ -1068,7 +1068,7 @@ class ConversationSession
      *
      * @since 1.0.0
      *
-     * @param int $tokens Number of tokens to add
+     * @param integer $tokens Number of tokens to add
      *
      * @return void
      */
@@ -1165,7 +1165,7 @@ class ConversationSession
      *
      * @param string $checkpointName Name of checkpoint to restore
      *
-     * @return bool True if checkpoint restored successfully, false otherwise
+     * @return boolean True if checkpoint restored successfully, false otherwise
      */
     public function restoreFromCheckpoint(string $checkpointName): bool
     {

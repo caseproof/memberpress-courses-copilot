@@ -62,7 +62,7 @@ class SessionFeaturesService extends BaseService
      * Sets up WordPress hooks and schedules for auto-save operations
      *
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function initializeAutoSave(): void
     {
@@ -83,7 +83,7 @@ class SessionFeaturesService extends BaseService
      * Sets up WordPress hooks and schedules for session timeout checks
      *
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function initializeTimeoutMonitoring(): void
     {
@@ -101,7 +101,7 @@ class SessionFeaturesService extends BaseService
      * Saves sessions that have unsaved changes in batches to prevent performance issues
      *
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function performAutoSave(): void
     {
@@ -156,7 +156,7 @@ class SessionFeaturesService extends BaseService
      * Processes client-side auto-save requests via AJAX
      *
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function handleAjaxAutoSave(): void
     {
@@ -214,7 +214,7 @@ class SessionFeaturesService extends BaseService
      * Checks for sessions approaching timeout and expired sessions
      *
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function performTimeoutCheck(): void
     {
@@ -248,10 +248,10 @@ class SessionFeaturesService extends BaseService
      *
      * Integrates with WordPress heartbeat API to check session timeout status
      *
-     * @param array<string, mixed> $response Heartbeat response data
-     * @param array<string, mixed> $data     Heartbeat request data
+     * @param  array<string, mixed> $response Heartbeat response data
+     * @param  array<string, mixed> $data     Heartbeat request data
      * @return array<string, mixed> Modified response data
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function handleHeartbeatTimeout(array $response, array $data): array
     {
@@ -281,7 +281,7 @@ class SessionFeaturesService extends BaseService
      * Processes AJAX requests to extend session timeout
      *
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function handleSessionExtension(): void
     {
@@ -325,11 +325,11 @@ class SessionFeaturesService extends BaseService
      *
      * Exports a session with all related data and metadata
      *
-     * @param string               $sessionId Session ID to export
-     * @param array<string, mixed> $options   Export options (include_analytics, include_debug_info, include_related_data)
+     * @param  string               $sessionId Session ID to export
+     * @param  array<string, mixed> $options   Export options (include_analytics, include_debug_info, include_related_data)
      * @return array<string, mixed> Exported session data
      * @throws \Exception If session not found, insufficient permissions, or export size exceeds limit
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function exportSession(string $sessionId, array $options = []): array
     {
@@ -401,11 +401,11 @@ class SessionFeaturesService extends BaseService
      *
      * Imports a previously exported session with validation and permission checks
      *
-     * @param array<string, mixed> $importData Import data containing session information
-     * @param array<string, mixed> $options    Import options (preserve_session_id, overwrite_existing, allow_user_import, target_user_id)
+     * @param  array<string, mixed> $importData Import data containing session information
+     * @param  array<string, mixed> $options    Import options (preserve_session_id, overwrite_existing, allow_user_import, target_user_id)
      * @return ConversationSession Imported session instance
      * @throws \Exception If validation fails, insufficient permissions, or save fails
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function importSession(array $importData, array $options = []): ConversationSession
     {
@@ -479,12 +479,12 @@ class SessionFeaturesService extends BaseService
      *
      * Handles multi-device synchronization with conflict resolution
      *
-     * @param string               $sessionId   Session ID to synchronize
-     * @param array<string, mixed> $clientState Current state from client (last_updated, client_id, etc.)
-     * @param array<string, mixed> $options     Sync options for conflict resolution
+     * @param  string               $sessionId   Session ID to synchronize
+     * @param  array<string, mixed> $clientState Current state from client (last_updated, client_id, etc.)
+     * @param  array<string, mixed> $options     Sync options for conflict resolution
      * @return array<string, mixed> Synchronization result with updates and conflict information
      * @throws \Exception If session not found or insufficient permissions
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function synchronizeSession(string $sessionId, array $clientState, array $options = []): array
     {
@@ -556,11 +556,11 @@ class SessionFeaturesService extends BaseService
      *
      * Sets up real-time collaborative editing with specified collaborators
      *
-     * @param string               $sessionId     Session ID to enable collaboration for
-     * @param array<array{user_id: int, permissions: array<string, bool>}> $collaborators Array of collaborator data
+     * @param  string                                                       $sessionId     Session ID to enable collaboration for
+     * @param  array<array{user_id: int, permissions: array<string, bool>}> $collaborators Array of collaborator data
      * @return array<string, mixed> Collaboration setup result
      * @throws \Exception If session not found or insufficient permissions
-     * @since 1.0.0
+     * @since  1.0.0
      */
     public function enableCollaborativeEditing(string $sessionId, array $collaborators = []): array
     {
@@ -614,12 +614,12 @@ class SessionFeaturesService extends BaseService
     }
 
     // PRIVATE HELPER METHODS.
-    
+
     /**
      * Schedule auto-save tasks using WordPress cron
      *
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function scheduleAutoSaveTasks(): void
     {
@@ -641,7 +641,7 @@ class SessionFeaturesService extends BaseService
      * Schedule timeout check tasks using WordPress cron
      *
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function scheduleTimeoutChecks(): void
     {
@@ -662,7 +662,7 @@ class SessionFeaturesService extends BaseService
      * Get active sessions that need saving
      *
      * @return array<int, string> Array of session IDs needing save
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function getActiveSessionsNeedingSave(): array
     {
@@ -674,10 +674,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Handle session modification event
      *
-     * @param string               $sessionId Session ID
-     * @param ConversationSession $session   Session instance
+     * @param  string              $sessionId Session ID
+     * @param  ConversationSession $session   Session instance
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function handleSessionModification(string $sessionId, ConversationSession $session): void
     {
@@ -690,10 +690,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Update session from client-side data
      *
-     * @param ConversationSession  $session    Session instance to update
-     * @param array<string, mixed> $clientData Client-side data containing updates
+     * @param  ConversationSession  $session    Session instance to update
+     * @param  array<string, mixed> $clientData Client-side data containing updates
      * @return void
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function updateSessionFromClientData(ConversationSession $session, array $clientData): void
     {
@@ -724,10 +724,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Get sessions approaching timeout threshold
      *
-     * @param int $threshold Timeout threshold timestamp
+     * @param  integer $threshold Timeout threshold timestamp
      * @return array<int, object> Array of session data objects
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function getSessionsNearTimeout(int $threshold): array
     {
@@ -736,10 +736,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Get expired sessions
      *
-     * @param int $threshold Expiry threshold timestamp
+     * @param  integer $threshold Expiry threshold timestamp
      * @return array<int, object> Array of expired session data objects
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function getExpiredSessions(int $threshold): array
     {
@@ -748,10 +748,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Send timeout warning notification
      *
-     * @param object $sessionData Session data object
+     * @param  object $sessionData Session data object
      * @return void
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function sendTimeoutWarning(object $sessionData): void
     {
@@ -760,10 +760,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Handle session timeout cleanup
      *
-     * @param object $sessionData Session data object
+     * @param  object $sessionData Session data object
      * @return void
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function handleSessionTimeout(object $sessionData): void
     {
@@ -772,11 +772,11 @@ class SessionFeaturesService extends BaseService
     /**
      * Check if user can export session
      *
-     * @param int $sessionUserId Session owner user ID
-     * @param int $currentUserId Current user ID
-     * @return bool True if user can export
+     * @param  integer $sessionUserId Session owner user ID
+     * @param  integer $currentUserId Current user ID
+     * @return boolean True if user can export
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function canUserExportSession(int $sessionUserId, int $currentUserId): bool
     {
@@ -787,7 +787,7 @@ class SessionFeaturesService extends BaseService
      *
      * @return string Plugin version number
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function getPluginVersion(): string
     {
@@ -796,10 +796,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Generate analytics data for session export
      *
-     * @param ConversationSession $session Session instance
+     * @param  ConversationSession $session Session instance
      * @return array<string, mixed> Analytics data
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function generateExportAnalytics(ConversationSession $session): array
     {
@@ -808,10 +808,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Generate debug information for session
      *
-     * @param ConversationSession $session Session instance
+     * @param  ConversationSession $session Session instance
      * @return array<string, mixed> Debug information
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function generateDebugInfo(ConversationSession $session): array
     {
@@ -820,10 +820,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Get related session data
      *
-     * @param ConversationSession $session Session instance
+     * @param  ConversationSession $session Session instance
      * @return array<string, mixed> Related session data
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function getRelatedSessionData(ConversationSession $session): array
     {
@@ -832,10 +832,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Calculate export data size in bytes
      *
-     * @param array<string, mixed> $data Export data
-     * @return int Size in bytes
+     * @param  array<string, mixed> $data Export data
+     * @return integer Size in bytes
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function calculateExportSize(array $data): int
     {
@@ -844,10 +844,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Compress export data
      *
-     * @param array<string, mixed> $data Data to compress
+     * @param  array<string, mixed> $data Data to compress
      * @return array<string, mixed> Compressed data with metadata
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function compressExportData(array $data): array
     {
@@ -856,10 +856,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Validate import data structure and content
      *
-     * @param array<string, mixed> $data Import data to validate
+     * @param  array<string, mixed> $data Import data to validate
      * @return array{valid: bool, errors: array<int, string>} Validation result
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function validateImportData(array $data): array
     {
@@ -868,10 +868,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Decompress import data
      *
-     * @param array<string, mixed> $data Compressed data
+     * @param  array<string, mixed> $data Compressed data
      * @return array<string, mixed> Decompressed data
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function decompressImportData(array $data): array
     {
@@ -882,7 +882,7 @@ class SessionFeaturesService extends BaseService
      *
      * @return string Unique session identifier
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function generateNewSessionId(): string
     {
@@ -891,11 +891,11 @@ class SessionFeaturesService extends BaseService
     /**
      * Check if user can sync session
      *
-     * @param int $sessionUserId Session owner user ID
-     * @param int $currentUserId Current user ID
-     * @return bool True if user can sync
+     * @param  integer $sessionUserId Session owner user ID
+     * @param  integer $currentUserId Current user ID
+     * @return boolean True if user can sync
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function canUserSyncSession(int $sessionUserId, int $currentUserId): bool
     {
@@ -904,10 +904,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Generate server sync state
      *
-     * @param ConversationSession $session Session instance
+     * @param  ConversationSession $session Session instance
      * @return array<string, mixed> Server sync state data
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function generateServerSyncState(ConversationSession $session): array
     {
@@ -916,11 +916,11 @@ class SessionFeaturesService extends BaseService
     /**
      * Detect synchronization conflicts
      *
-     * @param array<string, mixed> $serverState Server state data
-     * @param array<string, mixed> $clientState Client state data
-     * @return bool True if conflict detected
+     * @param  array<string, mixed> $serverState Server state data
+     * @param  array<string, mixed> $clientState Client state data
+     * @return boolean True if conflict detected
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function detectSyncConflict(array $serverState, array $clientState): bool
     {
@@ -929,13 +929,13 @@ class SessionFeaturesService extends BaseService
     /**
      * Resolve synchronization conflicts
      *
-     * @param ConversationSession  $session     Session instance
-     * @param array<string, mixed> $serverState Server state data
-     * @param array<string, mixed> $clientState Client state data
-     * @param array<string, mixed> $options     Conflict resolution options
+     * @param  ConversationSession  $session     Session instance
+     * @param  array<string, mixed> $serverState Server state data
+     * @param  array<string, mixed> $clientState Client state data
+     * @param  array<string, mixed> $options     Conflict resolution options
      * @return string Resolution strategy applied
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function resolveSyncConflict(ConversationSession $session, array $serverState, array $clientState, array $options): string
     {
@@ -944,11 +944,11 @@ class SessionFeaturesService extends BaseService
     /**
      * Generate updates for client synchronization
      *
-     * @param ConversationSession  $session     Session instance
-     * @param array<string, mixed> $clientState Client state data
+     * @param  ConversationSession  $session     Session instance
+     * @param  array<string, mixed> $clientState Client state data
      * @return array<string, mixed> Updates to send to client
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function generateClientUpdates(ConversationSession $session, array $clientState): array
     {
@@ -957,11 +957,11 @@ class SessionFeaturesService extends BaseService
     /**
      * Apply client updates to session
      *
-     * @param ConversationSession  $session     Session instance
-     * @param array<string, mixed> $clientState Client state data with updates
+     * @param  ConversationSession  $session     Session instance
+     * @param  array<string, mixed> $clientState Client state data with updates
      * @return void
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function applyClientUpdates(ConversationSession $session, array $clientState): void
     {
@@ -970,11 +970,11 @@ class SessionFeaturesService extends BaseService
     /**
      * Check if user can enable collaboration
      *
-     * @param int $sessionUserId Session owner user ID
-     * @param int $currentUserId Current user ID
-     * @return bool True if user can enable collaboration
+     * @param  integer $sessionUserId Session owner user ID
+     * @param  integer $currentUserId Current user ID
+     * @return boolean True if user can enable collaboration
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function canUserEnableCollaboration(int $sessionUserId, int $currentUserId): bool
     {
@@ -983,10 +983,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Validate collaborator data
      *
-     * @param array<array{user_id: int, permissions: array<string, bool>}> $collaborators Collaborator data to validate
+     * @param  array<array{user_id: int, permissions: array<string, bool>}> $collaborators Collaborator data to validate
      * @return array<array{user_id: int, permissions: array<string, bool>}> Validated collaborators
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function validateCollaborators(array $collaborators): array
     {
@@ -995,11 +995,11 @@ class SessionFeaturesService extends BaseService
     /**
      * Create collaboration channels
      *
-     * @param string               $sessionId         Session ID
-     * @param array<string, mixed> $collaborationData Collaboration metadata
+     * @param  string               $sessionId         Session ID
+     * @param  array<string, mixed> $collaborationData Collaboration metadata
      * @return array<string, mixed> Channel information
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function createCollaborationChannels(string $sessionId, array $collaborationData): array
     {
@@ -1008,10 +1008,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Initialize real-time synchronization
      *
-     * @param string $sessionId Session ID
+     * @param  string $sessionId Session ID
      * @return void
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function initializeRealTimeSync(string $sessionId): void
     {
@@ -1020,10 +1020,10 @@ class SessionFeaturesService extends BaseService
     /**
      * Get real-time sync URL
      *
-     * @param string $sessionId Session ID
+     * @param  string $sessionId Session ID
      * @return string Real-time sync endpoint URL
      * @throws \RuntimeException Method not implemented
-     * @since 1.0.0
+     * @since  1.0.0
      */
     private function getRealTimeSyncUrl(string $sessionId): string
     {

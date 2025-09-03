@@ -61,7 +61,7 @@ class MpccQuizAjaxController
      * Load hooks and register AJAX handlers
      *
      * @since 1.0.0
-     * 
+     *
      * @return void
      *
      * @example
@@ -83,7 +83,7 @@ class MpccQuizAjaxController
      * Load hooks and register AJAX handlers
      *
      * @since 1.0.0
-     * 
+     *
      * @return void
      */
     public function load_hooks(): void
@@ -278,7 +278,7 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @return bool True if nonce is valid, false otherwise
+     * @return boolean True if nonce is valid, false otherwise
      */
     private function verifyQuizNonce(): bool
     {
@@ -322,7 +322,7 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @return bool True if user can edit posts, false otherwise
+     * @return boolean True if user can edit posts, false otherwise
      */
     private function verifyUserPermissions(): bool
     {
@@ -395,7 +395,7 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @param mixed $options Raw options from request (array or JSON string)
+     * @param  mixed $options Raw options from request (array or JSON string)
      * @return array Parsed and sanitized options array
      */
     private function parseQuizOptions($options): array
@@ -429,9 +429,9 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @param string $content  Direct content
-     * @param int    $lessonId Lesson ID
-     * @param int    $courseId Course ID
+     * @param  string  $content  Direct content
+     * @param  integer $lessonId Lesson ID
+     * @param  integer $courseId Course ID
      * @return string Quiz content
      */
     private function getQuizContent(string $content, int $lessonId, int $courseId): string
@@ -456,7 +456,7 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @param array $options Parsed options
+     * @param  array $options Parsed options
      * @return array Generation options
      */
     private function prepareGenerationOptions(array $options): array
@@ -474,10 +474,10 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @param array  $result       Quiz generation result
-     * @param string $questionType Question type
-     * @param int    $lessonId     Lesson ID
-     * @param int    $courseId     Course ID
+     * @param  array   $result       Quiz generation result
+     * @param  string  $questionType Question type
+     * @param  integer $lessonId     Lesson ID
+     * @param  integer $courseId     Course ID
      * @return array Formatted response data
      * @throws \Exception When quiz questions generation fails.
      */
@@ -808,8 +808,8 @@ class MpccQuizAjaxController
      * - Removes potentially malicious script content
      * - Normalizes input formats for reliable processing
      *
-     * @param array  $data Data array to sanitize (supports nested arrays)
-     * @param string $type Sanitization strategy to apply ('text', 'textarea', 'email', etc.)
+     * @param  array  $data Data array to sanitize (supports nested arrays)
+     * @param  string $type Sanitization strategy to apply ('text', 'textarea', 'email', etc.)
      * @return array Recursively sanitized array with same structure
      */
     protected function sanitizeArray(array $data, string $type = 'text'): array
@@ -857,7 +857,7 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @param int $lessonId The ID of the lesson to retrieve content from.
+     * @param  integer $lessonId The ID of the lesson to retrieve content from.
      * @return string
      *
      * @example
@@ -921,7 +921,7 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @param int $courseId The ID of the course to retrieve content from.
+     * @param  integer $courseId The ID of the course to retrieve content from.
      * @return string
      *
      * @example
@@ -1014,7 +1014,7 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @param array $quizData Complete quiz data structure to validate
+     * @param  array $quizData Complete quiz data structure to validate
      * @return array Validation results with 'valid', 'errors', 'warnings', and 'summary'
      */
     private function validateQuizData(array $quizData): array
@@ -1628,8 +1628,8 @@ class MpccQuizAjaxController
      *
      * @since 1.0.0
      *
-     * @param \Exception $e       The exception to handle
-     * @param string     $context Context description for logging
+     * @param  \Exception $e       The exception to handle
+     * @param  string     $context Context description for logging
      * @return void
      */
     private function handleAjaxError(\Exception $e, string $context): void

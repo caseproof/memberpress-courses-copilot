@@ -51,7 +51,7 @@ class SimpleAjaxController
      *
      * Registers all AJAX action handlers for the course editor interface.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void
      */
     public function init(): void
@@ -134,7 +134,7 @@ class SimpleAjaxController
      * - User preferences and configuration options
      * - Form data from complex multi-step wizards
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  array  $data Nested array data to sanitize (preserves structure)
      * @param  string $type Sanitization strategy to apply recursively. Accepts 'text', 'textarea', 'email', 'url', 'int', 'float', 'boolean', 'html'. Default 'text'.
      * @return array Fully sanitized array with identical structure
@@ -184,7 +184,7 @@ class SimpleAjaxController
      * Processes user chat messages, generates AI responses, and extracts course structures.
      * Expects POST parameters: nonce, message, session_id, conversation_history, course_structure.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with message and course_structure
      * @throws \Exception If an error occurs during processing
      */
@@ -312,7 +312,7 @@ class SimpleAjaxController
      * Loads a conversation session by ID and returns its data.
      * Expects POST parameters: nonce, session_id.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with session data
      * @throws \Exception If session is not found or an error occurs
      */
@@ -396,7 +396,7 @@ class SimpleAjaxController
      * Saves or updates a conversation session with history and state.
      * Expects POST parameters: nonce, session_id, conversation_history, conversation_state.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with save status
      * @throws \Exception If save operation fails
      */
@@ -526,7 +526,7 @@ class SimpleAjaxController
      * Creates a new course from the provided course data structure.
      * Expects POST parameters: nonce, session_id, course_data.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with course_id and edit_url
      * @throws \Exception If course creation fails
      */
@@ -616,7 +616,7 @@ class SimpleAjaxController
      * Saves a draft of lesson content for later use.
      * Expects POST parameters: nonce, session_id, lesson_id, lesson_title, content.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with save status
      * @throws \Exception If save operation fails
      */
@@ -651,7 +651,7 @@ class SimpleAjaxController
      * Loads previously saved lesson draft content.
      * Expects POST parameters: nonce, session_id, lesson_id, lesson_title.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with lesson content
      * @throws \Exception If lesson draft is not found
      */
@@ -687,7 +687,7 @@ class SimpleAjaxController
      * Generates AI content for a specific lesson based on title and course context.
      * Expects POST parameters: nonce, lesson_title, course_context.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with generated content
      * @throws \Exception If content generation fails
      */
@@ -745,10 +745,10 @@ Format the content with clear headings and sections.";
      *
      * Constructs a detailed prompt for the AI to generate or modify course structures.
      *
-     * @since 1.0.0
-     * @param string $message             The user's current message
-     * @param array  $conversationHistory Array of previous conversation messages
-     * @param array  $courseStructure     Current course structure if exists
+     * @since  1.0.0
+     * @param  string $message             The user's current message
+     * @param  array  $conversationHistory Array of previous conversation messages
+     * @param  array  $courseStructure     Current course structure if exists
      * @return string The formatted prompt for AI processing
      */
     private function buildCourseGenerationPrompt(string $message, array $conversationHistory, array $courseStructure): string
@@ -814,7 +814,7 @@ If modifying an existing course, include ALL sections and lessons (both existing
      * Retrieves all conversation sessions for the current user.
      * Expects POST parameters: nonce.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with array of sessions
      * @throws \Exception If session retrieval fails
      */
@@ -894,9 +894,9 @@ If modifying an existing course, include ALL sections and lessons (both existing
      * Parses AI response to extract JSON course structure data.
      * Looks for JSON in code blocks first, then raw JSON in response.
      *
-     * @since 1.0.0
-     * @param string $response         The AI response text to parse
-     * @param array  $currentStructure The current course structure as fallback
+     * @since  1.0.0
+     * @param  string $response         The AI response text to parse
+     * @param  array  $currentStructure The current course structure as fallback
      * @return array|null Extracted course structure array or current structure if no new structure found
      */
     private function extractCourseStructure(string $response, array $currentStructure): ?array
@@ -956,7 +956,7 @@ If modifying an existing course, include ALL sections and lessons (both existing
      * Expects POST parameters: nonce, session_id, title.
      * Accepts multiple nonce types: EDITOR_NONCE, COURSES_INTEGRATION, AI_INTERFACE.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with update status
      * @throws \Exception If session is not found or update fails
      */
@@ -1017,7 +1017,7 @@ If modifying an existing course, include ALL sections and lessons (both existing
      * Deletes a conversation session and its associated drafts.
      * Expects POST parameters: nonce, session_id.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with deletion status
      * @throws \Exception If session deletion fails
      */
@@ -1071,7 +1071,7 @@ If modifying an existing course, include ALL sections and lessons (both existing
      * Creates a duplicate of an existing course session with '(Draft Copy)' suffix.
      * Expects POST parameters: nonce, session_id, course_data.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with new_session_id and course_title
      * @throws \Exception If duplication fails
      */
@@ -1149,7 +1149,7 @@ If modifying an existing course, include ALL sections and lessons (both existing
      * Retrieves all lesson drafts for a specific session.
      * Expects POST parameters: nonce, session_id.
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void Sends JSON response with array of drafts
      * @throws \Exception If draft retrieval fails
      */
