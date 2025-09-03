@@ -33,7 +33,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      *
      * @var string
      */
-    private string $table_prefix;
+    private string $tablePrefix;
 
     /**
      * Database constructor
@@ -43,7 +43,7 @@ class DatabaseService extends BaseService implements IDatabaseService
         parent::__construct();
         global $wpdb;
         $this->wpdb         = $wpdb;
-        $this->table_prefix = $wpdb->prefix . 'mpcc_';
+        $this->tablePrefix = $wpdb->prefix . 'mpcc_';
     }
 
     /**
@@ -91,7 +91,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createConversationsTable(): void
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -130,7 +130,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createTemplatesTable(): void
     {
-        $tableName = $this->table_prefix . 'templates';
+        $tableName = $this->tablePrefix . 'templates';
 
         $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -170,7 +170,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createCoursePatternsTable(): void
     {
-        $tableName = $this->table_prefix . 'course_patterns';
+        $tableName = $this->tablePrefix . 'course_patterns';
 
         $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -213,7 +213,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createUsageAnalyticsTable(): void
     {
-        $tableName = $this->table_prefix . 'usage_analytics';
+        $tableName = $this->tablePrefix . 'usage_analytics';
 
         $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -243,7 +243,7 @@ class DatabaseService extends BaseService implements IDatabaseService
             KEY idx_created_at (created_at),
             KEY idx_cost_amount (cost_amount),
             KEY idx_response_time (response_time_ms),
-            FOREIGN KEY fk_conversation (conversation_id) REFERENCES {$this->table_prefix}conversations(id) ON DELETE SET NULL
+            FOREIGN KEY fk_conversation (conversation_id) REFERENCES {$this->tablePrefix}conversations(id) ON DELETE SET NULL
         ) {$this->getCharsetCollation()};";
 
         $this->executeQuery($sql, 'Failed to create usage analytics table');
@@ -257,7 +257,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     private function createQualityMetricsTable(): void
     {
-        $tableName = $this->table_prefix . 'quality_metrics';
+        $tableName = $this->tablePrefix . 'quality_metrics';
 
         $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -289,8 +289,8 @@ class DatabaseService extends BaseService implements IDatabaseService
             KEY idx_human_reviewed (human_reviewed),
             KEY idx_human_reviewer_id (human_reviewer_id),
             KEY idx_created_at (created_at),
-            FOREIGN KEY fk_quality_conversation (conversation_id) REFERENCES {$this->table_prefix}conversations(id) ON DELETE SET NULL,
-            FOREIGN KEY fk_quality_pattern (pattern_id) REFERENCES {$this->table_prefix}course_patterns(id) ON DELETE SET NULL
+            FOREIGN KEY fk_quality_conversation (conversation_id) REFERENCES {$this->tablePrefix}conversations(id) ON DELETE SET NULL,
+            FOREIGN KEY fk_quality_pattern (pattern_id) REFERENCES {$this->tablePrefix}course_patterns(id) ON DELETE SET NULL
         ) {$this->getCharsetCollation()};";
 
         $this->executeQuery($sql, 'Failed to create quality metrics table');
@@ -328,7 +328,7 @@ class DatabaseService extends BaseService implements IDatabaseService
             ];
 
             foreach ($tables as $table) {
-                $tableName = $this->table_prefix . $table;
+                $tableName = $this->tablePrefix . $table;
                 $sql       = "DROP TABLE IF EXISTS {$tableName}";
                 $this->wpdb->query($sql);
             }
@@ -398,14 +398,14 @@ class DatabaseService extends BaseService implements IDatabaseService
 
         // Add index for created_by in templates table
         $this->addIndexIfNotExists(
-            $this->table_prefix . 'templates',
+            $this->tablePrefix . 'templates',
             'idx_created_by',
             'created_by'
         );
 
         // Add index for human_reviewer_id in quality_metrics table
         $this->addIndexIfNotExists(
-            $this->table_prefix . 'quality_metrics',
+            $this->tablePrefix . 'quality_metrics',
             'idx_human_reviewer_id',
             'human_reviewer_id'
         );
@@ -540,7 +540,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function insertConversation(array $data): int|false
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         // Add a small random delay to ensure unique timestamps
         usleep(wp_rand(1000, 5000)); // Sleep for 1-5 milliseconds.
@@ -574,7 +574,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function updateConversation(int $conversationId, array $data): bool
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         // Only update timestamp if we're updating actual content, not just metadata or state
         $contentFields     = ['messages', 'title', 'step_data'];
@@ -612,7 +612,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getConversation(int $conversationId): ?object
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
         $result = $this->wpdb->get_row(
@@ -635,7 +635,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getConversationsByUser(int $userId, int $limit = 20, int $offset = 0): array
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
         $results = $this->wpdb->get_results(
@@ -658,7 +658,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function insertTemplate(array $data): int|false
     {
-        $tableName = $this->table_prefix . 'templates';
+        $tableName = $this->tablePrefix . 'templates';
 
         $defaults = [
             'category'    => 'general',
@@ -687,7 +687,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getTemplates(string $category = '', string $type = ''): array
     {
-        $tableName = $this->table_prefix . 'templates';
+        $tableName = $this->tablePrefix . 'templates';
 
         $where_conditions = ['is_active = 1'];
         $params           = [];
@@ -723,7 +723,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function recordUsage(array $data): int|false
     {
-        $tableName = $this->table_prefix . 'usage_analytics';
+        $tableName = $this->tablePrefix . 'usage_analytics';
 
         $defaults = [
             'tokens_used' => 0,
@@ -751,7 +751,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getUsageAnalytics(string $start_date, string $end_date, ?int $userId = null): array
     {
-        $tableName = $this->table_prefix . 'usage_analytics';
+        $tableName = $this->tablePrefix . 'usage_analytics';
 
         $where_conditions = ['created_at BETWEEN %s AND %s'];
         $params           = [$start_date, $end_date];
@@ -791,7 +791,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getQualityMetricsSummary(?int $courseId = null): ?object
     {
-        $tableName = $this->table_prefix . 'quality_metrics';
+        $tableName = $this->tablePrefix . 'quality_metrics';
 
         $where_clause = $courseId ? 'WHERE course_id = %d' : '';
         $params       = $courseId ? [$courseId] : [];
@@ -858,7 +858,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getConversationBySessionId(string $sessionId): ?object
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare(
@@ -883,7 +883,7 @@ class DatabaseService extends BaseService implements IDatabaseService
             return [];
         }
 
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         // Prepare placeholders for the IN clause
         $placeholders = implode(',', array_fill(0, count($sessionIds), '%s'));
@@ -916,7 +916,7 @@ class DatabaseService extends BaseService implements IDatabaseService
             return [];
         }
 
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         // Prepare placeholders for the IN clause
         $placeholders = implode(',', array_fill(0, count($conversationIds), '%d'));
@@ -949,14 +949,14 @@ class DatabaseService extends BaseService implements IDatabaseService
 
             // Add index for created_by in templates table
             $this->addIndexIfNotExists(
-                $this->table_prefix . 'templates',
+                $this->tablePrefix . 'templates',
                 'idx_created_by',
                 'created_by'
             );
 
             // Add index for human_reviewer_id in quality_metrics table
             $this->addIndexIfNotExists(
-                $this->table_prefix . 'quality_metrics',
+                $this->tablePrefix . 'quality_metrics',
                 'idx_human_reviewer_id',
                 'human_reviewer_id'
             );
@@ -979,18 +979,18 @@ class DatabaseService extends BaseService implements IDatabaseService
         $missing = [];
 
         // Check templates table indexes
-        if (!$this->indexExists($this->table_prefix . 'templates', 'idx_created_by')) {
+        if (!$this->indexExists($this->tablePrefix . 'templates', 'idx_created_by')) {
             $missing[] = [
-                'table'      => $this->table_prefix . 'templates',
+                'table'      => $this->tablePrefix . 'templates',
                 'index_name' => 'idx_created_by',
                 'column'     => 'created_by',
             ];
         }
 
         // Check quality_metrics table indexes
-        if (!$this->indexExists($this->table_prefix . 'quality_metrics', 'idx_human_reviewer_id')) {
+        if (!$this->indexExists($this->tablePrefix . 'quality_metrics', 'idx_human_reviewer_id')) {
             $missing[] = [
-                'table'      => $this->table_prefix . 'quality_metrics',
+                'table'      => $this->tablePrefix . 'quality_metrics',
                 'index_name' => 'idx_human_reviewer_id',
                 'column'     => 'human_reviewer_id',
             ];
@@ -1042,7 +1042,7 @@ class DatabaseService extends BaseService implements IDatabaseService
         $status = [];
 
         foreach ($tables as $table) {
-            $tableName = $this->table_prefix . $table;
+            $tableName = $this->tablePrefix . $table;
             $exists    = $this->wpdb->get_var(
                 $this->wpdb->prepare(
                     'SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES 
@@ -1148,7 +1148,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getActiveSessionCount(int $userId): int
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         $result = $this->wpdb->get_var(
             $this->wpdb->prepare(
@@ -1168,7 +1168,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getOldestActiveSession(int $userId): ?object
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare(
@@ -1188,7 +1188,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getExpiredSessions(int $expired_before_timestamp): array
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         $results = $this->wpdb->get_results(
             $this->wpdb->prepare(
@@ -1208,7 +1208,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function deleteConversation(int $conversationId): bool
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         $result = $this->wpdb->delete(
             $tableName,
@@ -1229,7 +1229,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      */
     public function getActiveSessionsNeedingSave(int $minutes_since_update = 5, int $limit = 100): array
     {
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         // Calculate the timestamp for comparison
         $cutoff_time = date('Y-m-d H:i:s', time() - ($minutes_since_update * 60));
@@ -1263,7 +1263,7 @@ class DatabaseService extends BaseService implements IDatabaseService
             return 0;
         }
 
-        $tableName = $this->table_prefix . 'conversations';
+        $tableName = $this->tablePrefix . 'conversations';
 
         // Prepare placeholders for the IN clause
         $placeholders = implode(',', array_fill(0, count($conversationIds), '%d'));

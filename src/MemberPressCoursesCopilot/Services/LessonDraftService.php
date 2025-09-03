@@ -32,10 +32,10 @@ class LessonDraftService
     private function ensureTableExists()
     {
         global $wpdb;
-        $table_name = $this->table->getTableName();
+        $tableName = $this->table->getTableName();
 
         // Check if table exists
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name;
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$tableName}'") === $tableName;
 
         if (!$table_exists) {
             $this->table->create();
@@ -46,34 +46,34 @@ class LessonDraftService
     /**
      * Save or update a lesson draft
      */
-    public function saveDraft($session_id, $section_id, $lesson_id, $content, $order_index = 0)
+    public function saveDraft($sessionId, $sectionId, $lessonId, $content, $orderIndex = 0)
     {
         global $wpdb;
 
-        $table_name = $this->table->getTableName();
+        $tableName = $this->table->getTableName();
 
         // Check if draft exists
         $existing = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id FROM {$table_name} WHERE session_id = %s AND section_id = %s AND lesson_id = %s",
-                $session_id,
-                $section_id,
-                $lesson_id
+                "SELECT id FROM {$tableName} WHERE session_id = %s AND section_id = %s AND lesson_id = %s",
+                $sessionId,
+                $sectionId,
+                $lessonId
             )
         );
 
         $data = [
-            'session_id'  => $session_id,
-            'section_id'  => $section_id,
-            'lesson_id'   => $lesson_id,
+            'session_id'  => $sessionId,
+            'section_id'  => $sectionId,
+            'lesson_id'   => $lessonId,
             'content'     => $content, // Content is already sanitized in the AJAX handler
-            'order_index' => intval($order_index),
+            'order_index' => intval($orderIndex),
         ];
 
         if ($existing) {
             // Update existing draft
             $result = $wpdb->update(
-                $table_name,
+                $tableName,
                 $data,
                 ['id' => $existing->id],
                 ['%s', '%s', '%s', '%s', '%d'],
@@ -82,18 +82,18 @@ class LessonDraftService
         } else {
             // Insert new draft
             $result = $wpdb->insert(
-                $table_name,
+                $tableName,
                 $data,
                 ['%s', '%s', '%s', '%s', '%d']
             );
         }
 
         if ($result === false) {
-            error_log('MPCC: Failed to save lesson draft - Session: ' . $session_id . ', Lesson: ' . $lesson_id . ', Error: ' . $wpdb->last_error);
+            error_log('MPCC: Failed to save lesson draft - Session: ' . $sessionId . ', Lesson: ' . $lessonId . ', Error: ' . $wpdb->last_error);
             return false;
         }
 
-        error_log('MPCC: Lesson draft saved - Session: ' . $session_id . ', Lesson: ' . $lesson_id . ', Content length: ' . strlen($content));
+        error_log('MPCC: Lesson draft saved - Session: ' . $sessionId . ', Lesson: ' . $lessonId . ', Content length: ' . strlen($content));
 
         return true;
     }
@@ -101,18 +101,18 @@ class LessonDraftService
     /**
      * Get a specific lesson draft
      */
-    public function getDraft($session_id, $section_id, $lesson_id)
+    public function getDraft($sessionId, $sectionId, $lessonId)
     {
         global $wpdb;
 
-        $table_name = $this->table->getTableName();
+        $tableName = $this->table->getTableName();
 
         $draft = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE session_id = %s AND section_id = %s AND lesson_id = %s",
-                $session_id,
-                $section_id,
-                $lesson_id
+                "SELECT * FROM {$tableName} WHERE session_id = %s AND section_id = %s AND lesson_id = %s",
+                $sessionId,
+                $sectionId,
+                $lessonId
             )
         );
 
@@ -122,16 +122,16 @@ class LessonDraftService
     /**
      * Get all drafts for a session
      */
-    public function getSessionDrafts($session_id)
+    public function getSessionDrafts($sessionId)
     {
         global $wpdb;
 
-        $table_name = $this->table->getTableName();
+        $tableName = $this->table->getTableName();
 
         $drafts = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table_name} WHERE session_id = %s ORDER BY section_id, order_index",
-                $session_id
+                "SELECT * FROM {$tableName} WHERE session_id = %s ORDER BY section_id, order_index",
+                $sessionId
             )
         );
 
@@ -141,28 +141,28 @@ class LessonDraftService
     /**
      * Delete a lesson draft
      */
-    public function deleteDraft($session_id, $section_id, $lesson_id)
+    public function deleteDraft($sessionId, $sectionId, $lessonId)
     {
         global $wpdb;
 
-        $table_name = $this->table->getTableName();
+        $tableName = $this->table->getTableName();
 
         $result = $wpdb->delete(
-            $table_name,
+            $tableName,
             [
-                'session_id' => $session_id,
-                'section_id' => $section_id,
-                'lesson_id'  => $lesson_id,
+                'session_id' => $sessionId,
+                'section_id' => $sectionId,
+                'lesson_id'  => $lessonId,
             ],
             ['%s', '%s', '%s']
         );
 
         if ($result === false) {
-            error_log('MPCC: Failed to delete lesson draft - Session: ' . $session_id . ', Lesson: ' . $lesson_id . ', Error: ' . $wpdb->last_error);
+            error_log('MPCC: Failed to delete lesson draft - Session: ' . $sessionId . ', Lesson: ' . $lessonId . ', Error: ' . $wpdb->last_error);
             return false;
         }
 
-        error_log('MPCC: Lesson draft deleted - Session: ' . $session_id . ', Lesson: ' . $lesson_id);
+        error_log('MPCC: Lesson draft deleted - Session: ' . $sessionId . ', Lesson: ' . $lessonId);
 
         return true;
     }
@@ -170,24 +170,24 @@ class LessonDraftService
     /**
      * Delete all drafts for a session
      */
-    public function deleteSessionDrafts($session_id)
+    public function deleteSessionDrafts($sessionId)
     {
         global $wpdb;
 
-        $table_name = $this->table->getTableName();
+        $tableName = $this->table->getTableName();
 
         $result = $wpdb->delete(
-            $table_name,
-            ['session_id' => $session_id],
+            $tableName,
+            ['session_id' => $sessionId],
             ['%s']
         );
 
         if ($result === false) {
-            error_log('MPCC: Failed to delete session drafts - Session: ' . $session_id . ', Error: ' . $wpdb->last_error);
+            error_log('MPCC: Failed to delete session drafts - Session: ' . $sessionId . ', Error: ' . $wpdb->last_error);
             return false;
         }
 
-        error_log('MPCC: Session drafts deleted - Session: ' . $session_id . ', Count: ' . $result);
+        error_log('MPCC: Session drafts deleted - Session: ' . $sessionId . ', Count: ' . $result);
 
         return $result;
     }
@@ -199,12 +199,12 @@ class LessonDraftService
     {
         global $wpdb;
 
-        $table_name = $this->table->getTableName();
+        $tableName = $this->table->getTableName();
         $success    = true;
 
         foreach ($lesson_orders as $lesson_id => $order) {
             $result = $wpdb->update(
-                $table_name,
+                $tableName,
                 ['order_index' => intval($order)],
                 [
                     'session_id' => $session_id,
@@ -291,7 +291,7 @@ class LessonDraftService
     {
         global $wpdb;
 
-        $table_name = $this->table->getTableName();
+        $tableName = $this->table->getTableName();
 
         // Get all drafts from the source session
         $sourceDrafts = $this->getSessionDrafts($sourceSessionId);
