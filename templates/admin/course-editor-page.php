@@ -136,7 +136,7 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
                     <div class="mpcc-lesson-toolbar">
                         <button type="button" class="button" id="mpcc-generate-lesson-content">
                             <span class="dashicons dashicons-welcome-write-blog"></span>
-                            <?php echo esc_html__('Generate with AI', 'memberpress-courses-copilot'); ?>
+                            <?php echo esc_html__('Generate', 'memberpress-courses-copilot'); ?>
                         </button>
                         <span class="mpcc-save-indicator"></span>
                     </div>

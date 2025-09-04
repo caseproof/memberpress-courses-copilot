@@ -44,7 +44,7 @@
             // Create the AI Assistant metabox if it doesn't exist
             this.createMetabox();
             
-            // Add Generate with AI button to toolbar
+            // Add Generate button to toolbar
             this.addToolbarButton();
         }
 
@@ -142,7 +142,7 @@
                 <div class="mpcc-quiz-ai-toolbar-wrapper" style="margin-left: 8px;">
                     <button id="mpcc-generate-quiz-toolbar" class="components-button is-secondary" type="button">
                         <span class="dashicons dashicons-admin-generic" style="margin-right: 4px;"></span>
-                        Generate with AI
+                        Generate
                     </button>
                 </div>
             `;

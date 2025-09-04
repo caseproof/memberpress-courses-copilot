@@ -78,7 +78,7 @@
          * @example
          * // Check if modal is initialized on quiz pages
          * if ($('body').hasClass('post-type-mpcs-quiz')) {
-         *     // Modal will auto-initialize and add the "Generate with AI" button
+         *     // Modal will auto-initialize and add the "Generate" button
          *     console.log('Quiz AI modal is active');
          * }
          */
@@ -138,7 +138,7 @@
         }
 
         /**
-         * Add Generate with AI button to the editor toolbar
+         * Add Generate button to the editor toolbar
          * 
          * Creates and inserts the AI generation button into the WordPress
          * block editor toolbar
@@ -167,7 +167,7 @@
                                     id="mpcc-quiz-generate-ai" 
                                     type="button"
                                     class="components-button mpcc-ai-button is-icon-only"
-                                    title="Generate with AI"
+                                    title="Generate"
                                     style="background: #6B4CE6 !important; border-color: #6B4CE6 !important; color: #ffffff !important; width: 36px !important; height: 36px !important; padding: 0 !important; margin-right: 8px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 3px !important;"
                                 >
                                     <span class="dashicons dashicons-lightbulb" style="font-size: 20px !important; width: 20px !important; height: 20px !important; margin: 0 !important;"></span>
@@ -180,11 +180,11 @@
                                     id="mpcc-quiz-generate-ai" 
                                     type="button"
                                     class="components-button mpcc-ai-button"
-                                    title="Generate with AI"
+                                    title="Generate"
                                     style="background: #6B4CE6 !important; border-color: #6B4CE6 !important; color: #ffffff !important; height: 36px !important; padding: 0 12px !important; margin-right: 8px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 3px !important;"
                                 >
                                     <span class="dashicons dashicons-lightbulb" style="margin-right: 4px !important; font-size: 20px !important; width: 20px !important; height: 20px !important;"></span>
-                                    Generate with AI
+                                    Generate
                                 </button>
                             `;
                         }

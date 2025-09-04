@@ -81,7 +81,7 @@ class EditorAIIntegrationService extends BaseService
             ],
         ],
         self::POST_TYPE_LESSON => [
-            'button_text'     => 'Generate with AI',
+            'button_text'     => 'Generate',
             'modal_title'     => 'AI Lesson Assistant',
             'ajax_action'     => 'mpcc_editor_ai_chat',
             'update_action'   => 'mpcc_update_post_content',
@@ -256,7 +256,7 @@ class EditorAIIntegrationService extends BaseService
                             const aiButton = document.createElement('button');
                             aiButton.id = '" . esc_js($config['button_id_block']) . "';
                             aiButton.className = 'components-button mpcc-ai-button-block';
-                            aiButton.title = '" . esc_attr($config['button_text']) . "';
+                            aiButton.title = 'Generate';
                             
                             // Determine if mobile
                             const isMobile = window.matchMedia('(max-width: 768px)').matches;

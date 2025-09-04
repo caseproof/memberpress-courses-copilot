@@ -151,7 +151,7 @@
                 <div class="mpcc-editor-container">
                     <div class="mpcc-editor-toolbar">
                         <button type="button" class="button button-small mpcc-editor-generate">
-                            <span class="dashicons dashicons-welcome-write-blog"></span> Generate with AI
+                            <span class="dashicons dashicons-welcome-write-blog"></span> Generate
                         </button>
                         <div class="mpcc-editor-status">
                             <span class="mpcc-save-indicator"></span>

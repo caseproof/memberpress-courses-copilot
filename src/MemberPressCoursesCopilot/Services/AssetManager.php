@@ -321,7 +321,7 @@ class AssetManager extends BaseService
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => NonceConstants::create(NonceConstants::QUIZ_AI),
             'strings'  => [
-                'generate_button' => __('Generate with AI', 'memberpress-courses-copilot'),
+                'generate_button' => __('Generate', 'memberpress-courses-copilot'),
                 'generating'      => __('Generating questions...', 'memberpress-courses-copilot'),
                 'error'           => __('Error generating questions', 'memberpress-courses-copilot'),
             ],
@@ -544,7 +544,7 @@ class AssetManager extends BaseService
             'saving'          => __('Saving...', 'memberpress-courses-copilot'),
             'saved'           => __('Saved', 'memberpress-courses-copilot'),
             'error'           => __('Error', 'memberpress-courses-copilot'),
-            'generateContent' => __('Generate with AI', 'memberpress-courses-copilot'),
+            'generateContent' => __('Generate', 'memberpress-courses-copilot'),
             'generating'      => __('Generating...', 'memberpress-courses-copilot'),
         ];
     }

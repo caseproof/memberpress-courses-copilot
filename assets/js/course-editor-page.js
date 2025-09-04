@@ -791,7 +791,7 @@
                     MPCCUtils.showError('Failed to generate content. Please try again.');
                 },
                 complete: () => {
-                    button.prop('disabled', false).html('<span class="dashicons dashicons-welcome-write-blog"></span> Generate with AI');
+                    button.prop('disabled', false).html('<span class="dashicons dashicons-welcome-write-blog"></span> Generate');
                 }
             });
         },
