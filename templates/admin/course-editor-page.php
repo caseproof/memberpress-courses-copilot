@@ -20,24 +20,19 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
     <div id="mpcc-editor-container" class="mpcc-editor-container" data-session-id="<?php echo esc_attr($session_id); ?>">
         <!-- Header Bar -->
         <div class="mpcc-editor-header">
-            <div class="mpcc-header-left">
-                <h1 class="mpcc-header-title">
-                    <span class="dashicons dashicons-welcome-learn-more"></span>
-                    <?php echo esc_html__('AI Course Creator', 'memberpress-courses-copilot'); ?>
-                </h1>
-            </div>
-            <div class="mpcc-header-center">
-                <span class="mpcc-status-indicator">
-                    <span class="mpcc-status-dot"></span>
-                    <span class="mpcc-status-text"><?php echo esc_html__('Ready', 'memberpress-courses-copilot'); ?></span>
-                </span>
-            </div>
-            <div class="mpcc-header-right">
-                <button type="button" class="mpcc-header-button" id="mpcc-previous-conversations" title="<?php echo esc_attr__('Previous Conversations', 'memberpress-courses-copilot'); ?>">
+            <h1 class="mpcc-header-title">
+                <span class="dashicons dashicons-welcome-learn-more"></span>
+                <?php echo esc_html__('AI Course Creator', 'memberpress-courses-copilot'); ?>
+            </h1>
+            <span class="mpcc-status-indicator">
+                <span class="mpcc-status-dot"></span>
+                <span class="mpcc-status-text"><?php echo esc_html__('Ready', 'memberpress-courses-copilot'); ?></span>
+            </span>
+            <div class="mpcc-header-buttons">
+                <button type="button" class="mpcc-icon-button" id="mpcc-previous-conversations" title="<?php echo esc_attr__('Previous Conversations', 'memberpress-courses-copilot'); ?>">
                     <span class="dashicons dashicons-backup"></span>
-                    <span class="button-text"><?php echo esc_html__('Previous Conversations', 'memberpress-courses-copilot'); ?></span>
                 </button>
-                <a href="<?php echo esc_url(admin_url('edit.php?post_type=mpcs-course')); ?>" class="mpcc-close-button">
+                <a href="<?php echo esc_url(admin_url('edit.php?post_type=mpcs-course')); ?>" class="mpcc-icon-button mpcc-close-button">
                     <span class="dashicons dashicons-no-alt"></span>
                 </a>
             </div>

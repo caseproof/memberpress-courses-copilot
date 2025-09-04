@@ -70,12 +70,12 @@
 /* Header */
 .mpcc-editor-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: var(--mpcc-spacing-lg) var(--mpcc-spacing-xl);
     background: var(--mpcc-primary-gradient);
     border-bottom: none;
     box-shadow: var(--mpcc-shadow-lg);
+    gap: 20px;
 }
 
 .mpcc-header-title {
@@ -86,6 +86,7 @@
     display: flex;
     align-items: center;
     gap: var(--mpcc-spacing-sm);
+    flex: 0 0 auto;
 }
 
 .mpcc-header-title .dashicons {
@@ -101,6 +102,8 @@
     background: rgba(255, 255, 255, 0.2);
     border-radius: var(--mpcc-radius-full);
     backdrop-filter: blur(10px);
+    flex: 1 1 auto;
+    margin: 0 auto;
 }
 
 .mpcc-status-text {
@@ -125,10 +128,12 @@
     animation: spin 1s linear infinite;
 }
 
-.mpcc-header-right {
+.mpcc-header-buttons {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    flex: 0 0 auto;
+    margin-left: auto;
 }
 
 .mpcc-header-button {
@@ -157,7 +162,8 @@
     font-size: 18px;
 }
 
-.mpcc-close-button {
+/* Icon-only buttons in header */
+.mpcc-icon-button {
     width: 40px;
     height: 40px;
     display: flex;
@@ -165,16 +171,31 @@
     justify-content: center;
     border-radius: var(--mpcc-radius-full);
     background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     color: var(--mpcc-text-inverse);
     text-decoration: none;
     transition: all var(--mpcc-transition-fast);
     backdrop-filter: blur(10px);
+    cursor: pointer;
 }
 
-.mpcc-close-button:hover {
+.mpcc-icon-button:hover {
     background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
     color: var(--mpcc-text-inverse);
     transform: scale(1.05);
+}
+
+.mpcc-icon-button .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+}
+
+/* Close button specific styles */
+.mpcc-close-button:hover {
+    background: rgba(255, 100, 100, 0.3);
+    border-color: rgba(255, 100, 100, 0.4);
 }
 
 /* Panels */
@@ -1332,6 +1353,75 @@
     .mpcc-sessions-dropdown {
         right: 20px;
         width: 350px;
+    }
+}
+
+/* Mobile Header Optimization */
+@media (max-width: 768px) {
+    .mpcc-editor-header {
+        padding: 15px 20px;
+        gap: 15px;
+    }
+    
+    .mpcc-header-title {
+        font-size: 20px;
+        flex: 1 1 auto;
+    }
+    
+    .mpcc-header-title .dashicons {
+        font-size: 24px;
+    }
+    
+    .mpcc-header-buttons {
+        gap: 8px;
+    }
+    
+    .mpcc-status-indicator {
+        padding: 6px 15px;
+        font-size: 12px;
+    }
+    
+    .mpcc-status-text {
+        font-size: 12px;
+    }
+    
+    .mpcc-header-button {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    
+    .mpcc-header-button .dashicons {
+        font-size: 16px;
+    }
+    
+    .mpcc-icon-button {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .mpcc-icon-button .dashicons {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .mpcc-editor-header {
+        padding: 12px 15px;
+    }
+    
+    .mpcc-header-title {
+        font-size: 18px;
+    }
+    
+    .mpcc-header-title .dashicons {
+        font-size: 20px;
+    }
+    
+    /* Hide status indicator on very small screens to save space */
+    .mpcc-status-indicator {
+        display: none;
     }
 }
 
