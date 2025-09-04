@@ -344,7 +344,7 @@ class EditorAIIntegrationService extends BaseService
                              style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
                             <strong>AI Assistant:</strong>
                             <div class="ai-content" id="mpcc-editor-ai-description">
-                                <?php echo esc_html($config['assistant_intro']); ?>
+                                <?php echo wp_kses_post($config['assistant_intro']); ?>
                             <?php if ($parentCourse && $post->post_type === self::POST_TYPE_LESSON) : ?>
                             <br><br>I see this lesson is part of
                             "<strong><?php echo esc_html($parentCourse->post_title); ?></strong>".

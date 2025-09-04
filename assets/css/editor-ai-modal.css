@@ -13,12 +13,64 @@
     content: none !important;
 }
 
+/* Fix textarea size in AI modals */
+#mpcc-editor-ai-input,
+.mpcc-chat-input,
+textarea[placeholder*="Ask the AI Assistant"] {
+    width: 100% !important;
+    min-height: 100px !important;
+    max-height: 200px !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    resize: vertical !important;
+}
+
+/* Ensure the form container uses full width */
+#mpcc-editor-ai-form,
+.mpcc-chat-input-wrapper form {
+    width: 100% !important;
+}
+
+/* Fix text readability in the assistant intro */
+.mpcc-ai-message {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+}
+
+.mpcc-ai-message ul {
+    list-style-type: disc !important;
+    padding-left: 20px !important;
+    margin: 8px 0 !important;
+}
+
+.mpcc-ai-message li {
+    margin-bottom: 4px !important;
+}
+
+/* Modal body scrolling fix */
+.mpcc-modal-body {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+#mpcc-editor-ai-messages {
+    flex: 1 1 auto !important; /* Allow to grow and shrink */
+    min-height: 200px !important; /* Ensure minimum height */
+    max-height: 300px !important; /* Limit height on desktop */
+    overflow-y: auto !important;
+}
+
 /* Quick-start buttons styling */
 .mpcc-editor-ai-modal .mpcc-quick-start-section {
     background: #f8f9fa !important;
     border-top: 1px solid #e1e1e1 !important;
     border-bottom: 1px solid #e1e1e1 !important;
     padding: 15px 20px !important;
+    flex-shrink: 0 !important; /* Don't shrink */
 }
 
 .mpcc-editor-ai-modal .mpcc-quick-start-buttons {
@@ -67,21 +119,105 @@
     color: #135e96 !important;
 }
 
+/* Fix Send button positioning */
+#mpcc-editor-ai-send,
+.mpcc-send-button {
+    flex-shrink: 0 !important;
+    margin-left: 10px !important;
+}
+
+/* Chat input wrapper */
+.mpcc-chat-input-wrapper {
+    flex-shrink: 0 !important; /* Don't shrink */
+}
+
 /* Responsive Design */
 @media (max-width: 782px) {
+    /* Adjust modal body for mobile */
+    .mpcc-modal-body {
+        height: auto !important;
+        max-height: calc(100vh - 120px) !important;
+    }
+    
+    /* Ensure adequate space for messages on mobile */
+    #mpcc-editor-ai-messages {
+        min-height: 200px !important;
+        max-height: 250px !important; /* Increased from 150px */
+        flex-shrink: 1 !important; /* Allow shrinking if needed */
+    }
+    
+    /* Make quick start section more compact on mobile */
+    .mpcc-editor-ai-modal .mpcc-quick-start-section {
+        padding: 10px 12px !important;
+        background: #f8f9fa !important;
+        max-height: 200px !important; /* Limit height */
+        overflow-y: auto !important; /* Add scroll if needed */
+        flex-shrink: 0 !important;
+    }
+    
     .mpcc-editor-ai-modal .mpcc-quick-start-buttons {
         flex-direction: column !important;
+        gap: 6px !important;
     }
     
     .mpcc-editor-ai-modal .mpcc-quick-start-btn {
         width: 100% !important;
         justify-content: flex-start !important;
-        padding: 10px 12px !important;
-        font-size: 14px !important;
+        padding: 8px 10px !important;
+        font-size: 13px !important;
     }
     
+    /* Fix form layout on mobile */
+    #mpcc-editor-ai-form {
+        flex-direction: column !important;
+    }
+    
+    #mpcc-editor-ai-send,
+    .mpcc-send-button {
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-top: 10px !important;
+    }
+    
+    /* Adjust chat input wrapper for mobile */
+    .mpcc-chat-input-wrapper {
+        padding: 12px !important;
+    }
+}
+
+@media (max-width: 600px) {
+    /* Full screen modal on mobile */
+    .mpcc-editor-ai-modal .mpcc-modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+    
+    /* Adjust modal body for mobile */
+    .mpcc-modal-body {
+        height: 100% !important;
+        max-height: calc(100vh - 60px) !important; /* Account for header */
+    }
+    
+    /* Ensure messages area is visible on small screens */
+    #mpcc-editor-ai-messages {
+        min-height: 180px !important;
+        max-height: 220px !important; /* Increased from 120px */
+        padding: 12px !important;
+    }
+    
+    /* Adjust AI message styling for mobile */
+    .mpcc-ai-message {
+        padding: 10px !important;
+        font-size: 13px !important;
+    }
+    
+    /* Make quick start section more compact */
     .mpcc-editor-ai-modal .mpcc-quick-start-section {
-        padding: 12px 15px !important;
+        max-height: 180px !important;
     }
 }
 
@@ -94,5 +230,17 @@
     .mpcc-editor-ai-modal .mpcc-quick-start-btn .dashicons {
         font-size: 14px !important;
         margin-right: 3px !important;
+    }
+    
+    /* Maintain minimum visibility on very small screens */
+    #mpcc-editor-ai-messages {
+        min-height: 150px !important;
+        max-height: 200px !important; /* Increased from 100px */
+    }
+    
+    /* Further reduce quick start section height on very small screens */
+    .mpcc-editor-ai-modal .mpcc-quick-start-section {
+        max-height: 150px !important;
+        padding: 8px 10px !important;
     }
 }

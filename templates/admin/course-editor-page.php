@@ -126,6 +126,9 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
                     </div>
                 </div>
                 
+                <!-- Lesson Editor Overlay -->
+                <div id="mpcc-lesson-editor-overlay" class="mpcc-lesson-editor-overlay"></div>
+                
                 <!-- Lesson Editor -->
                 <div id="mpcc-lesson-editor" class="mpcc-editor-panel mpcc-lesson-editor" style="display: none;">
                     <div class="mpcc-lesson-header">

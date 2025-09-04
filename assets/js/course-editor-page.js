@@ -59,6 +59,9 @@
                 }
             }.bind(this));
             
+            // Initialize mobile tabs
+            this.initializeMobileTabs();
+            
             // Quick starters
             $('#mpcc-new-session').on('click', this.newSession.bind(this));
             $('#mpcc-session-history').on('click', this.showSessionHistory.bind(this));
@@ -79,6 +82,9 @@
             $('#mpcc-generate-lesson-content').on('click', this.generateLessonContent.bind(this));
             $('#mpcc-save-lesson').on('click', this.saveLesson.bind(this));
             $('#mpcc-cancel-lesson, #mpcc-close-lesson').on('click', this.closeLessonEditor.bind(this));
+            
+            // Close lesson editor when clicking overlay
+            $('#mpcc-lesson-editor-overlay').on('click', this.closeLessonEditor.bind(this));
             
             // Auto-save on textarea change with debouncing
             $('#mpcc-lesson-textarea').off('input.autosave').on('input.autosave', this.debouncedAutoSave);
@@ -472,6 +478,11 @@
                             if (courseData.title) {
                                 this.updateSessionTitle('Course: ' + courseData.title);
                             }
+                            
+                            // Auto-switch to Course Preview tab on mobile
+                            if (window.innerWidth <= 960) {
+                                this.switchToPreviewTab();
+                            }
                         }
                         
                         // Auto-save conversation
@@ -700,6 +711,12 @@
             // Show editor
             $('#mpcc-lesson-title').text(lesson.title);
             $('#mpcc-lesson-textarea').val(lesson.draft_content || lesson.content || '');
+            
+            // Show overlay on mobile
+            if (window.innerWidth <= 960) {
+                $('#mpcc-lesson-editor-overlay').fadeIn(200);
+            }
+            
             $('#mpcc-lesson-editor').fadeIn();
             
             // Update save indicator
@@ -872,6 +889,7 @@
             $('#mpcc-lesson-textarea').off('input.autosave');
             
             $('#mpcc-lesson-editor').fadeOut();
+            $('#mpcc-lesson-editor-overlay').fadeOut();
             $('.mpcc-lesson-item').removeClass('editing');
             this.currentLessonId = null;
         },
@@ -1445,6 +1463,83 @@
             this.initializeSortable();
             this.saveConversation(); // This saves the entire updated structure
             MPCCUtils.showSuccess('Lesson deleted');
+        },
+        
+        // Mobile tabs functionality
+        initializeMobileTabs: function() {
+            // Only initialize for mobile screens
+            if (window.innerWidth > 960) {
+                return;
+            }
+            
+            // Create mobile tab navigation if it doesn't exist
+            if (!$('.mpcc-mobile-tabs').length) {
+                const tabsHtml = `
+                    <div class="mpcc-mobile-tabs">
+                        <div class="mpcc-mobile-tab-buttons">
+                            <button class="mpcc-mobile-tab-button active" data-tab="chat">
+                                <span class="dashicons dashicons-format-chat"></span>
+                                AI Assistant
+                            </button>
+                            <button class="mpcc-mobile-tab-button" data-tab="preview">
+                                <span class="dashicons dashicons-welcome-widgets-menus"></span>
+                                Course Preview
+                            </button>
+                        </div>
+                    </div>
+                `;
+                $('.mpcc-editor-layout').before(tabsHtml);
+            }
+            
+            // Set initial active state
+            $('.mpcc-editor-sidebar').addClass('mobile-active');
+            
+            // Bind tab click events
+            $(document).off('click.mpcc-mobile-tabs').on('click.mpcc-mobile-tabs', '.mpcc-mobile-tab-button', this.handleMobileTabClick.bind(this));
+            
+            // Handle window resize
+            $(window).off('resize.mpcc-mobile-tabs').on('resize.mpcc-mobile-tabs', MPCCUtils.debounce(() => {
+                if (window.innerWidth > 960) {
+                    // Remove mobile classes when switching back to desktop
+                    $('.mpcc-editor-sidebar, .mpcc-editor-main').removeClass('mobile-active');
+                    $('.mpcc-mobile-tab-button').removeClass('active');
+                } else {
+                    // Re-initialize mobile tabs if needed
+                    if (!$('.mpcc-mobile-tabs').length) {
+                        this.initializeMobileTabs();
+                    }
+                }
+            }, 250));
+        },
+        
+        handleMobileTabClick: function(e) {
+            e.preventDefault();
+            const $button = $(e.currentTarget);
+            const tab = $button.data('tab');
+            
+            // Update active button
+            $('.mpcc-mobile-tab-button').removeClass('active');
+            $button.addClass('active');
+            
+            // Show/hide appropriate content
+            if (tab === 'chat') {
+                $('.mpcc-editor-sidebar').addClass('mobile-active');
+                $('.mpcc-editor-main').removeClass('mobile-active');
+            } else if (tab === 'preview') {
+                $('.mpcc-editor-sidebar').removeClass('mobile-active');
+                $('.mpcc-editor-main').addClass('mobile-active');
+            }
+        },
+        
+        switchToPreviewTab: function() {
+            // Only switch if on mobile
+            if (window.innerWidth <= 960 && $('.mpcc-mobile-tabs').length) {
+                // Click the preview tab button
+                $('.mpcc-mobile-tab-button[data-tab="preview"]').click();
+                
+                // Show a toast notification
+                MPCCUtils.showSuccess('Course structure updated! Showing preview.');
+            }
         }
     };
     
@@ -1453,6 +1548,8 @@
         // Remove all event handlers
         $(document).off('click.mpcc-editor-send');
         $(document).off('keypress.mpcc-editor-input');
+        $(document).off('click.mpcc-mobile-tabs');
+        $(window).off('resize.mpcc-mobile-tabs');
         $('#mpcc-new-session').off('click');
         $('#mpcc-session-history').off('click');
         $('#mpcc-previous-conversations').off('click');
