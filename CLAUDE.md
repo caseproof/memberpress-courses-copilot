@@ -108,8 +108,39 @@ This plugin is an AI-powered conversational course creation assistant that reduc
 - Install dependencies: `composer install` (PSR-4 autoloading required)
 - Code standards check: `composer run cs-check`
 - Auto-fix code standards: `composer run cs-fix`
-- Testing: Follow procedures in `tests/test-procedures.md`
 - Debug output: `error_log('MPCC: debug info here');`
+
+### Testing Requirements (MANDATORY)
+- **Run tests before any changes**: `npm run test:all`
+- **Test after each modification**: Run specific test files after editing services
+- **Never commit broken tests**: All tests must pass before committing
+- **Add tests for new features**: Every new method needs corresponding tests
+- **Check coverage**: `npm run test:coverage` and `vendor/bin/phpunit --coverage-text`
+
+#### Quick Test Commands
+```bash
+# Before starting work - ensure clean baseline
+npm run test:all
+
+# After modifying a service
+vendor/bin/phpunit tests/Services/ServiceNameTest.php
+
+# JavaScript development
+npm run test:watch
+
+# Before committing
+npm run test:all
+npm run test:coverage
+```
+
+#### Test-Driven Development
+When adding new features:
+1. Write failing test first
+2. Implement feature to make test pass
+3. Run full test suite to check for regressions
+4. Update tests if refactoring changes behavior
+
+See `/docs/planning/TEST_DRIVEN_DEVELOPMENT_WORKFLOW.md` for detailed testing workflow.
 
 ## Code Organization & Architecture Standards (PSR-4)
 
