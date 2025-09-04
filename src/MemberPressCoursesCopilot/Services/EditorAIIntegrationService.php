@@ -336,7 +336,7 @@ class EditorAIIntegrationService extends BaseService
                         <span class="dashicons dashicons-no-alt" style="font-size: 20px;" aria-hidden="true"></span>
                     </button>
                 </div>
-                <div class="mpcc-modal-body" style="display: flex; flex-direction: column; height: 500px; padding: 0;">
+                <div class="mpcc-modal-body" style="display: flex; flex-direction: column; padding: 0;">
                     <div id="mpcc-editor-ai-messages" role="log" aria-label="AI conversation history"
                          aria-live="polite" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;"
                          tabindex="0">

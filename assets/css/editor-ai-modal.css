@@ -8,6 +8,17 @@
 /* Import common styles */
 @import url('mpcc-common.css');
 
+/* Ensure modal overlay is scrollable when needed */
+.mpcc-editor-ai-modal.mpcc-modal-overlay {
+    overflow-y: auto !important;
+}
+
+/* Ensure modal is properly positioned */
+.mpcc-editor-ai-modal .mpcc-modal {
+    margin: 20px auto !important;
+    position: relative !important;
+}
+
 /* Override the CSS pseudo-element X */
 .mpcc-editor-ai-modal .mpcc-modal-close::before {
     content: none !important;
@@ -55,12 +66,13 @@ textarea[placeholder*="Ask the AI Assistant"] {
 .mpcc-modal-body {
     display: flex !important;
     flex-direction: column !important;
+    height: calc(90vh - 120px) !important; /* Use most of viewport height minus header */
+    max-height: 700px !important; /* Maximum height for very tall screens */
 }
 
 #mpcc-editor-ai-messages {
     flex: 1 1 auto !important; /* Allow to grow and shrink */
     min-height: 200px !important; /* Ensure minimum height */
-    max-height: 300px !important; /* Limit height on desktop */
     overflow-y: auto !important;
 }
 
@@ -129,21 +141,35 @@ textarea[placeholder*="Ask the AI Assistant"] {
 /* Chat input wrapper */
 .mpcc-chat-input-wrapper {
     flex-shrink: 0 !important; /* Don't shrink */
+    padding: 20px !important;
+    background: #fff !important;
+    border-top: 1px solid #e1e4e8 !important;
+}
+
+/* Form layout in AI modals */
+#mpcc-editor-ai-form {
+    display: flex !important;
+    gap: 10px !important;
+    align-items: flex-end !important;
+}
+
+/* Limit textarea height */
+#mpcc-editor-ai-input {
+    max-height: 150px !important; /* Prevent textarea from getting too tall */
 }
 
 /* Responsive Design */
 @media (max-width: 782px) {
     /* Adjust modal body for mobile */
     .mpcc-modal-body {
-        height: auto !important;
-        max-height: calc(100vh - 120px) !important;
+        height: calc(100vh - 100px) !important; /* Full height minus header on mobile */
+        max-height: none !important;
     }
     
     /* Ensure adequate space for messages on mobile */
     #mpcc-editor-ai-messages {
-        min-height: 200px !important;
-        max-height: 250px !important; /* Increased from 150px */
-        flex-shrink: 1 !important; /* Allow shrinking if needed */
+        min-height: 150px !important;
+        flex: 1 1 auto !important; /* Take available space */
     }
     
     /* Make quick start section more compact on mobile */
@@ -198,14 +224,13 @@ textarea[placeholder*="Ask the AI Assistant"] {
     
     /* Adjust modal body for mobile */
     .mpcc-modal-body {
-        height: 100% !important;
-        max-height: calc(100vh - 60px) !important; /* Account for header */
+        height: calc(100vh - 60px) !important; /* Account for header */
+        max-height: none !important;
     }
     
     /* Ensure messages area is visible on small screens */
     #mpcc-editor-ai-messages {
-        min-height: 180px !important;
-        max-height: 220px !important; /* Increased from 120px */
+        min-height: 100px !important;
         padding: 12px !important;
     }
     
@@ -234,8 +259,7 @@ textarea[placeholder*="Ask the AI Assistant"] {
     
     /* Maintain minimum visibility on very small screens */
     #mpcc-editor-ai-messages {
-        min-height: 150px !important;
-        max-height: 200px !important; /* Increased from 100px */
+        min-height: 80px !important;
     }
     
     /* Further reduce quick start section height on very small screens */
