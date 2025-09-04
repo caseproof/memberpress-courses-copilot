@@ -431,7 +431,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Add an index to a table if it doesn't already exist
      *
      * @since  1.0.0
-     * @param  string $tableName   The name of the database table.
+     * @param  string $tableName  The name of the database table.
      * @param  string $indexName  The name of the index to create.
      * @param  string $columnName The column name to index.
      * @return void
@@ -741,16 +741,16 @@ class DatabaseService extends BaseService implements IDatabaseService
         $tableName = $this->tablePrefix . 'templates';
 
         $whereConditions = ['is_active = 1'];
-        $params           = [];
+        $params          = [];
 
         if (!empty($category)) {
             $whereConditions[] = 'category = %s';
-            $params[]           = $category;
+            $params[]          = $category;
         }
 
         if (!empty($type)) {
             $whereConditions[] = 'type = %s';
-            $params[]           = $type;
+            $params[]          = $type;
         }
 
         $whereClause = implode(' AND ', $whereConditions);
@@ -815,7 +815,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      * @since  1.0.0
      * @param  string       $startDate The start date for analytics range (Y-m-d format).
      * @param  string       $endDate   The end date for analytics range (Y-m-d format).
-     * @param  integer|null $userId     Optional user ID to filter analytics by.
+     * @param  integer|null $userId    Optional user ID to filter analytics by.
      * @return array<object> Array of analytics summary objects with keys:
      *                       - date (string): Date (Y-m-d)
      *                       - total_requests (int): Total number of requests
@@ -829,11 +829,11 @@ class DatabaseService extends BaseService implements IDatabaseService
         $tableName = $this->tablePrefix . 'usage_analytics';
 
         $whereConditions = ['created_at BETWEEN %s AND %s'];
-        $params           = [$startDate, $endDate];
+        $params          = [$startDate, $endDate];
 
         if ($userId !== null) {
             $whereConditions[] = 'user_id = %d';
-            $params[]           = $userId;
+            $params[]          = $userId;
         }
 
         $whereClause = implode(' AND ', $whereConditions);
@@ -875,7 +875,7 @@ class DatabaseService extends BaseService implements IDatabaseService
         $tableName = $this->tablePrefix . 'quality_metrics';
 
         $whereClause = $courseId ? 'WHERE course_id = %d' : '';
-        $params       = $courseId ? [$courseId] : [];
+        $params      = $courseId ? [$courseId] : [];
 
         $sql = "SELECT 
                     AVG(score) as average_score,
@@ -898,7 +898,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Execute a database query with error handling
      *
      * @since  1.0.0
-     * @param  string $sql           The SQL query to execute.
+     * @param  string $sql          The SQL query to execute.
      * @param  string $errorMessage The error message to log on failure.
      * @return void
      * @throws \Exception If query execution fails
@@ -974,7 +974,7 @@ class DatabaseService extends BaseService implements IDatabaseService
         $placeholders = implode(',', array_fill(0, count($sessionIds), '%s'));
 
         // Build and prepare the query.
-        $sql          = "SELECT * FROM {$tableName} WHERE session_id IN ({$placeholders})";
+        $sql         = "SELECT * FROM {$tableName} WHERE session_id IN ({$placeholders})";
         $preparedSql = $this->wpdb->prepare($sql, ...$sessionIds);
 
         $results = $this->wpdb->get_results($preparedSql);
@@ -1008,7 +1008,7 @@ class DatabaseService extends BaseService implements IDatabaseService
         $placeholders = implode(',', array_fill(0, count($conversationIds), '%d'));
 
         // Build and prepare the query.
-        $sql          = "SELECT * FROM {$tableName} WHERE id IN ({$placeholders})";
+        $sql         = "SELECT * FROM {$tableName} WHERE id IN ({$placeholders})";
         $preparedSql = $this->wpdb->prepare($sql, ...$conversationIds);
 
         $results = $this->wpdb->get_results($preparedSql);
@@ -1091,7 +1091,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      * Check if an index exists on a table
      *
      * @since  1.0.0
-     * @param  string $tableName  The name of the database table.
+     * @param  string $tableName The name of the database table.
      * @param  string $indexName The name of the index to check.
      * @return boolean True if index exists, false otherwise
      */
@@ -1179,7 +1179,7 @@ class DatabaseService extends BaseService implements IDatabaseService
     public function getPendingMigrations(?string $targetVersion = null): array
     {
         $currentVersion = $this->getOption('mpcc_db_version', '0.0.0');
-        $target          = $targetVersion ?: self::DB_VERSION;
+        $target         = $targetVersion ?: self::DB_VERSION;
 
         $migrations = [];
 
@@ -1323,7 +1323,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      *
      * @since  1.0.0
      * @param  integer $minutesSinceUpdate Sessions not updated in this many minutes
-     * @param  integer $limit                Maximum number of sessions to return
+     * @param  integer $limit              Maximum number of sessions to return
      * @return array<string> Array of session IDs
      */
     public function getActiveSessionsNeedingSave(int $minutesSinceUpdate = 5, int $limit = 100): array
@@ -1354,7 +1354,7 @@ class DatabaseService extends BaseService implements IDatabaseService
      *
      * @since  1.0.0
      * @param  array<int> $conversationIds Array of conversation IDs to update
-     * @param  string     $abandonedAt    Timestamp when sessions were abandoned (Y-m-d H:i:s format)
+     * @param  string     $abandonedAt     Timestamp when sessions were abandoned (Y-m-d H:i:s format)
      * @return integer Number of rows updated
      */
     public function batchAbandonConversations(array $conversationIds, string $abandonedAt): int
@@ -1381,7 +1381,7 @@ class DatabaseService extends BaseService implements IDatabaseService
                 AND state = 'active'";
 
         // Prepare the query with all parameters.
-        $params       = array_merge([$abandonedAt], $conversationIds);
+        $params      = array_merge([$abandonedAt], $conversationIds);
         $preparedSql = $this->wpdb->prepare($sql, ...$params);
 
         $result = $this->wpdb->query($preparedSql);

@@ -254,7 +254,7 @@ class DatabaseBackupService extends BaseService
         // Get backup info for each file
         foreach ($files as $file) {
             $backupId = basename($file, '.json');
-            $info      = $this->getBackupInfo($backupId);
+            $info     = $this->getBackupInfo($backupId);
 
             if ($info) {
                 $backups[] = $info;
@@ -268,8 +268,8 @@ class DatabaseBackupService extends BaseService
      * Clean up old backups
      *
      * @param  integer $olderThanDays Delete backups older than this many days
-     * @param  integer $keepMinimum    Minimum number of backups to keep
-     * @param  boolean $dryRun         Preview without deleting
+     * @param  integer $keepMinimum   Minimum number of backups to keep
+     * @param  boolean $dryRun        Preview without deleting
      * @return integer Number of backups deleted
      */
     public function cleanupOldBackups(int $olderThanDays = 30, int $keepMinimum = 5, bool $dryRun = false): int
@@ -417,7 +417,7 @@ class DatabaseBackupService extends BaseService
 
         if (!empty($rows)) {
             // Build insert statements
-            $columns      = array_keys($rows[0]);
+            $columns     = array_keys($rows[0]);
             $columnsList = '`' . implode('`, `', $columns) . '`';
 
             fwrite($handle, "INSERT INTO `{$table}` ({$columnsList}) VALUES\n");
@@ -461,7 +461,7 @@ class DatabaseBackupService extends BaseService
      */
     private function splitSqlFile(string $sql): array
     {
-        $queries       = [];
+        $queries      = [];
         $currentQuery = '';
         $inString     = false;
         $stringChar   = '';
@@ -478,7 +478,7 @@ class DatabaseBackupService extends BaseService
 
             // Handle strings to avoid splitting on semicolons inside strings
             for ($i = 0; $i < strlen($line); $i++) {
-                $char      = $line[$i];
+                $char     = $line[$i];
                 $prevChar = $i > 0 ? $line[$i - 1] : '';
 
                 if (!$inString && ($char === '"' || $char === "'")) {
@@ -491,7 +491,7 @@ class DatabaseBackupService extends BaseService
                 $currentQuery .= $char;
 
                 if (!$inString && $char === ';') {
-                    $queries[]     = trim($currentQuery);
+                    $queries[]    = trim($currentQuery);
                     $currentQuery = '';
                 }
             }
