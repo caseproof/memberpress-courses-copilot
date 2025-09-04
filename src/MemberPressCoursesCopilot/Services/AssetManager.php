@@ -79,6 +79,7 @@ class AssetManager extends BaseService
         // Admin page styles
         $this->registerStyle('mpcc-admin-settings', 'assets/css/admin-settings.css', ['dashicons']);
         $this->registerStyle('mpcc-editor-ai-modal', 'assets/css/editor-ai-modal.css', ['mpcc-ai-copilot']);
+        $this->registerStyle('mpcc-editor-ai-button', 'assets/css/editor-ai-button.css', ['dashicons']);
 
         // Component styles
         // Removed mpcc-modal-styles and mpcc-metabox-styles - files don't exist

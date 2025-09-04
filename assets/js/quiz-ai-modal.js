@@ -155,21 +155,58 @@
                     if ($toolbar.length && !$('#mpcc-quiz-generate-ai').length) {
                         clearInterval(checkInterval);
                         
+                        // Check if mobile
+                        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+                        
                         // Create button matching the style
-                        const buttonHtml = `
-                            <button 
-                                id="mpcc-quiz-generate-ai" 
-                                type="button"
-                                class="components-button editor-post-publish-button editor-post-publish-button__button is-primary"
-                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-right: 8px; border: none;"
-                            >
-                                <span class="dashicons dashicons-admin-generic" style="margin-right: 4px; font-size: 18px; line-height: 1.2;"></span>
-                                Generate with AI
-                            </button>
-                        `;
+                        let buttonHtml;
+                        if (isMobile) {
+                            // Icon-only on mobile
+                            buttonHtml = `
+                                <button 
+                                    id="mpcc-quiz-generate-ai" 
+                                    type="button"
+                                    class="components-button mpcc-ai-button is-icon-only"
+                                    title="Generate with AI"
+                                    style="background: #6B4CE6 !important; border-color: #6B4CE6 !important; color: #ffffff !important; width: 36px !important; height: 36px !important; padding: 0 !important; margin-right: 8px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 3px !important;"
+                                >
+                                    <span class="dashicons dashicons-lightbulb" style="font-size: 20px !important; width: 20px !important; height: 20px !important; margin: 0 !important;"></span>
+                                </button>
+                            `;
+                        } else {
+                            // Icon and text on desktop
+                            buttonHtml = `
+                                <button 
+                                    id="mpcc-quiz-generate-ai" 
+                                    type="button"
+                                    class="components-button mpcc-ai-button"
+                                    title="Generate with AI"
+                                    style="background: #6B4CE6 !important; border-color: #6B4CE6 !important; color: #ffffff !important; height: 36px !important; padding: 0 12px !important; margin-right: 8px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 3px !important;"
+                                >
+                                    <span class="dashicons dashicons-lightbulb" style="margin-right: 4px !important; font-size: 20px !important; width: 20px !important; height: 20px !important;"></span>
+                                    Generate with AI
+                                </button>
+                            `;
+                        }
                         
                         // Insert before the Publish button
                         $toolbar.find('.editor-post-publish-button, .editor-post-publish-panel__toggle').first().before(buttonHtml);
+                        
+                        // Add hover effect
+                        $('#mpcc-quiz-generate-ai').hover(
+                            function() {
+                                $(this).css({
+                                    'background': '#5A3CC5 !important',
+                                    'border-color': '#5A3CC5 !important'
+                                });
+                            },
+                            function() {
+                                $(this).css({
+                                    'background': '#6B4CE6 !important',
+                                    'border-color': '#6B4CE6 !important'
+                                });
+                            }
+                        );
                         
                         // Bind click event
                         $('#mpcc-quiz-generate-ai').on('click', () => this.openModal());
@@ -177,6 +214,9 @@
                         this.logger?.log('AI button added to editor');
                     }
                 }, 100);
+                
+                // Clear interval after 10 seconds to prevent infinite checking
+                setTimeout(() => clearInterval(checkInterval), 10000);
             });
         }
         
