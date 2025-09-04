@@ -18,7 +18,7 @@ $post_status = $post_status ?? '';
 $is_new      = $is_new ?? false;
 ?>
 
-<input type="hidden" id="mpcc-course-ajax-nonce" value="<?php echo NonceConstants::create(NonceConstants::AI_ASSISTANT); ?>" />
+<input type="hidden" id="mpcc-course-ajax-nonce" value="<?php echo esc_attr(NonceConstants::create(NonceConstants::AI_ASSISTANT)); ?>" />
 <div id="mpcc-course-ai-assistant" class="mpcc-course-ai-interface" data-post-id="<?php echo esc_attr($post_id); ?>">
     <div id="mpcc-course-chat-messages" class="mpcc-course-chat-messages">
         <!-- Messages will be dynamically added here -->

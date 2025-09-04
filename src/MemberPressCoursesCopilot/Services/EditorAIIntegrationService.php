@@ -344,16 +344,16 @@ class EditorAIIntegrationService extends BaseService
                              style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
                             <strong>AI Assistant:</strong>
                             <div class="ai-content" id="mpcc-editor-ai-description">
-                                <?php echo $config['assistant_intro']; ?>
+                                <?php echo esc_html($config['assistant_intro']); ?>
                             <?php if ($parentCourse && $post->post_type === self::POST_TYPE_LESSON) : ?>
                             <br><br>I see this lesson is part of
                             "<strong><?php echo esc_html($parentCourse->post_title); ?></strong>".
                             I'll make sure the content aligns with the course objectives.
                             <?php endif; ?>
                             <br><br>What would you like
-                            <?php echo $post->post_type === self::POST_TYPE_LESSON
+                            <?php echo esc_html($post->post_type === self::POST_TYPE_LESSON
                                 ? 'this lesson to cover'
-                                : 'me to help with'; ?>?</div>
+                                : 'me to help with'); ?>?</div>
                         </div>
                     </div>
                     
