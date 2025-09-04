@@ -241,7 +241,7 @@ class LessonDraftService
         // Create a map for quick lookup
         $draftMap = [];
         foreach ($drafts as $draft) {
-            $key             = $draft->section_id . '::' . $draft->lesson_id;
+            $key            = $draft->section_id . '::' . $draft->lesson_id;
             $draftMap[$key] = $draft->content;
             error_log('MPCC: Draft found - Key: ' . $key . ', Content length: ' . strlen($draft->content));
         }

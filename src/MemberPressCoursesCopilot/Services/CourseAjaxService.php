@@ -449,7 +449,7 @@ class CourseAjaxService extends BaseService
             }
 
             // Get current conversation state for course creation.
-            $currentStep  = $conversationState['current_step'] ?? 'initial';
+            $currentStep   = $conversationState['current_step'] ?? 'initial';
             $collectedData = $conversationState['collected_data'] ?? [];
 
             // Prepare the full prompt.
@@ -531,11 +531,11 @@ class CourseAjaxService extends BaseService
 
             // Determine next step.
             $nextStep = $currentStep;
-            $actions   = [];
+            $actions  = [];
 
             if ($readyToCreate) {
                 $nextStep = 'ready_to_create';
-                $actions   = [
+                $actions  = [
                     [
                         'action' => 'create_course',
                         'label'  => 'Create Course',
