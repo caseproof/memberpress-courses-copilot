@@ -529,7 +529,7 @@ class AssetManager extends BaseService
             'generating'   => __('Generating course...', 'memberpress-courses-copilot'),
             'error'        => __('An error occurred. Please try again.', 'memberpress-courses-copilot'),
             'success'      => __('Course generated successfully!', 'memberpress-courses-copilot'),
-            'createWithAI' => __('Create with AI', 'memberpress-courses-copilot'),
+            'createWithAI' => __('Generate', 'memberpress-courses-copilot'),
             'aiAssistant'  => __('AI Assistant', 'memberpress-courses-copilot'),
             'loading'      => __('Loading...', 'memberpress-courses-copilot'),
         ];

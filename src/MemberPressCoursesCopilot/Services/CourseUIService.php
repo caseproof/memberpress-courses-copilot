@@ -59,7 +59,7 @@ class CourseUIService extends BaseService
     }
 
     /**
-     * Render "Create with AI" button on courses listing page
+     * Render "Generate" button on courses listing page
      *
      * @return void
      */
@@ -71,11 +71,11 @@ class CourseUIService extends BaseService
             return;
         }
 
-        $this->logger->debug('Rendering Create with AI button');
+        $this->logger->debug('Rendering Generate button');
 
         // Use template engine to render button
         echo $this->templateEngine->renderComponent('buttons/create-with-ai', [
-            'button_text'  => __('Create with AI', 'memberpress-courses-copilot'),
+            'button_text'  => __('Generate', 'memberpress-courses-copilot'),
             'button_class' => 'page-title-action mpcc-gradient-button',
             'icon'         => 'dashicons-admin-generic',
         ]);

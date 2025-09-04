@@ -26,7 +26,7 @@ class EditorAIIntegrationService extends BaseService
      */
     private array $postTypeConfig = [
         self::POST_TYPE_COURSE => [
-            'button_text'     => 'Create with AI',
+            'button_text'     => 'Generate',
             'modal_title'     => 'AI Course Assistant',
             'ajax_action'     => 'mpcc_editor_ai_chat',
             'update_action'   => 'mpcc_update_post_content',
