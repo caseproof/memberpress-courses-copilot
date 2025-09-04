@@ -23,37 +23,37 @@ interface IQuizAIService
      * Generate multiple choice questions
      *
      * @param  string $content The content to generate questions from
-     * @param  array  $options Question generation options
+     * @param  int    $count   Number of questions to generate
      * @return array Generated multiple choice questions
      */
-    public function generateMultipleChoiceQuestions(string $content, array $options = []): array;
+    public function generateMultipleChoiceQuestions(string $content, int $count = 5): array;
 
     /**
      * Generate true/false questions
      *
      * @param  string $content The content to generate questions from
-     * @param  array  $options Question generation options
+     * @param  int    $count   Number of questions to generate
      * @return array Generated true/false questions
      */
-    public function generateTrueFalseQuestions(string $content, array $options = []): array;
+    public function generateTrueFalseQuestions(string $content, int $count = 5): array;
 
     /**
      * Generate text answer questions
      *
      * @param  string $content The content to generate questions from
-     * @param  array  $options Question generation options
+     * @param  int    $count   Number of questions to generate
      * @return array Generated text answer questions
      */
-    public function generateTextAnswerQuestions(string $content, array $options = []): array;
+    public function generateTextAnswerQuestions(string $content, int $count = 5): array;
 
     /**
      * Generate multiple select questions
      *
      * @param  string $content The content to generate questions from
-     * @param  array  $options Question generation options
+     * @param  int    $count   Number of questions to generate
      * @return array Generated multiple select questions
      */
-    public function generateMultipleSelectQuestions(string $content, array $options = []): array;
+    public function generateMultipleSelectQuestions(string $content, int $count = 5): array;
 
     /**
      * Get supported question types
