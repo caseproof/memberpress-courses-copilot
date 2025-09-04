@@ -12,7 +12,7 @@
     $(document).ready(function() {
         // Add "Generate" button next to "Add New Course"
         var createWithAIButton = '<a href="#" id="mpcc-create-with-ai" class="page-title-action">' + 
-            '<span class="dashicons dashicons-admin-generic"></span>' +
+            '<span class="dashicons dashicons-lightbulb"></span>' +
             mpccCreateButton.strings.createWithAI +
             '</a>';
         

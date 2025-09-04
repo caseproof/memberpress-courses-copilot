@@ -522,7 +522,7 @@
                             
                             <div class="mpcc-modal-actions">
                                 <button type="button" id="mpcc-generate-quiz" class="button button-primary">
-                                    <span class="dashicons dashicons-admin-generic"></span>
+                                    <span class="dashicons dashicons-lightbulb"></span>
                                     Generate Questions
                                 </button>
                             </div>

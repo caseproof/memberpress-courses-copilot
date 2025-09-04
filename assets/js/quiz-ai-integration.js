@@ -104,7 +104,7 @@
             const buttonHtml = `
                 <div class="mpcc-quiz-ai-wrapper">
                     <button id="mpcc-generate-quiz" class="components-button is-secondary mpcc-ai-button" type="button">
-                        <span class="dashicons dashicons-admin-generic"></span>
+                        <span class="dashicons dashicons-lightbulb"></span>
                         <span class="button-text">${mpcc_ajax.strings.generate_button}</span>
                     </button>
                 </div>

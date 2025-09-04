@@ -46,7 +46,7 @@
                 justify-content: space-between;
             ">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <span class="dashicons dashicons-admin-generic" style="font-size: 20px; color: #2271b1;"></span>
+                    <span class="dashicons dashicons-lightbulb" style="font-size: 20px; color: #6B4CE6;"></span>
                     <div>
                         <strong style="font-size: 14px;">AI Quiz Generator</strong>
                         <p style="margin: 4px 0 0 0; color: #646970; font-size: 13px;">

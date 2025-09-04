@@ -68,7 +68,7 @@
                 <div id="mpcc-quiz-ai-metabox" class="postbox">
                     <div class="postbox-header">
                         <h2 class="hndle">
-                            <span class="dashicons dashicons-admin-generic"></span>
+                            <span class="dashicons dashicons-lightbulb"></span>
                             AI Quiz Generator
                         </h2>
                         <div class="handle-actions">
@@ -141,7 +141,7 @@
             const buttonHtml = `
                 <div class="mpcc-quiz-ai-toolbar-wrapper" style="margin-left: 8px;">
                     <button id="mpcc-generate-quiz-toolbar" class="components-button is-secondary" type="button">
-                        <span class="dashicons dashicons-admin-generic" style="margin-right: 4px;"></span>
+                        <span class="dashicons dashicons-lightbulb" style="margin-right: 4px;"></span>
                         Generate
                     </button>
                 </div>

@@ -77,7 +77,7 @@ class CourseUIService extends BaseService
         echo $this->templateEngine->renderComponent('buttons/create-with-ai', [
             'button_text'  => __('Generate', 'memberpress-courses-copilot'),
             'button_class' => 'page-title-action mpcc-gradient-button',
-            'icon'         => 'dashicons-admin-generic',
+            'icon'         => 'dashicons-lightbulb',
         ]);
 
         // Enqueue necessary scripts
