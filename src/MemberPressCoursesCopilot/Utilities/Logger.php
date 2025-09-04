@@ -31,7 +31,7 @@ class Logger
      * Singleton instance
      *
      * @since 1.0.0
-     * @var Logger|null
+     * @var   Logger|null
      */
     private static $instance = null;
 
@@ -39,7 +39,7 @@ class Logger
      * Whether logging is enabled
      *
      * @since 1.0.0
-     * @var boolean
+     * @var   boolean
      */
     private $loggingEnabled;
 
@@ -47,7 +47,7 @@ class Logger
      * Current log level
      *
      * @since 1.0.0
-     * @var string
+     * @var   string
      */
     private $logLevel;
 
@@ -55,7 +55,7 @@ class Logger
      * Whether debug mode is enabled
      *
      * @since 1.0.0
-     * @var boolean
+     * @var   boolean
      */
     private $debugMode;
 
@@ -63,7 +63,7 @@ class Logger
      * Log file path
      *
      * @since 1.0.0
-     * @var string
+     * @var   string
      */
     private $logFile;
 
@@ -71,7 +71,7 @@ class Logger
      * Cost tracking data (lazy loaded)
      *
      * @since 1.0.0
-     * @var array<string, array<string, mixed>>|null
+     * @var   array<string, array<string, mixed>>|null
      */
     private $costTracker = null;
 
@@ -79,7 +79,7 @@ class Logger
      * API usage statistics (lazy loaded)
      *
      * @since 1.0.0
-     * @var array<string, array<string, mixed>>|null
+     * @var   array<string, array<string, mixed>>|null
      */
     private $apiStats = null;
 
@@ -87,7 +87,7 @@ class Logger
      * Whether cost tracker has been loaded
      *
      * @since 1.0.0
-     * @var boolean
+     * @var   boolean
      */
     private $costTrackerLoaded = false;
 
@@ -95,7 +95,7 @@ class Logger
      * Whether API stats have been loaded
      *
      * @since 1.0.0
-     * @var boolean
+     * @var   boolean
      */
     private $apiStatsLoaded = false;
 
@@ -103,7 +103,7 @@ class Logger
      * Maximum log file size in bytes (10MB)
      *
      * @since 1.0.0
-     * @var integer
+     * @var   integer
      */
     private $maxLogSize = 10485760;
 
@@ -111,14 +111,14 @@ class Logger
      * Log rotation count
      *
      * @since 1.0.0
-     * @var integer
+     * @var   integer
      */
     private $rotationCount = 5;
 
     /**
      * Get singleton instance
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return self The Logger instance
      */
     public static function getInstance(): self
@@ -159,7 +159,7 @@ class Logger
     /**
      * Prevent cloning of singleton
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void
      */
     private function __clone()
@@ -169,7 +169,7 @@ class Logger
     /**
      * Prevent unserialization of singleton
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void
      * @throws \Exception Cannot unserialize singleton
      */
@@ -181,7 +181,7 @@ class Logger
     /**
      * Determine if logging should be enabled based on configuration
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return boolean True if logging should be enabled, false otherwise
      */
     private function determineLoggingState(): bool
@@ -193,7 +193,7 @@ class Logger
     /**
      * Initialize log file path and directory
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void
      */
     private function initializeLogFile(): void
@@ -212,7 +212,7 @@ class Logger
     /**
      * Protect log files from web access
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  string $logDir Log directory path
      * @return void
      */
@@ -236,8 +236,8 @@ class Logger
     /**
      * Log a debug message
      *
-     * @since 1.0.0
-     * @param  string $message Log message
+     * @since  1.0.0
+     * @param  string               $message Log message
      * @param  array<string, mixed> $context Additional context data
      * @return void
      */
@@ -256,8 +256,8 @@ class Logger
     /**
      * Log an info message
      *
-     * @since 1.0.0
-     * @param  string $message Log message
+     * @since  1.0.0
+     * @param  string               $message Log message
      * @param  array<string, mixed> $context Additional context data
      * @return void
      */
@@ -276,8 +276,8 @@ class Logger
     /**
      * Log a warning message
      *
-     * @since 1.0.0
-     * @param  string $message Log message
+     * @since  1.0.0
+     * @param  string               $message Log message
      * @param  array<string, mixed> $context Additional context data
      * @return void
      */
@@ -296,8 +296,8 @@ class Logger
     /**
      * Log an error message
      *
-     * @since 1.0.0
-     * @param  string $message Log message
+     * @since  1.0.0
+     * @param  string               $message Log message
      * @param  array<string, mixed> $context Additional context data
      * @return void
      */
@@ -316,8 +316,8 @@ class Logger
     /**
      * Log a critical message
      *
-     * @since 1.0.0
-     * @param  string $message Log message
+     * @since  1.0.0
+     * @param  string               $message Log message
      * @param  array<string, mixed> $context Additional context data
      * @return void
      */
@@ -336,11 +336,11 @@ class Logger
     /**
      * Log an API call with cost tracking
      *
-     * @since 1.0.0
-     * @param  string $provider Provider name
-     * @param  string $model    Model name
+     * @since  1.0.0
+     * @param  string               $provider Provider name
+     * @param  string               $model    Model name
      * @param  array<string, mixed> $usage    Usage statistics
-     * @param  float  $cost     Estimated cost
+     * @param  float                $cost     Estimated cost
      * @param  array<string, mixed> $context  Additional context
      * @return void
      */
@@ -363,10 +363,10 @@ class Logger
     /**
      * Track API costs
      *
-     * @since 1.0.0
-     * @param  string $provider Provider name
-     * @param  string $model    Model name
-     * @param  float  $cost     Cost amount
+     * @since  1.0.0
+     * @param  string               $provider Provider name
+     * @param  string               $model    Model name
+     * @param  float                $cost     Cost amount
      * @param  array<string, mixed> $usage    Usage statistics
      * @return void
      */
@@ -429,9 +429,9 @@ class Logger
     /**
      * Update API usage statistics
      *
-     * @since 1.0.0
-     * @param  string $provider Provider name
-     * @param  string $model    Model name
+     * @since  1.0.0
+     * @param  string               $provider Provider name
+     * @param  string               $model    Model name
      * @param  array<string, mixed> $usage    Usage statistics
      * @return void
      */
@@ -439,7 +439,7 @@ class Logger
     {
         // Use lazy loading to get API stats data
         $apiStats = $this->getApiStatsData();
-        
+
         if (!isset($apiStats[$provider])) {
             $apiStats[$provider] = [
                 'total_calls'  => 0,
@@ -475,7 +475,7 @@ class Logger
     /**
      * Get cost tracking data
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  string|null $date Optional date (Y-m-d format)
      * @return array<string, mixed> Cost tracking data
      */
@@ -483,7 +483,7 @@ class Logger
     {
         // Use lazy loading to get cost tracker data
         $costTracker = $this->getCostTrackerData();
-        
+
         if ($date === null) {
             return $costTracker;
         }
@@ -494,7 +494,7 @@ class Logger
     /**
      * Get API usage statistics
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  string|null $provider Optional provider filter
      * @return array<string, mixed> API statistics
      */
@@ -502,7 +502,7 @@ class Logger
     {
         // Use lazy loading to get API stats data
         $apiStats = $this->getApiStatsData();
-        
+
         if ($provider === null) {
             return $apiStats;
         }
@@ -513,7 +513,7 @@ class Logger
     /**
      * Get daily cost summary
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  integer $days Number of days to include
      * @return array<string, array<string, mixed>> Daily cost summary
      */
@@ -521,8 +521,8 @@ class Logger
     {
         // Use lazy loading to get cost tracker data
         $costTracker = $this->getCostTrackerData();
-        $summary = [];
-        $today   = time();
+        $summary     = [];
+        $today       = time();
 
         for ($i = 0; $i < $days; $i++) {
             $date    = date('Y-m-d', $today - ($i * 86400));
@@ -552,7 +552,7 @@ class Logger
     /**
      * Get monthly cost summary
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  string|null $month Month in Y-m format
      * @return array<string, mixed> Monthly cost summary
      */
@@ -564,7 +564,7 @@ class Logger
 
         // Use lazy loading to get cost tracker data
         $costTracker = $this->getCostTrackerData();
-        
+
         $monthlyCost   = 0.0;
         $monthlyCalls  = 0;
         $monthlyTokens = 0;
@@ -605,7 +605,7 @@ class Logger
     /**
      * Clean old log entries
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  integer $daysToKeep Number of days to keep
      * @return void
      */
@@ -615,7 +615,7 @@ class Logger
 
         // Use lazy loading to get cost tracker data
         $costTracker = $this->getCostTrackerData();
-        
+
         // Clean cost tracker
         foreach (array_keys($costTracker) as $date) {
             if ($date < $cutoffDate) {
@@ -639,9 +639,9 @@ class Logger
     /**
      * Core logging method
      *
-     * @since 1.0.0
-     * @param  string $level   Log level
-     * @param  string $message Log message
+     * @since  1.0.0
+     * @param  string               $level   Log level
+     * @param  string               $message Log message
      * @param  array<string, mixed> $context Additional context
      * @return void
      */
@@ -670,7 +670,7 @@ class Logger
     /**
      * Check if message should be logged based on log level
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  string $level Message level
      * @return boolean Whether to log the message
      */
@@ -698,7 +698,7 @@ class Logger
     /**
      * Rotate log file when it gets too large
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void
      */
     private function rotateLogFile(): void
@@ -732,7 +732,7 @@ class Logger
     /**
      * Load cost tracker from WordPress options (lazy loaded)
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return array<string, array<string, mixed>> Cost tracker data
      */
     private function getCostTrackerData(): array
@@ -753,7 +753,7 @@ class Logger
     /**
      * Save cost tracker to WordPress options
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void
      */
     private function saveCostTracker(): void
@@ -766,7 +766,7 @@ class Logger
     /**
      * Load API stats from WordPress options (lazy loaded)
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return array<string, array<string, mixed>> API stats data
      */
     private function getApiStatsData(): array
@@ -782,7 +782,7 @@ class Logger
     /**
      * Save API stats to WordPress options
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void
      */
     private function saveApiStats(): void
@@ -795,7 +795,7 @@ class Logger
     /**
      * Rotate cost data when it gets too large
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void
      */
     private function rotateCostData(): void
@@ -817,7 +817,7 @@ class Logger
     /**
      * Set log level
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  string $level Log level
      * @return void
      */
@@ -829,7 +829,7 @@ class Logger
     /**
      * Get current log level
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return string Current log level
      */
     public function getLogLevel(): string
@@ -840,7 +840,7 @@ class Logger
     /**
      * Enable or disable debug mode
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  boolean $enabled Whether debug mode is enabled
      * @return void
      */
@@ -852,7 +852,7 @@ class Logger
     /**
      * Check if debug mode is enabled
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return boolean Whether debug mode is enabled
      */
     public function isDebugMode(): bool
@@ -863,7 +863,7 @@ class Logger
     /**
      * Get log file path
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return string Log file path
      */
     public function getLogFile(): string
@@ -874,7 +874,7 @@ class Logger
     /**
      * Enable or disable logging (only works if WP_DEBUG is active)
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @param  boolean $enabled Whether logging should be enabled
      * @return void
      */
@@ -887,7 +887,7 @@ class Logger
     /**
      * Check if logging is enabled
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return boolean Whether logging is enabled
      */
     public function isLoggingEnabled(): bool
@@ -899,7 +899,7 @@ class Logger
      * Static method to check if logging is enabled globally
      * Useful for quick checks without instantiating the logger
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return boolean Whether logging is enabled
      */
     public static function isLoggingEnabledGlobally(): bool

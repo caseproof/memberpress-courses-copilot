@@ -19,7 +19,7 @@ class ConversationFlowHandler extends BaseService
      * Course generator service instance
      *
      * @since 1.0.0
-     * @var CourseGeneratorService
+     * @var   CourseGeneratorService
      */
     private CourseGeneratorService $courseGenerator;
 
@@ -27,7 +27,7 @@ class ConversationFlowHandler extends BaseService
      * Conversation manager instance
      *
      * @since 1.0.0
-     * @var ConversationManager
+     * @var   ConversationManager
      */
     private ConversationManager $conversationManager;
 
@@ -52,9 +52,9 @@ class ConversationFlowHandler extends BaseService
      * Constructor
      *
      * @since 1.0.0
-     * @param LLMService $llmService LLM service instance for AI interactions
-     * @param ConversationManager $conversationManager Manager for conversation sessions
-     * @param CourseGeneratorService $courseGenerator Service for course generation operations
+     * @param LLMService             $llmService          LLM service instance for AI interactions
+     * @param ConversationManager    $conversationManager Manager for conversation sessions
+     * @param CourseGeneratorService $courseGenerator     Service for course generation operations
      */
     public function __construct(
         LLMService $llmService,
@@ -69,7 +69,7 @@ class ConversationFlowHandler extends BaseService
     /**
      * Initialize the service
      *
-     * @since 1.0.0
+     * @since  1.0.0
      * @return void
      */
     public function init(): void
@@ -80,8 +80,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Determine optimal conversation flow for session
      *
-     * @since 1.0.0
-     * @param ConversationSession $session The conversation session to analyze
+     * @since  1.0.0
+     * @param  ConversationSession $session The conversation session to analyze
      * @return string The recommended flow type (linear, adaptive, exploratory, guided, or expert)
      */
     public function determineOptimalFlow(ConversationSession $session): string
@@ -125,8 +125,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get next possible branches from current state
      *
-     * @since 1.0.0
-     * @param ConversationSession $session The conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session The conversation session
      * @return array<int, array{state: string, type: string, description: string, confidence: float, estimated_time: int, prerequisites: array<int, mixed>, skip_conditions: array<int, mixed>}> Array of available branches with metadata
      */
     public function getNextBranches(ConversationSession $session): array
@@ -161,10 +161,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Handle conversation branching decision
      *
-     * @since 1.0.0
-     * @param ConversationSession $session The conversation session
-     * @param string $selectedBranch The selected branch state to transition to
-     * @param array<string, mixed> $branchData Optional data for the branch transition
+     * @since  1.0.0
+     * @param  ConversationSession  $session        The conversation session
+     * @param  string               $selectedBranch The selected branch state to transition to
+     * @param  array<string, mixed> $branchData     Optional data for the branch transition
      * @return array{success: bool, error?: string, available_branches?: array<int, mixed>, missing_prerequisites?: array<int, mixed>, suggested_actions?: array<int, mixed>} Result of the branching operation
      */
     public function handleBranching(ConversationSession $session, string $selectedBranch, array $branchData = []): array
@@ -217,10 +217,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Handle backtracking request
      *
-     * @since 1.0.0
-     * @param ConversationSession $session The conversation session
-     * @param string|null $targetState Optional specific state to backtrack to
-     * @param array<string, mixed> $options Options for backtracking including 'confirmed' flag
+     * @since  1.0.0
+     * @param  ConversationSession  $session     The conversation session
+     * @param  string|null          $targetState Optional specific state to backtrack to
+     * @param  array<string, mixed> $options     Options for backtracking including 'confirmed' flag
      * @return array{success: bool, error?: string, suggestions?: array<string, string>, available_states?: array<int, string>, requires_confirmation?: bool, loss_assessment?: array<string, mixed>, confirmation_message?: string, alternatives?: array<int, mixed>, steps_back?: int, recovered_context?: array<string, mixed>} Result of the backtracking operation
      */
     public function handleBacktracking(ConversationSession $session, ?string $targetState = null, array $options = []): array
@@ -283,8 +283,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Suggest smart navigation options
      *
-     * @since 1.0.0
-     * @param ConversationSession $session The conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session The conversation session
      * @return array{current_state: string, progress: float, flow_type: string, suggestions: array<string, mixed>, navigation_context: array{can_backtrack: bool, can_skip_ahead: bool, has_shortcuts: bool, needs_recovery: bool}} Navigation suggestions and context
      */
     public function suggestSmartNavigation(ConversationSession $session): array
@@ -350,9 +350,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Handle conversation recovery from errors or interruptions
      *
-     * @since 1.0.0
-     * @param ConversationSession $session The conversation session to recover
-     * @param array<string, mixed> $recoveryOptions Optional recovery options including 'strategy'
+     * @since  1.0.0
+     * @param  ConversationSession  $session         The conversation session to recover
+     * @param  array<string, mixed> $recoveryOptions Optional recovery options including 'strategy'
      * @return array{strategy: string, target_state: string, recovery_actions: array<int, mixed>, data_preservation: array<int, mixed>} Recovery plan and execution result
      */
     public function handleConversationRecovery(ConversationSession $session, array $recoveryOptions = []): array
@@ -412,8 +412,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get user profile data
      *
-     * @since 1.0.0
-     * @param int $userId The user ID
+     * @since  1.0.0
+     * @param  integer $userId The user ID
      * @return array{course_creation_experience: string, technical_background: string, preferred_interaction_style: string, previous_sessions: int} User profile data
      */
     private function getUserProfile(int $userId): array
@@ -430,9 +430,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Analyze user expertise level from profile and conversation history
      *
-     * @since 1.0.0
-     * @param array<string, mixed> $userProfile User profile data
-     * @param array<int, array{type: string, content: string}> $conversationHistory Conversation message history
+     * @since  1.0.0
+     * @param  array<string, mixed>                             $userProfile         User profile data
+     * @param  array<int, array{type: string, content: string}> $conversationHistory Conversation message history
      * @return string User expertise level: 'beginner', 'intermediate', or 'expert'
      */
     private function analyzeUserExpertise(array $userProfile, array $conversationHistory): string
@@ -458,8 +458,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Assess completeness of information in the session context
      *
-     * @since 1.0.0
-     * @param array<string, mixed> $context Session context data
+     * @since  1.0.0
+     * @param  array<string, mixed> $context Session context data
      * @return float Completeness score between 0.0 and 1.0
      */
     private function assessInformationCompleteness(array $context): float
@@ -473,8 +473,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Infer user preference from conversation patterns
      *
-     * @since 1.0.0
-     * @param array<int, array{type: string, content: string}> $conversationHistory Conversation message history
+     * @since  1.0.0
+     * @param  array<int, array{type: string, content: string}> $conversationHistory Conversation message history
      * @return string User preference: 'autonomous', 'collaborative', or 'guided'
      */
     private function inferUserPreference(array $conversationHistory): string
@@ -506,9 +506,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Calculate linear flow suitability score
      *
-     * @since 1.0.0
-     * @param string $expertise User expertise level
-     * @param float $completeness Information completeness score
+     * @since  1.0.0
+     * @param  string $expertise    User expertise level
+     * @param  float  $completeness Information completeness score
      * @return float Flow suitability score
      */
     private function calculateLinearFlowScore(string $expertise, float $completeness): float
@@ -519,9 +519,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Calculate adaptive flow suitability score
      *
-     * @since 1.0.0
-     * @param string $expertise User expertise level
-     * @param float $completeness Information completeness score
+     * @since  1.0.0
+     * @param  string $expertise    User expertise level
+     * @param  float  $completeness Information completeness score
      * @return float Flow suitability score
      */
     private function calculateAdaptiveFlowScore(string $expertise, float $completeness): float
@@ -532,9 +532,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Calculate exploratory flow suitability score
      *
-     * @since 1.0.0
-     * @param string $preference User preference style
-     * @param string $expertise User expertise level
+     * @since  1.0.0
+     * @param  string $preference User preference style
+     * @param  string $expertise  User expertise level
      * @return float Flow suitability score
      */
     private function calculateExploratoryFlowScore(string $preference, string $expertise): float
@@ -545,9 +545,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Calculate guided flow suitability score
      *
-     * @since 1.0.0
-     * @param string $expertise User expertise level
-     * @param string $preference User preference style
+     * @since  1.0.0
+     * @param  string $expertise  User expertise level
+     * @param  string $preference User preference style
      * @return float Flow suitability score
      */
     private function calculateGuidedFlowScore(string $expertise, string $preference): float
@@ -558,9 +558,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Calculate expert flow suitability score
      *
-     * @since 1.0.0
-     * @param string $expertise User expertise level
-     * @param float $completeness Information completeness score
+     * @since  1.0.0
+     * @param  string $expertise    User expertise level
+     * @param  float  $completeness Information completeness score
      * @return float Flow suitability score
      */
     private function calculateExpertFlowScore(string $expertise, float $completeness): float
@@ -571,9 +571,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get linear flow branches (sequential progression)
      *
-     * @since 1.0.0
-     * @param string $currentState Current conversation state
-     * @param array<int, string> $transitions Available state transitions
+     * @since  1.0.0
+     * @param  string             $currentState Current conversation state
+     * @param  array<int, string> $transitions  Available state transitions
      * @return array<int, array{state: string, type: string, description: string}> Linear branch options
      */
     private function getLinearBranches(string $currentState, array $transitions): array
@@ -604,10 +604,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get adaptive flow branches based on context
      *
-     * @since 1.0.0
-     * @param string $currentState Current conversation state
-     * @param array<int, string> $transitions Available state transitions
-     * @param array<string, mixed> $context Session context data
+     * @since  1.0.0
+     * @param  string               $currentState Current conversation state
+     * @param  array<int, string>   $transitions  Available state transitions
+     * @param  array<string, mixed> $context      Session context data
      * @return array<int, array{state: string, type: string, description: string, can_skip: bool}> Adaptive branch options
      */
     private function getAdaptiveBranches(string $currentState, array $transitions, array $context): array
@@ -636,9 +636,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get exploratory flow branches (free navigation)
      *
-     * @since 1.0.0
-     * @param string $currentState Current conversation state
-     * @param array<int, string> $transitions Available state transitions
+     * @since  1.0.0
+     * @param  string             $currentState Current conversation state
+     * @param  array<int, string> $transitions  Available state transitions
      * @return array<int, array{state: string, type: string, description: string, freedom_level: string}> Exploratory branch options
      */
     private function getExploratoryBranches(string $currentState, array $transitions): array
@@ -655,10 +655,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get guided flow branches with recommendations
      *
-     * @since 1.0.0
-     * @param string $currentState Current conversation state
-     * @param array<int, string> $transitions Available state transitions
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  string              $currentState Current conversation state
+     * @param  array<int, string>  $transitions  Available state transitions
+     * @param  ConversationSession $session      Current conversation session
      * @return array<string, array<int, array{state: string, type: string, description: string, guidance: string, difficulty: string}>> Categorized guided branch options
      */
     private function getGuidedBranches(string $currentState, array $transitions, ConversationSession $session): array
@@ -687,10 +687,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get expert flow branches with technical details
      *
-     * @since 1.0.0
-     * @param string $currentState Current conversation state
-     * @param array<int, string> $transitions Available state transitions
-     * @param array<string, mixed> $context Session context data
+     * @since  1.0.0
+     * @param  string               $currentState Current conversation state
+     * @param  array<int, string>   $transitions  Available state transitions
+     * @param  array<string, mixed> $context      Session context data
      * @return array<int, array{state: string, type: string, description: string, technical_details: array<string, mixed>}> Expert branch options
      */
     private function getExpertBranches(string $currentState, array $transitions, array $context): array
@@ -707,9 +707,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get default branch options
      *
-     * @since 1.0.0
-     * @param string $currentState Current conversation state
-     * @param array<int, string> $transitions Available state transitions
+     * @since  1.0.0
+     * @param  string             $currentState Current conversation state
+     * @param  array<int, string> $transitions  Available state transitions
      * @return array<int, array{state: string, type: string, description: string}> Default branch options
      */
     private function getDefaultBranches(string $currentState, array $transitions): array
@@ -724,8 +724,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get human-readable description for a state
      *
-     * @since 1.0.0
-     * @param string $state The state identifier
+     * @since  1.0.0
+     * @param  string $state The state identifier
      * @return string State description
      */
     private function getStateDescription(string $state): string
@@ -739,9 +739,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Calculate confidence score for branch selection
      *
-     * @since 1.0.0
-     * @param array<string, mixed> $branch Branch data
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  array<string, mixed> $branch  Branch data
+     * @param  ConversationSession  $session Current conversation session
      * @return float Confidence score between 0.0 and 1.0
      * @throws \RuntimeException When method is not implemented
      */
@@ -752,10 +752,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Estimate time required for branch completion
      *
-     * @since 1.0.0
-     * @param array<string, mixed> $branch Branch data
-     * @param ConversationSession $session Current conversation session
-     * @return int Estimated time in seconds
+     * @since  1.0.0
+     * @param  array<string, mixed> $branch  Branch data
+     * @param  ConversationSession  $session Current conversation session
+     * @return integer Estimated time in seconds
      * @throws \RuntimeException When method is not implemented
      */
     private function estimateBranchTime(array $branch, ConversationSession $session): int
@@ -766,9 +766,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get prerequisites for branch execution
      *
-     * @since 1.0.0
-     * @param array<string, mixed> $branch Branch data
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  array<string, mixed> $branch  Branch data
+     * @param  ConversationSession  $session Current conversation session
      * @return array<int, mixed> List of prerequisites
      * @throws \RuntimeException When method is not implemented
      */
@@ -780,9 +780,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get conditions that allow skipping the branch
      *
-     * @since 1.0.0
-     * @param array<string, mixed> $branch Branch data
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  array<string, mixed> $branch  Branch data
+     * @param  ConversationSession  $session Current conversation session
      * @return array<int, mixed> List of skip conditions
      * @throws \RuntimeException When method is not implemented
      */
@@ -793,10 +793,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Check if branch prerequisites are satisfied
      *
-     * @since 1.0.0
-     * @param array<string, mixed> $branch Branch data
-     * @param ConversationSession $session Current conversation session
-     * @return bool True if prerequisites are met
+     * @since  1.0.0
+     * @param  array<string, mixed> $branch  Branch data
+     * @param  ConversationSession  $session Current conversation session
+     * @return boolean True if prerequisites are met
      * @throws \RuntimeException When method is not implemented
      */
     private function checkBranchPrerequisites(array $branch, ConversationSession $session): bool
@@ -807,9 +807,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get suggested actions to satisfy prerequisites
      *
-     * @since 1.0.0
-     * @param array<string, mixed> $branch Branch data
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  array<string, mixed> $branch  Branch data
+     * @param  ConversationSession  $session Current conversation session
      * @return array<int, mixed> List of suggested actions
      * @throws \RuntimeException When method is not implemented
      */
@@ -821,10 +821,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Execute transition to specified branch
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @param string $branch Target branch state
-     * @param array<string, mixed> $data Additional transition data
+     * @since  1.0.0
+     * @param  ConversationSession  $session Current conversation session
+     * @param  string               $branch  Target branch state
+     * @param  array<string, mixed> $data    Additional transition data
      * @return array{success: bool, error?: string} Transition result
      * @throws \RuntimeException When method is not implemented
      */
@@ -836,9 +836,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Update session progress based on branch state
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @param string $branch Branch state
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
+     * @param  string              $branch  Branch state
      * @return void
      */
     private function updateProgressForBranch(ConversationSession $session, string $branch): void
@@ -873,9 +873,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Determine optimal target state for backtracking
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @param array<string, mixed> $options Backtrack options
+     * @since  1.0.0
+     * @param  ConversationSession  $session Current conversation session
+     * @param  array<string, mixed> $options Backtrack options
      * @return string Target state identifier
      * @throws \RuntimeException When method is not implemented
      */
@@ -887,9 +887,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Find specific state data in conversation history
      *
-     * @since 1.0.0
-     * @param array<int, array<string, mixed>> $history Conversation state history
-     * @param string $state State identifier to find
+     * @since  1.0.0
+     * @param  array<int, array<string, mixed>> $history Conversation state history
+     * @param  string                           $state   State identifier to find
      * @return array<string, mixed>|null State data if found, null otherwise
      * @throws \RuntimeException When method is not implemented
      */
@@ -901,8 +901,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get states available for backtracking
      *
-     * @since 1.0.0
-     * @param array<int, array<string, mixed>> $history Conversation state history
+     * @since  1.0.0
+     * @param  array<int, array<string, mixed>> $history Conversation state history
      * @return array<int, string> List of available states
      * @throws \RuntimeException When method is not implemented
      */
@@ -914,9 +914,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Assess data loss from backtracking to target state
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @param array<string, mixed> $targetData Target state data
+     * @since  1.0.0
+     * @param  ConversationSession  $session    Current conversation session
+     * @param  array<string, mixed> $targetData Target state data
      * @return array{significance: float} Loss assessment with significance score
      * @throws \RuntimeException When method is not implemented
      */
@@ -928,8 +928,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Generate confirmation message for backtrack operation
      *
-     * @since 1.0.0
-     * @param array<string, mixed> $lossAssessment Loss assessment data
+     * @since  1.0.0
+     * @param  array<string, mixed> $lossAssessment Loss assessment data
      * @return string Confirmation message
      * @throws \RuntimeException When method is not implemented
      */
@@ -941,9 +941,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Suggest alternatives to backtracking
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @param string $target Target state for backtrack
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
+     * @param  string              $target  Target state for backtrack
      * @return array<int, mixed> List of alternative actions
      * @throws \RuntimeException When method is not implemented
      */
@@ -955,10 +955,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Execute backtrack operation
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @param string $target Target state
-     * @param array<string, mixed> $data Target state data
+     * @since  1.0.0
+     * @param  ConversationSession  $session Current conversation session
+     * @param  string               $target  Target state
+     * @param  array<string, mixed> $data    Target state data
      * @return array{success: bool, steps_back?: int} Backtrack result
      * @throws \RuntimeException When method is not implemented
      */
@@ -970,8 +970,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get template selection suggestions
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Template selection suggestions
      * @throws \RuntimeException When method is not implemented
      */
@@ -983,8 +983,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get requirements gathering suggestions
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Requirements gathering suggestions
      * @throws \RuntimeException When method is not implemented
      */
@@ -996,8 +996,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get structure review suggestions
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Structure review suggestions
      * @throws \RuntimeException When method is not implemented
      */
@@ -1009,8 +1009,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get content review suggestions
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Content review suggestions
      * @throws \RuntimeException When method is not implemented
      */
@@ -1022,8 +1022,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get generic navigation suggestions
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Generic navigation suggestions
      * @throws \RuntimeException When method is not implemented
      */
@@ -1035,9 +1035,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get flow-specific suggestions
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @param string $flow Flow type
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
+     * @param  string              $flow    Flow type
      * @return array<string, mixed> Flow-specific suggestions
      * @throws \RuntimeException When method is not implemented
      */
@@ -1049,8 +1049,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Identify smart shortcuts available
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Available shortcuts
      * @throws \RuntimeException When method is not implemented
      */
@@ -1062,9 +1062,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Detect navigation issues in conversation
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @return bool True if navigation issues detected
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
+     * @return boolean True if navigation issues detected
      * @throws \RuntimeException When method is not implemented
      */
     private function detectNavigationIssues(ConversationSession $session): bool
@@ -1075,8 +1075,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get recovery options for navigation issues
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Recovery options
      * @throws \RuntimeException When method is not implemented
      */
@@ -1088,9 +1088,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Check if user can skip ahead in conversation
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @return bool True if skip ahead is allowed
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
+     * @return boolean True if skip ahead is allowed
      * @throws \RuntimeException When method is not implemented
      */
     private function canSkipAhead(ConversationSession $session): bool
@@ -1101,8 +1101,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Find last stable state in conversation
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array{state?: string} Last stable state data
      * @throws \RuntimeException When method is not implemented
      */
@@ -1114,9 +1114,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Determine optimal recovery strategy
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @param array<string, mixed> $errorContext Error context data
+     * @since  1.0.0
+     * @param  ConversationSession  $session      Current conversation session
+     * @param  array<string, mixed> $errorContext Error context data
      * @return string Recovery strategy identifier
      * @throws \RuntimeException When method is not implemented
      */
@@ -1128,9 +1128,9 @@ class ConversationFlowHandler extends BaseService
     /**
      * Execute backtrack recovery strategy
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
-     * @param array<string, mixed> $lastStableState Last stable state data
+     * @since  1.0.0
+     * @param  ConversationSession  $session         Current conversation session
+     * @param  array<string, mixed> $lastStableState Last stable state data
      * @return array<string, mixed> Recovery result
      * @throws \RuntimeException When method is not implemented
      */
@@ -1142,8 +1142,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Execute context preservation recovery strategy
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Recovery result
      * @throws \RuntimeException When method is not implemented
      */
@@ -1155,8 +1155,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Execute smart restart strategy
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Recovery result
      * @throws \RuntimeException When method is not implemented
      */
@@ -1168,8 +1168,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Prepare manual intervention recovery
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Manual intervention preparation result
      * @throws \RuntimeException When method is not implemented
      */
@@ -1181,8 +1181,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Execute default recovery strategy
      *
-     * @since 1.0.0
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  ConversationSession $session Current conversation session
      * @return array<string, mixed> Recovery result
      * @throws \RuntimeException When method is not implemented
      */
@@ -1194,10 +1194,10 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get transition recommendation for guided flow
      *
-     * @since 1.0.0
-     * @param string $currentState Current conversation state
-     * @param string $transition Target transition state
-     * @param ConversationSession $session Current conversation session
+     * @since  1.0.0
+     * @param  string              $currentState Current conversation state
+     * @param  string              $transition   Target transition state
+     * @param  ConversationSession $session      Current conversation session
      * @return array{category: string, description: string, guidance: string, difficulty: string} Transition recommendation
      * @throws \RuntimeException When method is not implemented
      */
@@ -1209,8 +1209,8 @@ class ConversationFlowHandler extends BaseService
     /**
      * Get technical details for a state
      *
-     * @since 1.0.0
-     * @param string $state State identifier
+     * @since  1.0.0
+     * @param  string $state State identifier
      * @return array<string, mixed> Technical state details
      * @throws \RuntimeException When method is not implemented
      */
