@@ -233,6 +233,36 @@ public function test_feature_behavior() {
 - [ ] Documentation updates
 - [ ] CI/CD integration
 
+## Running Tests & Coverage
+
+### Available Commands
+
+```bash
+# PHP Tests
+vendor/bin/phpunit                                    # Run all PHP tests
+vendor/bin/phpunit --testsuite Unit                   # Run unit tests only
+vendor/bin/phpunit --testsuite Integration            # Run integration tests
+vendor/bin/phpunit --testsuite Security               # Run security tests
+vendor/bin/phpunit --coverage-html tests/coverage/php # Generate PHP coverage report
+
+# JavaScript Tests  
+npm run test                                           # Run all JavaScript tests
+npm run test:watch                                     # Watch mode for development
+npm run test:coverage                                  # Generate JS coverage report
+
+# Combined Testing
+npm run test:all                                       # Run both PHP and JS tests
+
+# Specific Test Runners
+npm run test:ai-chat                                   # Test AI chat integration
+npm run test:course-edit                               # Test course edit page
+```
+
+### Viewing Coverage Reports
+
+1. **PHP Coverage**: Open `tests/coverage/php/index.html` in browser
+2. **JavaScript Coverage**: Open `tests/coverage/index.html` in browser
+
 ## Success Metrics
 
 1. **Coverage Metrics**
