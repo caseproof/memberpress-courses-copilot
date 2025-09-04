@@ -207,7 +207,7 @@ public function updateCourseStructure(int $courseId, array $structure): bool
 **Interface:** `IQuizAIService`  
 **Singleton:** Yes
 
-Specialized AI service for quiz generation and management.
+Specialized AI service for quiz generation and management. This is a streamlined implementation focused on the core quiz generation functionality.
 
 **Responsibilities:**
 - Quiz question generation from content
@@ -219,9 +219,10 @@ Specialized AI service for quiz generation and management.
 **Key Methods:**
 ```php
 public function generateQuestions(string $content, array $options = []): array
-public function generateQuizFromLesson(int $lesson_id, array $options = []): array
-public function validateQuestions(array $questions): array
-public function regenerateQuestion(array $question, array $options = []): array
+public function generateMultipleChoiceQuestions(string $content, int $count = 5): array
+public function generateTrueFalseQuestions(string $content, int $count = 5): array
+public function generateTextAnswerQuestions(string $content, int $count = 5): array
+public function generateMultipleSelectQuestions(string $content, int $count = 5): array
 public function getSupportedQuestionTypes(): array
 ```
 

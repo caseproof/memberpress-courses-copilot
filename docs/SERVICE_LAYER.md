@@ -163,9 +163,10 @@ Defines contract for AI-powered quiz generation.
 ```php
 interface IQuizAIService {
     public function generateQuestions(string $content, array $options = []): array;
-    public function generateQuizFromLesson(int $lesson_id, array $options = []): array;
-    public function validateQuestions(array $questions): array;
-    public function regenerateQuestion(array $question, array $options = []): array;
+    public function generateMultipleChoiceQuestions(string $content, array $options = []): array;
+    public function generateTrueFalseQuestions(string $content, array $options = []): array;
+    public function generateTextAnswerQuestions(string $content, array $options = []): array;
+    public function generateMultipleSelectQuestions(string $content, array $options = []): array;
     public function getSupportedQuestionTypes(): array;
 }
 ```

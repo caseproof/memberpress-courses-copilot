@@ -1,35 +1,15 @@
 <?php
 
 /**
- * Quiz AI Service Interface
+ * Quiz AI Service Interface - Streamlined
  *
  * @package MemberPressCoursesCopilot
  */
 
 namespace MemberPressCoursesCopilot\Interfaces;
 
-use MemberPressCoursesCopilot\Models\QuizTemplate;
-
 interface IQuizAIService
 {
-    /**
-     * Generate a quiz based on lesson content
-     *
-     * @param  integer $lessonId The lesson ID to generate quiz from
-     * @param  array   $options  Quiz generation options
-     * @return array Generated quiz data
-     */
-    public function generateQuizFromLesson(int $lessonId, array $options = []): array;
-
-    /**
-     * Generate a quiz based on course content
-     *
-     * @param  integer $courseId The course ID to generate quiz from
-     * @param  array   $options  Quiz generation options
-     * @return array Generated quiz data
-     */
-    public function generateQuizFromCourse(int $courseId, array $options = []): array;
-
     /**
      * Generate quiz questions based on provided content
      *
@@ -40,73 +20,40 @@ interface IQuizAIService
     public function generateQuestions(string $content, array $options = []): array;
 
     /**
-     * Generate a single question of a specific type
+     * Generate multiple choice questions
      *
-     * @param  string $content      The content to base question on
-     * @param  string $questionType The type of question to generate
-     * @param  array  $options      Additional options
-     * @return array Generated question data
+     * @param  string $content The content to generate questions from
+     * @param  int    $count   Number of questions to generate
+     * @return array Generated multiple choice questions
      */
-    public function generateQuestion(string $content, string $questionType, array $options = []): array;
+    public function generateMultipleChoiceQuestions(string $content, int $count = 5): array;
 
     /**
-     * Regenerate a specific question
+     * Generate true/false questions
      *
-     * @param  array $question The original question
-     * @param  array $options  Regeneration options
-     * @return array Regenerated question
+     * @param  string $content The content to generate questions from
+     * @param  int    $count   Number of questions to generate
+     * @return array Generated true/false questions
      */
-    public function regenerateQuestion(array $question, array $options = []): array;
+    public function generateTrueFalseQuestions(string $content, int $count = 5): array;
 
     /**
-     * Validate quiz questions and answers
+     * Generate text answer questions
      *
-     * @param  array $questions The questions to validate
-     * @return array Validation results
+     * @param  string $content The content to generate questions from
+     * @param  int    $count   Number of questions to generate
+     * @return array Generated text answer questions
      */
-    public function validateQuestions(array $questions): array;
+    public function generateTextAnswerQuestions(string $content, int $count = 5): array;
 
     /**
-     * Get available quiz templates
+     * Generate multiple select questions
      *
-     * @return QuizTemplate[] Array of quiz templates
+     * @param  string $content The content to generate questions from
+     * @param  int    $count   Number of questions to generate
+     * @return array Generated multiple select questions
      */
-    public function getQuizTemplates(): array;
-
-    /**
-     * Apply a template to generate a quiz
-     *
-     * @param  QuizTemplate $template The template to apply
-     * @param  string       $content  The content to generate from
-     * @return array Generated quiz data
-     */
-    public function applyTemplate(QuizTemplate $template, string $content): array;
-
-    /**
-     * Generate quiz analytics and insights
-     *
-     * @param  integer $quizId The quiz ID to analyze
-     * @return array Analytics data
-     */
-    public function generateQuizAnalytics(int $quizId): array;
-
-    /**
-     * Optimize quiz based on performance data
-     *
-     * @param  integer $quizId          The quiz to optimize
-     * @param  array   $performanceData Student performance data
-     * @return array Optimization suggestions
-     */
-    public function optimizeQuiz(int $quizId, array $performanceData): array;
-
-    /**
-     * Generate feedback for quiz answers
-     *
-     * @param  array  $question   The question data
-     * @param  string $userAnswer The user's answer
-     * @return string Generated feedback
-     */
-    public function generateFeedback(array $question, string $userAnswer): string;
+    public function generateMultipleSelectQuestions(string $content, int $count = 5): array;
 
     /**
      * Get supported question types
@@ -114,12 +61,4 @@ interface IQuizAIService
      * @return array List of supported question types
      */
     public function getSupportedQuestionTypes(): array;
-
-    /**
-     * Estimate quiz difficulty
-     *
-     * @param  array $questions The quiz questions
-     * @return string Difficulty level (easy, medium, hard)
-     */
-    public function estimateDifficulty(array $questions): string;
 }
