@@ -33,7 +33,7 @@ class DatabaseBackupService extends BaseService
      *
      * @var string
      */
-    private string $backup_dir;
+    private string $backupDir;
 
     /**
      * Maximum number of backups to keep
@@ -53,8 +53,8 @@ class DatabaseBackupService extends BaseService
         $this->tablePrefix = $wpdb->prefix . 'mpcc_';
 
         // Set up backup directory
-        $upload_dir       = wp_upload_dir();
-        $this->backup_dir = $upload_dir['basedir'] . '/mpcc-backups';
+        $uploadDir       = wp_upload_dir();
+        $this->backupDir = $uploadDir['basedir'] . '/mpcc-backups';
 
         // Ensure backup directory exists and is protected
         $this->ensureBackupDirectory();
@@ -70,10 +70,10 @@ class DatabaseBackupService extends BaseService
     public function createBackup(string $type = 'manual', string $description = ''): string|false
     {
         try {
-            $backup_id   = $this->generateBackupId();
-            $backup_file = $this->backup_dir . '/' . $backup_id . '.sql';
+            $backupId   = $this->generateBackupId();
+            $backupFile = $this->backupDir . '/' . $backupId . '.sql';
 
-            $this->log('Creating database backup: ' . $backup_id);
+            $this->log('Creating database backup: ' . $backupId);
 
             // Get all plugin tables
             $tables = $this->getPluginTables();
@@ -84,14 +84,14 @@ class DatabaseBackupService extends BaseService
             }
 
             // Create backup file
-            $handle = fopen($backup_file, 'w');
+            $handle = fopen($backupFile, 'w');
             if (!$handle) {
                 throw new \Exception('Failed to create backup file');
             }
 
             // Write backup metadata
             fwrite($handle, "-- MemberPress Courses Copilot Database Backup\n");
-            fwrite($handle, "-- Backup ID: {$backup_id}\n");
+            fwrite($handle, "-- Backup ID: {$backupId}\n");
             fwrite($handle, '-- Date: ' . current_time('mysql') . "\n");
             fwrite($handle, "-- Type: {$type}\n");
             fwrite($handle, "-- Description: {$description}\n");
@@ -108,26 +108,26 @@ class DatabaseBackupService extends BaseService
             fclose($handle);
 
             // Create metadata file
-            $this->saveBackupMetadata($backup_id, [
+            $this->saveBackupMetadata($backupId, [
                 'type'        => $type,
                 'description' => $description,
                 'tables'      => $tables,
-                'size'        => filesize($backup_file),
+                'size'        => filesize($backupFile),
                 'created_at'  => current_time('mysql'),
             ]);
 
-            $this->log('Backup created successfully: ' . $backup_id);
+            $this->log('Backup created successfully: ' . $backupId);
 
             // Clean up old backups
             $this->cleanupOldBackups(30, 5);
 
-            return $backup_id;
+            return $backupId;
         } catch (\Exception $e) {
             $this->log('Failed to create backup: ' . $e->getMessage(), 'error');
 
             // Clean up partial backup file
-            if (isset($backup_file) && file_exists($backup_file)) {
-                @unlink($backup_file);
+            if (isset($backupFile) && file_exists($backupFile)) {
+                @unlink($backupFile);
             }
 
             return false;
@@ -137,22 +137,22 @@ class DatabaseBackupService extends BaseService
     /**
      * Restore from a backup
      *
-     * @param  string $backup_id
+     * @param  string $backupId
      * @return boolean
      */
-    public function restoreBackup(string $backup_id): bool
+    public function restoreBackup(string $backupId): bool
     {
         try {
-            $backup_file = $this->backup_dir . '/' . $backup_id . '.sql';
+            $backupFile = $this->backupDir . '/' . $backupId . '.sql';
 
-            if (!file_exists($backup_file)) {
-                throw new \Exception('Backup file not found: ' . $backup_id);
+            if (!file_exists($backupFile)) {
+                throw new \Exception('Backup file not found: ' . $backupId);
             }
 
-            $this->log('Restoring from backup: ' . $backup_id);
+            $this->log('Restoring from backup: ' . $backupId);
 
             // Read backup file
-            $sql = file_get_contents($backup_file);
+            $sql = file_get_contents($backupFile);
             if ($sql === false) {
                 throw new \Exception('Failed to read backup file');
             }
@@ -180,7 +180,7 @@ class DatabaseBackupService extends BaseService
                 // Commit transaction
                 $this->wpdb->query('COMMIT');
 
-                $this->log('Backup restored successfully: ' . $backup_id);
+                $this->log('Backup restored successfully: ' . $backupId);
                 return true;
             } catch (\Exception $e) {
                 // Rollback on error
@@ -196,33 +196,33 @@ class DatabaseBackupService extends BaseService
     /**
      * Get backup information
      *
-     * @param  string $backup_id
+     * @param  string $backupId
      * @return array|null
      */
-    public function getBackupInfo(string $backup_id): ?array
+    public function getBackupInfo(string $backupId): ?array
     {
-        $metadata_file = $this->backup_dir . '/' . $backup_id . '.json';
+        $metadataFile = $this->backupDir . '/' . $backupId . '.json';
 
-        if (!file_exists($metadata_file)) {
+        if (!file_exists($metadataFile)) {
             return null;
         }
 
-        $metadata = json_decode(file_get_contents($metadata_file), true);
+        $metadata = json_decode(file_get_contents($metadataFile), true);
 
         if (!$metadata) {
             return null;
         }
 
-        $backup_file = $this->backup_dir . '/' . $backup_id . '.sql';
+        $backupFile = $this->backupDir . '/' . $backupId . '.sql';
 
         return [
-            'id'          => $backup_id,
-            'file'        => $backup_file,
+            'id'          => $backupId,
+            'file'        => $backupFile,
             'date'        => $metadata['created_at'],
             'type'        => $metadata['type'],
             'description' => $metadata['description'],
             'tables'      => $metadata['tables'],
-            'size'        => file_exists($backup_file) ? filesize($backup_file) : 0,
+            'size'        => file_exists($backupFile) ? filesize($backupFile) : 0,
         ];
     }
 
@@ -237,7 +237,7 @@ class DatabaseBackupService extends BaseService
         $backups = [];
 
         // Get all backup files
-        $files = glob($this->backup_dir . '/*.json');
+        $files = glob($this->backupDir . '/*.json');
 
         if (empty($files)) {
             return [];
@@ -253,8 +253,8 @@ class DatabaseBackupService extends BaseService
 
         // Get backup info for each file
         foreach ($files as $file) {
-            $backup_id = basename($file, '.json');
-            $info      = $this->getBackupInfo($backup_id);
+            $backupId = basename($file, '.json');
+            $info      = $this->getBackupInfo($backupId);
 
             if ($info) {
                 $backups[] = $info;
@@ -267,17 +267,17 @@ class DatabaseBackupService extends BaseService
     /**
      * Clean up old backups
      *
-     * @param  integer $older_than_days Delete backups older than this many days
-     * @param  integer $keep_minimum    Minimum number of backups to keep
-     * @param  boolean $dry_run         Preview without deleting
+     * @param  integer $olderThanDays Delete backups older than this many days
+     * @param  integer $keepMinimum    Minimum number of backups to keep
+     * @param  boolean $dryRun         Preview without deleting
      * @return integer Number of backups deleted
      */
-    public function cleanupOldBackups(int $older_than_days = 30, int $keep_minimum = 5, bool $dry_run = false): int
+    public function cleanupOldBackups(int $olderThanDays = 30, int $keepMinimum = 5, bool $dryRun = false): int
     {
         $deleted = 0;
 
         // Get all backup files
-        $files = glob($this->backup_dir . '/*.json');
+        $files = glob($this->backupDir . '/*.json');
 
         if (empty($files)) {
             return 0;
@@ -289,25 +289,25 @@ class DatabaseBackupService extends BaseService
         });
 
         // Keep minimum number of backups
-        $files_to_check = array_slice($files, $keep_minimum);
+        $filesToCheck = array_slice($files, $keepMinimum);
 
-        $cutoff_time = time() - ($older_than_days * 86400);
+        $cutoffTime = time() - ($olderThanDays * 86400);
 
-        foreach ($files_to_check as $metadata_file) {
-            if (filemtime($metadata_file) < $cutoff_time) {
-                $backup_id = basename($metadata_file, '.json');
+        foreach ($filesToCheck as $metadataFile) {
+            if (filemtime($metadataFile) < $cutoffTime) {
+                $backupId = basename($metadataFile, '.json');
 
-                if (!$dry_run) {
+                if (!$dryRun) {
                     // Delete backup files
-                    $sql_file = $this->backup_dir . '/' . $backup_id . '.sql';
+                    $sqlFile = $this->backupDir . '/' . $backupId . '.sql';
 
-                    if (file_exists($sql_file)) {
-                        @unlink($sql_file);
+                    if (file_exists($sqlFile)) {
+                        @unlink($sqlFile);
                     }
 
-                    @unlink($metadata_file);
+                    @unlink($metadataFile);
 
-                    $this->log('Deleted old backup: ' . $backup_id);
+                    $this->log('Deleted old backup: ' . $backupId);
                 }
 
                 ++$deleted;
@@ -315,23 +315,23 @@ class DatabaseBackupService extends BaseService
         }
 
         // Also enforce maximum backup limit
-        $total_backups = count($files);
-        if ($total_backups > self::MAX_BACKUPS) {
-            $files_to_delete = array_slice($files, self::MAX_BACKUPS);
+        $totalBackups = count($files);
+        if ($totalBackups > self::MAX_BACKUPS) {
+            $filesToDelete = array_slice($files, self::MAX_BACKUPS);
 
-            foreach ($files_to_delete as $metadata_file) {
-                $backup_id = basename($metadata_file, '.json');
+            foreach ($filesToDelete as $metadataFile) {
+                $backupId = basename($metadataFile, '.json');
 
-                if (!$dry_run) {
-                    $sql_file = $this->backup_dir . '/' . $backup_id . '.sql';
+                if (!$dryRun) {
+                    $sqlFile = $this->backupDir . '/' . $backupId . '.sql';
 
-                    if (file_exists($sql_file)) {
-                        @unlink($sql_file);
+                    if (file_exists($sqlFile)) {
+                        @unlink($sqlFile);
                     }
 
-                    @unlink($metadata_file);
+                    @unlink($metadataFile);
 
-                    $this->log('Deleted excess backup: ' . $backup_id);
+                    $this->log('Deleted excess backup: ' . $backupId);
                 }
 
                 ++$deleted;
@@ -347,18 +347,18 @@ class DatabaseBackupService extends BaseService
     private function ensureBackupDirectory(): void
     {
         // Create directory if it doesn't exist
-        if (!file_exists($this->backup_dir)) {
-            wp_mkdir_p($this->backup_dir);
+        if (!file_exists($this->backupDir)) {
+            wp_mkdir_p($this->backupDir);
         }
 
         // Add .htaccess to prevent direct access
-        $htaccess = $this->backup_dir . '/.htaccess';
+        $htaccess = $this->backupDir . '/.htaccess';
         if (!file_exists($htaccess)) {
             file_put_contents($htaccess, "Deny from all\n");
         }
 
         // Add index.php to prevent directory listing
-        $index = $this->backup_dir . '/index.php';
+        $index = $this->backupDir . '/index.php';
         if (!file_exists($index)) {
             file_put_contents($index, "<?php // Silence is golden\n");
         }
@@ -384,9 +384,9 @@ class DatabaseBackupService extends BaseService
         $tables = [];
 
         // Get all tables with our prefix
-        $all_tables = $this->wpdb->get_col("SHOW TABLES LIKE '{$this->tablePrefix}%'");
+        $allTables = $this->wpdb->get_col("SHOW TABLES LIKE '{$this->tablePrefix}%'");
 
-        foreach ($all_tables as $table) {
+        foreach ($allTables as $table) {
             $tables[] = $table;
         }
 
@@ -407,9 +407,9 @@ class DatabaseBackupService extends BaseService
         fwrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
 
         // Get create table statement
-        $create_table = $this->wpdb->get_row("SHOW CREATE TABLE `{$table}`", ARRAY_N);
-        if ($create_table) {
-            fwrite($handle, $create_table[1] . ";\n\n");
+        $createTable = $this->wpdb->get_row("SHOW CREATE TABLE `{$table}`", ARRAY_N);
+        if ($createTable) {
+            fwrite($handle, $createTable[1] . ";\n\n");
         }
 
         // Get table data
@@ -418,21 +418,21 @@ class DatabaseBackupService extends BaseService
         if (!empty($rows)) {
             // Build insert statements
             $columns      = array_keys($rows[0]);
-            $columns_list = '`' . implode('`, `', $columns) . '`';
+            $columnsList = '`' . implode('`, `', $columns) . '`';
 
-            fwrite($handle, "INSERT INTO `{$table}` ({$columns_list}) VALUES\n");
+            fwrite($handle, "INSERT INTO `{$table}` ({$columnsList}) VALUES\n");
 
             $values = [];
             foreach ($rows as $row) {
-                $row_values = [];
+                $rowValues = [];
                 foreach ($row as $value) {
                     if ($value === null) {
-                        $row_values[] = 'NULL';
+                        $rowValues[] = 'NULL';
                     } else {
-                        $row_values[] = "'" . $this->wpdb->_real_escape($value) . "'";
+                        $rowValues[] = "'" . $this->wpdb->_real_escape($value) . "'";
                     }
                 }
-                $values[] = '(' . implode(', ', $row_values) . ')';
+                $values[] = '(' . implode(', ', $rowValues) . ')';
             }
 
             fwrite($handle, implode(",\n", $values) . ";\n");
@@ -444,13 +444,13 @@ class DatabaseBackupService extends BaseService
     /**
      * Save backup metadata
      *
-     * @param string $backup_id
+     * @param string $backupId
      * @param array  $metadata
      */
-    private function saveBackupMetadata(string $backup_id, array $metadata): void
+    private function saveBackupMetadata(string $backupId, array $metadata): void
     {
-        $metadata_file = $this->backup_dir . '/' . $backup_id . '.json';
-        file_put_contents($metadata_file, wp_json_encode($metadata, JSON_PRETTY_PRINT));
+        $metadataFile = $this->backupDir . '/' . $backupId . '.json';
+        file_put_contents($metadataFile, wp_json_encode($metadata, JSON_PRETTY_PRINT));
     }
 
     /**
@@ -462,9 +462,9 @@ class DatabaseBackupService extends BaseService
     private function splitSqlFile(string $sql): array
     {
         $queries       = [];
-        $current_query = '';
-        $in_string     = false;
-        $string_char   = '';
+        $currentQuery = '';
+        $inString     = false;
+        $stringChar   = '';
 
         $lines = explode("\n", $sql);
 
@@ -479,29 +479,29 @@ class DatabaseBackupService extends BaseService
             // Handle strings to avoid splitting on semicolons inside strings
             for ($i = 0; $i < strlen($line); $i++) {
                 $char      = $line[$i];
-                $prev_char = $i > 0 ? $line[$i - 1] : '';
+                $prevChar = $i > 0 ? $line[$i - 1] : '';
 
-                if (!$in_string && ($char === '"' || $char === "'")) {
-                    $in_string   = true;
-                    $string_char = $char;
-                } elseif ($in_string && $char === $string_char && $prev_char !== '\\') {
-                    $in_string = false;
+                if (!$inString && ($char === '"' || $char === "'")) {
+                    $inString   = true;
+                    $stringChar = $char;
+                } elseif ($inString && $char === $stringChar && $prevChar !== '\\') {
+                    $inString = false;
                 }
 
-                $current_query .= $char;
+                $currentQuery .= $char;
 
-                if (!$in_string && $char === ';') {
-                    $queries[]     = trim($current_query);
-                    $current_query = '';
+                if (!$inString && $char === ';') {
+                    $queries[]     = trim($currentQuery);
+                    $currentQuery = '';
                 }
             }
 
-            $current_query .= "\n";
+            $currentQuery .= "\n";
         }
 
         // Add last query if exists
-        if (!empty(trim($current_query))) {
-            $queries[] = trim($current_query);
+        if (!empty(trim($currentQuery))) {
+            $queries[] = trim($currentQuery);
         }
 
         return $queries;
