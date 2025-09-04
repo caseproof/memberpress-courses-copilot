@@ -35,9 +35,9 @@ class LessonDraftService
         $tableName = $this->table->getTableName();
 
         // Check if table exists
-        $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $tableName)) === $tableName;
+        $tableExists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $tableName)) === $tableName;
 
-        if (!$table_exists) {
+        if (!$tableExists) {
             $this->table->create();
             error_log('MPCC: Created missing lesson drafts table');
         }
@@ -195,21 +195,21 @@ class LessonDraftService
     /**
      * Update lesson order
      */
-    public function updateOrder($session_id, $section_id, $lesson_orders)
+    public function updateOrder($sessionId, $sectionId, $lessonOrders)
     {
         global $wpdb;
 
         $tableName = $this->table->getTableName();
         $success   = true;
 
-        foreach ($lesson_orders as $lesson_id => $order) {
+        foreach ($lessonOrders as $lessonId => $order) {
             $result = $wpdb->update(
                 $tableName,
                 ['order_index' => intval($order)],
                 [
-                    'session_id' => $session_id,
-                    'section_id' => $section_id,
-                    'lesson_id'  => $lesson_id,
+                    'session_id' => $sessionId,
+                    'section_id' => $sectionId,
+                    'lesson_id'  => $lessonId,
                 ],
                 ['%d'],
                 ['%s', '%s', '%s']
@@ -217,7 +217,7 @@ class LessonDraftService
 
             if ($result === false) {
                 $success = false;
-                error_log('MPCC: Failed to update lesson order - Lesson: ' . $lesson_id . ', Error: ' . $wpdb->last_error);
+                error_log('MPCC: Failed to update lesson order - Lesson: ' . $lessonId . ', Error: ' . $wpdb->last_error);
             }
         }
 
@@ -227,46 +227,46 @@ class LessonDraftService
     /**
      * Map drafts to course structure for creation
      */
-    public function mapDraftsToStructure($session_id, $course_structure)
+    public function mapDraftsToStructure($sessionId, $courseStructure)
     {
-        $drafts = $this->getSessionDrafts($session_id);
+        $drafts = $this->getSessionDrafts($sessionId);
 
-        error_log('MPCC: mapDraftsToStructure called - Session: ' . $session_id . ', Drafts found: ' . count($drafts));
+        error_log('MPCC: mapDraftsToStructure called - Session: ' . $sessionId . ', Drafts found: ' . count($drafts));
 
         if (empty($drafts)) {
-            error_log('MPCC: No drafts found for session: ' . $session_id);
-            return $course_structure;
+            error_log('MPCC: No drafts found for session: ' . $sessionId);
+            return $courseStructure;
         }
 
         // Create a map for quick lookup
-        $draft_map = [];
+        $draftMap = [];
         foreach ($drafts as $draft) {
             $key             = $draft->section_id . '::' . $draft->lesson_id;
-            $draft_map[$key] = $draft->content;
+            $draftMap[$key] = $draft->content;
             error_log('MPCC: Draft found - Key: ' . $key . ', Content length: ' . strlen($draft->content));
         }
 
         // Apply drafts to structure
-        if (isset($course_structure['sections']) && is_array($course_structure['sections'])) {
-            foreach ($course_structure['sections'] as $section_index => &$section) {
+        if (isset($courseStructure['sections']) && is_array($courseStructure['sections'])) {
+            foreach ($courseStructure['sections'] as $sectionIndex => &$section) {
                 if (isset($section['lessons']) && is_array($section['lessons'])) {
-                    foreach ($section['lessons'] as $lesson_index => &$lesson) {
+                    foreach ($section['lessons'] as $lessonIndex => &$lesson) {
                         // Try both numeric indices and formatted IDs
-                        $keys_to_try = [
+                        $keysToTry = [
                             // Numeric indices (what JS sends)
-                            $section_index . '::' . $lesson_index,
+                            $sectionIndex . '::' . $lessonIndex,
                             // Formatted IDs
-                            'section_' . ($section_index + 1) . '::' . 'lesson_' . ($section_index + 1) . '_' . ($lesson_index + 1),
+                            'section_' . ($sectionIndex + 1) . '::' . 'lesson_' . ($sectionIndex + 1) . '_' . ($lessonIndex + 1),
                             // String indices
-                            strval($section_index) . '::' . strval($lesson_index),
+                            strval($sectionIndex) . '::' . strval($lessonIndex),
                         ];
 
-                        foreach ($keys_to_try as $key) {
+                        foreach ($keysToTry as $key) {
                             error_log('MPCC: Looking for draft with key: ' . $key);
 
-                            if (isset($draft_map[$key])) {
-                                $lesson['content'] = $draft_map[$key];
-                                error_log('MPCC: Applied draft content to lesson - Section: ' . $section['title'] . ', Lesson: ' . $lesson['title'] . ', Content length: ' . strlen($draft_map[$key]));
+                            if (isset($draftMap[$key])) {
+                                $lesson['content'] = $draftMap[$key];
+                                error_log('MPCC: Applied draft content to lesson - Section: ' . $section['title'] . ', Lesson: ' . $lesson['title'] . ', Content length: ' . strlen($draftMap[$key]));
                                 break; // Found a match, stop trying other keys
                             }
                         }
@@ -281,7 +281,7 @@ class LessonDraftService
             error_log('MPCC: Course structure has no sections or sections is not an array');
         }
 
-        return $course_structure;
+        return $courseStructure;
     }
 
     /**

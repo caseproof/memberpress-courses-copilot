@@ -436,43 +436,43 @@ class CourseAjaxService extends BaseService
             ]);
 
             // Use LLMService for AI requests.
-            $llm_service = $this->getLLMService();
+            $llmService = $this->getLLMService();
 
             // Build conversation context.
-            $conversation_context = '';
+            $conversationContext = '';
             if (!empty($conversationHistory)) {
                 foreach ($conversationHistory as $entry) {
-                    $role                  = $entry['role'] ?? 'user';
-                    $content               = $entry['content'] ?? '';
-                    $conversation_context .= "\n{$role}: {$content}";
+                    $role                 = $entry['role'] ?? 'user';
+                    $content              = $entry['content'] ?? '';
+                    $conversationContext .= "\n{$role}: {$content}";
                 }
             }
 
             // Get current conversation state for course creation.
-            $current_step  = $conversationState['current_step'] ?? 'initial';
+            $currentStep  = $conversationState['current_step'] ?? 'initial';
             $collectedData = $conversationState['collected_data'] ?? [];
 
             // Prepare the full prompt.
-            $system_prompt = $this->getSystemPrompt($context);
-            $full_prompt   = $system_prompt . "\n\nConversation history:" . $conversation_context
+            $systemPrompt = $this->getSystemPrompt($context);
+            $fullPrompt   = $systemPrompt . "\n\nConversation history:" . $conversationContext
                      . "\n\nUser: " . $message . "\n\nAssistant:";
 
             // Add current state context for course creation.
             if ($context === 'course_creation' && !empty($collectedData)) {
-                $full_prompt .= "\n\nCurrent collected course data: " . wp_json_encode($collectedData);
+                $fullPrompt .= "\n\nCurrent collected course data: " . wp_json_encode($collectedData);
             }
 
             $this->logger->debug('Preparing LLM service call', [
                 'user_id'              => get_current_user_id(),
                 'context'              => $context,
-                'current_step'         => $current_step,
+                'current_step'         => $currentStep,
                 'collected_data_keys'  => array_keys($collectedData),
                 'has_course_structure' => isset($collectedData['course_structure']),
-                'prompt_length'        => strlen($full_prompt),
+                'prompt_length'        => strlen($fullPrompt),
             ]);
 
             // Make request to AI service.
-            $response = $llm_service->generateContent($full_prompt, 'course_assistance', [
+            $response = $llmService->generateContent($fullPrompt, 'course_assistance', [
                 'temperature' => 0.7,
                 'max_tokens'  => 2000,
             ]);
@@ -530,11 +530,11 @@ class CourseAjaxService extends BaseService
             }
 
             // Determine next step.
-            $next_step = $current_step;
+            $nextStep = $currentStep;
             $actions   = [];
 
             if ($readyToCreate) {
-                $next_step = 'ready_to_create';
+                $nextStep = 'ready_to_create';
                 $actions   = [
                     [
                         'action' => 'create_course',
@@ -551,7 +551,7 @@ class CourseAjaxService extends BaseService
 
             // Update session state and progress if we have a session.
             if ($session && $conversationManager) {
-                $session->setCurrentState($next_step);
+                $session->setCurrentState($nextStep);
                 $session->setContext($collectedData, null);
 
                 // Save the session to persist progress.
@@ -568,7 +568,7 @@ class CourseAjaxService extends BaseService
             $this->logger->info('AI chat request completed successfully', [
                 'user_id'                 => get_current_user_id(),
                 'context'                 => $context,
-                'next_step'               => $next_step,
+                'next_step'               => $nextStep,
                 'ready_to_create'         => $readyToCreate,
                 'has_course_data'         => !empty($courseData),
                 'response_message_length' => strlen($aiMessage),
@@ -581,7 +581,7 @@ class CourseAjaxService extends BaseService
                 'context'            => $context,
                 'timestamp'          => current_time('timestamp'),
                 'conversation_state' => [
-                    'current_step'   => $next_step,
+                    'current_step'   => $nextStep,
                     'collected_data' => $collectedData,
                 ],
                 'actions'            => $actions,
@@ -843,13 +843,13 @@ class CourseAjaxService extends BaseService
      */
     private function getSystemPrompt(string $context): string
     {
-        $base_prompt = 'You are an AI assistant specialized in helping create and improve online courses '
+        $basePrompt = 'You are an AI assistant specialized in helping create and improve online courses '
                      . 'for MemberPress Courses. You have expertise in curriculum design, learning objectives, '
                      . 'content structuring, and educational best practices.';
 
         switch ($context) {
             case 'course_creation':
-                return $base_prompt . ' You are helping a user create a new course from scratch. '
+                return $basePrompt . ' You are helping a user create a new course from scratch. '
                     . 'Focus on understanding their topic, target audience, and learning goals. '
                     . 'Help them structure a comprehensive curriculum with sections and lessons. '
                     . "\n\nIMPORTANT: When the user has provided:\n"
@@ -920,14 +920,14 @@ class CourseAjaxService extends BaseService
                     . 'the information needed . Generate the course immediately . ';
 
             case 'course_editing':
-                return $base_prompt . ' You are helping a user improve an existing course . '
+                return $basePrompt . ' You are helping a user improve an existing course . '
                     . 'Focus on enhancing content, improving structure, adding engaging elements, '
                     . ' and optimizing the learning experience . Be specific about improvements '
                     . ' and provide concrete suggestions . When suggesting course modifications, '
                     . 'include structured data in JSON format wrapped in ```json``` code blocks . ';
 
             default:
-                return $base_prompt . ' Provide helpful, specific guidance for course creation '
+                return $basePrompt . ' Provide helpful, specific guidance for course creation '
                     . ' and improvement . When providing course data, use JSON format '
                     . 'wrapped in ```json``` code blocks . ';
         }
@@ -1494,7 +1494,7 @@ class CourseAjaxService extends BaseService
 
         try {
             // Use LLMService for content generation.
-            $llm_service = $this->getLLMService();
+            $llmService = $this->getLLMService();
 
             // Build prompt for lesson content generation.
             $prompt = $this->buildLessonContentPrompt($courseTitle, $sectionTitle, $lessonTitle, $context);
@@ -1506,7 +1506,7 @@ class CourseAjaxService extends BaseService
             ]);
 
             // Generate content.
-            $response = $llm_service->generateContent($prompt, 'lesson_content', [
+            $response = $llmService->generateContent($prompt, 'lesson_content', [
                 'temperature' => 0.7,
                 'max_tokens'  => 3000,
             ]);

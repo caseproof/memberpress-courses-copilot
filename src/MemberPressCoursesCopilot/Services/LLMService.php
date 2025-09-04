@@ -167,16 +167,16 @@ class LLMService extends BaseService implements ILLMService
         ]);
 
         if (is_wp_error($response)) {
-            $error_message = $response->get_error_message();
+            $errorMessage = $response->get_error_message();
             $this->logger->error('WordPress HTTP request failed', [
-                'error_message' => $error_message,
+                'error_message' => $errorMessage,
                 'endpoint'      => $this->authGatewayUrl . '/v1/chat/completions',
                 'model'         => $model,
                 'provider'      => $provider,
             ]);
             return [
                 'error'   => true,
-                'message' => $error_message,
+                'message' => $errorMessage,
                 'content' => '',
             ];
         }
@@ -192,26 +192,26 @@ class LLMService extends BaseService implements ILLMService
         ]);
 
         if ($responseCode >= 400) {
-            $error_message = "API error {$responseCode}: {$responseBody}";
+            $errorMessage = "API error {$responseCode}: {$responseBody}";
             $this->logger->error('API request failed', [
                 'response_code' => $responseCode,
                 'response_body' => $responseBody,
-                'error_message' => $error_message,
+                'error_message' => $errorMessage,
                 'model'         => $model,
                 'provider'      => $provider,
             ]);
             return [
                 'error'   => true,
-                'message' => $error_message,
+                'message' => $errorMessage,
                 'content' => '',
             ];
         }
 
         $data = json_decode($responseBody, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $error_message = 'Invalid JSON response: ' . json_last_error_msg();
+            $errorMessage = 'Invalid JSON response: ' . json_last_error_msg();
             $this->logger->error('JSON parsing failed', [
-                'error_message'     => $error_message,
+                'error_message'     => $errorMessage,
                 'json_error'        => json_last_error_msg(),
                 'raw_response_body' => $responseBody,
                 'model'             => $model,
@@ -219,22 +219,22 @@ class LLMService extends BaseService implements ILLMService
             ]);
             return [
                 'error'   => true,
-                'message' => $error_message,
+                'message' => $errorMessage,
                 'content' => '',
             ];
         }
 
         if (!isset($data['choices'][0]['message']['content'])) {
-            $error_message = 'Unexpected response format - no content in choices';
+            $errorMessage = 'Unexpected response format - no content in choices';
             $this->logger->error('Unexpected API response format', [
-                'error_message'      => $error_message,
+                'error_message'      => $errorMessage,
                 'response_structure' => $data,
                 'model'              => $model,
                 'provider'           => $provider,
             ]);
             return [
                 'error'   => true,
-                'message' => $error_message,
+                'message' => $errorMessage,
                 'content' => '',
             ];
         }
