@@ -92,7 +92,7 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
             </div>
             
             <!-- Hidden fields for AJAX nonces -->
-            <input type="hidden" id="mpcc-ajax-nonce" value="<?php echo NonceConstants::create(NonceConstants::COURSES_INTEGRATION); ?>" />
+            <input type="hidden" id="mpcc-ajax-nonce" value="<?php echo esc_attr(NonceConstants::create(NonceConstants::COURSES_INTEGRATION)); ?>" />
             
             <!-- Course Content Editor -->
             <div class="mpcc-editor-main">

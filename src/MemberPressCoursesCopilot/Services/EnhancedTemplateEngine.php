@@ -382,11 +382,12 @@ class EnhancedTemplateEngine extends BaseService
 
         echo "\n<!-- MemberPress Courses Copilot JS Templates -->\n";
         foreach ($this->jsTemplates as $id => $content) {
-            echo sprintf(
-                '<script type="text/template" id="%s">%s</script>',
+            printf(
+                '<script type="text/template" id="%s">%s</script>%s',
                 esc_attr($id),
-                $content
-            ) . "\n";
+                esc_html($content),
+                "\n"
+            );
         }
         echo "<!-- /MemberPress Courses Copilot JS Templates -->\n";
     }
