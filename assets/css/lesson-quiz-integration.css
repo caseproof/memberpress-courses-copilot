@@ -1,0 +1,57 @@
+/**
+ * Lesson Quiz Integration Styles
+ * Styles for the Create Quiz button in lesson editor
+ *
+ * @package MemberPressCoursesCopilot
+ * @since 1.0.0
+ */
+
+/* Create Quiz Button */
+.mpcc-create-quiz-button {
+    border: 2px solid #6B4CE6 !important;
+    background: transparent !important;
+    color: #6B4CE6 !important;
+    height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 3px !important;
+    margin-right: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+}
+
+.mpcc-create-quiz-button:hover {
+    background: #6B4CE6 !important;
+    color: #ffffff !important;
+}
+
+.mpcc-create-quiz-button .dashicons {
+    font-size: 20px !important;
+    width: 20px !important;
+    height: 20px !important;
+    color: #6B4CE6 !important;
+    transition: color 0.2s ease !important;
+}
+
+.mpcc-create-quiz-button:hover .dashicons {
+    color: #ffffff !important;
+}
+
+/* Icon-only button for mobile */
+.mpcc-create-quiz-button.is-icon-only {
+    width: 36px !important;
+    padding: 0 !important;
+}
+
+.mpcc-create-quiz-button.is-icon-only .dashicons {
+    margin: 0 !important;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .mpcc-create-quiz-button {
+        min-width: 36px !important;
+    }
+}

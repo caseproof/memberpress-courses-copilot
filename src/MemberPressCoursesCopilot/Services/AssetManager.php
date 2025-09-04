@@ -88,6 +88,9 @@ class AssetManager extends BaseService
 
         // Quiz AI modal styles (matches course/lesson pattern)
         $this->registerStyle('mpcc-quiz-ai-modal', 'assets/css/quiz-ai-modal.css', ['dashicons', 'wp-components']);
+        
+        // Lesson Quiz Integration styles
+        $this->registerStyle('mpcc-lesson-quiz-integration', 'assets/css/lesson-quiz-integration.css', ['dashicons']);
     }
 
     /**
@@ -480,8 +483,9 @@ class AssetManager extends BaseService
                        ($pagenow === 'post.php' && function_exists('use_block_editor_for_post') && use_block_editor_for_post(get_post()));
 
         if ($is_gutenberg) {
-            // Enqueue lesson quiz integration script
+            // Enqueue lesson quiz integration script and styles
             wp_enqueue_script('mpcc-lesson-quiz-integration');
+            wp_enqueue_style('mpcc-lesson-quiz-integration');
         }
     }
 
