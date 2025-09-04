@@ -30,27 +30,42 @@
 /* AI Generate Button */
 #mpcc-generate-quiz,
 .mpcc-ai-button {
-    display: inline-flex;
-    align-items: center;
+    display: inline-flex !important;
+    align-items: center !important;
     gap: 5px;
-    margin-left: 10px;
+    background: #6B4CE6 !important;
+    border-color: #6B4CE6 !important;
+    color: #ffffff !important;
 }
 
 .mpcc-ai-button .dashicons {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    line-height: 1;
+    font-size: 20px !important;
+    width: 20px !important;
+    height: 20px !important;
+    line-height: 1 !important;
+    color: #ffffff !important;
 }
 
 .mpcc-ai-button:hover {
-    background-color: #2271b1;
-    border-color: #2271b1;
-    color: #fff;
+    background: #5A3CC5 !important;
+    border-color: #5A3CC5 !important;
+    color: #ffffff !important;
 }
 
 .mpcc-ai-button:hover .dashicons {
-    color: #fff;
+    color: #ffffff !important;
+}
+
+/* Icon-only button styles */
+.mpcc-ai-button.is-icon-only {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+}
+
+.mpcc-ai-button.is-icon-only .dashicons {
+    margin: 0 !important;
 }
 
 /* Generating State */

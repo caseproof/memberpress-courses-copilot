@@ -101,21 +101,60 @@
                             return;
                         }
                         
+                        // Determine if mobile
+                        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+                        
                         // Create button matching the style
-                        const buttonHtml = `
-                            <button 
-                                id="mpcc-lesson-create-quiz" 
-                                type="button"
-                                class="components-button is-secondary"
-                                style="margin-right: 8px;"
-                            >
-                                <span class="dashicons dashicons-welcome-learn-more" style="margin-right: 4px; font-size: 18px; line-height: 1.2;"></span>
-                                Create Quiz
-                            </button>
-                        `;
+                        let buttonHtml;
+                        if (isMobile) {
+                            // Icon-only on mobile
+                            buttonHtml = `
+                                <button 
+                                    id="mpcc-lesson-create-quiz" 
+                                    type="button"
+                                    class="components-button mpcc-create-quiz-button is-icon-only"
+                                    title="Create Quiz"
+                                    style="border: 2px solid #6B4CE6 !important; background: transparent !important; color: #6B4CE6 !important; width: 36px !important; height: 36px !important; padding: 0 !important; margin-right: 8px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 3px !important;"
+                                >
+                                    <span class="dashicons dashicons-welcome-learn-more" style="font-size: 20px !important; width: 20px !important; height: 20px !important; margin: 0 !important; color: #6B4CE6 !important;"></span>
+                                </button>
+                            `;
+                        } else {
+                            // Icon and text on desktop
+                            buttonHtml = `
+                                <button 
+                                    id="mpcc-lesson-create-quiz" 
+                                    type="button"
+                                    class="components-button mpcc-create-quiz-button"
+                                    title="Create Quiz"
+                                    style="border: 2px solid #6B4CE6 !important; background: transparent !important; color: #6B4CE6 !important; height: 36px !important; padding: 0 12px !important; margin-right: 8px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 3px !important;"
+                                >
+                                    <span class="dashicons dashicons-welcome-learn-more" style="margin-right: 4px !important; font-size: 20px !important; width: 20px !important; height: 20px !important; color: #6B4CE6 !important;"></span>
+                                    Create Quiz
+                                </button>
+                            `;
+                        }
                         
                         // Insert before the Publish button
                         $toolbar.find('.editor-post-publish-button, .editor-post-publish-panel__toggle').first().before(buttonHtml);
+                        
+                        // Add hover effect
+                        $('#mpcc-lesson-create-quiz').hover(
+                            function() {
+                                $(this).css({
+                                    'background': '#6B4CE6 !important',
+                                    'color': '#ffffff !important'
+                                });
+                                $(this).find('.dashicons').css('color', '#ffffff !important');
+                            },
+                            function() {
+                                $(this).css({
+                                    'background': 'transparent !important',
+                                    'color': '#6B4CE6 !important'
+                                });
+                                $(this).find('.dashicons').css('color', '#6B4CE6 !important');
+                            }
+                        );
                         
                         // Bind click event
                         $('#mpcc-lesson-create-quiz').on('click', (e) => {

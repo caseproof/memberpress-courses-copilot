@@ -79,6 +79,7 @@ class AssetManager extends BaseService
         // Admin page styles
         $this->registerStyle('mpcc-admin-settings', 'assets/css/admin-settings.css', ['dashicons']);
         $this->registerStyle('mpcc-editor-ai-modal', 'assets/css/editor-ai-modal.css', ['mpcc-ai-copilot']);
+        $this->registerStyle('mpcc-editor-ai-button', 'assets/css/editor-ai-button.css', ['dashicons']);
 
         // Component styles
         // Removed mpcc-modal-styles and mpcc-metabox-styles - files don't exist
@@ -87,6 +88,9 @@ class AssetManager extends BaseService
 
         // Quiz AI modal styles (matches course/lesson pattern)
         $this->registerStyle('mpcc-quiz-ai-modal', 'assets/css/quiz-ai-modal.css', ['dashicons', 'wp-components']);
+        
+        // Lesson Quiz Integration styles
+        $this->registerStyle('mpcc-lesson-quiz-integration', 'assets/css/lesson-quiz-integration.css', ['dashicons']);
     }
 
     /**
@@ -320,7 +324,7 @@ class AssetManager extends BaseService
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce'    => NonceConstants::create(NonceConstants::QUIZ_AI),
             'strings'  => [
-                'generate_button' => __('Generate with AI', 'memberpress-courses-copilot'),
+                'generate_button' => __('Generate', 'memberpress-courses-copilot'),
                 'generating'      => __('Generating questions...', 'memberpress-courses-copilot'),
                 'error'           => __('Error generating questions', 'memberpress-courses-copilot'),
             ],
@@ -479,8 +483,9 @@ class AssetManager extends BaseService
                        ($pagenow === 'post.php' && function_exists('use_block_editor_for_post') && use_block_editor_for_post(get_post()));
 
         if ($is_gutenberg) {
-            // Enqueue lesson quiz integration script
+            // Enqueue lesson quiz integration script and styles
             wp_enqueue_script('mpcc-lesson-quiz-integration');
+            wp_enqueue_style('mpcc-lesson-quiz-integration');
         }
     }
 
@@ -528,7 +533,7 @@ class AssetManager extends BaseService
             'generating'   => __('Generating course...', 'memberpress-courses-copilot'),
             'error'        => __('An error occurred. Please try again.', 'memberpress-courses-copilot'),
             'success'      => __('Course generated successfully!', 'memberpress-courses-copilot'),
-            'createWithAI' => __('Create with AI', 'memberpress-courses-copilot'),
+            'createWithAI' => __('Generate', 'memberpress-courses-copilot'),
             'aiAssistant'  => __('AI Assistant', 'memberpress-courses-copilot'),
             'loading'      => __('Loading...', 'memberpress-courses-copilot'),
         ];
@@ -543,7 +548,7 @@ class AssetManager extends BaseService
             'saving'          => __('Saving...', 'memberpress-courses-copilot'),
             'saved'           => __('Saved', 'memberpress-courses-copilot'),
             'error'           => __('Error', 'memberpress-courses-copilot'),
-            'generateContent' => __('Generate with AI', 'memberpress-courses-copilot'),
+            'generateContent' => __('Generate', 'memberpress-courses-copilot'),
             'generating'      => __('Generating...', 'memberpress-courses-copilot'),
         ];
     }

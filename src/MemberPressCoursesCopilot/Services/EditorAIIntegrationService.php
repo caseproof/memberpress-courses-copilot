@@ -26,7 +26,7 @@ class EditorAIIntegrationService extends BaseService
      */
     private array $postTypeConfig = [
         self::POST_TYPE_COURSE => [
-            'button_text'     => 'Create with AI',
+            'button_text'     => 'Generate',
             'modal_title'     => 'AI Course Assistant',
             'ajax_action'     => 'mpcc_editor_ai_chat',
             'update_action'   => 'mpcc_update_post_content',
@@ -81,7 +81,7 @@ class EditorAIIntegrationService extends BaseService
             ],
         ],
         self::POST_TYPE_LESSON => [
-            'button_text'     => 'Generate with AI',
+            'button_text'     => 'Generate',
             'modal_title'     => 'AI Lesson Assistant',
             'ajax_action'     => 'mpcc_editor_ai_chat',
             'update_action'   => 'mpcc_update_post_content',
@@ -177,8 +177,9 @@ class EditorAIIntegrationService extends BaseService
             return;
         }
 
-        // Enqueue editor AI button script
+        // Enqueue editor AI button script and styles
         wp_enqueue_script('mpcc-editor-ai-button');
+        wp_enqueue_style('mpcc-editor-ai-button');
 
         // Pass data to JavaScript
         wp_localize_script('mpcc-editor-ai-button', 'mpccEditorAI', [
@@ -224,6 +225,7 @@ class EditorAIIntegrationService extends BaseService
 
         // Enqueue required CSS and JS for modal functionality
         wp_enqueue_style('mpcc-ai-copilot');
+        wp_enqueue_style('mpcc-editor-ai-button');
         wp_enqueue_script('mpcc-shared-utilities');
         wp_enqueue_style('mpcc-toast');
         wp_enqueue_script('mpcc-toast');
@@ -236,65 +238,96 @@ class EditorAIIntegrationService extends BaseService
                 console.log('MPCC: Block Editor AI button script loaded for " . esc_js($post->post_type) . "');
                 
                 // Wait for editor to be ready
-                const unsubscribe = wp.data.subscribe(() => {
-                    // Try multiple selectors for better compatibility
-                    const editorWrapper = document.querySelector('.editor-header__settings') || 
-                                         document.querySelector('.editor-document-tools') ||
-                                         document.querySelector('.edit-post-header__toolbar');
+                const checkInterval = setInterval(() => {
+                    // Look for the toolbar where Save/Publish buttons are
+                    const toolbar = document.querySelector('.editor-header__settings') || 
+                                   document.querySelector('.editor-document-tools__right') ||
+                                   document.querySelector('.edit-post-header__settings');
                     const existingButton = document.getElementById('" . esc_js($config['button_id_block']) . "');
                     
-                    if (editorWrapper && !existingButton) {
-                        console.log('MPCC: Creating AI button');
-                        // Create button container
-                        const buttonContainer = document.createElement('div');
-                        buttonContainer.style.marginLeft = '10px';
-                        buttonContainer.style.display = 'inline-flex';
-                        buttonContainer.style.alignItems = 'center';
+                    if (toolbar && !existingButton) {
+                        // Find the Publish button
+                        const publishButton = toolbar.querySelector('.editor-post-publish-button, .editor-post-publish-panel__toggle');
                         
-                        // Create button
-                        const aiButton = document.createElement('button');
-                        aiButton.id = '" . esc_js($config['button_id_block']) . "';
-                        aiButton.className = 'components-button is-primary';
-                        aiButton.style.background = '#6B4CE6';
-                        aiButton.style.borderColor = '#6B4CE6';
-                        aiButton.style.height = '36px';
-                        aiButton.style.whiteSpace = 'nowrap';
-                        aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\" '
-                            + 'style=\"margin: 3px 5px 0 0; vertical-align: middle;\"></span>'
-                            + '" . esc_js($config['button_text']) . "';
-                        
-                        // Add click handler
-                        aiButton.onclick = function(e) {
-                            e.preventDefault();
-                            console.log('AI button clicked');
+                        if (publishButton) {
+                            console.log('MPCC: Creating AI button');
                             
-                            // Use modal manager if available, otherwise fallback
-                            if (window.MPCCUtils && window.MPCCUtils.modalManager) {
-                                console.log('Using MPCCUtils modal manager');
-                                window.MPCCUtils.modalManager.open('#" . esc_js($config['modal_id']) . "');
+                            // Create button
+                            const aiButton = document.createElement('button');
+                            aiButton.id = '" . esc_js($config['button_id_block']) . "';
+                            aiButton.className = 'components-button mpcc-ai-button-block';
+                            aiButton.title = 'Generate';
+                            
+                            // Determine if mobile
+                            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+                            
+                            if (isMobile) {
+                                // Icon only on mobile
+                                aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\"></span>';
+                                aiButton.classList.add('is-icon-only');
                             } else {
-                                console.log('Using fallback modal open');
-                                const modal = document.getElementById('" . esc_js($config['modal_id']) . "');
-                                if (modal) {
-                                    modal.style.display = 'block';
-                                    document.body.style.overflow = 'hidden';
-                                    setTimeout(() => {
-                                        const input = document.getElementById('mpcc-editor-ai-input');
-                                        if (input) input.focus();
-                                    }, 300);
-                                }
+                                // Icon and text on desktop
+                                aiButton.innerHTML = '<span class=\"dashicons dashicons-lightbulb\" style=\"margin-right: 4px;\"></span>' + '" . esc_js($config['button_text']) . "';
                             }
-                        };
-                        
-                        buttonContainer.appendChild(aiButton);
-                        editorWrapper.appendChild(buttonContainer);
-                        
-                        console.log('MPCC: AI button added to toolbar');
-                        
-                        // Unsubscribe once button is added
-                        unsubscribe();
+                            
+                            // Apply inline styles
+                            aiButton.style.background = '#6B4CE6';
+                            aiButton.style.borderColor = '#6B4CE6';
+                            aiButton.style.color = '#ffffff';
+                            aiButton.style.height = '36px';
+                            aiButton.style.marginRight = '8px';
+                            aiButton.style.display = 'inline-flex';
+                            aiButton.style.alignItems = 'center';
+                            aiButton.style.justifyContent = 'center';
+                            aiButton.style.padding = isMobile ? '0' : '0 12px';
+                            aiButton.style.width = isMobile ? '36px' : 'auto';
+                            aiButton.style.minWidth = '36px';
+                            aiButton.style.borderRadius = '3px';
+                            
+                            // Add hover effect
+                            aiButton.onmouseover = function() {
+                                this.style.background = '#5A3CC5';
+                                this.style.borderColor = '#5A3CC5';
+                            };
+                            aiButton.onmouseout = function() {
+                                this.style.background = '#6B4CE6';
+                                this.style.borderColor = '#6B4CE6';
+                            };
+                            
+                            // Add click handler
+                            aiButton.onclick = function(e) {
+                                e.preventDefault();
+                                console.log('AI button clicked');
+                                
+                                // Use modal manager if available, otherwise fallback
+                                if (window.MPCCUtils && window.MPCCUtils.modalManager) {
+                                    console.log('Using MPCCUtils modal manager');
+                                    window.MPCCUtils.modalManager.open('#" . esc_js($config['modal_id']) . "');
+                                } else {
+                                    console.log('Using fallback modal open');
+                                    const modal = document.getElementById('" . esc_js($config['modal_id']) . "');
+                                    if (modal) {
+                                        modal.style.display = 'block';
+                                        document.body.style.overflow = 'hidden';
+                                        setTimeout(() => {
+                                            const input = document.getElementById('mpcc-editor-ai-input');
+                                            if (input) input.focus();
+                                        }, 300);
+                                    }
+                                }
+                            };
+                            
+                            // Insert before publish button
+                            publishButton.parentNode.insertBefore(aiButton, publishButton);
+                            
+                            console.log('MPCC: AI button added before publish button');
+                            clearInterval(checkInterval);
+                        }
                     }
-                });
+                }, 100);
+                
+                // Clear interval after 10 seconds to prevent infinite checking
+                setTimeout(() => clearInterval(checkInterval), 10000);
             });
             "
         );
@@ -336,7 +369,7 @@ class EditorAIIntegrationService extends BaseService
                         <span class="dashicons dashicons-no-alt" style="font-size: 20px;" aria-hidden="true"></span>
                     </button>
                 </div>
-                <div class="mpcc-modal-body" style="display: flex; flex-direction: column; height: 500px; padding: 0;">
+                <div class="mpcc-modal-body" style="display: flex; flex-direction: column; padding: 0;">
                     <div id="mpcc-editor-ai-messages" role="log" aria-label="AI conversation history"
                          aria-live="polite" style="flex: 1; overflow-y: auto; padding: 20px; background: #f9f9f9;"
                          tabindex="0">
@@ -344,7 +377,7 @@ class EditorAIIntegrationService extends BaseService
                              style="margin-bottom: 10px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
                             <strong>AI Assistant:</strong>
                             <div class="ai-content" id="mpcc-editor-ai-description">
-                                <?php echo esc_html($config['assistant_intro']); ?>
+                                <?php echo wp_kses_post($config['assistant_intro']); ?>
                             <?php if ($parentCourse && $post->post_type === self::POST_TYPE_LESSON) : ?>
                             <br><br>I see this lesson is part of
                             "<strong><?php echo esc_html($parentCourse->post_title); ?></strong>".

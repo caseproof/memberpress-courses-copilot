@@ -27,7 +27,7 @@ class CourseIntegrationService extends BaseService
         // Hook into MemberPress Courses admin pages
         add_action('admin_init', [$this, 'initializeCoursesIntegration']);
 
-        // Hook into courses listing page to add "Create with AI" button
+        // Hook into courses listing page to add "Generate" button
         // Use admin_enqueue_scripts to ensure proper timing
         add_action('admin_enqueue_scripts', [$this, 'maybeEnqueueCreateButton']);
 
@@ -92,7 +92,7 @@ class CourseIntegrationService extends BaseService
     }
 
     /**
-     * Maybe enqueue "Create with AI" button script on courses listing page
+     * Maybe enqueue "Generate" button script on courses listing page
      *
      * @param  string $hook The current admin page hook
      * @return void
@@ -120,7 +120,7 @@ class CourseIntegrationService extends BaseService
         // Pass data to JavaScript
         wp_localize_script('mpcc-course-integration-create-button', 'mpccCreateButton', [
             'strings'   => [
-                'createWithAI' => __('Create with AI', 'memberpress-courses-copilot'),
+                'createWithAI' => __('Generate', 'memberpress-courses-copilot'),
             ],
             'editorUrl' => admin_url('admin.php?page=mpcc-course-editor&action=new'),
         ]);

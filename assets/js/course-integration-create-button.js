@@ -1,7 +1,7 @@
 /**
- * Course Integration - Create with AI Button
+ * Course Integration - Generate Button
  * 
- * Handles the "Create with AI" button functionality on the courses listing page
+ * Handles the "Generate" button functionality on the courses listing page
  * 
  * @package MemberPressCoursesCopilot
  * @since 1.0.0
@@ -10,9 +10,9 @@
     'use strict';
 
     $(document).ready(function() {
-        // Add "Create with AI" button next to "Add New Course"
+        // Add "Generate" button next to "Add New Course"
         var createWithAIButton = '<a href="#" id="mpcc-create-with-ai" class="page-title-action">' + 
-            '<span class="dashicons dashicons-admin-generic"></span>' +
+            '<span class="dashicons dashicons-lightbulb"></span>' +
             mpccCreateButton.strings.createWithAI +
             '</a>';
         

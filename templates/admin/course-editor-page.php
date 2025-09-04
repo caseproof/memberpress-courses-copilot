@@ -20,24 +20,19 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
     <div id="mpcc-editor-container" class="mpcc-editor-container" data-session-id="<?php echo esc_attr($session_id); ?>">
         <!-- Header Bar -->
         <div class="mpcc-editor-header">
-            <div class="mpcc-header-left">
-                <h1 class="mpcc-header-title">
-                    <span class="dashicons dashicons-welcome-learn-more"></span>
-                    <?php echo esc_html__('AI Course Creator', 'memberpress-courses-copilot'); ?>
-                </h1>
-            </div>
-            <div class="mpcc-header-center">
-                <span class="mpcc-status-indicator">
-                    <span class="mpcc-status-dot"></span>
-                    <span class="mpcc-status-text"><?php echo esc_html__('Ready', 'memberpress-courses-copilot'); ?></span>
-                </span>
-            </div>
-            <div class="mpcc-header-right">
-                <button type="button" class="mpcc-header-button" id="mpcc-previous-conversations" title="<?php echo esc_attr__('Previous Conversations', 'memberpress-courses-copilot'); ?>">
+            <h1 class="mpcc-header-title">
+                <span class="dashicons dashicons-welcome-learn-more"></span>
+                <?php echo esc_html__('AI Course Creator', 'memberpress-courses-copilot'); ?>
+            </h1>
+            <span class="mpcc-status-indicator">
+                <span class="mpcc-status-dot"></span>
+                <span class="mpcc-status-text"><?php echo esc_html__('Ready', 'memberpress-courses-copilot'); ?></span>
+            </span>
+            <div class="mpcc-header-buttons">
+                <button type="button" class="mpcc-icon-button" id="mpcc-previous-conversations" title="<?php echo esc_attr__('Previous Conversations', 'memberpress-courses-copilot'); ?>">
                     <span class="dashicons dashicons-backup"></span>
-                    <span class="button-text"><?php echo esc_html__('Previous Conversations', 'memberpress-courses-copilot'); ?></span>
                 </button>
-                <a href="<?php echo esc_url(admin_url('edit.php?post_type=mpcs-course')); ?>" class="mpcc-close-button">
+                <a href="<?php echo esc_url(admin_url('edit.php?post_type=mpcs-course')); ?>" class="mpcc-icon-button mpcc-close-button">
                     <span class="dashicons dashicons-no-alt"></span>
                 </a>
             </div>
@@ -126,6 +121,9 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
                     </div>
                 </div>
                 
+                <!-- Lesson Editor Overlay -->
+                <div id="mpcc-lesson-editor-overlay" class="mpcc-lesson-editor-overlay"></div>
+                
                 <!-- Lesson Editor -->
                 <div id="mpcc-lesson-editor" class="mpcc-editor-panel mpcc-lesson-editor" style="display: none;">
                     <div class="mpcc-lesson-header">
@@ -138,7 +136,7 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
                     <div class="mpcc-lesson-toolbar">
                         <button type="button" class="button" id="mpcc-generate-lesson-content">
                             <span class="dashicons dashicons-welcome-write-blog"></span>
-                            <?php echo esc_html__('Generate with AI', 'memberpress-courses-copilot'); ?>
+                            <?php echo esc_html__('Generate', 'memberpress-courses-copilot'); ?>
                         </button>
                         <span class="mpcc-save-indicator"></span>
                     </div>

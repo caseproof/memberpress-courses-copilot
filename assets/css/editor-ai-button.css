@@ -1,0 +1,81 @@
+/**
+ * Editor AI Button Styles
+ * Styles for the AI button in course and lesson editors
+ *
+ * @package MemberPressCoursesCopilot
+ * @since 1.0.0
+ */
+
+/* Classic Editor AI Button */
+#mpcc-editor-ai-button {
+    background: #6B4CE6 !important;
+    border-color: #6B4CE6 !important;
+    color: #ffffff !important;
+    width: 36px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: 8px !important;
+    border-radius: 3px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+#mpcc-editor-ai-button:hover {
+    background: #5A3CC5 !important;
+    border-color: #5A3CC5 !important;
+    transform: translateY(-1px) !important;
+}
+
+#mpcc-editor-ai-button .dashicons {
+    font-size: 16px !important;
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+}
+
+/* Block Editor AI Button Styles */
+.mpcc-ai-button-block {
+    background: #6B4CE6 !important;
+    border-color: #6B4CE6 !important;
+    color: #ffffff !important;
+    height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 3px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    margin-right: 8px !important;
+    white-space: nowrap !important;
+}
+
+.mpcc-ai-button-block:hover {
+    background: #5A3CC5 !important;
+    border-color: #5A3CC5 !important;
+    color: #ffffff !important;
+}
+
+.mpcc-ai-button-block .dashicons {
+    font-size: 20px !important;
+    width: 20px !important;
+    height: 20px !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+/* Mobile styles for block editor button */
+@media (max-width: 768px) {
+    .mpcc-ai-button-block.is-icon-only {
+        width: 36px !important;
+        padding: 0 !important;
+        min-width: 36px !important;
+    }
+    
+    .mpcc-ai-button-block.is-icon-only .dashicons {
+        margin: 0 !important;
+    }
+}
