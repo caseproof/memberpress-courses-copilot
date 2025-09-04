@@ -477,7 +477,7 @@
                         <div class="mpcc-modal-header">
                             <h2>Generate Quiz Questions with AI</h2>
                             <button type="button" class="mpcc-modal-close" aria-label="Close modal">
-                                <span aria-hidden="true">&times;</span>
+                                <span class="dashicons dashicons-no-alt" aria-hidden="true"></span>
                             </button>
                         </div>
                         
@@ -583,35 +583,46 @@
                         }
                         
                         .mpcc-modal-header {
-                            padding: 20px;
-                            border-bottom: 1px solid #ddd;
+                            padding: 16px 24px;
+                            border-bottom: 1px solid #e2e8f0;
                             display: flex;
                             justify-content: space-between;
                             align-items: center;
+                            background: #ffffff;
                         }
                         
                         .mpcc-modal-header h2 {
                             margin: 0;
-                            font-size: 20px;
-                            color: #1d2327;
+                            font-size: 18px;
+                            font-weight: 600;
+                            color: #1e293b;
                         }
                         
                         .mpcc-modal-close {
                             background: none;
                             border: none;
-                            font-size: 24px;
                             cursor: pointer;
-                            color: #666;
-                            padding: 0;
+                            color: #64748b;
+                            padding: 4px;
                             width: 30px;
                             height: 30px;
                             display: flex;
                             align-items: center;
                             justify-content: center;
+                            transition: color 0.2s;
+                            border-radius: 3px;
                         }
                         
                         .mpcc-modal-close:hover {
-                            color: #000;
+                            color: #1e293b;
+                            background: rgba(0, 0, 0, 0.05);
+                        }
+                        
+                        .mpcc-modal-close .dashicons {
+                            font-size: 20px;
+                            width: 20px;
+                            height: 20px;
+                            line-height: 20px;
                         }
                         
                         .mpcc-modal-body {
@@ -649,12 +660,39 @@
                             display: flex;
                             gap: 10px;
                             margin-top: 20px;
+                            justify-content: flex-start;
                         }
                         
                         .mpcc-modal-actions button {
-                            display: flex;
+                            display: inline-flex;
                             align-items: center;
-                            gap: 5px;
+                            justify-content: center;
+                            gap: 6px;
+                        }
+                        
+                        #mpcc-generate-quiz {
+                            background: #2271b1;
+                            color: #ffffff;
+                            border: none;
+                            padding: 8px 16px;
+                            border-radius: 3px;
+                            font-size: 13px;
+                            font-weight: 400;
+                            cursor: pointer;
+                            transition: background 0.2s;
+                        }
+                        
+                        #mpcc-generate-quiz:hover {
+                            background: #135e96;
+                        }
+                        
+                        #mpcc-generate-quiz .dashicons {
+                            margin: 0;
+                            font-size: 16px;
+                            width: 16px;
+                            height: 16px;
+                            line-height: 1;
+                            vertical-align: middle;
                         }
                         
                         #mpcc-questions-preview {

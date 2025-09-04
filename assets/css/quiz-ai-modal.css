@@ -36,37 +36,38 @@
 
 /* Modal Header */
 .mpcc-modal-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #ffffff;
+    background: #ffffff;
+    color: #1e293b;
     padding: 20px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .mpcc-modal-header h2 {
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    color: #ffffff;
+    color: #1e293b;
 }
 
 .mpcc-modal-close {
     background: none;
     border: none;
-    color: #ffffff;
+    color: #64748b;
     cursor: pointer;
     padding: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 4px;
-    transition: background 0.2s;
+    transition: color 0.2s;
 }
 
 .mpcc-modal-close:hover {
-    background: rgba(255, 255, 255, 0.2);
+    color: #1e293b;
 }
 
 .mpcc-modal-close .dashicons {
@@ -82,27 +83,9 @@
     padding: 24px;
 }
 
-/* AI Intro Section */
+/* AI Intro Section - removed, not needed */
 .mpcc-ai-intro {
-    background: #f0f6fc;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 24px;
-}
-
-.mpcc-ai-intro p {
-    margin: 0 0 12px;
-    color: #1e293b;
-}
-
-.mpcc-ai-intro ul {
-    margin: 0 0 12px 20px;
-    padding: 0;
-}
-
-.mpcc-ai-intro li {
-    color: #475569;
-    margin-bottom: 8px;
+    display: none;
 }
 
 /* Form Sections */
@@ -214,6 +197,34 @@
 
 #mpcc-generate-custom:hover {
     background: #5a67d8;
+}
+
+/* Generate Questions Button */
+#mpcc-generate-quiz {
+    background: #2271b1;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+#mpcc-generate-quiz:hover {
+    background: #135e96;
+}
+
+#mpcc-generate-quiz .dashicons {
+    margin: 0;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 1;
 }
 
 /* Results Section */

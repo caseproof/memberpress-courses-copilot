@@ -102,8 +102,8 @@
     background: rgba(255, 255, 255, 0.2);
     border-radius: var(--mpcc-radius-full);
     backdrop-filter: blur(10px);
-    flex: 1 1 auto;
-    margin: 0 auto;
+    flex: 0 0 auto;
+    margin: 0 20px;
 }
 
 .mpcc-status-text {
@@ -1140,6 +1140,20 @@
     flex-direction: column;
 }
 
+/* Account for WordPress admin bar on desktop */
+.admin-bar .mpcc-sessions-modal {
+    top: calc(50% + 16px); /* Push down by half of admin bar height (32px/2) */
+    max-height: calc(80vh - 32px); /* Reduce max height to account for admin bar */
+}
+
+/* Account for WordPress admin bar on mobile/tablet */
+@media screen and (max-width: 782px) {
+    .admin-bar .mpcc-sessions-modal {
+        top: calc(50% + 23px); /* Push down by half of mobile admin bar height (46px/2) */
+        max-height: calc(80vh - 46px); /* Reduce max height for mobile admin bar */
+    }
+}
+
 .mpcc-sessions-modal-overlay.active .mpcc-sessions-modal {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
@@ -1296,6 +1310,13 @@
         height: 100vh;
     }
     
+    /* Account for admin bar on mobile */
+    .admin-bar .mpcc-sessions-modal {
+        top: 46px; /* Mobile admin bar height */
+        height: calc(100vh - 46px);
+        max-height: calc(100vh - 46px);
+    }
+    
     .mpcc-sessions-modal-overlay.active .mpcc-sessions-modal {
         transform: none;
     }
@@ -1306,6 +1327,11 @@
     
     .mpcc-sessions-list {
         max-height: calc(100vh - 80px);
+    }
+    
+    /* Adjust list height for admin bar */
+    .admin-bar .mpcc-sessions-list {
+        max-height: calc(100vh - 126px); /* 80px original + 46px admin bar */
     }
 }
 
@@ -1379,6 +1405,7 @@
     .mpcc-status-indicator {
         padding: 6px 15px;
         font-size: 12px;
+        margin: 0 10px;
     }
     
     .mpcc-status-text {
