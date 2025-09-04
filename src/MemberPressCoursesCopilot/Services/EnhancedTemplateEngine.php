@@ -14,17 +14,84 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
  */
 class EnhancedTemplateEngine extends BaseService
 {
-    private array $templateCache      = [];
-    private array $selectionHistory   = [];
+    /**
+     * Template cache storage
+     *
+     * @var   array<string, array<string, mixed>>
+     * @since 1.0.0
+     */
+    private array $templateCache = [];
+
+    /**
+     * Selection history for analytics
+     *
+     * @var   array<int, array{timestamp: int, description: string, recommendations: array<int, array<string, mixed>>, selected: string|null}>
+     * @since 1.0.0
+     */
+    private array $selectionHistory = [];
+
+    /**
+     * Performance metrics storage
+     *
+     * @var   array<string, array{count: int, total_time: float, min_time: float, max_time: float}>
+     * @since 1.0.0
+     */
     private array $performanceMetrics = [];
-    private array $jsTemplates        = [];
-    private array $globalData         = [];
+
+    /**
+     * JavaScript templates storage
+     *
+     * @var   array<string, string>
+     * @since 1.0.0
+     */
+    private array $jsTemplates = [];
+
+    /**
+     * Global data available to all templates
+     *
+     * @var   array<string, mixed>
+     * @since 1.0.0
+     */
+    private array $globalData = [];
+
+    /**
+     * LLM Service instance
+     *
+     * @var   LLMService|null
+     * @since 1.0.0
+     */
     private ?LLMService $llmService;
 
-    // Template directories
+    /**
+     * Base template directory
+     *
+     * @var   string
+     * @since 1.0.0
+     */
     private string $templateDir;
+
+    /**
+     * Admin template directory
+     *
+     * @var   string
+     * @since 1.0.0
+     */
     private string $adminTemplateDir;
+
+    /**
+     * Component template directory
+     *
+     * @var   string
+     * @since 1.0.0
+     */
     private string $componentDir;
+
+    /**
+     * JavaScript template directory
+     *
+     * @var   string
+     * @since 1.0.0
+     */
     private string $jsTemplateDir;
 
     // Constants
@@ -33,6 +100,12 @@ class EnhancedTemplateEngine extends BaseService
     private const CACHE_KEY_PREFIX      = 'mpcc_template_';
     private const CACHE_TTL             = 3600; // 1 hour
 
+    /**
+     * Constructor
+     *
+     * @param LLMService|null $llmService Optional LLM service instance for AI-powered recommendations
+     * @since 1.0.0
+     */
     public function __construct(?LLMService $llmService = null)
     {
         parent::__construct(); // Initialize logger from BaseService
@@ -56,6 +129,9 @@ class EnhancedTemplateEngine extends BaseService
 
     /**
      * Initialize template directories
+     *
+     * @return void
+     * @since  1.0.0
      */
     private function initializeDirectories(): void
     {
@@ -105,10 +181,12 @@ class EnhancedTemplateEngine extends BaseService
     /**
      * Render a template with data
      *
-     * @param  string  $template Template path relative to templates directory
-     * @param  array   $data     Data to pass to template
-     * @param  boolean $return   Whether to return or echo the output
-     * @return string|void
+     * @param  string               $template Template path relative to templates directory
+     * @param  array<string, mixed> $data     Data to pass to template
+     * @param  boolean              $return   Whether to return or echo the output
+     * @return string|void Returns rendered output when $return is true, echoes output when false
+     * @throws \Exception When template file is not found
+     * @since  1.0.0
      */
     public function render(string $template, array $data = [], bool $return = true)
     {
@@ -171,9 +249,10 @@ class EnhancedTemplateEngine extends BaseService
     /**
      * Render a component template
      *
-     * @param  string $component Component path relative to components directory
-     * @param  array  $data      Data to pass to component
-     * @return string
+     * @param  string               $component Component path relative to components directory
+     * @param  array<string, mixed> $data      Data to pass to component
+     * @return string Rendered component HTML
+     * @since  1.0.0
      */
     public function renderComponent(string $component, array $data = []): string
     {
@@ -183,9 +262,10 @@ class EnhancedTemplateEngine extends BaseService
     /**
      * Include a partial template
      *
-     * @param  string $partial Partial path relative to partials directory
-     * @param  array  $data    Data to pass to partial
+     * @param  string               $partial Partial path relative to partials directory
+     * @param  array<string, mixed> $data    Data to pass to partial
      * @return void
+     * @since  1.0.0
      */
     public function partial(string $partial, array $data = []): void
     {
@@ -197,6 +277,7 @@ class EnhancedTemplateEngine extends BaseService
      *
      * @param  string $template Template name
      * @return string Full template path
+     * @since  1.0.0
      */
     private function getTemplatePath(string $template): string
     {
@@ -221,6 +302,7 @@ class EnhancedTemplateEngine extends BaseService
      * @param  string $key   Data key
      * @param  mixed  $value Data value
      * @return void
+     * @since  1.0.0
      */
     public function setGlobalData(string $key, $value): void
     {
@@ -230,8 +312,9 @@ class EnhancedTemplateEngine extends BaseService
     /**
      * Set multiple global data at once
      *
-     * @param  array $data Data array
+     * @param  array<string, mixed> $data Data array
      * @return void
+     * @since  1.0.0
      */
     public function setGlobalDataArray(array $data): void
     {
@@ -244,6 +327,7 @@ class EnhancedTemplateEngine extends BaseService
      * @param  string $id       Template ID
      * @param  string $template Template path relative to js-templates directory
      * @return void
+     * @since  1.0.0
      */
     public function enqueueJsTemplate(string $id, string $template): void
     {
@@ -269,7 +353,8 @@ class EnhancedTemplateEngine extends BaseService
      *
      * @param  string $template Template name
      * @return string Template content
-     * @throws \Exception
+     * @throws \Exception When JS template file is not found
+     * @since  1.0.0
      */
     private function loadJsTemplate(string $template): string
     {
@@ -287,6 +372,7 @@ class EnhancedTemplateEngine extends BaseService
      * Render all enqueued JS templates
      *
      * @return void
+     * @since  1.0.0
      */
     public function renderJsTemplates(): void
     {
@@ -308,10 +394,11 @@ class EnhancedTemplateEngine extends BaseService
     /**
      * Pass data to JavaScript
      *
-     * @param  string $handle     Script handle
-     * @param  string $objectName JavaScript object name
-     * @param  array  $data       Data to localize
+     * @param  string               $handle     Script handle
+     * @param  string               $objectName JavaScript object name
+     * @param  array<string, mixed> $data       Data to localize
      * @return void
+     * @since  1.0.0
      */
     public function localizeScript(string $handle, string $objectName, array $data): void
     {
@@ -321,8 +408,9 @@ class EnhancedTemplateEngine extends BaseService
     /**
      * Sanitize data for JavaScript
      *
-     * @param  array $data Data to sanitize
-     * @return array Sanitized data
+     * @param  array<string, mixed> $data Data to sanitize
+     * @return array<string, mixed> Sanitized data
+     * @since  1.0.0
      */
     private function sanitizeForJs(array $data): array
     {
@@ -338,6 +426,7 @@ class EnhancedTemplateEngine extends BaseService
      * AJAX handler to get template
      *
      * @return void
+     * @since  1.0.0
      */
     public function ajaxGetTemplate(): void
     {
@@ -371,6 +460,7 @@ class EnhancedTemplateEngine extends BaseService
      * @param  string  $content Template content
      * @param  integer $ttl     Time to live in seconds
      * @return void
+     * @since  1.0.0
      */
     public function cacheTemplate(string $key, string $content, int $ttl = self::CACHE_TTL): void
     {
@@ -382,6 +472,7 @@ class EnhancedTemplateEngine extends BaseService
      *
      * @param  string $key Cache key
      * @return string|false Cached content or false
+     * @since  1.0.0
      */
     public function getCachedTemplate(string $key)
     {
@@ -393,6 +484,7 @@ class EnhancedTemplateEngine extends BaseService
      *
      * @param  string|null $key Specific key to clear, or null for all
      * @return void
+     * @since  1.0.0
      */
     public function clearCache(?string $key = null): void
     {
@@ -416,6 +508,7 @@ class EnhancedTemplateEngine extends BaseService
      * @param  string $template   Template name
      * @param  float  $renderTime Render time in seconds
      * @return void
+     * @since  1.0.0
      */
     private function trackTemplatePerformance(string $template, float $renderTime): void
     {
@@ -438,7 +531,8 @@ class EnhancedTemplateEngine extends BaseService
     /**
      * Get template performance metrics
      *
-     * @return array Performance metrics
+     * @return array<string, array{count: int, avg_time: float, min_time: float, max_time: float, total_time: float}> Performance metrics
+     * @since  1.0.0
      */
     public function getPerformanceMetrics(): array
     {
@@ -460,6 +554,7 @@ class EnhancedTemplateEngine extends BaseService
      *
      * @param  string $message Error message
      * @return string Error HTML
+     * @since  1.0.0
      */
     private function renderError(string $message): string
     {
@@ -475,6 +570,7 @@ class EnhancedTemplateEngine extends BaseService
      * Create template directory structure
      *
      * @return boolean Success status
+     * @since  1.0.0
      */
     public function createTemplateDirectories(): bool
     {
@@ -508,6 +604,9 @@ class EnhancedTemplateEngine extends BaseService
 
     /**
      * Initialize template cache with all available templates
+     *
+     * @return void
+     * @since  1.0.0
      */
     private function initializeTemplateCache(): void
     {
@@ -516,6 +615,12 @@ class EnhancedTemplateEngine extends BaseService
 
     /**
      * Intelligent template selection based on course description and context
+     *
+     * @param  string               $courseDescription Course description text
+     * @param  array<string, mixed> $userPreferences   User template preferences
+     * @param  array<string, mixed> $context           Additional context for template selection
+     * @return array<int, array{type: string, score: float, template: array<string, mixed>|null}> Array of recommended templates with scores
+     * @since  1.0.0
      */
     public function selectOptimalTemplate(
         string $courseDescription,
@@ -543,6 +648,11 @@ class EnhancedTemplateEngine extends BaseService
 
     /**
      * Get AI recommendations for template selection
+     *
+     * @param  string               $description Course description
+     * @param  array<string, mixed> $context     Additional context
+     * @return array<int, array{type: string, score: float, reason: string}> AI recommendations
+     * @since  1.0.0
      */
     private function getAIRecommendations(string $description, array $context): array
     {
@@ -568,6 +678,11 @@ class EnhancedTemplateEngine extends BaseService
 
     /**
      * Build AI prompt for template recommendation
+     *
+     * @param  string               $description Course description
+     * @param  array<string, mixed> $context     Additional context
+     * @return string Formatted prompt for AI
+     * @since  1.0.0
      */
     private function buildAIRecommendationPrompt(string $description, array $context): string
     {
@@ -590,6 +705,10 @@ class EnhancedTemplateEngine extends BaseService
 
     /**
      * Parse AI recommendations response
+     *
+     * @param  mixed $aiResponse Raw AI response
+     * @return array<int, array{type: string, score: float, reason: string}> Parsed recommendations
+     * @since  1.0.0
      */
     private function parseAIRecommendations($aiResponse): array
     {
@@ -600,6 +719,12 @@ class EnhancedTemplateEngine extends BaseService
 
     /**
      * Combine recommendations from different sources
+     *
+     * @param  array<int, array{type: string, score: float, reason?: string}> $aiRecommendations      AI-based recommendations
+     * @param  array<int, array{type: string, score: float}>                  $keywordRecommendations Keyword-based recommendations
+     * @param  array<int, string>                                             $userPreferences        User preference template types
+     * @return array<int, array{type: string, score: float, template: array<string, mixed>|null}> Combined recommendations
+     * @since  1.0.0
      */
     private function combineRecommendations(
         array $aiRecommendations,
@@ -647,6 +772,11 @@ class EnhancedTemplateEngine extends BaseService
 
     /**
      * Track template selection for analytics
+     *
+     * @param  string                           $description     Course description
+     * @param  array<int, array<string, mixed>> $recommendations Selected recommendations
+     * @return void
+     * @since  1.0.0
      */
     private function trackSelection(string $description, array $recommendations): void
     {
