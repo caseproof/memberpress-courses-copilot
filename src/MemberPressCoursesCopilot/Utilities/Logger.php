@@ -18,6 +18,8 @@ class Logger
 {
     /**
      * Log levels
+     *
+     * @since 1.0.0
      */
     const LEVEL_DEBUG    = 'debug';
     const LEVEL_INFO     = 'info';
@@ -28,6 +30,7 @@ class Logger
     /**
      * Singleton instance
      *
+     * @since 1.0.0
      * @var Logger|null
      */
     private static $instance = null;
@@ -35,6 +38,7 @@ class Logger
     /**
      * Whether logging is enabled
      *
+     * @since 1.0.0
      * @var boolean
      */
     private $loggingEnabled;
@@ -42,6 +46,7 @@ class Logger
     /**
      * Current log level
      *
+     * @since 1.0.0
      * @var string
      */
     private $logLevel;
@@ -49,6 +54,7 @@ class Logger
     /**
      * Whether debug mode is enabled
      *
+     * @since 1.0.0
      * @var boolean
      */
     private $debugMode;
@@ -56,6 +62,7 @@ class Logger
     /**
      * Log file path
      *
+     * @since 1.0.0
      * @var string
      */
     private $logFile;
@@ -63,20 +70,23 @@ class Logger
     /**
      * Cost tracking data (lazy loaded)
      *
-     * @var array|null
+     * @since 1.0.0
+     * @var array<string, array<string, mixed>>|null
      */
     private $costTracker = null;
 
     /**
      * API usage statistics (lazy loaded)
      *
-     * @var array|null
+     * @since 1.0.0
+     * @var array<string, array<string, mixed>>|null
      */
     private $apiStats = null;
 
     /**
      * Whether cost tracker has been loaded
      *
+     * @since 1.0.0
      * @var boolean
      */
     private $costTrackerLoaded = false;
@@ -84,6 +94,7 @@ class Logger
     /**
      * Whether API stats have been loaded
      *
+     * @since 1.0.0
      * @var boolean
      */
     private $apiStatsLoaded = false;
@@ -91,6 +102,7 @@ class Logger
     /**
      * Maximum log file size in bytes (10MB)
      *
+     * @since 1.0.0
      * @var integer
      */
     private $maxLogSize = 10485760;
@@ -98,6 +110,7 @@ class Logger
     /**
      * Log rotation count
      *
+     * @since 1.0.0
      * @var integer
      */
     private $rotationCount = 5;
@@ -105,7 +118,8 @@ class Logger
     /**
      * Get singleton instance
      *
-     * @return self
+     * @since 1.0.0
+     * @return self The Logger instance
      */
     public static function getInstance(): self
     {
@@ -144,6 +158,9 @@ class Logger
 
     /**
      * Prevent cloning of singleton
+     *
+     * @since 1.0.0
+     * @return void
      */
     private function __clone()
     {
@@ -151,6 +168,10 @@ class Logger
 
     /**
      * Prevent unserialization of singleton
+     *
+     * @since 1.0.0
+     * @return void
+     * @throws \Exception Cannot unserialize singleton
      */
     public function __wakeup()
     {
@@ -160,7 +181,8 @@ class Logger
     /**
      * Determine if logging should be enabled based on configuration
      *
-     * @return boolean
+     * @since 1.0.0
+     * @return boolean True if logging should be enabled, false otherwise
      */
     private function determineLoggingState(): bool
     {
@@ -171,6 +193,7 @@ class Logger
     /**
      * Initialize log file path and directory
      *
+     * @since 1.0.0
      * @return void
      */
     private function initializeLogFile(): void
@@ -189,6 +212,7 @@ class Logger
     /**
      * Protect log files from web access
      *
+     * @since 1.0.0
      * @param  string $logDir Log directory path
      * @return void
      */
@@ -212,8 +236,9 @@ class Logger
     /**
      * Log a debug message
      *
+     * @since 1.0.0
      * @param  string $message Log message
-     * @param  array  $context Additional context data
+     * @param  array<string, mixed> $context Additional context data
      * @return void
      */
     public function debug(string $message, array $context = []): void
@@ -231,8 +256,9 @@ class Logger
     /**
      * Log an info message
      *
+     * @since 1.0.0
      * @param  string $message Log message
-     * @param  array  $context Additional context data
+     * @param  array<string, mixed> $context Additional context data
      * @return void
      */
     public function info(string $message, array $context = []): void
@@ -250,8 +276,9 @@ class Logger
     /**
      * Log a warning message
      *
+     * @since 1.0.0
      * @param  string $message Log message
-     * @param  array  $context Additional context data
+     * @param  array<string, mixed> $context Additional context data
      * @return void
      */
     public function warning(string $message, array $context = []): void
@@ -269,8 +296,9 @@ class Logger
     /**
      * Log an error message
      *
+     * @since 1.0.0
      * @param  string $message Log message
-     * @param  array  $context Additional context data
+     * @param  array<string, mixed> $context Additional context data
      * @return void
      */
     public function error(string $message, array $context = []): void
@@ -288,8 +316,9 @@ class Logger
     /**
      * Log a critical message
      *
+     * @since 1.0.0
      * @param  string $message Log message
-     * @param  array  $context Additional context data
+     * @param  array<string, mixed> $context Additional context data
      * @return void
      */
     public function critical(string $message, array $context = []): void
@@ -307,11 +336,12 @@ class Logger
     /**
      * Log an API call with cost tracking
      *
+     * @since 1.0.0
      * @param  string $provider Provider name
      * @param  string $model    Model name
-     * @param  array  $usage    Usage statistics
+     * @param  array<string, mixed> $usage    Usage statistics
      * @param  float  $cost     Estimated cost
-     * @param  array  $context  Additional context
+     * @param  array<string, mixed> $context  Additional context
      * @return void
      */
     public function logApiCall(string $provider, string $model, array $usage, float $cost, array $context = []): void
@@ -333,10 +363,11 @@ class Logger
     /**
      * Track API costs
      *
+     * @since 1.0.0
      * @param  string $provider Provider name
      * @param  string $model    Model name
      * @param  float  $cost     Cost amount
-     * @param  array  $usage    Usage statistics
+     * @param  array<string, mixed> $usage    Usage statistics
      * @return void
      */
     private function trackCost(string $provider, string $model, float $cost, array $usage): void
@@ -398,15 +429,19 @@ class Logger
     /**
      * Update API usage statistics
      *
+     * @since 1.0.0
      * @param  string $provider Provider name
      * @param  string $model    Model name
-     * @param  array  $usage    Usage statistics
+     * @param  array<string, mixed> $usage    Usage statistics
      * @return void
      */
     private function updateApiStats(string $provider, string $model, array $usage): void
     {
-        if (!isset($this->apiStats[$provider])) {
-            $this->apiStats[$provider] = [
+        // Use lazy loading to get API stats data
+        $apiStats = $this->getApiStatsData();
+        
+        if (!isset($apiStats[$provider])) {
+            $apiStats[$provider] = [
                 'total_calls'  => 0,
                 'total_tokens' => 0,
                 'models'       => [],
@@ -414,8 +449,8 @@ class Logger
             ];
         }
 
-        if (!isset($this->apiStats[$provider]['models'][$model])) {
-            $this->apiStats[$provider]['models'][$model] = [
+        if (!isset($apiStats[$provider]['models'][$model])) {
+            $apiStats[$provider]['models'][$model] = [
                 'calls'     => 0,
                 'tokens'    => 0,
                 'last_used' => null,
@@ -425,60 +460,73 @@ class Logger
         $totalTokens = ($usage['total_tokens'] ?? 0) ?:
                       (($usage['prompt_tokens'] ?? 0) + ($usage['completion_tokens'] ?? 0));
 
-        ++$this->apiStats[$provider]['total_calls'];
-        $this->apiStats[$provider]['total_tokens'] += $totalTokens;
-        $this->apiStats[$provider]['last_used']     = time();
-        ++$this->apiStats[$provider]['models'][$model]['calls'];
-        $this->apiStats[$provider]['models'][$model]['tokens']   += $totalTokens;
-        $this->apiStats[$provider]['models'][$model]['last_used'] = time();
+        ++$apiStats[$provider]['total_calls'];
+        $apiStats[$provider]['total_tokens'] += $totalTokens;
+        $apiStats[$provider]['last_used']     = time();
+        ++$apiStats[$provider]['models'][$model]['calls'];
+        $apiStats[$provider]['models'][$model]['tokens']   += $totalTokens;
+        $apiStats[$provider]['models'][$model]['last_used'] = time();
 
+        // Update the instance variable and save
+        $this->apiStats = $apiStats;
         $this->saveApiStats();
     }
 
     /**
      * Get cost tracking data
      *
+     * @since 1.0.0
      * @param  string|null $date Optional date (Y-m-d format)
-     * @return array Cost tracking data
+     * @return array<string, mixed> Cost tracking data
      */
     public function getCostData(?string $date = null): array
     {
+        // Use lazy loading to get cost tracker data
+        $costTracker = $this->getCostTrackerData();
+        
         if ($date === null) {
-            return $this->costTracker;
+            return $costTracker;
         }
 
-        return $this->costTracker[$date] ?? [];
+        return $costTracker[$date] ?? [];
     }
 
     /**
      * Get API usage statistics
      *
+     * @since 1.0.0
      * @param  string|null $provider Optional provider filter
-     * @return array API statistics
+     * @return array<string, mixed> API statistics
      */
     public function getApiStats(?string $provider = null): array
     {
+        // Use lazy loading to get API stats data
+        $apiStats = $this->getApiStatsData();
+        
         if ($provider === null) {
-            return $this->apiStats;
+            return $apiStats;
         }
 
-        return $this->apiStats[$provider] ?? [];
+        return $apiStats[$provider] ?? [];
     }
 
     /**
      * Get daily cost summary
      *
+     * @since 1.0.0
      * @param  integer $days Number of days to include
-     * @return array Daily cost summary
+     * @return array<string, array<string, mixed>> Daily cost summary
      */
     public function getDailyCostSummary(int $days = 30): array
     {
+        // Use lazy loading to get cost tracker data
+        $costTracker = $this->getCostTrackerData();
         $summary = [];
         $today   = time();
 
         for ($i = 0; $i < $days; $i++) {
             $date    = date('Y-m-d', $today - ($i * 86400));
-            $dayData = $this->costTracker[$date] ?? null;
+            $dayData = $costTracker[$date] ?? null;
 
             $summary[$date] = [
                 'total_cost'  => $dayData['total_cost'] ?? 0.0,
@@ -504,8 +552,9 @@ class Logger
     /**
      * Get monthly cost summary
      *
+     * @since 1.0.0
      * @param  string|null $month Month in Y-m format
-     * @return array Monthly cost summary
+     * @return array<string, mixed> Monthly cost summary
      */
     public function getMonthlyCostSummary(?string $month = null): array
     {
@@ -513,12 +562,15 @@ class Logger
             $month = date('Y-m');
         }
 
+        // Use lazy loading to get cost tracker data
+        $costTracker = $this->getCostTrackerData();
+        
         $monthlyCost   = 0.0;
         $monthlyCalls  = 0;
         $monthlyTokens = 0;
         $providers     = [];
 
-        foreach ($this->costTracker as $date => $dayData) {
+        foreach ($costTracker as $date => $dayData) {
             if (strpos($date, $month) === 0) {
                 $monthlyCost += $dayData['total_cost'];
 
@@ -553,6 +605,7 @@ class Logger
     /**
      * Clean old log entries
      *
+     * @since 1.0.0
      * @param  integer $daysToKeep Number of days to keep
      * @return void
      */
@@ -560,13 +613,18 @@ class Logger
     {
         $cutoffDate = date('Y-m-d', time() - ($daysToKeep * 86400));
 
+        // Use lazy loading to get cost tracker data
+        $costTracker = $this->getCostTrackerData();
+        
         // Clean cost tracker
-        foreach (array_keys($this->costTracker) as $date) {
+        foreach (array_keys($costTracker) as $date) {
             if ($date < $cutoffDate) {
-                unset($this->costTracker[$date]);
+                unset($costTracker[$date]);
             }
         }
 
+        // Update the instance variable and save
+        $this->costTracker = $costTracker;
         $this->saveCostTracker();
 
         // Rotate log file if needed
@@ -581,9 +639,10 @@ class Logger
     /**
      * Core logging method
      *
+     * @since 1.0.0
      * @param  string $level   Log level
      * @param  string $message Log message
-     * @param  array  $context Additional context
+     * @param  array<string, mixed> $context Additional context
      * @return void
      */
     private function log(string $level, string $message, array $context = []): void
@@ -611,6 +670,7 @@ class Logger
     /**
      * Check if message should be logged based on log level
      *
+     * @since 1.0.0
      * @param  string $level Message level
      * @return boolean Whether to log the message
      */
@@ -638,6 +698,7 @@ class Logger
     /**
      * Rotate log file when it gets too large
      *
+     * @since 1.0.0
      * @return void
      */
     private function rotateLogFile(): void
@@ -671,7 +732,8 @@ class Logger
     /**
      * Load cost tracker from WordPress options (lazy loaded)
      *
-     * @return array
+     * @since 1.0.0
+     * @return array<string, array<string, mixed>> Cost tracker data
      */
     private function getCostTrackerData(): array
     {
@@ -691,6 +753,7 @@ class Logger
     /**
      * Save cost tracker to WordPress options
      *
+     * @since 1.0.0
      * @return void
      */
     private function saveCostTracker(): void
@@ -703,7 +766,8 @@ class Logger
     /**
      * Load API stats from WordPress options (lazy loaded)
      *
-     * @return array
+     * @since 1.0.0
+     * @return array<string, array<string, mixed>> API stats data
      */
     private function getApiStatsData(): array
     {
@@ -718,6 +782,7 @@ class Logger
     /**
      * Save API stats to WordPress options
      *
+     * @since 1.0.0
      * @return void
      */
     private function saveApiStats(): void
@@ -730,6 +795,7 @@ class Logger
     /**
      * Rotate cost data when it gets too large
      *
+     * @since 1.0.0
      * @return void
      */
     private function rotateCostData(): void
@@ -751,6 +817,7 @@ class Logger
     /**
      * Set log level
      *
+     * @since 1.0.0
      * @param  string $level Log level
      * @return void
      */
@@ -762,6 +829,7 @@ class Logger
     /**
      * Get current log level
      *
+     * @since 1.0.0
      * @return string Current log level
      */
     public function getLogLevel(): string
@@ -772,6 +840,7 @@ class Logger
     /**
      * Enable or disable debug mode
      *
+     * @since 1.0.0
      * @param  boolean $enabled Whether debug mode is enabled
      * @return void
      */
@@ -783,6 +852,7 @@ class Logger
     /**
      * Check if debug mode is enabled
      *
+     * @since 1.0.0
      * @return boolean Whether debug mode is enabled
      */
     public function isDebugMode(): bool
@@ -793,6 +863,7 @@ class Logger
     /**
      * Get log file path
      *
+     * @since 1.0.0
      * @return string Log file path
      */
     public function getLogFile(): string
@@ -803,6 +874,7 @@ class Logger
     /**
      * Enable or disable logging (only works if WP_DEBUG is active)
      *
+     * @since 1.0.0
      * @param  boolean $enabled Whether logging should be enabled
      * @return void
      */
@@ -815,6 +887,7 @@ class Logger
     /**
      * Check if logging is enabled
      *
+     * @since 1.0.0
      * @return boolean Whether logging is enabled
      */
     public function isLoggingEnabled(): bool
@@ -826,6 +899,7 @@ class Logger
      * Static method to check if logging is enabled globally
      * Useful for quick checks without instantiating the logger
      *
+     * @since 1.0.0
      * @return boolean Whether logging is enabled
      */
     public static function isLoggingEnabledGlobally(): bool

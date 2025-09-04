@@ -15,11 +15,18 @@ use MemberPressCoursesCopilot\Interfaces\ILLMService;
  */
 class MpccQuizAIService extends BaseService implements IQuizAIService
 {
+    /**
+     * LLM service instance for AI operations
+     *
+     * @var ILLMService
+     * @since 1.0.0
+     */
     private ILLMService $llmService;
 
     /**
      * Constructor
      *
+     * @since 1.0.0
      * @param ILLMService $llmService LLM service for AI operations
      */
     public function __construct(ILLMService $llmService)
@@ -30,6 +37,9 @@ class MpccQuizAIService extends BaseService implements IQuizAIService
 
     /**
      * Initialize the service
+     *
+     * @since 1.0.0
+     * @return void
      */
     public function init(): void
     {
@@ -40,9 +50,10 @@ class MpccQuizAIService extends BaseService implements IQuizAIService
      * Generate quiz questions based on content
      * Handles multiple question types based on options
      *
-     * @param  string $content Content to generate questions from
-     * @param  array  $options Generation options including 'type' and 'count'
-     * @return array Generated questions with error handling
+     * @since 1.0.0
+     * @param string $content Content to generate questions from
+     * @param array<string, mixed> $options Generation options including 'type' and 'count'
+     * @return array<string, mixed> Generated questions with error handling
      */
     public function generateQuestions(string $content, array $options = []): array
     {
@@ -95,9 +106,10 @@ class MpccQuizAIService extends BaseService implements IQuizAIService
     /**
      * Generate multiple-choice questions from content
      *
-     * @param  string  $content Content to generate questions from
-     * @param  integer $count   Number of questions to generate
-     * @return array Generated questions
+     * @since 1.0.0
+     * @param string $content Content to generate questions from
+     * @param int $count Number of questions to generate
+     * @return array<int, array<string, mixed>> Generated questions
      */
     public function generateMultipleChoiceQuestions(string $content, int $count = 5): array
     {
@@ -128,8 +140,9 @@ class MpccQuizAIService extends BaseService implements IQuizAIService
     /**
      * Build prompt for multiple-choice question generation
      *
-     * @param  string  $content Content to base questions on
-     * @param  integer $count   Number of questions to generate
+     * @since 1.0.0
+     * @param string $content Content to base questions on
+     * @param int $count Number of questions to generate
      * @return string Generated prompt
      */
     private function buildMultipleChoicePrompt(string $content, int $count): string
@@ -166,8 +179,9 @@ Content to create questions from:
     /**
      * Parse AI response into structured question array
      *
-     * @param  string $response AI response containing questions
-     * @return array Parsed questions
+     * @since 1.0.0
+     * @param string $response AI response containing questions
+     * @return array<int, array<string, mixed>> Parsed questions
      */
     private function parseMultipleChoiceQuestions(string $response): array
     {
@@ -191,9 +205,10 @@ Content to create questions from:
     /**
      * Generate true/false questions from content
      *
-     * @param  string  $content Content to generate questions from
-     * @param  integer $count   Number of questions to generate
-     * @return array Generated questions
+     * @since 1.0.0
+     * @param string $content Content to generate questions from
+     * @param int $count Number of questions to generate
+     * @return array<int, array<string, mixed>> Generated questions
      */
     public function generateTrueFalseQuestions(string $content, int $count = 5): array
     {
@@ -224,9 +239,10 @@ Content to create questions from:
     /**
      * Generate text answer questions from content
      *
-     * @param  string  $content Content to generate questions from
-     * @param  integer $count   Number of questions to generate
-     * @return array Generated questions
+     * @since 1.0.0
+     * @param string $content Content to generate questions from
+     * @param int $count Number of questions to generate
+     * @return array<int, array<string, mixed>> Generated questions
      */
     public function generateTextAnswerQuestions(string $content, int $count = 5): array
     {
@@ -257,9 +273,10 @@ Content to create questions from:
     /**
      * Generate multiple select questions from content
      *
-     * @param  string  $content Content to generate questions from
-     * @param  integer $count   Number of questions to generate
-     * @return array Generated questions
+     * @since 1.0.0
+     * @param string $content Content to generate questions from
+     * @param int $count Number of questions to generate
+     * @return array<int, array<string, mixed>> Generated questions
      */
     public function generateMultipleSelectQuestions(string $content, int $count = 5): array
     {
@@ -336,9 +353,10 @@ Content to create questions from:
      * - Provides specific feedback for content improvement
      * - Logs validation decisions for debugging and improvement
      *
-     * @param  string $content Content to validate for question generation
-     * @param  string $type    Question type ('multiple_choice', 'true_false', 'text_answer', 'multiple_select')
-     * @return array Validation result with 'suitable', 'reason', and 'suggestion' keys
+     * @since 1.0.0
+     * @param string $content Content to validate for question generation
+     * @param string $type Question type ('multiple_choice', 'true_false', 'text_answer', 'multiple_select')
+     * @return array<string, mixed> Validation result with 'suitable', 'reason', and 'suggestion' keys
      */
     private function validateContentForType(string $content, string $type): array
     {
@@ -413,8 +431,9 @@ Content to create questions from:
     /**
      * Build prompt for true/false question generation
      *
-     * @param  string  $content Content to base questions on
-     * @param  integer $count   Number of questions to generate
+     * @since 1.0.0
+     * @param string $content Content to base questions on
+     * @param int $count Number of questions to generate
      * @return string Generated prompt
      */
     private function buildTrueFalsePrompt(string $content, int $count): string
@@ -448,8 +467,9 @@ Content to create questions from:
     /**
      * Build prompt for text answer question generation
      *
-     * @param  string  $content Content to base questions on
-     * @param  integer $count   Number of questions to generate
+     * @since 1.0.0
+     * @param string $content Content to base questions on
+     * @param int $count Number of questions to generate
      * @return string Generated prompt
      */
     private function buildTextAnswerPrompt(string $content, int $count): string
@@ -485,8 +505,9 @@ Content to create questions from:
     /**
      * Build prompt for multiple select question generation
      *
-     * @param  string  $content Content to base questions on
-     * @param  integer $count   Number of questions to generate
+     * @since 1.0.0
+     * @param string $content Content to base questions on
+     * @param int $count Number of questions to generate
      * @return string Generated prompt
      */
     private function buildMultipleSelectPrompt(string $content, int $count): string
@@ -528,8 +549,9 @@ Content to create questions from:
     /**
      * Parse true/false questions from AI response
      *
-     * @param  string $response AI response
-     * @return array Parsed questions
+     * @since 1.0.0
+     * @param string $response AI response
+     * @return array<int, array<string, mixed>> Parsed questions
      */
     private function parseTrueFalseQuestions(string $response): array
     {
@@ -552,8 +574,9 @@ Content to create questions from:
     /**
      * Parse text answer questions from AI response
      *
-     * @param  string $response AI response
-     * @return array Parsed questions
+     * @since 1.0.0
+     * @param string $response AI response
+     * @return array<int, array<string, mixed>> Parsed questions
      */
     private function parseTextAnswerQuestions(string $response): array
     {
@@ -577,8 +600,9 @@ Content to create questions from:
     /**
      * Parse multiple select questions from AI response
      *
-     * @param  string $response AI response
-     * @return array Parsed questions
+     * @since 1.0.0
+     * @param string $response AI response
+     * @return array<int, array<string, mixed>> Parsed questions
      */
     private function parseMultipleSelectQuestions(string $response): array
     {
@@ -640,8 +664,9 @@ Content to create questions from:
      * - Validates JSON structure before returning
      * - Limits logged response length to prevent log pollution
      *
-     * @param  string $response Raw AI response containing JSON array
-     * @return array|null Extracted and validated JSON data, null on failure
+     * @since 1.0.0
+     * @param string $response Raw AI response containing JSON array
+     * @return array<mixed>|null Extracted and validated JSON data, null on failure
      */
     private function extractJsonFromResponse(string $response): ?array
     {
@@ -680,105 +705,138 @@ Content to create questions from:
 
     // Stub implementations for interface methods.
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Generate quiz from lesson content
+     *
+     * @since 1.0.0
+     * @param int $lessonId ID of the lesson to generate quiz from
+     * @param array<string, mixed> $options Generation options
+     * @return array<string, mixed> Generated quiz data
+     * @throws \BadMethodCallException Method not implemented
      */
     public function generateQuizFromLesson(int $lessonId, array $options = []): array
     {
         throw new \BadMethodCallException('generateQuizFromLesson() is not implemented. This method must generate quiz questions from lesson content.');
     }
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Generate quiz from course content
+     *
+     * @since 1.0.0
+     * @param int $courseId ID of the course to generate quiz from
+     * @param array<string, mixed> $options Generation options
+     * @return array<string, mixed> Generated quiz data
+     * @throws \BadMethodCallException Method not implemented
      */
     public function generateQuizFromCourse(int $courseId, array $options = []): array
     {
         throw new \BadMethodCallException('generateQuizFromCourse() is not implemented. This method must generate quiz questions from course content.');
     }
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Generate a single question of specified type
+     *
+     * @since 1.0.0
+     * @param string $content Content to generate question from
+     * @param string $questionType Type of question to generate
+     * @param array<string, mixed> $options Generation options
+     * @return array<string, mixed> Generated question data
+     * @throws \BadMethodCallException Method not implemented
      */
     public function generateQuestion(string $content, string $questionType, array $options = []): array
     {
         throw new \BadMethodCallException('generateQuestion() is not implemented. This method must generate a question of the specified type from the provided content.');
     }
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Regenerate a question with variations
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $question Original question to regenerate
+     * @param array<string, mixed> $options Regeneration options
+     * @return array<string, mixed> Regenerated question data
+     * @throws \BadMethodCallException Method not implemented
      */
     public function regenerateQuestion(array $question, array $options = []): array
     {
         throw new \BadMethodCallException('regenerateQuestion() is not implemented. This method must regenerate a question with variations based on the original.');
     }
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Validate quiz questions for correctness and completeness
+     *
+     * @since 1.0.0
+     * @param array<int, array<string, mixed>> $questions Questions to validate
+     * @return array<string, mixed> Validation results
+     * @throws \BadMethodCallException Method not implemented
      */
     public function validateQuestions(array $questions): array
     {
         throw new \BadMethodCallException('validateQuestions() is not implemented. This method must validate quiz questions for correctness and completeness.');
     }
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Get available quiz templates
+     *
+     * @since 1.0.0
+     * @return array<string, mixed> Available quiz templates
+     * @throws \BadMethodCallException Method not implemented
      */
     public function getQuizTemplates(): array
     {
         throw new \BadMethodCallException('getQuizTemplates() is not implemented. This method must return available quiz templates.');
     }
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Apply a quiz template to generate questions from content
+     *
+     * @since 1.0.0
+     * @param mixed $template Template to apply
+     * @param string $content Content to generate questions from
+     * @return array<string, mixed> Generated questions
+     * @throws \BadMethodCallException Method not implemented
      */
     public function applyTemplate($template, string $content): array
     {
         throw new \BadMethodCallException('applyTemplate() is not implemented. This method must apply a quiz template to generate questions from content.');
     }
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Generate analytics for the specified quiz
+     *
+     * @since 1.0.0
+     * @param int $quizId ID of the quiz to analyze
+     * @return array<string, mixed> Quiz analytics data
+     * @throws \BadMethodCallException Method not implemented
      */
     public function generateQuizAnalytics(int $quizId): array
     {
         throw new \BadMethodCallException('generateQuizAnalytics() is not implemented. This method must generate analytics for the specified quiz.');
     }
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Optimize quiz based on performance data
+     *
+     * @since 1.0.0
+     * @param int $quizId ID of the quiz to optimize
+     * @param array<string, mixed> $performanceData Performance data for optimization
+     * @return array<string, mixed> Optimization results
+     * @throws \BadMethodCallException Method not implemented
      */
     public function optimizeQuiz(int $quizId, array $performanceData): array
     {
         throw new \BadMethodCallException('optimizeQuiz() is not implemented. This method must optimize quiz based on performance data.');
     }
     /**
-     * @throws \BadMethodCallException
-     */
-    /**
-     * @throws \BadMethodCallException
+     * Generate feedback for user answers
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $question Question data
+     * @param string $userAnswer User's answer to evaluate
+     * @return string Generated feedback
+     * @throws \BadMethodCallException Method not implemented
      */
     public function generateFeedback(array $question, string $userAnswer): string
     {
         throw new \BadMethodCallException('generateFeedback() is not implemented. This method must generate feedback for user answers.');
     }
+    /**
+     * Get list of supported question types
+     *
+     * @since 1.0.0
+     * @return array<int, string> List of supported question types
+     */
     public function getSupportedQuestionTypes(): array
     {
         return [
@@ -789,7 +847,12 @@ Content to create questions from:
         ];
     }
     /**
-     * @throws \BadMethodCallException
+     * Estimate the difficulty level of quiz questions
+     *
+     * @since 1.0.0
+     * @param array<int, array<string, mixed>> $questions Questions to analyze
+     * @return string Estimated difficulty level
+     * @throws \BadMethodCallException Method not implemented
      */
     public function estimateDifficulty(array $questions): string
     {

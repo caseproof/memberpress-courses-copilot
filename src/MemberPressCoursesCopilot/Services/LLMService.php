@@ -24,16 +24,28 @@ use WP_Error;
  */
 class LLMService extends BaseService implements ILLMService
 {
-    // Auth gateway URL - can be overridden via wp-config.php constant.
+    /**
+     * Auth gateway URL - can be overridden via wp-config.php constant.
+     *
+     * @var string
+     * @since 1.0.0
+     */
     private string $authGatewayUrl;
 
-    // License key for authentication with the gateway.
-    // In production, this should come from MemberPress license system.
-    // See /docs/todo/LICENSING_IMPLEMENTATION.md for implementation details
-    private const LICENSE_KEY = 'dev-license-key-001'; // Placeholder - not a real credential.
+    /**
+     * License key for authentication with the gateway.
+     * In production, this should come from MemberPress license system.
+     * See /docs/todo/LICENSING_IMPLEMENTATION.md for implementation details
+     *
+     * @const string Placeholder - not a real credential.
+     * @since 1.0.0
+     */
+    private const LICENSE_KEY = 'dev-license-key-001';
 
     /**
      * Constructor
+     *
+     * @since 1.0.0
      */
     public function __construct()
     {
@@ -48,6 +60,7 @@ class LLMService extends BaseService implements ILLMService
     /**
      * Initialize the service (required by BaseService)
      *
+     * @since 1.0.0
      * @return void
      */
     public function init(): void
@@ -62,20 +75,21 @@ class LLMService extends BaseService implements ILLMService
      * Routes requests to the appropriate AI model based on content type and
      * sends them through the authentication gateway for processing.
      *
+     * @since 1.0.0
      * @param string $prompt      The text prompt to send to the AI
      * @param string $contentType Type of content being generated (e.g., 'course_structure', 'lesson_content')
-     * @param array  $options     Additional options including:
+     * @param array<string, mixed> $options     Additional options including:
      *                           - temperature (float): Creativity level 0-1, default 0.7
      *                           - max_tokens (int): Maximum response length, default 2000
      *                           - timeout (int): Request timeout in seconds, default 60
-     *                           - messages (array): Full conversation history for chat completions
+     *                           - messages (array<int, array{role: string, content: string}>): Full conversation history for chat completions
      *
-     * @return array Response array with keys:
+     * @return array{error: bool, content: string, message?: string, usage?: array<string, int>, model?: string, provider?: string} Response array with keys:
      *               - success (bool): Whether the request succeeded
      *               - content (string): The generated content
      *               - error (bool): Whether an error occurred
      *               - message (string): Error message if applicable
-     *               - usage (array): Token usage statistics
+     *               - usage (array<string, int>): Token usage statistics
      *
      * @throws \Exception When gateway URL is not configured
      *
@@ -259,8 +273,10 @@ class LLMService extends BaseService implements ILLMService
     /**
      * Determine course template type from user input
      *
+     * @since 1.0.0
      * @param  string $userInput User's course description or input
      * @return string|null Template type or null for general template
+     * @throws \Exception When template type determination fails
      *
      * @example
      * // Analyze technical course description
@@ -322,8 +338,9 @@ class LLMService extends BaseService implements ILLMService
     /**
      * Extract course requirements from user message
      *
+     * @since 1.0.0
      * @param  string $message User's course description message
-     * @return array Extracted course requirements
+     * @return array{title: string, description: string, difficulty_level: string, target_audience: string, learning_objectives: array<int, string>, estimated_duration: string, prerequisites: array<int, string>, topics: array<int, string>, raw_input: string, timestamp: int, extraction_method: string} Extracted course requirements
      * @throws \Exception When extraction fails
      *
      * @example
@@ -409,9 +426,10 @@ class LLMService extends BaseService implements ILLMService
     /**
      * Generate lesson content with streaming support
      *
+     * @since 1.0.0
      * @param  string        $sectionTitle Section title for context
-     * @param  integer       $lessonNumber Lesson number in sequence
-     * @param  array         $requirements Course and lesson requirements
+     * @param  int           $lessonNumber Lesson number in sequence
+     * @param  array<string, mixed> $requirements Course and lesson requirements
      * @param  callable|null $onChunk      Optional callback for streaming chunks
      * @return string Generated lesson content
      *
@@ -495,6 +513,13 @@ class LLMService extends BaseService implements ILLMService
 
     /**
      * Stream content generation with callback
+     *
+     * @since 1.0.0
+     * @param string $prompt The prompt to send to AI
+     * @param string $contentType Type of content being generated
+     * @param callable $onChunk Callback function for streaming chunks
+     * @param array<string, mixed> $options Additional options for generation
+     * @return string The full generated content
      */
     private function streamContent(string $prompt, string $contentType, callable $onChunk, array $options = []): string
     {
@@ -538,9 +563,10 @@ class LLMService extends BaseService implements ILLMService
     /**
      * Generate lesson content
      *
+     * @since 1.0.0
      * @param  string  $sectionTitle Section title for context
-     * @param  integer $lessonNumber Lesson number in sequence
-     * @param  array   $requirements Course and lesson requirements
+     * @param  int     $lessonNumber Lesson number in sequence
+     * @param  array<string, mixed>   $requirements Course and lesson requirements
      * @return string Generated lesson content
      * @throws \Exception When content generation fails
      *
@@ -653,6 +679,10 @@ class LLMService extends BaseService implements ILLMService
 
     /**
      * Get provider for content type
+     *
+     * @since 1.0.0
+     * @param string $contentType The type of content to generate
+     * @return string The provider name (anthropic or openai)
      */
     private function getProviderForContentType(string $contentType): string
     {
@@ -681,6 +711,11 @@ class LLMService extends BaseService implements ILLMService
 
     /**
      * Get model for provider and content type
+     *
+     * @since 1.0.0
+     * @param string $provider The AI provider (anthropic or openai)
+     * @param string $contentType The type of content to generate
+     * @return string The model identifier to use
      */
     private function getModelForProvider(string $provider, string $contentType): string
     {
@@ -703,6 +738,10 @@ class LLMService extends BaseService implements ILLMService
 
     /**
      * Parse template response
+     *
+     * @since 1.0.0
+     * @param string $response The AI response to parse
+     * @return string|null The parsed template type or null for general
      */
     private function parseTemplateResponse(string $response): ?string
     {
@@ -720,6 +759,10 @@ class LLMService extends BaseService implements ILLMService
 
     /**
      * Build a comprehensive prompt for lesson content generation
+     *
+     * @since 1.0.0
+     * @param array{course_title: string, section_title: string, lesson_number: int, lesson_title: string, difficulty: string, audience: string, course_context?: string, prerequisites?: array<int, string>, learning_objectives?: array<int, string>} $params Parameters for building the prompt
+     * @return string The constructed prompt
      */
     private function buildLessonContentPrompt(array $params): string
     {
@@ -795,10 +838,11 @@ class LLMService extends BaseService implements ILLMService
     /**
      * Generate quiz questions for a lesson
      *
+     * @since 1.0.0
      * @param  string $lessonTitle   Title of the lesson
      * @param  string $lessonContent Content to generate questions from
-     * @param  array  $options       Generation options
-     * @return array Array of generated questions
+     * @param  array<string, mixed>  $options       Generation options
+     * @return array<int, array{type: string, question: string, options?: array<int, string>, correct?: int, explanation: string}> Array of generated questions
      *
      * @example
      * // Generate multiple choice questions
@@ -885,6 +929,13 @@ class LLMService extends BaseService implements ILLMService
 
     /**
      * Generate practice exercises for a lesson
+     *
+     * @since 1.0.0
+     * @param string $lessonTitle The title of the lesson
+     * @param array<int, string> $learningObjectives List of learning objectives
+     * @param array<string, mixed> $options Generation options
+     * @return string Formatted practice exercises content
+     * @throws \Exception When exercise generation fails
      */
     public function generatePracticeExercises(string $lessonTitle, array $learningObjectives, array $options = []): string
     {
@@ -923,6 +974,11 @@ class LLMService extends BaseService implements ILLMService
 
     /**
      * Generate a lesson summary
+     *
+     * @since 1.0.0
+     * @param string $lessonContent The lesson content to summarize
+     * @param array<string, mixed> $options Summary generation options
+     * @return string The generated summary
      */
     public function generateLessonSummary(string $lessonContent, array $options = []): string
     {
@@ -963,6 +1019,10 @@ class LLMService extends BaseService implements ILLMService
 
     /**
      * Format practice exercises for display
+     *
+     * @since 1.0.0
+     * @param string $content The raw exercise content to format
+     * @return string The formatted exercise content with proper markdown
      */
     private function formatExercises(string $content): string
     {
@@ -982,6 +1042,11 @@ class LLMService extends BaseService implements ILLMService
 
     /**
      * Format lesson content for proper display
+     *
+     * @since 1.0.0
+     * @param string $content The raw lesson content to format
+     * @param array<string, mixed> $requirements Lesson requirements and metadata
+     * @return string The formatted lesson content with proper markdown and navigation
      */
     private function formatLessonContent(string $content, array $requirements): string
     {
@@ -1034,9 +1099,10 @@ class LLMService extends BaseService implements ILLMService
     /**
      * Send a message to the LLM and get a response (ILLMService interface)
      *
+     * @since 1.0.0
      * @param  string $message             The user message
-     * @param  array  $conversationHistory Previous messages in the conversation
-     * @return array Response from the LLM
+     * @param  array<int, array{role: string, content: string}>  $conversationHistory Previous messages in the conversation
+     * @return array{error: bool, content: string, message?: string, usage?: array<string, int>, model?: string} Response from the LLM
      *
      * @example
      * // Start a new conversation
@@ -1137,8 +1203,9 @@ class LLMService extends BaseService implements ILLMService
     /**
      * Generate a course based on the provided parameters (ILLMService interface)
      *
-     * @param  array $courseData Course generation parameters
-     * @return array Generated course content
+     * @since 1.0.0
+     * @param  array{title: string, description: string} $courseData Course generation parameters
+     * @return array{error: bool, message?: string, content?: string, requirements?: array<string, mixed>, template_type?: string|null} Generated course content
      *
      * @example
      * // Generate a complete course

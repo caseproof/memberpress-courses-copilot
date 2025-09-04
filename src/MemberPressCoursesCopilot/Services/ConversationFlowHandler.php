@@ -10,10 +10,25 @@ use MemberPressCoursesCopilot\Models\ConversationSession;
  * Manages conversation flows with intelligent branching, backtracking capabilities,
  * and adaptive conversation patterns based on user behavior and context.
  * Provides sophisticated flow control for the AI course creation process.
+ *
+ * @since 1.0.0
  */
 class ConversationFlowHandler extends BaseService
 {
+    /**
+     * Course generator service instance
+     *
+     * @since 1.0.0
+     * @var CourseGeneratorService
+     */
     private CourseGeneratorService $courseGenerator;
+
+    /**
+     * Conversation manager instance
+     *
+     * @since 1.0.0
+     * @var ConversationManager
+     */
     private ConversationManager $conversationManager;
 
     // Flow configurations.
@@ -33,6 +48,14 @@ class ConversationFlowHandler extends BaseService
         'session_context'       => ['new', 'resumed', 'recovered'],
     ];
 
+    /**
+     * Constructor
+     *
+     * @since 1.0.0
+     * @param LLMService $llmService LLM service instance for AI interactions
+     * @param ConversationManager $conversationManager Manager for conversation sessions
+     * @param CourseGeneratorService $courseGenerator Service for course generation operations
+     */
     public function __construct(
         LLMService $llmService,
         ConversationManager $conversationManager,
@@ -46,6 +69,7 @@ class ConversationFlowHandler extends BaseService
     /**
      * Initialize the service
      *
+     * @since 1.0.0
      * @return void
      */
     public function init(): void
@@ -55,6 +79,10 @@ class ConversationFlowHandler extends BaseService
 
     /**
      * Determine optimal conversation flow for session
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session The conversation session to analyze
+     * @return string The recommended flow type (linear, adaptive, exploratory, guided, or expert)
      */
     public function determineOptimalFlow(ConversationSession $session): string
     {
@@ -96,6 +124,10 @@ class ConversationFlowHandler extends BaseService
 
     /**
      * Get next possible branches from current state
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session The conversation session
+     * @return array<int, array{state: string, type: string, description: string, confidence: float, estimated_time: int, prerequisites: array<int, mixed>, skip_conditions: array<int, mixed>}> Array of available branches with metadata
      */
     public function getNextBranches(ConversationSession $session): array
     {
@@ -128,6 +160,12 @@ class ConversationFlowHandler extends BaseService
 
     /**
      * Handle conversation branching decision
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session The conversation session
+     * @param string $selectedBranch The selected branch state to transition to
+     * @param array<string, mixed> $branchData Optional data for the branch transition
+     * @return array{success: bool, error?: string, available_branches?: array<int, mixed>, missing_prerequisites?: array<int, mixed>, suggested_actions?: array<int, mixed>} Result of the branching operation
      */
     public function handleBranching(ConversationSession $session, string $selectedBranch, array $branchData = []): array
     {
@@ -178,6 +216,12 @@ class ConversationFlowHandler extends BaseService
 
     /**
      * Handle backtracking request
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session The conversation session
+     * @param string|null $targetState Optional specific state to backtrack to
+     * @param array<string, mixed> $options Options for backtracking including 'confirmed' flag
+     * @return array{success: bool, error?: string, suggestions?: array<string, string>, available_states?: array<int, string>, requires_confirmation?: bool, loss_assessment?: array<string, mixed>, confirmation_message?: string, alternatives?: array<int, mixed>, steps_back?: int, recovered_context?: array<string, mixed>} Result of the backtracking operation
      */
     public function handleBacktracking(ConversationSession $session, ?string $targetState = null, array $options = []): array
     {
@@ -238,6 +282,10 @@ class ConversationFlowHandler extends BaseService
 
     /**
      * Suggest smart navigation options
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session The conversation session
+     * @return array{current_state: string, progress: float, flow_type: string, suggestions: array<string, mixed>, navigation_context: array{can_backtrack: bool, can_skip_ahead: bool, has_shortcuts: bool, needs_recovery: bool}} Navigation suggestions and context
      */
     public function suggestSmartNavigation(ConversationSession $session): array
     {
@@ -301,6 +349,11 @@ class ConversationFlowHandler extends BaseService
 
     /**
      * Handle conversation recovery from errors or interruptions
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session The conversation session to recover
+     * @param array<string, mixed> $recoveryOptions Optional recovery options including 'strategy'
+     * @return array{strategy: string, target_state: string, recovery_actions: array<int, mixed>, data_preservation: array<int, mixed>} Recovery plan and execution result
      */
     public function handleConversationRecovery(ConversationSession $session, array $recoveryOptions = []): array
     {
@@ -355,6 +408,14 @@ class ConversationFlowHandler extends BaseService
     }
 
     // PRIVATE HELPER METHODS.
+
+    /**
+     * Get user profile data
+     *
+     * @since 1.0.0
+     * @param int $userId The user ID
+     * @return array{course_creation_experience: string, technical_background: string, preferred_interaction_style: string, previous_sessions: int} User profile data
+     */
     private function getUserProfile(int $userId): array
     {
         // Placeholder - implement user profile retrieval.
@@ -366,6 +427,14 @@ class ConversationFlowHandler extends BaseService
         ];
     }
 
+    /**
+     * Analyze user expertise level from profile and conversation history
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $userProfile User profile data
+     * @param array<int, array{type: string, content: string}> $conversationHistory Conversation message history
+     * @return string User expertise level: 'beginner', 'intermediate', or 'expert'
+     */
     private function analyzeUserExpertise(array $userProfile, array $conversationHistory): string
     {
         $expertiseIndicators = [
@@ -386,6 +455,13 @@ class ConversationFlowHandler extends BaseService
         };
     }
 
+    /**
+     * Assess completeness of information in the session context
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $context Session context data
+     * @return float Completeness score between 0.0 and 1.0
+     */
     private function assessInformationCompleteness(array $context): float
     {
         $requiredFields = ['title', 'target_audience', 'learning_objectives', 'difficulty_level'];
@@ -394,6 +470,13 @@ class ConversationFlowHandler extends BaseService
         return count($presentFields) / count($requiredFields);
     }
 
+    /**
+     * Infer user preference from conversation patterns
+     *
+     * @since 1.0.0
+     * @param array<int, array{type: string, content: string}> $conversationHistory Conversation message history
+     * @return string User preference: 'autonomous', 'collaborative', or 'guided'
+     */
     private function inferUserPreference(array $conversationHistory): string
     {
         $preferenceIndicators = [
@@ -420,31 +503,79 @@ class ConversationFlowHandler extends BaseService
         };
     }
 
+    /**
+     * Calculate linear flow suitability score
+     *
+     * @since 1.0.0
+     * @param string $expertise User expertise level
+     * @param float $completeness Information completeness score
+     * @return float Flow suitability score
+     */
     private function calculateLinearFlowScore(string $expertise, float $completeness): float
     {
         return ($expertise === 'beginner' ? 0.8 : 0.3) + ($completeness < 0.3 ? 0.7 : 0.2);
     }
 
+    /**
+     * Calculate adaptive flow suitability score
+     *
+     * @since 1.0.0
+     * @param string $expertise User expertise level
+     * @param float $completeness Information completeness score
+     * @return float Flow suitability score
+     */
     private function calculateAdaptiveFlowScore(string $expertise, float $completeness): float
     {
         return ($expertise === 'intermediate' ? 0.9 : 0.5) + ($completeness * 0.6);
     }
 
+    /**
+     * Calculate exploratory flow suitability score
+     *
+     * @since 1.0.0
+     * @param string $preference User preference style
+     * @param string $expertise User expertise level
+     * @return float Flow suitability score
+     */
     private function calculateExploratoryFlowScore(string $preference, string $expertise): float
     {
         return ($preference === 'autonomous' ? 0.8 : 0.2) + ($expertise === 'expert' ? 0.7 : 0.1);
     }
 
+    /**
+     * Calculate guided flow suitability score
+     *
+     * @since 1.0.0
+     * @param string $expertise User expertise level
+     * @param string $preference User preference style
+     * @return float Flow suitability score
+     */
     private function calculateGuidedFlowScore(string $expertise, string $preference): float
     {
         return ($preference === 'guided' ? 0.9 : 0.3) + ($expertise === 'beginner' ? 0.6 : 0.2);
     }
 
+    /**
+     * Calculate expert flow suitability score
+     *
+     * @since 1.0.0
+     * @param string $expertise User expertise level
+     * @param float $completeness Information completeness score
+     * @return float Flow suitability score
+     */
     private function calculateExpertFlowScore(string $expertise, float $completeness): float
     {
         return ($expertise === 'expert' ? 0.9 : 0.1) + ($completeness > 0.7 ? 0.8 : 0.2);
     }
 
+    /**
+     * Get linear flow branches (sequential progression)
+     *
+     * @since 1.0.0
+     * @param string $currentState Current conversation state
+     * @param array<int, string> $transitions Available state transitions
+     * @return array<int, array{state: string, type: string, description: string}> Linear branch options
+     */
     private function getLinearBranches(string $currentState, array $transitions): array
     {
         // Return only the next logical state in sequence.
@@ -470,6 +601,15 @@ class ConversationFlowHandler extends BaseService
         ] : [];
     }
 
+    /**
+     * Get adaptive flow branches based on context
+     *
+     * @since 1.0.0
+     * @param string $currentState Current conversation state
+     * @param array<int, string> $transitions Available state transitions
+     * @param array<string, mixed> $context Session context data
+     * @return array<int, array{state: string, type: string, description: string, can_skip: bool}> Adaptive branch options
+     */
     private function getAdaptiveBranches(string $currentState, array $transitions, array $context): array
     {
         $branches = [];
@@ -493,6 +633,14 @@ class ConversationFlowHandler extends BaseService
         return $branches;
     }
 
+    /**
+     * Get exploratory flow branches (free navigation)
+     *
+     * @since 1.0.0
+     * @param string $currentState Current conversation state
+     * @param array<int, string> $transitions Available state transitions
+     * @return array<int, array{state: string, type: string, description: string, freedom_level: string}> Exploratory branch options
+     */
     private function getExploratoryBranches(string $currentState, array $transitions): array
     {
         // Allow navigation to any valid state.
@@ -504,6 +652,15 @@ class ConversationFlowHandler extends BaseService
         ], $transitions);
     }
 
+    /**
+     * Get guided flow branches with recommendations
+     *
+     * @since 1.0.0
+     * @param string $currentState Current conversation state
+     * @param array<int, string> $transitions Available state transitions
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, array<int, array{state: string, type: string, description: string, guidance: string, difficulty: string}>> Categorized guided branch options
+     */
     private function getGuidedBranches(string $currentState, array $transitions, ConversationSession $session): array
     {
         // Provide curated options with clear guidance.
@@ -527,6 +684,15 @@ class ConversationFlowHandler extends BaseService
         return array_filter($guidedOptions);
     }
 
+    /**
+     * Get expert flow branches with technical details
+     *
+     * @since 1.0.0
+     * @param string $currentState Current conversation state
+     * @param array<int, string> $transitions Available state transitions
+     * @param array<string, mixed> $context Session context data
+     * @return array<int, array{state: string, type: string, description: string, technical_details: array<string, mixed>}> Expert branch options
+     */
     private function getExpertBranches(string $currentState, array $transitions, array $context): array
     {
         // Minimal guidance, maximum flexibility.
@@ -538,6 +704,14 @@ class ConversationFlowHandler extends BaseService
         ], $transitions);
     }
 
+    /**
+     * Get default branch options
+     *
+     * @since 1.0.0
+     * @param string $currentState Current conversation state
+     * @param array<int, string> $transitions Available state transitions
+     * @return array<int, array{state: string, type: string, description: string}> Default branch options
+     */
     private function getDefaultBranches(string $currentState, array $transitions): array
     {
         return array_map(fn($transition) => [
@@ -547,6 +721,13 @@ class ConversationFlowHandler extends BaseService
         ], $transitions);
     }
 
+    /**
+     * Get human-readable description for a state
+     *
+     * @since 1.0.0
+     * @param string $state The state identifier
+     * @return string State description
+     */
     private function getStateDescription(string $state): string
     {
         return $this->courseGenerator::getStateDescription($state);
@@ -556,75 +737,110 @@ class ConversationFlowHandler extends BaseService
     // For brevity, I'm including key method signatures.
 
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Calculate confidence score for branch selection
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $branch Branch data
+     * @param ConversationSession $session Current conversation session
+     * @return float Confidence score between 0.0 and 1.0
+     * @throws \RuntimeException When method is not implemented
      */
     private function calculateBranchConfidence(array $branch, ConversationSession $session): float
     {
         throw new \RuntimeException('calculateBranchConfidence() is not implemented. This method must calculate confidence score for branch selection.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Estimate time required for branch completion
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $branch Branch data
+     * @param ConversationSession $session Current conversation session
+     * @return int Estimated time in seconds
+     * @throws \RuntimeException When method is not implemented
      */
     private function estimateBranchTime(array $branch, ConversationSession $session): int
     {
         throw new \RuntimeException('estimateBranchTime() is not implemented. This method must estimate time required for branch completion.');
     }
+
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Get prerequisites for branch execution
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $branch Branch data
+     * @param ConversationSession $session Current conversation session
+     * @return array<int, mixed> List of prerequisites
+     * @throws \RuntimeException When method is not implemented
      */
     private function getBranchPrerequisites(array $branch, ConversationSession $session): array
     {
         throw new \RuntimeException('getBranchPrerequisites() is not implemented. This method must return prerequisites for the branch.');
     }
+
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Get conditions that allow skipping the branch
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $branch Branch data
+     * @param ConversationSession $session Current conversation session
+     * @return array<int, mixed> List of skip conditions
+     * @throws \RuntimeException When method is not implemented
      */
     private function getBranchSkipConditions(array $branch, ConversationSession $session): array
     {
         throw new \RuntimeException('getBranchSkipConditions() is not implemented. This method must return conditions for skipping the branch.');
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Check if branch prerequisites are satisfied
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $branch Branch data
+     * @param ConversationSession $session Current conversation session
+     * @return bool True if prerequisites are met
+     * @throws \RuntimeException When method is not implemented
      */
     private function checkBranchPrerequisites(array $branch, ConversationSession $session): bool
     {
         throw new \RuntimeException('checkBranchPrerequisites() is not implemented. This method must check if branch prerequisites are met.');
     }
+
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Get suggested actions to satisfy prerequisites
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $branch Branch data
+     * @param ConversationSession $session Current conversation session
+     * @return array<int, mixed> List of suggested actions
+     * @throws \RuntimeException When method is not implemented
      */
     private function getSuggestedPrerequisiteActions(array $branch, ConversationSession $session): array
     {
         throw new \RuntimeException('getSuggestedPrerequisiteActions() is not implemented. This method must suggest actions to meet prerequisites.');
     }
+
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Execute transition to specified branch
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @param string $branch Target branch state
+     * @param array<string, mixed> $data Additional transition data
+     * @return array{success: bool, error?: string} Transition result
+     * @throws \RuntimeException When method is not implemented
      */
     private function executeBranchTransition(ConversationSession $session, string $branch, array $data): array
     {
         throw new \RuntimeException('executeBranchTransition() is not implemented. This method must execute the transition to the specified branch.');
     }
+
+    /**
+     * Update session progress based on branch state
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @param string $branch Branch state
+     * @return void
+     */
     private function updateProgressForBranch(ConversationSession $session, string $branch): void
     {
         // Define progress percentages for each state.
@@ -655,64 +871,351 @@ class ConversationFlowHandler extends BaseService
         }
     }
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Determine optimal target state for backtracking
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @param array<string, mixed> $options Backtrack options
+     * @return string Target state identifier
+     * @throws \RuntimeException When method is not implemented
      */
     private function determineOptimalBacktrackTarget(ConversationSession $session, array $options): string
     {
         throw new \RuntimeException('determineOptimalBacktrackTarget() is not implemented. This method must determine the best state to backtrack to.');
     }
+
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Find specific state data in conversation history
+     *
+     * @since 1.0.0
+     * @param array<int, array<string, mixed>> $history Conversation state history
+     * @param string $state State identifier to find
+     * @return array<string, mixed>|null State data if found, null otherwise
+     * @throws \RuntimeException When method is not implemented
      */
     private function findStateInHistory(array $history, string $state): ?array
     {
         throw new \RuntimeException('findStateInHistory() is not implemented. This method must find a specific state in conversation history.');
     }
+
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Get states available for backtracking
+     *
+     * @since 1.0.0
+     * @param array<int, array<string, mixed>> $history Conversation state history
+     * @return array<int, string> List of available states
+     * @throws \RuntimeException When method is not implemented
      */
     private function getAvailableBacktrackStates(array $history): array
     {
         throw new \RuntimeException('getAvailableBacktrackStates() is not implemented. This method must return states available for backtracking.');
     }
+
     /**
-     * @throws \RuntimeException
-     */
-    /**
-     * @throws \RuntimeException
+     * Assess data loss from backtracking to target state
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @param array<string, mixed> $targetData Target state data
+     * @return array{significance: float} Loss assessment with significance score
+     * @throws \RuntimeException When method is not implemented
      */
     private function assessBacktrackLoss(ConversationSession $session, array $targetData): array
     {
         throw new \RuntimeException('assessBacktrackLoss() is not implemented. This method must assess data loss from backtracking.');
     }
+
     /**
-     * @throws \RuntimeException
+     * Generate confirmation message for backtrack operation
+     *
+     * @since 1.0.0
+     * @param array<string, mixed> $lossAssessment Loss assessment data
+     * @return string Confirmation message
+     * @throws \RuntimeException When method is not implemented
      */
     private function generateBacktrackConfirmationMessage(array $lossAssessment): string
     {
         throw new \RuntimeException('generateBacktrackConfirmationMessage() is not implemented. This method must generate a confirmation message based on loss assessment.');
     }
+
     /**
-     * @throws \RuntimeException
+     * Suggest alternatives to backtracking
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @param string $target Target state for backtrack
+     * @return array<int, mixed> List of alternative actions
+     * @throws \RuntimeException When method is not implemented
      */
     private function suggestBacktrackAlternatives(ConversationSession $session, string $target): array
     {
         throw new \RuntimeException('suggestBacktrackAlternatives() is not implemented. This method must suggest alternatives to backtracking.');
     }
+
     /**
-     * @throws \RuntimeException
+     * Execute backtrack operation
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @param string $target Target state
+     * @param array<string, mixed> $data Target state data
+     * @return array{success: bool, steps_back?: int} Backtrack result
+     * @throws \RuntimeException When method is not implemented
      */
     private function executeBacktrack(ConversationSession $session, string $target, array $data): array
     {
         throw new \RuntimeException('executeBacktrack() is not implemented. This method must execute the backtrack operation.');
+    }
+
+    /**
+     * Get template selection suggestions
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Template selection suggestions
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function getTemplateSelectionSuggestions(ConversationSession $session): array
+    {
+        throw new \RuntimeException('getTemplateSelectionSuggestions() is not implemented.');
+    }
+
+    /**
+     * Get requirements gathering suggestions
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Requirements gathering suggestions
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function getRequirementsGatheringSuggestions(ConversationSession $session): array
+    {
+        throw new \RuntimeException('getRequirementsGatheringSuggestions() is not implemented.');
+    }
+
+    /**
+     * Get structure review suggestions
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Structure review suggestions
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function getStructureReviewSuggestions(ConversationSession $session): array
+    {
+        throw new \RuntimeException('getStructureReviewSuggestions() is not implemented.');
+    }
+
+    /**
+     * Get content review suggestions
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Content review suggestions
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function getContentReviewSuggestions(ConversationSession $session): array
+    {
+        throw new \RuntimeException('getContentReviewSuggestions() is not implemented.');
+    }
+
+    /**
+     * Get generic navigation suggestions
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Generic navigation suggestions
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function getGenericNavigationSuggestions(ConversationSession $session): array
+    {
+        throw new \RuntimeException('getGenericNavigationSuggestions() is not implemented.');
+    }
+
+    /**
+     * Get flow-specific suggestions
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @param string $flow Flow type
+     * @return array<string, mixed> Flow-specific suggestions
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function getFlowSpecificSuggestions(ConversationSession $session, string $flow): array
+    {
+        throw new \RuntimeException('getFlowSpecificSuggestions() is not implemented.');
+    }
+
+    /**
+     * Identify smart shortcuts available
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Available shortcuts
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function identifySmartShortcuts(ConversationSession $session): array
+    {
+        throw new \RuntimeException('identifySmartShortcuts() is not implemented.');
+    }
+
+    /**
+     * Detect navigation issues in conversation
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return bool True if navigation issues detected
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function detectNavigationIssues(ConversationSession $session): bool
+    {
+        throw new \RuntimeException('detectNavigationIssues() is not implemented.');
+    }
+
+    /**
+     * Get recovery options for navigation issues
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Recovery options
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function getRecoveryOptions(ConversationSession $session): array
+    {
+        throw new \RuntimeException('getRecoveryOptions() is not implemented.');
+    }
+
+    /**
+     * Check if user can skip ahead in conversation
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return bool True if skip ahead is allowed
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function canSkipAhead(ConversationSession $session): bool
+    {
+        throw new \RuntimeException('canSkipAhead() is not implemented.');
+    }
+
+    /**
+     * Find last stable state in conversation
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array{state?: string} Last stable state data
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function findLastStableState(ConversationSession $session): array
+    {
+        throw new \RuntimeException('findLastStableState() is not implemented.');
+    }
+
+    /**
+     * Determine optimal recovery strategy
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @param array<string, mixed> $errorContext Error context data
+     * @return string Recovery strategy identifier
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function determineOptimalRecoveryStrategy(ConversationSession $session, array $errorContext): string
+    {
+        throw new \RuntimeException('determineOptimalRecoveryStrategy() is not implemented.');
+    }
+
+    /**
+     * Execute backtrack recovery strategy
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @param array<string, mixed> $lastStableState Last stable state data
+     * @return array<string, mixed> Recovery result
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function executeBacktrackRecovery(ConversationSession $session, array $lastStableState): array
+    {
+        throw new \RuntimeException('executeBacktrackRecovery() is not implemented.');
+    }
+
+    /**
+     * Execute context preservation recovery strategy
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Recovery result
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function executeContextPreservationRecovery(ConversationSession $session): array
+    {
+        throw new \RuntimeException('executeContextPreservationRecovery() is not implemented.');
+    }
+
+    /**
+     * Execute smart restart strategy
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Recovery result
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function executeSmartRestart(ConversationSession $session): array
+    {
+        throw new \RuntimeException('executeSmartRestart() is not implemented.');
+    }
+
+    /**
+     * Prepare manual intervention recovery
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Manual intervention preparation result
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function prepareManualIntervention(ConversationSession $session): array
+    {
+        throw new \RuntimeException('prepareManualIntervention() is not implemented.');
+    }
+
+    /**
+     * Execute default recovery strategy
+     *
+     * @since 1.0.0
+     * @param ConversationSession $session Current conversation session
+     * @return array<string, mixed> Recovery result
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function executeDefaultRecovery(ConversationSession $session): array
+    {
+        throw new \RuntimeException('executeDefaultRecovery() is not implemented.');
+    }
+
+    /**
+     * Get transition recommendation for guided flow
+     *
+     * @since 1.0.0
+     * @param string $currentState Current conversation state
+     * @param string $transition Target transition state
+     * @param ConversationSession $session Current conversation session
+     * @return array{category: string, description: string, guidance: string, difficulty: string} Transition recommendation
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function getTransitionRecommendation(string $currentState, string $transition, ConversationSession $session): array
+    {
+        throw new \RuntimeException('getTransitionRecommendation() is not implemented.');
+    }
+
+    /**
+     * Get technical details for a state
+     *
+     * @since 1.0.0
+     * @param string $state State identifier
+     * @return array<string, mixed> Technical state details
+     * @throws \RuntimeException When method is not implemented
+     */
+    private function getTechnicalStateDetails(string $state): array
+    {
+        throw new \RuntimeException('getTechnicalStateDetails() is not implemented.');
     }
 }
