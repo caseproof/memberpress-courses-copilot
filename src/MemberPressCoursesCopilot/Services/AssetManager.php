@@ -355,6 +355,26 @@ class AssetManager extends BaseService
     }
 
     /**
+     * Check if MemberPress Quiz plugin is active
+     * 
+     * @return bool
+     */
+    private function isQuizPluginActive(): bool
+    {
+        // Check if the quiz plugin constant is defined
+        if (defined('\memberpress\quizzes\VERSION')) {
+            return true;
+        }
+        
+        // Fallback: check if quiz plugin is active using is_plugin_active
+        if (!function_exists('is_plugin_active')) {
+            include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+        }
+        
+        return is_plugin_active('memberpress-course-quizzes/main.php');
+    }
+
+    /**
      * Enqueue frontend assets
      */
     public function enqueueFrontendAssets(): void
@@ -381,8 +401,8 @@ class AssetManager extends BaseService
             if ($post && $post->post_type === 'mpcs-course') {
                 $this->enqueueCourseEditorAssets();
             }
-            // Quiz editor page assets
-            if ($post && $post->post_type === 'mpcs-quiz') {
+            // Quiz editor page assets - only if quiz plugin is active
+            if ($post && $post->post_type === 'mpcs-quiz' && $this->isQuizPluginActive()) {
                 $this->enqueueQuizEditorAssets();
             }
             // Lesson editor page assets
@@ -491,9 +511,11 @@ class AssetManager extends BaseService
                        ($pagenow === 'post.php' && function_exists('use_block_editor_for_post') && use_block_editor_for_post(get_post()));
 
         if ($is_gutenberg) {
-            // Enqueue lesson quiz integration script and styles
-            wp_enqueue_script('mpcc-lesson-quiz-integration');
-            wp_enqueue_style('mpcc-lesson-quiz-integration');
+            // Enqueue lesson quiz integration script and styles only if quiz plugin is active
+            if ($this->isQuizPluginActive()) {
+                wp_enqueue_script('mpcc-lesson-quiz-integration');
+                wp_enqueue_style('mpcc-lesson-quiz-integration');
+            }
         }
     }
 
