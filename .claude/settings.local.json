@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(composer install:*)",
+      "Bash(npm ci:*)",
+      "Bash(cd:*)"
     ],
     "deny": []
   }

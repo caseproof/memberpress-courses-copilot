@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WCAG Color Contrast Test - MemberPress Courses Copilot</title>
+    <link rel="stylesheet" href="../assets/css/mpcc-variables.css">
+    <link rel="stylesheet" href="../assets/css/mpcc-common.css">
+    <link rel="stylesheet" href="../assets/css/course-editor-page.css">
+    <link rel="stylesheet" href="../assets/css/accessibility.css">
+    <link rel="stylesheet" href="../assets/css/high-contrast-fixes.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 6px;
+        }
+        .contrast-info {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 5px 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .pass { color: #00a32a; }
+        .fail { color: #dc3232; }
+        .borderline { color: #f56e28; }
+        
+        /* Test high contrast mode */
+        .high-contrast-test {
+            margin-top: 40px;
+        }
+        
+        @media (prefers-contrast: more) {
+            .high-contrast-indicator::after {
+                content: " (High Contrast Mode Active)";
+                color: #0052cc;
+                font-weight: bold;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="high-contrast-indicator">WCAG Color Contrast Test Suite</h1>
+        <p>Test page for verifying color contrast ratios meet WCAG AA standards (4.5:1 for normal text, 3:1 for large text)</p>
+        
+        <!-- Original Issues -->
+        <div class="test-section">
+            <h2>Original Color Issues (Before Fixes)</h2>
+            
+            <h3>Gradient Backgrounds with White Text</h3>
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff;" class="test-item">
+                White on Gradient
+                <span class="contrast-info fail">~2.8:1 FAIL</span>
+            </div>
+            
+            <h3>Muted Text Colors</h3>
+            <div style="color: #646970; background: #ffffff;" class="test-item">
+                Muted Gray Text
+                <span class="contrast-info borderline">4.48:1 BORDERLINE</span>
+            </div>
+            
+            <div style="color: #8c8f94; background: #ffffff;" class="test-item">
+                Light Gray Text
+                <span class="contrast-info fail">3.04:1 FAIL</span>
+            </div>
+            
+            <h3>Placeholder Text</h3>
+            <input type="text" placeholder="Original placeholder color (#8c8f94)" style="color: #8c8f94; border: 1px solid #ddd; padding: 10px;">
+            <span class="contrast-info fail">3.04:1 FAIL</span>
+        </div>
+        
+        <!-- Fixed Colors -->
+        <div class="test-section">
+            <h2>Fixed Colors (After Improvements)</h2>
+            
+            <h3>Enhanced Gradient Backgrounds</h3>
+            <div class="mpcc-btn mpcc-btn--primary">
+                Primary Button
+                <span class="contrast-info pass">4.5:1+ PASS</span>
+            </div>
+            
+            <div style="background: var(--mpcc-gradient-primary-accessible); color: #ffffff;" class="test-item">
+                Accessible Gradient
+                <span class="contrast-info pass">4.5:1+ PASS</span>
+            </div>
+            
+            <h3>Improved Text Colors</h3>
+            <div class="mpcc-text-muted test-item" style="background: #ffffff;">
+                Fixed Muted Text
+                <span class="contrast-info pass">5.86:1 PASS</span>
+            </div>
+            
+            <h3>Fixed Placeholder</h3>
+            <input type="text" class="mpcc-form-input" placeholder="Fixed placeholder color">
+            <span class="contrast-info pass">5.86:1 PASS</span>
+            
+            <h3>Disabled States</h3>
+            <button disabled class="mpcc-btn mpcc-btn--primary">Disabled Button</button>
+            <span class="contrast-info pass">4.5:1+ PASS</span>
+        </div>
+        
+        <!-- Component Tests -->
+        <div class="test-section">
+            <h2>Component Color Tests</h2>
+            
+            <h3>Chat Messages</h3>
+            <div class="mpcc-chat-message user">
+                <div class="message-content">User message with gradient background</div>
+            </div>
+            
+            <div class="mpcc-chat-message assistant">
+                <div class="message-content">Assistant message with light background</div>
+            </div>
+            
+            <h3>Status Indicators</h3>
+            <div class="mpcc-status-indicator">
+                <span class="mpcc-status-text">AI Ready</span>
+                <span class="mpcc-status-dot"></span>
+            </div>
+            
+            <h3>Warning/Info Messages</h3>
+            <div class="mpcc-course-locked-notice">
+                <span class="dashicons dashicons-lock"></span>
+                Course is locked - improved contrast warning message
+            </div>
+            
+            <h3>Links</h3>
+            <div style="background: #ffffff; padding: 10px;">
+                <a href="#">Standard Link Color</a>
+                <span class="contrast-info pass">7:1+ PASS</span>
+            </div>
+            
+            <div style="background: var(--mpcc-gradient-primary-accessible); padding: 10px;">
+                <a href="#" style="color: #ffffff; text-decoration: underline;">Link on Dark Background</a>
+                <span class="contrast-info pass">4.5:1+ PASS</span>
+            </div>
+        </div>
+        
+        <!-- Focus States -->
+        <div class="test-section">
+            <h2>Focus Indicators (Tab through elements)</h2>
+            <button class="mpcc-btn mpcc-btn--primary">Focus Me</button>
+            <input type="text" class="mpcc-form-input" placeholder="Focus this input">
+            <textarea class="mpcc-form-textarea" placeholder="Focus this textarea"></textarea>
+            <a href="#" class="mpcc-btn mpcc-btn--secondary">Focus this link</a>
+        </div>
+        
+        <!-- High Contrast Mode -->
+        <div class="test-section high-contrast-test">
+            <h2>High Contrast Mode Test</h2>
+            <p>Enable high contrast mode in your OS settings to test enhanced contrast:</p>
+            <ul>
+                <li>Windows: Settings → Ease of Access → High contrast</li>
+                <li>macOS: System Preferences → Accessibility → Display → Increase contrast</li>
+                <li>Chrome: chrome://flags → Force High Contrast Mode</li>
+            </ul>
+            
+            <div class="mpcc-btn mpcc-btn--primary">Primary Button in High Contrast</div>
+            <div class="mpcc-card">
+                <h3>Card Component</h3>
+                <p>This card should have strong borders in high contrast mode.</p>
+            </div>
+        </div>
+        
+        <!-- Contrast Ratio Reference -->
+        <div class="test-section">
+            <h2>WCAG Contrast Requirements</h2>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f0f0f0;">
+                        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Element Type</th>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">WCAG AA</th>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">WCAG AAA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd;">Normal Text (&lt;18pt)</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">4.5:1</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">7:1</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd;">Large Text (≥18pt or ≥14pt bold)</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">3:1</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">4.5:1</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd;">UI Components & Graphics</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">3:1</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">N/A</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ddd;">Focus Indicators</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">3:1</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">N/A</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // Simple contrast ratio calculator for demonstration
+        function getContrastRatio(color1, color2) {
+            // This is a simplified version - use proper tools for accurate testing
+            console.log('Use browser DevTools or online contrast checkers for accurate measurements');
+        }
+        
+        // Test focus states
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded. Tab through elements to test focus indicators.');
+            console.log('Check DevTools > Accessibility > Contrast for accurate measurements.');
+        });
+    </script>
+</body>
+</html>

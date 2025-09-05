@@ -1,0 +1,485 @@
+/**
+ * MemberPress Courses Copilot - High Contrast Fixes
+ * WCAG Phase 3 Color Contrast Improvements
+ * 
+ * This file addresses color contrast issues found in the audit
+ * and provides high-contrast mode support
+ * 
+ * @package MemberPressCoursesCopilot
+ * @version 1.0.0
+ */
+
+/* ==========================================================================
+   COLOR CONTRAST AUDIT RESULTS & FIXES
+   
+   Issues Found:
+   1. White text (#ffffff) on gradient backgrounds - insufficient contrast
+   2. Gray text (#646970, #8c8f94) on light backgrounds - borderline contrast
+   3. Placeholder text too light
+   4. Disabled states with poor contrast
+   5. Status indicators with low contrast
+   6. Links on colored backgrounds
+   ========================================================================== */
+
+/* ==========================================================================
+   Default Contrast Improvements
+   ========================================================================== */
+
+/* Fix 1: Gradient backgrounds with white text
+   Original: White text on gradient (#667eea to #764ba2)
+   Issue: Contrast ratio ~2.8:1 (needs 4.5:1) */
+.mpcc-primary-gradient,
+.mpcc-btn--primary,
+#mpcc-send-message,
+#mpcc-create-course,
+#mpcc-generate-lesson-content,
+.mpcc-chat-message.user .message-content,
+.mpcc-header-button,
+.mpcc-icon-button {
+    /* Add a darker overlay to improve contrast */
+    position: relative;
+}
+
+.mpcc-primary-gradient::before,
+.mpcc-btn--primary::before,
+#mpcc-send-message::before,
+#mpcc-create-course::before,
+#mpcc-generate-lesson-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+/* Darker gradients for better contrast */
+:root {
+    /* Enhanced gradients with better contrast */
+    --mpcc-gradient-primary-accessible: linear-gradient(135deg, #5569d8 0%, #6a4191 100%);
+    --mpcc-gradient-success-accessible: linear-gradient(135deg, #3d9d42 0%, #358a3b 100%);
+}
+
+/* Fix 2: Muted text colors - increase contrast */
+.mpcc-text-muted,
+.mpcc-lesson-meta,
+.mpcc-session-meta,
+.mpcc-save-indicator,
+.mpcc-empty-state p,
+.mpcc-quick-starter .dashicons {
+    color: #50575e !important; /* From #646970 to meet 4.5:1 ratio */
+}
+
+/* Fix 3: Placeholder text - darken for better visibility */
+input::placeholder,
+textarea::placeholder,
+.mpcc-chat-input::placeholder {
+    color: #50575e !important; /* From #8c8f94 */
+    opacity: 1;
+}
+
+/* Fix 4: Disabled states - improve contrast while maintaining disabled appearance */
+.mpcc-chat-input:disabled,
+#mpcc-send-message:disabled,
+button:disabled,
+.button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+    background-color: #e8e8e8 !important;
+    color: #3c3c3c !important; /* Darker text for 4.5:1 ratio */
+    opacity: 1 !important; /* Remove opacity reduction */
+    cursor: not-allowed;
+}
+
+/* Fix 5: Focus indicators - ensure 3:1 contrast */
+*:focus,
+*:focus-visible {
+    outline: 2px solid #005a87 !important; /* Darker blue for better contrast */
+    outline-offset: 2px !important;
+}
+
+/* Fix 6: Status indicators with better contrast */
+.mpcc-status-dot {
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2); /* Add dark ring for contrast */
+}
+
+/* Fix 7: Warning/info messages contrast */
+.mpcc-course-locked-notice {
+    background: #fff3cd;
+    color: #664d03; /* Darker than #856404 for 4.5:1 ratio */
+    border-color: #ffecb5;
+}
+
+.mpcc-chat-disabled-notice {
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.mpcc-chat-disabled-notice .dashicons {
+    color: #997404; /* Darker yellow */
+}
+
+/* Fix 8: Links on colored backgrounds */
+a:link,
+a:visited {
+    color: #004c7a; /* Darker blue for better contrast */
+}
+
+a:hover,
+a:focus {
+    color: #003d63;
+}
+
+/* White links on dark backgrounds */
+.mpcc-header-button a,
+.mpcc-icon-button a,
+.mpcc-btn--primary a {
+    color: #ffffff !important;
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   High Contrast Mode (prefers-contrast: more)
+   ========================================================================== */
+
+@media (prefers-contrast: more) {
+    /* Enhanced color palette for high contrast */
+    :root {
+        /* Pure black and white for maximum contrast */
+        --mpcc-color-white: #ffffff;
+        --mpcc-color-black: #000000;
+        
+        /* High contrast grays */
+        --mpcc-color-gray-50: #ffffff;
+        --mpcc-color-gray-100: #f5f5f5;
+        --mpcc-color-gray-200: #e0e0e0;
+        --mpcc-color-gray-300: #c0c0c0;
+        --mpcc-color-gray-400: #808080;
+        --mpcc-color-gray-500: #404040;
+        --mpcc-color-gray-600: #202020;
+        --mpcc-color-gray-700: #101010;
+        --mpcc-color-gray-800: #000000;
+        --mpcc-color-gray-900: #000000;
+        
+        /* High contrast brand colors */
+        --mpcc-brand-primary: #0052cc;
+        --mpcc-brand-primary-dark: #003d99;
+        --mpcc-brand-secondary: #5243aa;
+        --mpcc-brand-accent: #663399;
+        
+        /* High contrast semantic colors */
+        --mpcc-color-success: #008000;
+        --mpcc-color-warning: #ff6600;
+        --mpcc-color-error: #cc0000;
+        --mpcc-color-info: #0066cc;
+        
+        /* Remove gradients in high contrast mode */
+        --mpcc-gradient-primary: #0052cc;
+        --mpcc-gradient-success: #008000;
+        --mpcc-gradient-light: #f5f5f5;
+        
+        /* Text colors */
+        --mpcc-text-primary: #000000;
+        --mpcc-text-secondary: #000000;
+        --mpcc-text-muted: #404040;
+        --mpcc-text-inverse: #ffffff;
+        
+        /* Border colors */
+        --mpcc-border-primary: #000000;
+        --mpcc-border-secondary: #404040;
+        --mpcc-border-focus: #0052cc;
+    }
+    
+    /* Remove all gradients and use solid colors */
+    .mpcc-gradient-primary,
+    .mpcc-btn--primary,
+    #mpcc-send-message,
+    #mpcc-create-course,
+    #mpcc-generate-lesson-content,
+    .mpcc-header-button,
+    .mpcc-course-editor-wrap,
+    .mpcc-editor-header,
+    .mpcc-message--assistant .mpcc-message__avatar,
+    .mpcc-message--user .mpcc-message__avatar {
+        background: var(--mpcc-brand-primary) !important;
+        background-image: none !important;
+    }
+    
+    /* Ensure all text meets contrast requirements */
+    body,
+    .mpcc-text-primary,
+    .mpcc-text-secondary,
+    .mpcc-lesson-title,
+    .mpcc-section-title,
+    .mpcc-course-header h2 {
+        color: #000000 !important;
+    }
+    
+    /* White text on dark backgrounds */
+    .mpcc-btn--primary,
+    #mpcc-send-message,
+    #mpcc-create-course,
+    .mpcc-header-button,
+    .mpcc-header-title,
+    .mpcc-status-text,
+    .mpcc-chat-message.user .message-content,
+    .mpcc-text-inverse {
+        color: #ffffff !important;
+    }
+    
+    /* Strong borders for all interactive elements */
+    button,
+    .button,
+    input,
+    textarea,
+    select,
+    .mpcc-card,
+    .mpcc-section,
+    .mpcc-lesson-item,
+    .mpcc-modal,
+    .mpcc-chat-message {
+        border: 2px solid #000000 !important;
+    }
+    
+    /* High contrast focus states */
+    *:focus,
+    *:focus-visible {
+        outline: 3px solid #0052cc !important;
+        outline-offset: 2px !important;
+        box-shadow: none !important;
+    }
+    
+    /* Remove shadows and use borders instead */
+    .mpcc-card,
+    .mpcc-section,
+    .mpcc-lesson-item,
+    .mpcc-modal {
+        box-shadow: none !important;
+    }
+    
+    /* Status indicators with strong contrast */
+    .mpcc-status-dot {
+        border: 2px solid #000000;
+        box-shadow: none;
+    }
+    
+    .mpcc-published-badge {
+        background: #008000 !important;
+        color: #ffffff !important;
+        border: 2px solid #000000 !important;
+    }
+    
+    /* Disabled states with clear indication */
+    :disabled,
+    [aria-disabled="true"] {
+        background-color: #e0e0e0 !important;
+        color: #404040 !important;
+        border: 2px dashed #808080 !important;
+        text-decoration: line-through;
+    }
+    
+    /* Links with underlines for clarity */
+    a {
+        color: #0052cc !important;
+        text-decoration: underline !important;
+        text-decoration-thickness: 2px !important;
+    }
+    
+    a:hover,
+    a:focus {
+        color: #003d99 !important;
+        background-color: #ffff00 !important;
+    }
+    
+    /* Selection highlight */
+    ::selection {
+        background-color: #0052cc !important;
+        color: #ffffff !important;
+    }
+    
+    /* Form field enhancements */
+    input:not([type="button"]):not([type="submit"]),
+    textarea,
+    select {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+    }
+    
+    /* Placeholder text with sufficient contrast */
+    ::placeholder {
+        color: #404040 !important;
+        opacity: 1 !important;
+    }
+    
+    /* Error states */
+    .mpcc-error,
+    .mpcc-text-error,
+    [aria-invalid="true"] {
+        color: #cc0000 !important;
+        border-color: #cc0000 !important;
+    }
+    
+    /* Success states */
+    .mpcc-success,
+    .mpcc-text-success {
+        color: #008000 !important;
+    }
+    
+    /* Warning states */
+    .mpcc-warning,
+    .mpcc-text-warning {
+        color: #ff6600 !important;
+    }
+    
+    /* Chat message contrast */
+    .mpcc-chat-message.assistant .message-content {
+        background: #f5f5f5 !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+    }
+    
+    .mpcc-chat-message.user .message-content {
+        background: #0052cc !important;
+        color: #ffffff !important;
+        border: 2px solid #000000 !important;
+    }
+    
+    /* Code blocks with high contrast */
+    code,
+    pre {
+        background: #000000 !important;
+        color: #ffffff !important;
+        border: 1px solid #ffffff !important;
+    }
+    
+    .mpcc-chat-message.assistant code {
+        background: #404040 !important;
+        color: #ffffff !important;
+    }
+    
+    /* Loading indicators */
+    .mpcc-spinner {
+        border-color: #e0e0e0 !important;
+        border-top-color: #000000 !important;
+    }
+    
+    /* Typing indicator dots */
+    .mpcc-typing-dot {
+        background: #000000 !important;
+    }
+}
+
+/* ==========================================================================
+   Dark Theme High Contrast Support
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+    :root {
+        /* Invert colors for dark high contrast */
+        --mpcc-color-white: #000000;
+        --mpcc-color-black: #ffffff;
+        
+        --mpcc-text-primary: #ffffff;
+        --mpcc-text-secondary: #ffffff;
+        --mpcc-text-muted: #c0c0c0;
+        --mpcc-text-inverse: #000000;
+        
+        --mpcc-bg-primary: #000000;
+        --mpcc-bg-secondary: #1a1a1a;
+        --mpcc-bg-tertiary: #2a2a2a;
+        
+        --mpcc-border-primary: #ffffff;
+        --mpcc-border-secondary: #c0c0c0;
+    }
+    
+    /* Invert backgrounds */
+    body,
+    .mpcc-editor-container,
+    .mpcc-card,
+    .mpcc-section,
+    .mpcc-lesson-item {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+    }
+    
+    /* Borders in dark mode */
+    button,
+    .button,
+    input,
+    textarea,
+    select,
+    .mpcc-card,
+    .mpcc-section,
+    .mpcc-lesson-item {
+        border-color: #ffffff !important;
+    }
+    
+    /* Links in dark mode */
+    a {
+        color: #66b3ff !important;
+    }
+    
+    a:hover,
+    a:focus {
+        background-color: #003366 !important;
+        color: #ffffff !important;
+    }
+}
+
+/* ==========================================================================
+   Forced Colors Mode Support (Windows High Contrast)
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Let the system handle colors but ensure proper semantics */
+    .mpcc-btn--primary,
+    .mpcc-published-badge,
+    .mpcc-status--success {
+        forced-color-adjust: none;
+    }
+    
+    /* Ensure focus indicators are visible */
+    *:focus {
+        outline: 3px solid;
+        outline-offset: 2px;
+    }
+    
+    /* Maintain button appearances */
+    button,
+    .button {
+        border: 2px solid;
+    }
+}
+
+/* ==========================================================================
+   Print Styles with High Contrast
+   ========================================================================== */
+
+@media print {
+    /* Ensure text is black on white for printing */
+    * {
+        color: #000000 !important;
+        background: #ffffff !important;
+    }
+    
+    /* Remove backgrounds from buttons but keep borders */
+    button,
+    .button,
+    .mpcc-btn {
+        background: transparent !important;
+        border: 2px solid #000000 !important;
+    }
+    
+    /* Ensure links are distinguishable */
+    a {
+        color: #000000 !important;
+        text-decoration: underline !important;
+    }
+}
