@@ -70,11 +70,12 @@ class AssetManager extends BaseService
     {
         // Core styles
         $this->registerStyle('mpcc-accessibility', 'assets/css/accessibility.css', []);
-        $this->registerStyle('mpcc-courses-integration', 'assets/css/courses-integration.css', ['wp-components', 'mpcc-accessibility']);
+        $this->registerStyle('mpcc-high-contrast-fixes', 'assets/css/high-contrast-fixes.css', ['mpcc-accessibility']);
+        $this->registerStyle('mpcc-courses-integration', 'assets/css/courses-integration.css', ['wp-components', 'mpcc-accessibility', 'mpcc-high-contrast-fixes']);
         $this->registerStyle('mpcc-toast', 'assets/css/toast.css', ['dashicons']);
-        $this->registerStyle('mpcc-course-editor', 'assets/css/course-editor-page.css', ['wp-components', 'mpcc-accessibility']);
-        $this->registerStyle('mpcc-course-edit-ai-chat', 'assets/css/course-edit-ai-chat.css', ['dashicons', 'mpcc-accessibility']);
-        $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons', 'mpcc-accessibility']);
+        $this->registerStyle('mpcc-course-editor', 'assets/css/course-editor-page.css', ['wp-components', 'mpcc-accessibility', 'mpcc-high-contrast-fixes']);
+        $this->registerStyle('mpcc-course-edit-ai-chat', 'assets/css/course-edit-ai-chat.css', ['dashicons', 'mpcc-accessibility', 'mpcc-high-contrast-fixes']);
+        $this->registerStyle('mpcc-ai-copilot', 'assets/css/ai-copilot.css', ['dashicons', 'mpcc-accessibility', 'mpcc-high-contrast-fixes']);
 
         // Admin page styles
         $this->registerStyle('mpcc-admin-settings', 'assets/css/admin-settings.css', ['dashicons']);

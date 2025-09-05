@@ -139,21 +139,143 @@ textarea:focus {
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
+    /* Remove all animations and transitions */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    /* Modal appearances - instant show/hide */
     .mpcc-modal-overlay,
-    .mpcc-chat-interface,
-    .mpcc-typing-dot,
-    * {
-        animation: none !important;
+    .mpcc-modal-backdrop,
+    .mpcc-modal {
         transition: none !important;
     }
     
     .mpcc-modal-overlay {
         display: none;
+        opacity: 1 !important;
     }
     
     .mpcc-modal-overlay.active,
-    .mpcc-modal-overlay.mpcc-modal-open {
+    .mpcc-modal-overlay.mpcc-modal-open,
+    .mpcc-modal-overlay.show {
         display: flex !important;
+    }
+    
+    .mpcc-modal {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    
+    /* Remove hover transform effects on buttons */
+    .mpcc-btn:hover,
+    .mpcc-btn:active,
+    .mpcc-quick-start-btn:hover,
+    .mpcc-quick-start-btn:active,
+    .mpcc-course-quick-action:hover,
+    .mpcc-course-quick-action:active,
+    .mpcc-icon-btn:hover,
+    .mpcc-card--interactive:hover {
+        transform: none !important;
+    }
+    
+    /* Remove loading spinner animations */
+    .mpcc-spinner,
+    [aria-busy="true"]::after {
+        animation: none !important;
+        border-color: #0073aa !important;
+        border-top-color: transparent !important;
+    }
+    
+    /* Remove typing indicators animation */
+    .mpcc-typing-dot,
+    .mpcc-typing-indicator .mpcc-typing-dot {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    
+    /* Remove skeleton shimmer effect */
+    .mpcc-skeleton {
+        animation: none !important;
+        background: #f0f0f1 !important;
+    }
+    
+    /* Remove progress bar animations */
+    .mpcc-progress__bar,
+    .mpcc-progress__bar--animated {
+        animation: none !important;
+        transition: none !important;
+    }
+    
+    /* Remove status indicator pulse */
+    .mpcc-status-dot,
+    .mpcc-status__indicator {
+        animation: none !important;
+    }
+    
+    /* Toast notifications - instant show/hide */
+    .mpcc-toast {
+        transition: none !important;
+    }
+    
+    .mpcc-toast.show {
+        opacity: 1 !important;
+        transform: translateX(0) !important;
+    }
+    
+    .mpcc-toast.hide {
+        display: none !important;
+    }
+    
+    /* Card hover effects */
+    .mpcc-card:hover {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24) !important;
+    }
+    
+    /* Focus styles remain but without transitions */
+    *:focus,
+    *:focus-visible {
+        transition: none !important;
+    }
+    
+    /* Dropdown instant show/hide */
+    .mpcc-dropdown__menu {
+        transition: none !important;
+        transform: none !important;
+    }
+    
+    .mpcc-dropdown__menu--active {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    
+    /* Tooltip instant show/hide */
+    .mpcc-tooltip__content {
+        transition: none !important;
+    }
+    
+    /* Tab transitions */
+    .mpcc-tabs__trigger {
+        transition: none !important;
+    }
+    
+    /* Form element transitions */
+    .mpcc-form-input,
+    .mpcc-form-textarea,
+    .mpcc-form-select {
+        transition: none !important;
+    }
+    
+    /* Alert close button */
+    .mpcc-alert__close,
+    .mpcc-toast__close {
+        transition: none !important;
     }
 }
 
@@ -363,3 +485,9 @@ label {
     margin: 10px 0;
     border-radius: 4px;
 }
+
+/* ==========================================================================
+   High Contrast Mode Support (prefers-contrast: more)
+   ========================================================================== */
+
+@import url('high-contrast-fixes.css');

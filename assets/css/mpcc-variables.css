@@ -277,3 +277,27 @@
   --mpcc-transition-base: var(--mpcc-transition-all);
   --mpcc-transition-slow: all var(--mpcc-duration-slow) var(--mpcc-ease-in-out);
 }
+
+/* ==========================================================================
+   Reduced Motion Preferences
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    /* Override all animation durations to near-instant */
+    --mpcc-duration-instant: 0.01ms;
+    --mpcc-duration-fast: 0.01ms;
+    --mpcc-duration-normal: 0.01ms;
+    --mpcc-duration-slow: 0.01ms;
+    --mpcc-duration-slower: 0.01ms;
+    
+    /* Override transitions to be instant */
+    --mpcc-transition-all: none;
+    --mpcc-transition-colors: none;
+    --mpcc-transition-transform: none;
+    --mpcc-transition-shadow: none;
+    --mpcc-transition-fast: none;
+    --mpcc-transition-base: none;
+    --mpcc-transition-slow: none;
+  }
+}

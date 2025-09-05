@@ -5,6 +5,14 @@
 
 window.MPCCUtils = {
     /**
+     * Check if user prefers reduced motion
+     * @returns {boolean}
+     */
+    prefersReducedMotion: function() {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    },
+
+    /**
      * Escape HTML to prevent XSS attacks with comprehensive character mapping
      * 
      * This method provides essential security protection by encoding dangerous
@@ -332,7 +340,13 @@ window.MPCCUtils = {
             if (window.MPCCLogger) {
                 window.MPCCLogger.debug('Closing modal', $modal.length ? 'found' : 'not found');
             }
-            $modal.removeClass('active mpcc-modal-open').fadeOut(0); // Instant hide to ensure it works
+            
+            // Check for reduced motion preference
+            if (MPCCUtils.prefersReducedMotion()) {
+                $modal.removeClass('active mpcc-modal-open').hide();
+            } else {
+                $modal.removeClass('active mpcc-modal-open').fadeOut(200);
+            }
             jQuery('body').css('overflow', '');
             
             // Release focus trap
@@ -355,7 +369,13 @@ window.MPCCUtils = {
          */
         open: function(modalSelector) {
             const $modal = jQuery(modalSelector);
-            $modal.addClass('active mpcc-modal-open').fadeIn();
+            
+            // Check for reduced motion preference
+            if (MPCCUtils.prefersReducedMotion()) {
+                $modal.addClass('active mpcc-modal-open').show();
+            } else {
+                $modal.addClass('active mpcc-modal-open').fadeIn(200);
+            }
             jQuery('body').css('overflow', 'hidden');
             
             // Enhance modal for accessibility

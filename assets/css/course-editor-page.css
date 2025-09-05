@@ -1661,3 +1661,61 @@
         left: 20px;
     }
 }
+
+/* ==========================================================================
+   Reduced Motion Preferences
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    /* Remove all animations */
+    .mpcc-course-info::before,
+    .mpcc-chat-message,
+    .message-content.highlighted,
+    .spin {
+        animation: none !important;
+    }
+    
+    /* Remove all transitions */
+    .mpcc-sessions-button,
+    .mpcc-course-quick-action,
+    #mpcc-chat-input,
+    #mpcc-send-message,
+    .mpcc-chat-clear,
+    .mpcc-chat-export,
+    #mpcc-create-course,
+    #mpcc-view-course, 
+    #mpcc-duplicate-course,
+    .mpcc-quick-start-btn,
+    .mpcc-course-card,
+    .mpcc-lesson-item,
+    .mpcc-edit-lesson,
+    .mpcc-delete-lesson,
+    .mpcc-menu-item {
+        transition: none !important;
+    }
+    
+    /* Remove hover transforms */
+    .mpcc-sessions-button:hover,
+    .mpcc-course-quick-action:hover,
+    #mpcc-send-message:hover,
+    #mpcc-create-course:hover,
+    #mpcc-view-course:hover,
+    #mpcc-duplicate-course:hover,
+    .mpcc-lesson-item:hover,
+    .mpcc-edit-lesson:hover,
+    .mpcc-delete-lesson:hover,
+    .mpcc-menu-item:hover {
+        transform: none !important;
+    }
+    
+    /* Instant fade effects */
+    .fadeIn {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+    
+    /* Instant status indicators */
+    .mpcc-course-info::before {
+        animation: none !important;
+    }
+}

@@ -22,6 +22,15 @@ window.mpccToast = window.MPCCToast = (function($) {
     }
     
     /**
+     * Check if user prefers reduced motion
+     * @private
+     * @returns {boolean}
+     */
+    function prefersReducedMotion() {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    
+    /**
      * Show a toast notification
      * @param {string} message - The message to display
      * @param {string} [type='info'] - The type of toast (success, error, warning, info)
@@ -48,8 +57,12 @@ window.mpccToast = window.MPCCToast = (function($) {
         
         container.append(toast);
         
-        // Trigger animation
-        setTimeout(() => toast.addClass('show'), 10);
+        // Trigger animation or show immediately based on motion preference
+        if (prefersReducedMotion()) {
+            toast.addClass('show');
+        } else {
+            setTimeout(() => toast.addClass('show'), 10);
+        }
         
         // Close button
         toast.find('.mpcc-toast-close').on('click', function() {
@@ -70,8 +83,12 @@ window.mpccToast = window.MPCCToast = (function($) {
      * @private
      */
     function removeToast(toast) {
-        toast.removeClass('show').addClass('hide');
-        setTimeout(() => toast.remove(), 300);
+        if (prefersReducedMotion()) {
+            toast.remove();
+        } else {
+            toast.removeClass('show').addClass('hide');
+            setTimeout(() => toast.remove(), 300);
+        }
     }
     
     /**

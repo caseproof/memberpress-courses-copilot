@@ -74,7 +74,12 @@
             if (window.MPCCUtils && window.MPCCUtils.modalManager) {
                 window.MPCCUtils.modalManager.close(modalId);
             } else {
-                $(modalId).fadeOut();
+                // Fallback with reduced motion support
+                if (window.MPCCUtils && window.MPCCUtils.prefersReducedMotion()) {
+                    $(modalId).hide();
+                } else {
+                    $(modalId).fadeOut(200);
+                }
                 $('body').css('overflow', '');
             }
         });
@@ -85,7 +90,12 @@
                 if (window.MPCCUtils && window.MPCCUtils.modalManager) {
                     window.MPCCUtils.modalManager.close(modalId);
                 } else {
-                    $(this).fadeOut();
+                    // Fallback with reduced motion support
+                    if (window.MPCCUtils && window.MPCCUtils.prefersReducedMotion()) {
+                        $(this).hide();
+                    } else {
+                        $(this).fadeOut(200);
+                    }
                     $('body').css('overflow', '');
                 }
             }
@@ -101,9 +111,10 @@
             // Focus the input field
             $input.focus();
             
-            // Optional: Scroll to input area
+            // Optional: Scroll to input area with reduced motion support
+            const scrollBehavior = window.MPCCUtils && MPCCUtils.prefersReducedMotion() ? 'auto' : 'smooth';
             $input[0].scrollIntoView({ 
-                behavior: 'smooth', 
+                behavior: scrollBehavior, 
                 block: 'nearest' 
             });
             
