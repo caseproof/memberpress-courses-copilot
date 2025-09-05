@@ -321,8 +321,11 @@
                         // Verify the post is actually a lesson via REST API
                         // This prevents false positives from other post types
                         $.ajax({
-                            url: '/wp-json/wp/v2/mpcs-lesson/' + referrerMatch[1],
+                            url: mpcc_ajax.rest_url + 'mpcs-lesson/' + referrerMatch[1],
                             async: false,  // Synchronous to complete detection before modal opens
+                            headers: {
+                                'X-WP-Nonce': mpcc_ajax.rest_nonce
+                            },
                             success: (lesson) => {
                                 this.currentLessonId = parseInt(lesson.id, 10);
                                 this.detectionMethod = 'referrer';
@@ -1278,8 +1281,12 @@
         loadSingleLesson() {
             const $select = $('#mpcc-modal-lesson-select');
             
-            $.get(`/wp-json/wp/v2/mpcs-lesson/${this.currentLessonId}`)
-                .done((lesson) => {
+            $.ajax({
+                url: mpcc_ajax.rest_url + 'mpcs-lesson/' + this.currentLessonId,
+                headers: {
+                    'X-WP-Nonce': mpcc_ajax.rest_nonce
+                }
+            }).done((lesson) => {
                     const lessons = [{
                         id: lesson.id,
                         title: { rendered: lesson.title.rendered }
@@ -1317,8 +1324,12 @@
         loadRecentLessons() {
             const $select = $('#mpcc-modal-lesson-select');
             
-            $.get('/wp-json/wp/v2/mpcs-lesson?per_page=50&orderby=modified&order=desc')
-                .done((lessons) => {
+            $.ajax({
+                url: mpcc_ajax.rest_url + 'mpcs-lesson?per_page=50&orderby=modified&order=desc',
+                headers: {
+                    'X-WP-Nonce': mpcc_ajax.rest_nonce
+                }
+            }).done((lessons) => {
                     this.populateLessonDropdown($select, lessons);
                     
                     // Add note about limited results

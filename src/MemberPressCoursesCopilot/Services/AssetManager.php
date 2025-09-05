@@ -302,14 +302,18 @@ class AssetManager extends BaseService
 
         // Quiz AI Modal localizations
         wp_localize_script('mpcc-quiz-ai-modal', 'mpcc_ajax', [
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => NonceConstants::create(NonceConstants::QUIZ_AI),
+            'ajax_url'   => admin_url('admin-ajax.php'),
+            'rest_url'   => rest_url('wp/v2/'),
+            'rest_nonce' => wp_create_nonce('wp_rest'),
+            'nonce'      => NonceConstants::create(NonceConstants::QUIZ_AI),
         ]);
 
         // Quiz AI Simple localizations
         wp_localize_script('mpcc-quiz-ai-integration-simple', 'mpcc_ajax', [
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => NonceConstants::create(NonceConstants::QUIZ_AI),
+            'ajax_url'   => admin_url('admin-ajax.php'),
+            'rest_url'   => rest_url('wp/v2/'),
+            'rest_nonce' => wp_create_nonce('wp_rest'),
+            'nonce'      => NonceConstants::create(NonceConstants::QUIZ_AI),
         ]);
 
         // AI chat interface localizations
@@ -322,9 +326,11 @@ class AssetManager extends BaseService
 
         // Quiz AI localizations
         $quizAILocalization = [
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce'    => NonceConstants::create(NonceConstants::QUIZ_AI),
-            'strings'  => [
+            'ajax_url'   => admin_url('admin-ajax.php'),
+            'rest_url'   => rest_url('wp/v2/'),
+            'rest_nonce' => wp_create_nonce('wp_rest'),
+            'nonce'      => NonceConstants::create(NonceConstants::QUIZ_AI),
+            'strings'    => [
                 'generate_button' => __('Generate', 'memberpress-courses-copilot'),
                 'generating'      => __('Generating questions...', 'memberpress-courses-copilot'),
                 'error'           => __('Error generating questions', 'memberpress-courses-copilot'),
