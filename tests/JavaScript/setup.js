@@ -51,8 +51,39 @@ global.wp = {
 // Mock AJAX settings that would be localized by WordPress
 global.mpcc_ajax = {
     ajax_url: '/wp-admin/admin-ajax.php',
+    rest_url: '/wp-json/wp/v2/',
+    rest_nonce: 'test-rest-nonce-456',
     nonce: 'test-nonce-123',
     security: 'test-nonce-123' // Some scripts may use 'security' instead of 'nonce'
+};
+
+// Mock MPCCUtils with the getAjaxSettings method
+global.MPCCUtils = {
+    getAjaxSettings: function() {
+        return {
+            url: global.mpcc_ajax.ajax_url,
+            nonce: global.mpcc_ajax.nonce
+        };
+    },
+    ui: {
+        addTypingIndicator: jest.fn(() => 'typing-123'),
+        removeTypingIndicator: jest.fn(),
+        scrollToBottom: jest.fn(),
+        setButtonLoading: jest.fn(),
+        updateSaveIndicator: jest.fn()
+    },
+    showError: jest.fn(),
+    showSuccess: jest.fn(),
+    showNotification: jest.fn(),
+    escapeHtml: jest.fn(text => text),
+    sessionManager: {
+        getCurrentSessionId: jest.fn(() => 'test-session-123'),
+        setCurrentSessionId: jest.fn()
+    },
+    ajax: {
+        saveLessonContent: jest.fn()
+    },
+    prefersReducedMotion: jest.fn(() => false)
 };
 
 // Mock browser APIs
@@ -64,6 +95,18 @@ Object.defineProperty(global, 'navigator', {
     },
     writable: true
 });
+
+// Mock window.matchMedia for responsive checks
+global.matchMedia = jest.fn((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(), // Deprecated
+    removeListener: jest.fn(), // Deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn()
+}));
 
 // Mock URLSearchParams for older browsers
 if (!global.URLSearchParams) {
