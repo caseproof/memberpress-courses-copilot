@@ -169,7 +169,7 @@
             
             // Set aria-busy on messages container
             if (window.MPCCAccessibility) {
-                MPCCAccessibility.setBusy('#mpcc-editor-ai-messages', true);
+                MPCCAccessibility.setARIA('#mpcc-editor-ai-messages', {'aria-busy': 'true'});
             }
             
             // Prepare context data
@@ -221,7 +221,7 @@
                         // Announce AI response
                         if (window.MPCCAccessibility) {
                             MPCCAccessibility.announce('AI Assistant responded');
-                            MPCCAccessibility.setBusy('#mpcc-editor-ai-messages', false);
+                            MPCCAccessibility.setARIA('#mpcc-editor-ai-messages', {'aria-busy': 'false'});
                         }
                         
                         // If content update is provided, show apply button

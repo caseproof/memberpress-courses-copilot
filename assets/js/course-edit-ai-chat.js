@@ -149,7 +149,7 @@
             // Announce message sent
             if (window.MPCCAccessibility) {
                 MPCCAccessibility.announce('Message sent: ' + message);
-                MPCCAccessibility.setBusy('#mpcc-course-chat-messages', true);
+                MPCCAccessibility.setARIA('#mpcc-course-chat-messages', {'aria-busy': 'true'});
             }
             
             // Show typing indicator
@@ -172,7 +172,7 @@
                 $('#' + typingId).remove();
                 this.addMessage('assistant', cachedResponse);
                 if (window.MPCCAccessibility) {
-                    MPCCAccessibility.setBusy('#mpcc-course-chat-messages', false);
+                    MPCCAccessibility.setARIA('#mpcc-course-chat-messages', {'aria-busy': 'false'});
                     MPCCAccessibility.announce('AI Assistant has responded (from cache)');
                 }
                 return;
@@ -194,7 +194,7 @@
                     $('#' + typingId).remove();
                     
                     if (window.MPCCAccessibility) {
-                        MPCCAccessibility.setBusy('#mpcc-course-chat-messages', false);
+                        MPCCAccessibility.setARIA('#mpcc-course-chat-messages', {'aria-busy': 'false'});
                     }
                     
                     if (response.success) {
