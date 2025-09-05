@@ -189,6 +189,10 @@ class MpccQuizAjaxController
     public function generate_quiz(): void
     {
         try {
+            // Check if quiz plugin is active
+            if (!defined('\memberpress\quizzes\VERSION')) {
+                throw new \Exception(__('MemberPress Course Quizzes plugin is not active', 'memberpress-courses-copilot'));
+            }
             // Verify nonce
             if (!$this->verifyQuizNonce()) {
                 ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
@@ -1247,6 +1251,10 @@ class MpccQuizAjaxController
     public function create_quiz_from_lesson(): void
     {
         try {
+            // Check if quiz plugin is active
+            if (!defined('\memberpress\quizzes\VERSION')) {
+                throw new \Exception(__('MemberPress Course Quizzes plugin is not active', 'memberpress-courses-copilot'));
+            }
             // Verify nonce
             if (!NonceConstants::verify($_POST['nonce'] ?? '', NonceConstants::QUIZ_AI, false)) {
                 ApiResponse::errorMessage('Security check failed', ApiResponse::ERROR_INVALID_NONCE, 403);
