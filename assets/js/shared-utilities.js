@@ -309,18 +309,28 @@ window.MPCCUtils = {
      * @return {Object} Configuration object with 'url' and 'nonce' properties
      */
     getAjaxSettings: function() {
+        // Get AJAX URL from various possible sources
+        const ajaxUrl = window.mpccEditorSettings?.ajaxUrl ||      // Course editor context
+                       window.mpccAISettings?.ajaxUrl ||          // AI interface context
+                       window.mpccCoursesIntegration?.ajaxUrl ||  // Integration context
+                       window.ajaxurl ||                          // WordPress global
+                       window.mpcc_ajax?.ajax_url ||              // Quiz context
+                       null;
+        
+        // If no AJAX URL found, throw error instead of using hardcoded fallback
+        if (!ajaxUrl) {
+            console.error('MPCC: No AJAX URL available. WordPress localization may have failed.');
+            throw new Error('AJAX URL not available');
+        }
+        
         return {
-            // URL fallback chain - ensures AJAX calls have valid endpoint
-            url: window.mpccEditorSettings?.ajaxUrl ||      // Course editor context
-                 window.mpccAISettings?.ajaxUrl ||          // AI interface context
-                 window.mpccCoursesIntegration?.ajaxUrl ||  // Integration context
-                 window.ajaxurl ||                          // WordPress global
-                 '/wp-admin/admin-ajax.php',                // Hardcoded WordPress default
+            url: ajaxUrl,
             
             // Nonce fallback chain - ensures security token is available
             nonce: window.mpccEditorSettings?.nonce ||       // Editor security token
                    window.mpccAISettings?.nonce ||          // AI interface token
                    window.mpccCoursesIntegration?.nonce ||  // Integration token
+                   window.mpcc_ajax?.nonce ||               // Quiz context token
                    jQuery('#mpcc-ajax-nonce').val() ||     // DOM fallback
                    ''                                       // Empty string triggers security error
         };
