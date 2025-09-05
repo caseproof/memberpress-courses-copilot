@@ -103,13 +103,19 @@
 /* Form field focus */
 #mpcc-editor-ai-input:focus,
 #mpcc-course-chat-input:focus,
-textarea:focus,
 input[type="text"]:focus,
 input[type="email"]:focus,
 input[type="password"]:focus {
     outline: 2px solid #0073aa !important;
     outline-offset: 2px !important;
     border-color: #0073aa;
+}
+
+/* Textarea gets a subtler focus style to avoid double borders */
+textarea:focus {
+    outline: none !important;
+    border-color: #0073aa;
+    box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.15);
 }
 
 /* High contrast mode support */

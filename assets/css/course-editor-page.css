@@ -770,16 +770,9 @@
     position: relative;
 }
 
-/* Green border for lessons with draft - moved from ::before due to drag handle conflict */
-.mpcc-lesson-item.has-draft .mpcc-lesson-info::before {
-    content: '';
-    position: absolute;
-    left: -14px; /* Position it inside the lesson item padding */
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: #00a32a;
-    border-radius: 4px;
+/* Green border for lessons with draft - only in course structure */
+#mpcc-course-structure .mpcc-lesson-item.has-draft {
+    border-left: 4px solid #00a32a;
 }
 
 .mpcc-lesson-item.mpcc-lesson-locked {
@@ -1499,8 +1492,8 @@
     position: relative;
 }
 
-/* Use ::after for drag handle to avoid conflict with draft indicator */
-.mpcc-lesson-item::after {
+/* Use ::after for drag handle to avoid conflict with draft indicator - only in course structure */
+#mpcc-course-structure .mpcc-lessons .mpcc-lesson-item::after {
     content: '⋮⋮';
     position: absolute;
     left: 8px;

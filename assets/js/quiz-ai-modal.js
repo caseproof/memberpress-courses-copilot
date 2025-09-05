@@ -181,9 +181,10 @@
                                     type="button"
                                     class="components-button mpcc-ai-button"
                                     title="Generate"
+                                    aria-label="Generate quiz questions with AI"
                                     style="background: #6B4CE6 !important; border-color: #6B4CE6 !important; color: #ffffff !important; height: 36px !important; padding: 0 12px !important; margin-right: 8px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 3px !important;"
                                 >
-                                    <span class="dashicons dashicons-lightbulb" style="margin-right: 4px !important; font-size: 20px !important; width: 20px !important; height: 20px !important;"></span>
+                                    <span class="dashicons dashicons-lightbulb" style="margin-right: 4px !important; font-size: 20px !important; width: 20px !important; height: 20px !important;" aria-hidden="true"></span>
                                     Generate
                                 </button>
                             `;
@@ -521,8 +522,8 @@
                             </div>
                             
                             <div class="mpcc-modal-actions">
-                                <button type="button" id="mpcc-generate-quiz" class="button button-primary">
-                                    <span class="dashicons dashicons-lightbulb"></span>
+                                <button type="button" id="mpcc-generate-quiz" class="button button-primary" aria-label="Generate quiz questions based on selected lesson">
+                                    <span class="dashicons dashicons-lightbulb" aria-hidden="true"></span>
                                     Generate Questions
                                 </button>
                             </div>
@@ -536,13 +537,13 @@
                                 <h3>Generated Questions</h3>
                                 <div id="mpcc-questions-preview"></div>
                                 <div class="mpcc-modal-actions" style="margin-top: 20px;">
-                                    <button type="button" id="mpcc-apply-questions" class="button button-primary">
+                                    <button type="button" id="mpcc-apply-questions" class="button button-primary" aria-label="Apply generated questions to the quiz">
                                         Apply Questions
                                     </button>
-                                    <button type="button" id="mpcc-copy-questions" class="button">
+                                    <button type="button" id="mpcc-copy-questions" class="button" aria-label="Copy generated questions to clipboard">
                                         Copy to Clipboard
                                     </button>
-                                    <button type="button" id="mpcc-regenerate" class="button">
+                                    <button type="button" id="mpcc-regenerate" class="button" aria-label="Generate new set of questions">
                                         Regenerate
                                     </button>
                                 </div>
@@ -775,7 +776,10 @@
             }
             
             // Show modal with fade effect
-            $('#mpcc-quiz-ai-modal').fadeIn(200);
+            $('#mpcc-quiz-ai-modal').fadeIn(200, () => {
+                // Set initial focus to first form element
+                $('#mpcc-modal-lesson-select').focus();
+            });
             
             // Load lessons
             this.loadContextualLessons();
@@ -794,7 +798,203 @@
             // Start monitoring for lesson changes
             this.startLessonMonitoring();
             
+            // Enhance modal accessibility if available
+            if (typeof MPCCAccessibility !== 'undefined') {
+                this.focusTrap = MPCCAccessibility.trapFocus('#mpcc-quiz-ai-modal');
+                MPCCAccessibility.enhanceModal('#mpcc-quiz-ai-modal', {
+                    labelledby: 'mpcc-quiz-modal-title',
+                    closeLabel: 'Close quiz generator'
+                });
+            }
+            
+            // Add ID to modal title
+            $('.mpcc-modal-header h2').attr('id', 'mpcc-quiz-modal-title');
+            
+            // Announce modal opening if available
+            if (typeof MPCCAccessibility !== 'undefined') {
+                MPCCAccessibility.announce('Quiz generator opened');
+            }
+            
             this.logger?.log('Modal opened');
+        }
+        
+        /**
+         * Safe wrapper for MPCCAccessibility methods
+         * @private
+         */
+        _a11y(method, ...args) {
+            if (typeof MPCCAccessibility !== 'undefined' && MPCCAccessibility[method]) {
+                return MPCCAccessibility[method](...args);
+            }
+            return null;
+        }
+        
+        /**
+         * Initialize keyboard navigation for the modal
+         * 
+         * @return {void}
+         */
+        initializeKeyboardNavigation() {
+            // Global modal keyboard handler
+            $('#mpcc-quiz-ai-modal').on('keydown', (e) => {
+                switch(e.key) {
+                    case 'Escape':
+                        e.preventDefault();
+                        this.closeModal();
+                        break;
+                }
+            });
+            
+            // Lesson select keyboard navigation
+            $('#mpcc-modal-lesson-select').on('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    // Allow default Enter behavior for select
+                    return true;
+                }
+            });
+            
+            // Prompt textarea keyboard enhancement  
+            $('#mpcc-quiz-prompt').on('keydown', (e) => {
+                // Shift+Enter for new line
+                if (e.key === 'Enter' && e.shiftKey) {
+                    // Default behavior creates new line
+                    return true;
+                }
+                // Ctrl/Cmd+Enter to generate
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    $('#mpcc-generate-quiz').click();
+                    this._a11y('announce', 'Generating questions');
+                }
+            });
+            
+            // Number input keyboard enhancement
+            $('#mpcc-modal-question-count').on('keydown', (e) => {
+                // Arrow up/down to adjust count
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const current = parseInt($(e.target).val()) || 10;
+                    const max = parseInt($(e.target).attr('max')) || 50;
+                    if (current < max) {
+                        $(e.target).val(current + 1);
+                        this._a11y('announce', `${current + 1} questions`);
+                    }
+                }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const current = parseInt($(e.target).val()) || 10;
+                    const min = parseInt($(e.target).attr('min')) || 1;
+                    if (current > min) {
+                        $(e.target).val(current - 1);
+                        this._a11y('announce', `${current - 1} questions`);
+                    }
+                }
+            });
+            
+            // Tab navigation between form fields
+            this.setupTabNavigation();
+            
+            // Question preview keyboard navigation
+            this.setupQuestionPreviewKeyboard();
+        }
+        
+        /**
+         * Setup tab navigation order
+         * 
+         * @return {void}
+         */
+        setupTabNavigation() {
+            // Define tab order for modal elements
+            const tabOrder = [
+                '#mpcc-modal-lesson-select',
+                '#mpcc-modal-question-type',
+                '#mpcc-modal-question-count',
+                '#mpcc-quiz-prompt',
+                '#mpcc-generate-quiz',
+                '#mpcc-apply-questions',
+                '#mpcc-copy-questions',
+                '#mpcc-regenerate',
+                '.mpcc-modal-close'
+            ];
+            
+            // Set explicit tabindex
+            tabOrder.forEach((selector, index) => {
+                const $elem = $(selector);
+                if ($elem.length && $elem.is(':visible')) {
+                    $elem.attr('tabindex', index + 1);
+                }
+            });
+        }
+        
+        /**
+         * Setup keyboard navigation for question preview
+         * 
+         * @return {void}
+         */
+        setupQuestionPreviewKeyboard() {
+            // Make question items focusable
+            $(document).on('focusin', '.mpcc-question-item', function() {
+                const $item = $(this);
+                if (!$item.attr('tabindex')) {
+                    $item.attr('tabindex', '0');
+                    $item.attr('role', 'article');
+                    $item.attr('aria-label', 'Question ' + ($item.index() + 1));
+                }
+            });
+            
+            // Keyboard navigation for question items
+            $(document).on('keydown', '.mpcc-question-item', (e) => {
+                const $item = $(e.currentTarget);
+                const $items = $('.mpcc-question-item');
+                const currentIndex = $items.index($item);
+                
+                switch(e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        if (currentIndex < $items.length - 1) {
+                            $items.eq(currentIndex + 1).focus();
+                            this._a11y('announce', `Question ${currentIndex + 2} of ${$items.length}`);
+                        }
+                        break;
+                        
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        if (currentIndex > 0) {
+                            $items.eq(currentIndex - 1).focus();
+                            this._a11y('announce', `Question ${currentIndex} of ${$items.length}`);
+                        }
+                        break;
+                        
+                    case 'Enter':
+                    case ' ':
+                        e.preventDefault();
+                        // Expand/collapse question details if applicable
+                        const $details = $item.find('.mpcc-question-details');
+                        if ($details.length) {
+                            $details.toggle();
+                            const isExpanded = $details.is(':visible');
+                            $item.attr('aria-expanded', isExpanded);
+                            this._a11y('announce', isExpanded ? 'Question expanded' : 'Question collapsed');
+                        }
+                        break;
+                        
+                    case 'Delete':
+                        if (e.shiftKey) {
+                            e.preventDefault();
+                            // Remove question from preview
+                            const questionNum = currentIndex + 1;
+                            $item.fadeOut(() => {
+                                $item.remove();
+                                this._a11y('announce', `Question ${questionNum} removed`);
+                                // Update remaining question numbers
+                                $('.mpcc-question-number').each((i, elem) => {
+                                    $(elem).text(`Question ${i + 1}`);
+                                });
+                            });
+                        }
+                        break;
+                }
+            });
         }
         
         /**
@@ -962,6 +1162,9 @@
                         if (response.data.course_title) {
                             this.showCourseContext(response.data.course_title);
                         }
+                        
+                        // Announce lesson count for screen readers
+                        this._a11y('announce', `${lessons.length} lessons available`);
                         
                         this.logger?.log(`Loaded ${lessons.length} lessons from course`);
                     } else {
@@ -1306,6 +1509,9 @@
             $('#mpcc-regenerate').on('click', () => {
                 this.generateQuestions('medium');
             });
+            
+            // Initialize keyboard navigation
+            this.initializeKeyboardNavigation();
         }
         /**
          * Generate quiz questions with comprehensive input validation
@@ -1529,6 +1735,14 @@
             });
             
             $('#mpcc-quiz-results').show();
+            
+            // Announce results
+            this._a11y('announce', `Generated ${questions.length} questions. Use arrow keys to navigate through them.`);
+            
+            // Focus first question for keyboard navigation
+            setTimeout(() => {
+                $('.mpcc-question-item').first().focus();
+            }, 100);
         }
 
         /**
@@ -1976,7 +2190,19 @@
          * @return {void}
          */
         closeModal() {
-            $('#mpcc-quiz-ai-modal').remove();
+            // Release focus trap
+            if (this.focusTrap) {
+                this.focusTrap.release();
+                this.focusTrap = null;
+            }
+            
+            // Announce closing
+            this._a11y('announce', 'Quiz generator closed');
+            
+            $('#mpcc-quiz-ai-modal').fadeOut(200, () => {
+                $('#mpcc-quiz-ai-modal').remove();
+            });
+            
             this.modalOpen = false;
             
             // Clean up monitoring interval
@@ -1984,6 +2210,10 @@
                 clearInterval(this.lessonMonitorInterval);
                 this.lessonMonitorInterval = null;
             }
+            
+            // Clean up keyboard event handlers
+            $(document).off('keydown', '.mpcc-question-item');
+            $(document).off('focusin', '.mpcc-question-item');
             
             this.logger?.log('Modal closed');
         }

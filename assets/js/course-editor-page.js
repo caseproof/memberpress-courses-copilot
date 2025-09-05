@@ -62,6 +62,9 @@
             // Initialize mobile tabs
             this.initializeMobileTabs();
             
+            // Initialize keyboard navigation
+            this.initializeKeyboardNavigation();
+            
             // Quick starters
             $('#mpcc-new-session').on('click', this.newSession.bind(this));
             $('#mpcc-session-history').on('click', this.showSessionHistory.bind(this));
@@ -482,6 +485,8 @@
                             // Auto-switch to Course Preview tab on mobile
                             if (window.innerWidth <= 960) {
                                 this.switchToPreviewTab();
+                                // Announce tab switch to screen readers
+                                MPCCAccessibility.announce('Switched to course preview tab');
                             }
                         }
                         
@@ -521,11 +526,11 @@
             
             // Course header with published badge and locked message if applicable
             const publishedBadge = this.publishedCourseId ? 
-                '<span class="mpcc-published-badge"><span class="dashicons dashicons-yes-alt"></span> Published</span>' : '';
+                '<span class="mpcc-published-badge" role="status"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> Published</span>' : '';
             
             const lockedMessage = this.publishedCourseId ? `
-                <div class="mpcc-course-locked-notice">
-                    <span class="dashicons dashicons-lock"></span>
+                <div class="mpcc-course-locked-notice" role="alert">
+                    <span class="dashicons dashicons-lock" aria-hidden="true"></span>
                     <span>This course has been published and is locked for editing.</span>
                 </div>` : '';
             
@@ -537,11 +542,13 @@
                 </div>
             `;
             
-            // Sections and lessons
+            // Sections and lessons with proper list structure
             if (this.courseStructure.sections) {
+                structureHtml += '<div role="list" aria-label="Course sections">';
                 this.courseStructure.sections.forEach((section, sectionIndex) => {
                     structureHtml += this.renderSection(section, sectionIndex);
                 });
+                structureHtml += '</div>';
             }
             
             // Append all at once for better performance
@@ -604,6 +611,7 @@
         
         renderSection: function(section, sectionIndex) {
             const sectionId = `section-${this.escapeHtml(String(sectionIndex))}`;
+            const sectionNumber = sectionIndex + 1;
             const lessonsHtml = section.lessons.map((lesson, lessonIndex) => 
                 this.renderLesson(lesson, sectionIndex, lessonIndex)
             ).join('');
@@ -611,23 +619,23 @@
             // Hide section editing actions if course is published
             const sectionActions = this.publishedCourseId ? '' : `
                 <div class="mpcc-section-actions">
-                    <button type="button" class="button-link" title="Edit section">
-                        <span class="dashicons dashicons-edit"></span>
+                    <button type="button" class="button-link" title="Edit section" aria-label="Edit section ${this.escapeHtml(section.title)}">
+                        <span class="dashicons dashicons-edit" aria-hidden="true"></span>
                     </button>
-                    <button type="button" class="button-link" title="Delete section">
-                        <span class="dashicons dashicons-trash"></span>
+                    <button type="button" class="button-link" title="Delete section" aria-label="Delete section ${this.escapeHtml(section.title)}">
+                        <span class="dashicons dashicons-trash" aria-hidden="true"></span>
                     </button>
                 </div>`;
             
             const lockedClass = this.publishedCourseId ? ' mpcc-section-locked' : '';
             
             return `
-                <div class="mpcc-section${lockedClass}" id="${sectionId}" data-section-index="${this.escapeHtml(String(sectionIndex))}">
+                <div class="mpcc-section${lockedClass}" id="${sectionId}" data-section-index="${this.escapeHtml(String(sectionIndex))}" role="listitem" aria-label="Section ${sectionNumber}: ${this.escapeHtml(section.title)}">
                     <div class="mpcc-section-header">
-                        <h3 class="mpcc-section-title">${this.escapeHtml(section.title)}</h3>
+                        <h3 class="mpcc-section-title" id="${sectionId}-title">${this.escapeHtml(section.title)}</h3>
                         ${sectionActions}
                     </div>
-                    <div class="mpcc-lessons">
+                    <div class="mpcc-lessons" role="list" aria-label="Lessons in ${this.escapeHtml(section.title)}">
                         ${lessonsHtml}
                     </div>
                 </div>
@@ -637,33 +645,38 @@
         renderLesson: function(lesson, sectionIndex, lessonIndex) {
             const lessonId = `${this.escapeHtml(String(sectionIndex))}-${this.escapeHtml(String(lessonIndex))}`;
             const hasDraft = lesson.draft_content ? 'has-draft' : '';
+            const lessonNumber = lessonIndex + 1;
             
             // Hide edit button and add locked class if course is published
             const isLocked = this.publishedCourseId;
             const lockedClass = isLocked ? ' mpcc-lesson-locked' : '';
             const actionButtons = isLocked ? '' : `
                 <div class="mpcc-lesson-actions">
-                    <button type="button" class="button-link mpcc-edit-lesson" title="Edit lesson">
-                        <span class="dashicons dashicons-edit"></span>
+                    <button type="button" class="button-link mpcc-edit-lesson" title="Edit lesson" aria-label="Edit lesson: ${this.escapeHtml(lesson.title)}">
+                        <span class="dashicons dashicons-edit" aria-hidden="true"></span>
                     </button>
-                    <button type="button" class="button-link mpcc-delete-lesson" title="Delete lesson" data-section="${this.escapeHtml(String(sectionIndex))}" data-index="${this.escapeHtml(String(lessonIndex))}">
-                        <span class="dashicons dashicons-trash"></span>
+                    <button type="button" class="button-link mpcc-delete-lesson" title="Delete lesson" data-section="${this.escapeHtml(String(sectionIndex))}" data-index="${this.escapeHtml(String(lessonIndex))}" aria-label="Delete lesson: ${this.escapeHtml(lesson.title)}">
+                        <span class="dashicons dashicons-trash" aria-hidden="true"></span>
                     </button>
                 </div>`;
                 
             const lockIcon = isLocked ? `
-                <span class="mpcc-lesson-lock-icon" title="Course is published - editing disabled">
-                    <span class="dashicons dashicons-lock"></span>
+                <span class="mpcc-lesson-lock-icon" title="Course is published - editing disabled" aria-label="Locked">
+                    <span class="dashicons dashicons-lock" aria-hidden="true"></span>
                 </span>` : '';
             
+            const draftStatus = hasDraft ? ' - has draft content' : '';
+            
             return `
-                <div class="mpcc-lesson-item ${hasDraft}${lockedClass}" 
+                <div class="mpcc-lesson-item${hasDraft ? ' has-draft' : ''}${lockedClass}" 
                      data-lesson-id="${lessonId}"
                      data-section-index="${this.escapeHtml(String(sectionIndex))}"
-                     data-lesson-index="${this.escapeHtml(String(lessonIndex))}">
+                     data-lesson-index="${this.escapeHtml(String(lessonIndex))}"
+                     role="listitem"
+                     aria-label="Lesson ${lessonNumber}: ${this.escapeHtml(lesson.title)}${draftStatus}">
                     <div class="mpcc-lesson-info">
                         <div class="mpcc-lesson-title">${this.escapeHtml(lesson.title)}</div>
-                        <div class="mpcc-lesson-meta">${lesson.duration || 'Duration not set'}</div>
+                        <div class="mpcc-lesson-meta" aria-label="Duration">${lesson.duration || 'Duration not set'}</div>
                     </div>
                     ${lockIcon}
                     ${actionButtons}
@@ -714,10 +727,26 @@
             
             // Show overlay on mobile
             if (window.innerWidth <= 960) {
-                $('#mpcc-lesson-editor-overlay').fadeIn(200);
+                $('#mpcc-lesson-editor-overlay').fadeIn(200).attr('aria-hidden', 'false');
             }
             
-            $('#mpcc-lesson-editor').fadeIn();
+            $('#mpcc-lesson-editor').fadeIn(() => {
+                // Set up focus trap after the modal is visible
+                if (typeof MPCCAccessibility !== 'undefined') {
+                    this.lessonEditorFocusTrap = MPCCAccessibility.trapFocus('#mpcc-lesson-editor', {
+                        initialFocus: '#mpcc-lesson-textarea',
+                        escapeDeactivates: true,
+                        onEscape: () => {
+                            this.closeLessonEditor();
+                        }
+                    });
+                }
+                
+                // Focus the textarea if no focus trap
+                if (!this.lessonEditorFocusTrap) {
+                    $('#mpcc-lesson-textarea').focus();
+                }
+            }).attr('aria-hidden', 'false');
             
             // Update save indicator
             $('.mpcc-save-indicator').text('');
@@ -762,7 +791,8 @@
             const lesson = this.courseStructure.sections[sectionIndex].lessons[lessonIndex];
             const button = $('#mpcc-generate-lesson-content');
             
-            button.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Generating...');
+            button.prop('disabled', true).html('<span class="dashicons dashicons-update spin" aria-hidden="true"></span> Generating...');
+            MPCCAccessibility.announce('Generating lesson content with AI...');
             
             $.ajax({
                 url: mpccEditorSettings.ajaxUrl,
@@ -791,7 +821,7 @@
                     MPCCUtils.showError('Failed to generate content. Please try again.');
                 },
                 complete: () => {
-                    button.prop('disabled', false).html('<span class="dashicons dashicons-welcome-write-blog"></span> Generate');
+                    button.prop('disabled', false).html('<span class="dashicons dashicons-welcome-write-blog" aria-hidden="true"></span> Generate');
                 }
             });
         },
@@ -888,8 +918,24 @@
             // Cleanup event handlers before closing
             $('#mpcc-lesson-textarea').off('input.autosave');
             
-            $('#mpcc-lesson-editor').fadeOut();
-            $('#mpcc-lesson-editor-overlay').fadeOut();
+            // Move focus back to the lesson item that was being edited
+            const $editingLesson = $('.mpcc-lesson-item.editing');
+            
+            // Set aria-hidden before hiding to prevent focus issues
+            $('#mpcc-lesson-editor').attr('aria-hidden', 'true').fadeOut(() => {
+                // Remove focus trap after fade completes
+                if (this.lessonEditorFocusTrap) {
+                    this.lessonEditorFocusTrap.deactivate();
+                    this.lessonEditorFocusTrap = null;
+                }
+            });
+            $('#mpcc-lesson-editor-overlay').attr('aria-hidden', 'true').fadeOut();
+            
+            // Restore focus to the lesson item
+            if ($editingLesson.length) {
+                $editingLesson.focus();
+            }
+            
             $('.mpcc-lesson-item').removeClass('editing');
             this.currentLessonId = null;
         },
@@ -1048,18 +1094,18 @@
         
         createSessionModal: function() {
             const modal = $(`
-                <div class="mpcc-sessions-modal-overlay">
+                <div class="mpcc-sessions-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="mpcc-sessions-modal-title">
                     <div class="mpcc-sessions-modal">
                         <div class="mpcc-sessions-modal-header">
-                            <h3>Previous Conversations</h3>
-                            <button type="button" class="mpcc-sessions-modal-close" aria-label="Close">
-                                <span class="dashicons dashicons-no-alt"></span>
+                            <h3 id="mpcc-sessions-modal-title">Previous Conversations</h3>
+                            <button type="button" class="mpcc-sessions-modal-close" aria-label="Close session history dialog">
+                                <span class="dashicons dashicons-no-alt" aria-hidden="true"></span>
                             </button>
                         </div>
-                        <div class="mpcc-sessions-list">
-                            <div class="mpcc-sessions-loading">
-                                <span class="dashicons dashicons-update spin"></span>
-                                Loading...
+                        <div class="mpcc-sessions-list" role="region" aria-label="Session history list" aria-live="polite">
+                            <div class="mpcc-sessions-loading" role="status" aria-label="Loading sessions">
+                                <span class="dashicons dashicons-update spin" aria-hidden="true"></span>
+                                <span aria-live="polite">Loading sessions...</span>
                             </div>
                         </div>
                     </div>
@@ -1072,6 +1118,15 @@
             modal.find('.mpcc-sessions-modal-close').on('click', () => {
                 this.closeSessionModal();
             });
+            
+            // Enhance modal for accessibility
+            MPCCAccessibility.enhanceModal(modal.find('.mpcc-sessions-modal'), {
+                labelledby: 'mpcc-sessions-modal-title',
+                closeLabel: 'Close session history'
+            });
+            
+            // Add ID to modal title
+            modal.find('h3').attr('id', 'mpcc-sessions-modal-title');
         },
         
         loadSessionList: function() {
@@ -1532,6 +1587,13 @@
         },
         
         switchToPreviewTab: function() {
+            // Update ARIA attributes when switching tabs
+            $('.mpcc-tab-button').attr('aria-selected', 'false');
+            $('.mpcc-tab-button[data-tab="main"]').attr('aria-selected', 'true');
+            
+            $('.mpcc-editor-sidebar').attr('aria-hidden', 'true');
+            $('.mpcc-editor-main').attr('aria-hidden', 'false');
+            
             // Only switch if on mobile
             if (window.innerWidth <= 960 && $('.mpcc-mobile-tabs').length) {
                 // Click the preview tab button
@@ -1540,6 +1602,343 @@
                 // Show a toast notification
                 MPCCUtils.showSuccess('Course structure updated! Showing preview.');
             }
+        },
+        
+        /**
+         * Initialize comprehensive keyboard navigation
+         */
+        initializeKeyboardNavigation: function() {
+            // Global keyboard handlers for the editor
+            $(document).on('keydown.mpcc-editor-keyboard', (e) => {
+                // ESC key handling
+                if (e.key === 'Escape') {
+                    // Close lesson editor if open
+                    if ($('#mpcc-lesson-editor').is(':visible')) {
+                        e.preventDefault();
+                        this.closeLessonEditor();
+                        MPCCAccessibility.announce('Lesson editor closed');
+                    }
+                    // Close session modal if open
+                    else if ($('.mpcc-sessions-modal-overlay').hasClass('active')) {
+                        e.preventDefault();
+                        this.closeSessionModal();
+                        MPCCAccessibility.announce('Session history closed');
+                    }
+                }
+            });
+            
+            // Chat input keyboard navigation
+            $('#mpcc-chat-input').on('keydown', (e) => {
+                // Shift+Enter for new line in chat (normal Enter already sends)
+                if (e.key === 'Enter' && e.shiftKey) {
+                    // Default behavior creates new line
+                    return true;
+                }
+            });
+            
+            // Lesson textarea keyboard navigation
+            $('#mpcc-lesson-textarea').on('keydown', (e) => {
+                // Shift+Enter for new line
+                if (e.key === 'Enter' && e.shiftKey) {
+                    // Default behavior creates new line
+                    return true;
+                }
+                // Ctrl/Cmd+S to save
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    this.saveLesson();
+                    MPCCAccessibility.announce('Lesson saved');
+                }
+            });
+            
+            // Course structure keyboard navigation
+            this.initializeCourseStructureKeyboard();
+            
+            // Session list keyboard navigation
+            this.initializeSessionListKeyboard();
+            
+            // Quick starter buttons keyboard navigation
+            this.enhanceQuickStarterKeyboard();
+            
+            // Form elements keyboard enhancement
+            this.enhanceFormKeyboard();
+        },
+        
+        /**
+         * Initialize keyboard navigation for course structure
+         */
+        initializeCourseStructureKeyboard: function() {
+            // Make sections and lessons keyboard navigable
+            $(document).on('focusin', '.mpcc-section, .mpcc-lesson-item', function() {
+                const $item = $(this);
+                if (!$item.attr('tabindex')) {
+                    $item.attr('tabindex', '0');
+                }
+            });
+            
+            // Keyboard handlers for sections
+            $(document).on('keydown', '.mpcc-section', (e) => {
+                const $section = $(e.currentTarget);
+                
+                switch(e.key) {
+                    case 'Enter':
+                    case ' ':
+                        // Toggle section expand/collapse if applicable
+                        e.preventDefault();
+                        const $header = $section.find('.mpcc-section-header');
+                        if ($header.length) {
+                            $header.click();
+                        }
+                        break;
+                        
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.navigateToNextItem($section, '.mpcc-section');
+                        break;
+                        
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.navigateToPreviousItem($section, '.mpcc-section');
+                        break;
+                        
+                    case 'Delete':
+                        if (!this.publishedCourseId && e.shiftKey) {
+                            e.preventDefault();
+                            const sectionIndex = parseInt($section.data('section-index'));
+                            this.handleDeleteSection(sectionIndex);
+                        }
+                        break;
+                }
+            });
+            
+            // Keyboard handlers for lessons
+            $(document).on('keydown', '.mpcc-lesson-item', (e) => {
+                const $lesson = $(e.currentTarget);
+                
+                switch(e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        if (!this.publishedCourseId) {
+                            const lessonId = $lesson.data('lesson-id');
+                            this.editLesson(lessonId);
+                            MPCCAccessibility.announce('Opening lesson editor');
+                        }
+                        break;
+                        
+                    case ' ':
+                        e.preventDefault();
+                        // Select/deselect lesson if in selection mode
+                        $lesson.toggleClass('selected');
+                        const isSelected = $lesson.hasClass('selected');
+                        MPCCAccessibility.announce(isSelected ? 'Lesson selected' : 'Lesson deselected');
+                        break;
+                        
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.navigateToNextLesson($lesson);
+                        break;
+                        
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.navigateToPreviousLesson($lesson);
+                        break;
+                        
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        // Navigate to parent section
+                        const $parentSection = $lesson.closest('.mpcc-section');
+                        if ($parentSection.length) {
+                            $parentSection.focus();
+                            MPCCAccessibility.announce('Navigated to section');
+                        }
+                        break;
+                        
+                    case 'Delete':
+                        if (!this.publishedCourseId && e.shiftKey) {
+                            e.preventDefault();
+                            const $deleteBtn = $lesson.find('.mpcc-delete-lesson');
+                            if ($deleteBtn.length) {
+                                $deleteBtn.click();
+                            }
+                        }
+                        break;
+                }
+            });
+        },
+        
+        /**
+         * Navigate to next lesson
+         */
+        navigateToNextLesson: function($currentLesson) {
+            const $allLessons = $('.mpcc-lesson-item');
+            const currentIndex = $allLessons.index($currentLesson);
+            
+            if (currentIndex < $allLessons.length - 1) {
+                const $nextLesson = $allLessons.eq(currentIndex + 1);
+                $nextLesson.focus();
+                MPCCAccessibility.announce('Navigated to next lesson: ' + $nextLesson.find('.mpcc-lesson-title').text());
+            } else {
+                // Wrap to first lesson
+                const $firstLesson = $allLessons.first();
+                $firstLesson.focus();
+                MPCCAccessibility.announce('Navigated to first lesson: ' + $firstLesson.find('.mpcc-lesson-title').text());
+            }
+        },
+        
+        /**
+         * Navigate to previous lesson
+         */
+        navigateToPreviousLesson: function($currentLesson) {
+            const $allLessons = $('.mpcc-lesson-item');
+            const currentIndex = $allLessons.index($currentLesson);
+            
+            if (currentIndex > 0) {
+                const $prevLesson = $allLessons.eq(currentIndex - 1);
+                $prevLesson.focus();
+                MPCCAccessibility.announce('Navigated to previous lesson: ' + $prevLesson.find('.mpcc-lesson-title').text());
+            } else {
+                // Wrap to last lesson
+                const $lastLesson = $allLessons.last();
+                $lastLesson.focus();
+                MPCCAccessibility.announce('Navigated to last lesson: ' + $lastLesson.find('.mpcc-lesson-title').text());
+            }
+        },
+        
+        /**
+         * Navigate to next item of given type
+         */
+        navigateToNextItem: function($current, selector) {
+            const $items = $(selector);
+            const currentIndex = $items.index($current);
+            
+            if (currentIndex < $items.length - 1) {
+                $items.eq(currentIndex + 1).focus();
+            } else {
+                $items.first().focus();
+            }
+        },
+        
+        /**
+         * Navigate to previous item of given type
+         */
+        navigateToPreviousItem: function($current, selector) {
+            const $items = $(selector);
+            const currentIndex = $items.index($current);
+            
+            if (currentIndex > 0) {
+                $items.eq(currentIndex - 1).focus();
+            } else {
+                $items.last().focus();
+            }
+        },
+        
+        /**
+         * Initialize keyboard navigation for session list
+         */
+        initializeSessionListKeyboard: function() {
+            // Session modal keyboard navigation
+            $(document).on('keydown', '.mpcc-sessions-modal', (e) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.closeSessionModal();
+                }
+            });
+            
+            // Session items keyboard navigation
+            $(document).on('keydown', '.mpcc-session-item', (e) => {
+                const $item = $(e.currentTarget);
+                
+                switch(e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        $item.click();
+                        break;
+                        
+                    case 'Delete':
+                        if (e.shiftKey) {
+                            e.preventDefault();
+                            const $deleteBtn = $item.find('.mpcc-session-delete');
+                            if ($deleteBtn.length) {
+                                $deleteBtn.click();
+                            }
+                        }
+                        break;
+                        
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.navigateToNextItem($item, '.mpcc-session-item');
+                        break;
+                        
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.navigateToPreviousItem($item, '.mpcc-session-item');
+                        break;
+                }
+            });
+            
+            // Make session items focusable
+            $(document).on('focusin', '.mpcc-session-item', function() {
+                if (!$(this).attr('tabindex')) {
+                    $(this).attr('tabindex', '0');
+                }
+            });
+        },
+        
+        /**
+         * Enhance quick starter buttons keyboard navigation
+         */
+        enhanceQuickStarterKeyboard: function() {
+            // Arrow key navigation between quick starter buttons
+            $(document).on('keydown', '.mpcc-quick-starter-btn', (e) => {
+                const $btn = $(e.currentTarget);
+                const $buttons = $('.mpcc-quick-starter-btn');
+                const currentIndex = $buttons.index($btn);
+                
+                switch(e.key) {
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        if (currentIndex < $buttons.length - 1) {
+                            $buttons.eq(currentIndex + 1).focus();
+                        } else {
+                            $buttons.first().focus();
+                        }
+                        break;
+                        
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        if (currentIndex > 0) {
+                            $buttons.eq(currentIndex - 1).focus();
+                        } else {
+                            $buttons.last().focus();
+                        }
+                        break;
+                        
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        // Move focus to chat input
+                        $('#mpcc-chat-input').focus();
+                        break;
+                }
+            });
+        },
+        
+        /**
+         * Enhance form elements keyboard navigation
+         */
+        enhanceFormKeyboard: function() {
+            // Tab navigation hints for lesson editor
+            $('#mpcc-lesson-editor').on('shown', () => {
+                MPCCAccessibility.announce('Lesson editor opened. Press Tab to navigate fields, Shift+Tab to go back');
+            });
+            
+            // Focus management when opening modals
+            $('.mpcc-sessions-modal-overlay').on('shown', () => {
+                const $firstFocusable = $('.mpcc-sessions-list').find('button, [tabindex="0"]').first();
+                if ($firstFocusable.length) {
+                    $firstFocusable.focus();
+                }
+            });
         }
     };
     
@@ -1548,6 +1947,7 @@
         // Remove all event handlers
         $(document).off('click.mpcc-editor-send');
         $(document).off('keypress.mpcc-editor-input');
+        $(document).off('keydown.mpcc-editor-keyboard');
         $(document).off('click.mpcc-mobile-tabs');
         $(window).off('resize.mpcc-mobile-tabs');
         $('#mpcc-new-session').off('click');
@@ -1564,6 +1964,13 @@
         $(document).off('click', '.mpcc-section-actions button');
         $(document).off('click', '.mpcc-edit-lesson');
         $(document).off('click', '.mpcc-delete-lesson');
+        $(document).off('keydown', '.mpcc-section');
+        $(document).off('keydown', '.mpcc-lesson-item');
+        $(document).off('keydown', '.mpcc-sessions-modal');
+        $(document).off('keydown', '.mpcc-session-item');
+        $(document).off('keydown', '.mpcc-quick-starter-btn');
+        $(document).off('focusin', '.mpcc-section, .mpcc-lesson-item');
+        $(document).off('focusin', '.mpcc-session-item');
         
         // Clear any active timers
         if (this.saveTimeout) {

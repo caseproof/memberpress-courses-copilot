@@ -1,529 +1,702 @@
 /**
- * Accessibility Utilities for MemberPress Courses Copilot
+ * MemberPress Courses Copilot Accessibility Core Utility
+ * Phase 1.1 WCAG Implementation - Core accessibility utility class
  * 
- * Provides comprehensive accessibility features including:
- * - ARIA management
- * - Keyboard navigation
- * - Focus management
+ * Provides core accessibility features including:
+ * - Focus management (trapFocus, restoreFocus)
+ * - Keyboard event handling
  * - Screen reader announcements
+ * - ARIA attribute management
  * 
  * @package MemberPressCoursesCopilot
  * @since 1.0.0
+ * @version 1.0.0
  */
 
-window.MPCCAccessibility = {
+(function($) {
+    'use strict';
+
     /**
-     * Live region for screen reader announcements
+     * Core Accessibility Utility Class
+     * Singleton pattern for global accessibility management
      */
-    liveRegion: null,
-    
-    /**
-     * Initialize accessibility utilities
-     */
-    init: function() {
-        this.createLiveRegion();
-        this.setupGlobalKeyboardHandlers();
-        console.log('MPCC Accessibility utilities initialized');
-    },
-    
-    /**
-     * Create ARIA live region for announcements
-     */
-    createLiveRegion: function() {
-        if (!this.liveRegion) {
-            this.liveRegion = jQuery('<div>', {
-                'class': 'sr-only',
-                'aria-live': 'polite',
-                'aria-atomic': 'true',
-                'id': 'mpcc-aria-live-region'
-            }).appendTo('body');
-        }
-    },
-    
-    /**
-     * Announce message to screen readers
-     * @param {string} message - Message to announce
-     * @param {string} priority - 'polite' or 'assertive'
-     */
-    announce: function(message, priority = 'polite') {
-        if (!this.liveRegion) {
-            this.createLiveRegion();
-        }
+    window.MPCCAccessibility = (function() {
         
-        // Update aria-live priority if needed
-        if (priority !== this.liveRegion.attr('aria-live')) {
-            this.liveRegion.attr('aria-live', priority);
-        }
+        // Private variables
+        let instance = null;
+        let liveRegions = {};
+        let focusStack = [];
+        let keyboardHandlers = new Map();
         
-        // Clear and set message
-        this.liveRegion.empty();
-        setTimeout(() => {
-            this.liveRegion.text(message);
-        }, 100);
-    },
-    
-    /**
-     * Trap focus within an element (for modals)
-     * @param {jQuery|Element} container - Container element
-     * @returns {Object} - Focus trap controller
-     */
-    trapFocus: function(container) {
-        const $container = jQuery(container);
-        const focusableElements = 'a[href], button, textarea, input[type="text"], input[type="radio"], input[type="checkbox"], select, [tabindex]:not([tabindex="-1"])';
-        let $focusableContent = $container.find(focusableElements).filter(':visible');
-        let firstFocusableElement = $focusableContent[0];
-        let lastFocusableElement = $focusableContent[$focusableContent.length - 1];
-        
-        // Store the element that triggered the modal
-        const triggerElement = document.activeElement;
-        
-        // Function to handle tab key
-        const handleTab = function(e) {
-            if (e.key !== 'Tab') return;
+        /**
+         * Private constructor
+         * @private
+         */
+        function AccessibilityCore() {
+            // Private properties
+            this._initialized = false;
+            this._focusTrapInstances = new Map();
             
-            // Update focusable elements list (in case content changed)
-            $focusableContent = $container.find(focusableElements).filter(':visible');
-            firstFocusableElement = $focusableContent[0];
-            lastFocusableElement = $focusableContent[$focusableContent.length - 1];
+            // Initialize on instantiation
+            this._init();
+        }
+        
+        /**
+         * Initialize the accessibility core
+         * @private
+         */
+        AccessibilityCore.prototype._init = function() {
+            if (this._initialized) {
+                return;
+            }
             
-            if (e.shiftKey) {
-                // Shift + Tab
-                if (document.activeElement === firstFocusableElement) {
-                    lastFocusableElement.focus();
-                    e.preventDefault();
+            // Create default live regions
+            this._createDefaultLiveRegions();
+            
+            // Inject accessibility CSS
+            this._injectAccessibilityStyles();
+            
+            // Set up global keyboard listeners
+            this._setupGlobalKeyboardListeners();
+            
+            this._initialized = true;
+            
+            // Log initialization
+            if (window.MPCCLogger) {
+                window.MPCCLogger.log('MPCCAccessibility initialized');
+            }
+        };
+        
+        /**
+         * Create default ARIA live regions
+         * @private
+         */
+        AccessibilityCore.prototype._createDefaultLiveRegions = function() {
+            const priorities = ['polite', 'assertive', 'status'];
+            
+            priorities.forEach(priority => {
+                const regionId = `mpcc-live-region-${priority}`;
+                
+                if (!document.getElementById(regionId)) {
+                    const $region = $('<div>', {
+                        id: regionId,
+                        class: 'mpcc-sr-only',
+                        'aria-live': priority === 'status' ? 'polite' : priority,
+                        'aria-atomic': 'true',
+                        role: priority === 'status' ? 'status' : null
+                    }).appendTo('body');
+                    
+                    liveRegions[priority] = $region;
+                }
+            });
+        };
+        
+        /**
+         * Inject necessary accessibility styles
+         * @private
+         */
+        AccessibilityCore.prototype._injectAccessibilityStyles = function() {
+            if (!document.getElementById('mpcc-accessibility-styles')) {
+                const styles = `
+                    .mpcc-sr-only {
+                        position: absolute !important;
+                        width: 1px !important;
+                        height: 1px !important;
+                        padding: 0 !important;
+                        margin: -1px !important;
+                        overflow: hidden !important;
+                        clip: rect(0,0,0,0) !important;
+                        white-space: nowrap !important;
+                        border: 0 !important;
+                    }
+                    
+                    /* Remove outline from focus trap - it's for internal use only */
+                    .mpcc-focus-trap-active {
+                        /* Internal class for focus management - no visual styling */
+                    }
+                `;
+                
+                $('<style>')
+                    .attr('id', 'mpcc-accessibility-styles')
+                    .text(styles)
+                    .appendTo('head');
+            }
+        };
+        
+        /**
+         * Set up global keyboard event listeners
+         * @private
+         */
+        AccessibilityCore.prototype._setupGlobalKeyboardListeners = function() {
+            $(document).off('keydown.mpccA11y').on('keydown.mpccA11y', (e) => {
+                // Build shortcut string
+                let shortcut = '';
+                if (e.ctrlKey) shortcut += 'ctrl+';
+                if (e.metaKey) shortcut += 'cmd+';
+                if (e.altKey) shortcut += 'alt+';
+                if (e.shiftKey) shortcut += 'shift+';
+                shortcut += e.key.toLowerCase();
+                
+                // Check if handler exists
+                if (keyboardHandlers.has(shortcut)) {
+                    const handler = keyboardHandlers.get(shortcut);
+                    if (handler.enabled) {
+                        e.preventDefault();
+                        handler.callback(e);
+                    }
+                }
+            });
+        };
+        
+        /**
+         * Trap focus within a container
+         * @param {string|jQuery|HTMLElement} container - Container element
+         * @param {Object} options - Configuration options
+         * @param {string} options.initialFocus - Selector for initial focus element
+         * @param {boolean} options.escapeDeactivates - Whether ESC key deactivates trap
+         * @param {Function} options.onEscape - Callback when ESC is pressed
+         * @returns {Object} Focus trap instance with deactivate method
+         */
+        AccessibilityCore.prototype.trapFocus = function(container, options = {}) {
+            const $container = $(container);
+            if (!$container.length) return null;
+            
+            const defaults = {
+                initialFocus: null,
+                escapeDeactivates: true,
+                onEscape: null
+            };
+            
+            const settings = $.extend({}, defaults, options);
+            const containerEl = $container[0];
+            
+            // Save current focus for restoration
+            const previouslyFocused = document.activeElement;
+            focusStack.push(previouslyFocused);
+            
+            // Set initial focus
+            if (settings.initialFocus) {
+                const $initialFocus = $container.find(settings.initialFocus);
+                if ($initialFocus.length) {
+                    $initialFocus.focus();
                 }
             } else {
-                // Tab
-                if (document.activeElement === lastFocusableElement) {
-                    firstFocusableElement.focus();
+                // Find first focusable element
+                const $firstFocusable = $container.find('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])').first();
+                if ($firstFocusable.length) {
+                    $firstFocusable.focus();
+                }
+            }
+            
+            // Trap focus handler
+            const trapHandler = (e) => {
+                if (e.key === 'Tab') {
+                    const focusableElements = $container.find('button:visible, [href]:visible, input:visible, select:visible, textarea:visible, [tabindex]:not([tabindex="-1"]):visible');
+                    const $focusable = focusableElements.filter(':not([disabled])');
+                    
+                    if ($focusable.length === 0) return;
+                    
+                    const firstFocusable = $focusable[0];
+                    const lastFocusable = $focusable[$focusable.length - 1];
+                    
+                    if (e.shiftKey) {
+                        if (document.activeElement === firstFocusable) {
+                            e.preventDefault();
+                            lastFocusable.focus();
+                        }
+                    } else {
+                        if (document.activeElement === lastFocusable) {
+                            e.preventDefault();
+                            firstFocusable.focus();
+                        }
+                    }
+                } else if (e.key === 'Escape' && settings.escapeDeactivates) {
                     e.preventDefault();
+                    if (settings.onEscape) {
+                        settings.onEscape(e);
+                    }
+                    instance.deactivate();
+                }
+            };
+            
+            // Add event listener
+            containerEl.addEventListener('keydown', trapHandler);
+            
+            // Mark container as trap active
+            $container.addClass('mpcc-focus-trap-active');
+            
+            // Create trap instance
+            const instance = {
+                deactivate: () => {
+                    containerEl.removeEventListener('keydown', trapHandler);
+                    $container.removeClass('mpcc-focus-trap-active');
+                    
+                    // Restore focus
+                    const toFocus = focusStack.pop();
+                    if (toFocus && toFocus.focus) {
+                        toFocus.focus();
+                    }
+                    
+                    // Remove from instances
+                    this._focusTrapInstances.delete(containerEl);
+                }
+            };
+            
+            // Store instance
+            this._focusTrapInstances.set(containerEl, instance);
+            
+            return instance;
+        };
+        
+        /**
+         * Restore focus to previously focused element
+         * @param {HTMLElement} element - Element to restore focus to (optional)
+         */
+        AccessibilityCore.prototype.restoreFocus = function(element) {
+            if (element && element.focus) {
+                element.focus();
+            } else if (focusStack.length > 0) {
+                const toFocus = focusStack.pop();
+                if (toFocus && toFocus.focus) {
+                    toFocus.focus();
                 }
             }
         };
         
-        // Add event listener
-        $container.on('keydown.focustrap', handleTab);
-        
-        // Focus first element
-        if (firstFocusableElement) {
-            firstFocusableElement.focus();
-        }
-        
-        // Return controller object
-        return {
-            release: function() {
-                $container.off('keydown.focustrap');
-                // Return focus to trigger element
-                if (triggerElement && jQuery(triggerElement).is(':visible')) {
-                    triggerElement.focus();
+        /**
+         * Make an element keyboard navigable with custom handlers
+         * @param {string|jQuery|HTMLElement} element - Element to enhance
+         * @param {Object} handlers - Keyboard event handlers
+         * @param {Object} options - Additional options
+         * @returns {Function} Cleanup function to remove handlers
+         */
+        AccessibilityCore.prototype.makeKeyboardNavigable = function(element, handlers = {}, options = {}) {
+            const $element = $(element);
+            if (!$element.length) return () => {};
+            
+            const defaults = {
+                preventDefault: true,
+                stopPropagation: false
+            };
+            
+            const settings = $.extend({}, defaults, options);
+            
+            // Handler function
+            const keyHandler = (e) => {
+                let handled = false;
+                
+                switch(e.key) {
+                    case 'Enter':
+                        if (handlers.enter) {
+                            handlers.enter(e);
+                            handled = true;
+                        }
+                        break;
+                    case ' ':
+                    case 'Spacebar':
+                        if (handlers.space) {
+                            handlers.space(e);
+                            handled = true;
+                        }
+                        break;
+                    case 'ArrowUp':
+                        if (handlers.up) {
+                            handlers.up(e);
+                            handled = true;
+                        }
+                        break;
+                    case 'ArrowDown':
+                        if (handlers.down) {
+                            handlers.down(e);
+                            handled = true;
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        if (handlers.left) {
+                            handlers.left(e);
+                            handled = true;
+                        }
+                        break;
+                    case 'ArrowRight':
+                        if (handlers.right) {
+                            handlers.right(e);
+                            handled = true;
+                        }
+                        break;
+                    case 'Escape':
+                        if (handlers.escape) {
+                            handlers.escape(e);
+                            handled = true;
+                        }
+                        break;
+                    case 'Tab':
+                        if (handlers.tab) {
+                            handlers.tab(e);
+                            handled = true;
+                        }
+                        break;
+                    default:
+                        if (handlers[e.key]) {
+                            handlers[e.key](e);
+                            handled = true;
+                        }
                 }
-            },
-            update: function() {
-                // Refresh the focusable elements list
-                $focusableContent = $container.find(focusableElements).filter(':visible');
-                firstFocusableElement = $focusableContent[0];
-                lastFocusableElement = $focusableContent[$focusableContent.length - 1];
+                
+                if (handled) {
+                    if (settings.preventDefault) {
+                        e.preventDefault();
+                    }
+                    if (settings.stopPropagation) {
+                        e.stopPropagation();
+                    }
+                }
+            };
+            
+            // Add event listener with namespace
+            $element.off('keydown.mpccNav').on('keydown.mpccNav', keyHandler);
+            
+            // Return cleanup function
+            return () => {
+                $element.off('keydown.mpccNav');
+            };
+        };
+        
+        /**
+         * Register a keyboard shortcut handler
+         * @param {string} shortcut - Keyboard shortcut (e.g., 'ctrl+s', 'shift+enter')
+         * @param {Function} callback - Handler function
+         * @param {Object} options - Additional options
+         * @returns {string} Handler ID for removal
+         */
+        AccessibilityCore.prototype.handleKeyboardShortcuts = function(shortcut, callback, options = {}) {
+            const defaults = {
+                enabled: true,
+                description: ''
+            };
+            
+            const settings = $.extend({}, defaults, options);
+            const handlerId = `handler-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            keyboardHandlers.set(shortcut.toLowerCase(), {
+                id: handlerId,
+                callback: callback,
+                enabled: settings.enabled,
+                description: settings.description
+            });
+            
+            return handlerId;
+        };
+        
+        /**
+         * Remove a keyboard shortcut handler
+         * @param {string} handlerId - Handler ID returned from handleKeyboardShortcuts
+         */
+        AccessibilityCore.prototype.removeKeyboardShortcut = function(handlerId) {
+            for (const [key, handler] of keyboardHandlers.entries()) {
+                if (handler.id === handlerId) {
+                    keyboardHandlers.delete(key);
+                    break;
+                }
             }
         };
-    },
-    
-    /**
-     * Setup global keyboard handlers
-     */
-    setupGlobalKeyboardHandlers: function() {
-        // Already handled in modal manager for ESC key
-        // Add additional global handlers here if needed
-    },
-    
-    /**
-     * Make an element keyboard navigable
-     * @param {jQuery|Element} element - Element to make navigable
-     * @param {Object} handlers - Key handlers { enter: fn, space: fn, arrow: fn }
-     */
-    makeKeyboardNavigable: function(element, handlers) {
-        const $element = jQuery(element);
         
-        // Ensure element is focusable
-        if (!$element.attr('tabindex')) {
-            $element.attr('tabindex', '0');
-        }
-        
-        $element.on('keydown', function(e) {
-            switch(e.key) {
-                case 'Enter':
-                    if (handlers.enter) {
-                        e.preventDefault();
-                        handlers.enter.call(this, e);
-                    }
-                    break;
-                case ' ':
-                case 'Space':
-                    if (handlers.space) {
-                        e.preventDefault();
-                        handlers.space.call(this, e);
-                    }
-                    break;
-                case 'ArrowUp':
-                    if (handlers.up) {
-                        e.preventDefault();
-                        handlers.up.call(this, e);
-                    }
-                    break;
-                case 'ArrowDown':
-                    if (handlers.down) {
-                        e.preventDefault();
-                        handlers.down.call(this, e);
-                    }
-                    break;
-                case 'ArrowLeft':
-                    if (handlers.left) {
-                        e.preventDefault();
-                        handlers.left.call(this, e);
-                    }
-                    break;
-                case 'ArrowRight':
-                    if (handlers.right) {
-                        e.preventDefault();
-                        handlers.right.call(this, e);
-                    }
-                    break;
-            }
-        });
-    },
-    
-    /**
-     * Add proper ARIA attributes to a button
-     * @param {jQuery|Element} button - Button element
-     * @param {Object} options - ARIA options
-     */
-    enhanceButton: function(button, options = {}) {
-        const $button = jQuery(button);
-        
-        // Add role if not a native button
-        if (!$button.is('button') && !$button.attr('role')) {
-            $button.attr('role', 'button');
-        }
-        
-        // Add aria-label if provided
-        if (options.label && !$button.attr('aria-label')) {
-            $button.attr('aria-label', options.label);
-        }
-        
-        // Add aria-pressed for toggle buttons
-        if (options.isToggle) {
-            $button.attr('aria-pressed', options.pressed || 'false');
-        }
-        
-        // Add aria-expanded for buttons that control collapsible content
-        if (options.controls) {
-            $button.attr('aria-controls', options.controls);
-            $button.attr('aria-expanded', options.expanded || 'false');
-        }
-        
-        // Make keyboard accessible if not a native button
-        if (!$button.is('button')) {
-            this.makeKeyboardNavigable($button, {
-                enter: function() { $button.click(); },
-                space: function() { $button.click(); }
-            });
-        }
-    },
-    
-    /**
-     * Enhance a modal dialog for accessibility
-     * @param {jQuery|Element} modal - Modal element
-     * @param {Object} options - Modal options
-     */
-    enhanceModal: function(modal, options = {}) {
-        const $modal = jQuery(modal);
-        const modalId = $modal.attr('id') || 'mpcc-modal-' + Date.now();
-        
-        // Set ID if not present
-        if (!$modal.attr('id')) {
-            $modal.attr('id', modalId);
-        }
-        
-        // Add role and aria attributes
-        $modal.attr({
-            'role': 'dialog',
-            'aria-modal': 'true',
-            'aria-labelledby': options.labelledby || modalId + '-title',
-            'aria-describedby': options.describedby || modalId + '-description'
-        });
-        
-        // Find or create title element
-        let $title = $modal.find('h1, h2, h3, h4, h5, h6').first();
-        if ($title.length && !$title.attr('id')) {
-            $title.attr('id', modalId + '-title');
-        }
-        
-        // Add close button attributes
-        $modal.find('.mpcc-modal-close').each(function() {
-            MPCCAccessibility.enhanceButton(this, {
-                label: options.closeLabel || 'Close dialog'
-            });
-        });
-        
-        return modalId;
-    },
-    
-    /**
-     * Enhance form fields for accessibility
-     * @param {jQuery|Element} form - Form element
-     */
-    enhanceForm: function(form) {
-        const $form = jQuery(form);
-        
-        // Add aria-describedby for fields with help text
-        $form.find('.mpcc-field-help').each(function() {
-            const $help = jQuery(this);
-            const helpId = $help.attr('id') || 'help-' + Date.now();
-            $help.attr('id', helpId);
+        /**
+         * Announce a message to screen readers
+         * @param {string} message - Message to announce
+         * @param {Object} options - Configuration options
+         */
+        AccessibilityCore.prototype.announce = function(message, options = {}) {
+            const defaults = {
+                priority: 'polite',
+                clear: true
+            };
             
-            // Find associated input
-            const $field = $help.siblings('input, textarea, select');
-            if ($field.length) {
-                $field.attr('aria-describedby', helpId);
-            }
-        });
-        
-        // Add aria-invalid and aria-describedby for error messages
-        $form.find('.mpcc-field-error').each(function() {
-            const $error = jQuery(this);
-            const errorId = $error.attr('id') || 'error-' + Date.now();
-            $error.attr('id', errorId);
+            const settings = $.extend({}, defaults, options);
             
-            // Find associated input
-            const $field = $error.siblings('input, textarea, select');
-            if ($field.length) {
-                $field.attr({
-                    'aria-invalid': 'true',
-                    'aria-describedby': function(i, existing) {
-                        return existing ? existing + ' ' + errorId : errorId;
+            // Get or create live region
+            let $region = liveRegions[settings.priority];
+            if (!$region) {
+                this.createLiveRegion(settings.priority);
+                $region = liveRegions[settings.priority];
+            }
+            
+            if (settings.clear) {
+                $region.empty();
+            }
+            
+            // Use timeout to ensure screen readers pick up the change
+            setTimeout(() => {
+                $region.text(message);
+            }, 100);
+            
+            // Clear after announcement
+            setTimeout(() => {
+                $region.empty();
+            }, 3000);
+        };
+        
+        /**
+         * Create a custom live region
+         * @param {string} priority - Priority level (polite, assertive, status)
+         * @param {string} id - Custom ID for the region
+         * @returns {jQuery} The created live region
+         */
+        AccessibilityCore.prototype.createLiveRegion = function(priority = 'polite', id = null) {
+            const regionId = id || `mpcc-live-region-${priority}-${Date.now()}`;
+            
+            const $region = $('<div>', {
+                id: regionId,
+                class: 'mpcc-sr-only',
+                'aria-live': priority === 'status' ? 'polite' : priority,
+                'aria-atomic': 'true',
+                role: priority === 'status' ? 'status' : null
+            }).appendTo('body');
+            
+            if (!id) {
+                liveRegions[priority] = $region;
+            }
+            
+            return $region;
+        };
+        
+        /**
+         * Set ARIA attributes on an element
+         * @param {string|jQuery|HTMLElement} element - Target element
+         * @param {Object} attributes - ARIA attributes to set
+         */
+        AccessibilityCore.prototype.setARIA = function(element, attributes) {
+            const $element = $(element);
+            if (!$element.length) return;
+            
+            Object.keys(attributes).forEach(attr => {
+                if (attr.startsWith('aria-') || ['role', 'tabindex'].includes(attr)) {
+                    $element.attr(attr, attributes[attr]);
+                }
+            });
+        };
+        
+        /**
+         * Toggle ARIA attribute value
+         * @param {string|jQuery|HTMLElement} element - Target element
+         * @param {string} attribute - ARIA attribute name
+         * @param {string} value1 - First value
+         * @param {string} value2 - Second value
+         */
+        AccessibilityCore.prototype.toggleARIA = function(element, attribute, value1, value2) {
+            const $element = $(element);
+            if (!$element.length) return;
+            
+            const currentValue = $element.attr(attribute);
+            const newValue = currentValue === value1 ? value2 : value1;
+            $element.attr(attribute, newValue);
+        };
+        
+        /**
+         * Update multiple ARIA attributes with validation
+         * @param {string|jQuery|HTMLElement} element - Target element
+         * @param {Object} updates - Attributes to update
+         * @param {Object} options - Update options
+         */
+        AccessibilityCore.prototype.updateARIA = function(element, updates, options = {}) {
+            const $element = $(element);
+            if (!$element.length) return;
+            
+            const defaults = {
+                validate: true,
+                announce: false
+            };
+            
+            const settings = $.extend({}, defaults, options);
+            
+            // Valid ARIA attribute values for validation
+            const validValues = {
+                'aria-expanded': ['true', 'false'],
+                'aria-pressed': ['true', 'false', 'mixed'],
+                'aria-checked': ['true', 'false', 'mixed'],
+                'aria-disabled': ['true', 'false'],
+                'aria-hidden': ['true', 'false'],
+                'aria-invalid': ['true', 'false', 'grammar', 'spelling'],
+                'aria-selected': ['true', 'false'],
+                'aria-modal': ['true', 'false']
+            };
+            
+            Object.keys(updates).forEach(attr => {
+                const value = String(updates[attr]);
+                
+                // Validate if required
+                if (settings.validate && validValues[attr]) {
+                    if (!validValues[attr].includes(value)) {
+                        console.warn(`Invalid value "${value}" for ${attr}`);
+                        return;
+                    }
+                }
+                
+                $element.attr(attr, value);
+            });
+            
+            // Announce change if requested
+            if (settings.announce) {
+                const label = $element.attr('aria-label') || $element.text() || 'Element';
+                this.announce(`${label} updated`);
+            }
+        };
+        
+        /**
+         * Check if element is visible to screen readers
+         * @param {string|jQuery|HTMLElement} element - Element to check
+         * @returns {boolean} Whether element is screen reader visible
+         */
+        AccessibilityCore.prototype.isScreenReaderVisible = function(element) {
+            const $element = $(element);
+            if (!$element.length) return false;
+            
+            const el = $element[0];
+            
+            // Check if hidden via ARIA
+            if ($element.attr('aria-hidden') === 'true') {
+                return false;
+            }
+            
+            // Check if visually hidden
+            const style = window.getComputedStyle(el);
+            if (style.display === 'none' || style.visibility === 'hidden') {
+                return false;
+            }
+            
+            // Check if clipped
+            if (style.position === 'absolute' && 
+                style.clip === 'rect(0px, 0px, 0px, 0px)' && 
+                style.width === '1px' && 
+                style.height === '1px') {
+                return true; // Screen reader only
+            }
+            
+            return true;
+        };
+        
+        /**
+         * Get accessible text for an element
+         * @param {string|jQuery|HTMLElement} element - Element to get text from
+         * @returns {string} Accessible text content
+         */
+        AccessibilityCore.prototype.getAccessibleText = function(element) {
+            const $element = $(element);
+            if (!$element.length) return '';
+            
+            // Priority order for accessible text
+            // 1. aria-labelledby
+            const labelledBy = $element.attr('aria-labelledby');
+            if (labelledBy) {
+                const labels = labelledBy.split(' ').map(id => $(`#${id}`).text()).join(' ');
+                if (labels) return labels.trim();
+            }
+            
+            // 2. aria-label
+            const ariaLabel = $element.attr('aria-label');
+            if (ariaLabel) return ariaLabel;
+            
+            // 3. Associated label
+            const id = $element.attr('id');
+            if (id) {
+                const $label = $(`label[for="${id}"]`);
+                if ($label.length) return $label.text().trim();
+            }
+            
+            // 4. Text content
+            return $element.text().trim();
+        };
+        
+        /**
+         * Enhance modal dialog accessibility
+         * @param {string|jQuery|HTMLElement} modal - Modal element
+         * @param {Object} options - Enhancement options
+         */
+        AccessibilityCore.prototype.enhanceModal = function(modal, options = {}) {
+            const $modal = $(modal);
+            if (!$modal.length) return;
+            
+            const defaults = {
+                role: 'dialog',
+                closeOnEscape: true,
+                focusOnOpen: true,
+                restoreFocusOnClose: true,
+                labelledBy: null,
+                describedBy: null
+            };
+            
+            const settings = $.extend({}, defaults, options);
+            
+            // Set ARIA attributes
+            const ariaAttrs = {
+                role: settings.role,
+                'aria-modal': 'true'
+            };
+            
+            if (settings.labelledBy) {
+                ariaAttrs['aria-labelledby'] = settings.labelledBy;
+            }
+            
+            if (settings.describedBy) {
+                ariaAttrs['aria-describedby'] = settings.describedBy;
+            }
+            
+            this.setARIA($modal, ariaAttrs);
+            
+            // Set up focus trap if requested
+            if (settings.focusOnOpen) {
+                const focusTrap = this.trapFocus($modal, {
+                    escapeDeactivates: settings.closeOnEscape,
+                    onEscape: () => {
+                        if (settings.onClose) {
+                            settings.onClose();
+                        }
                     }
                 });
-            }
-        });
-        
-        // Add required attribute and aria-required
-        $form.find('input[required], textarea[required], select[required]').attr('aria-required', 'true');
-    },
-    
-    /**
-     * Enhance chat interface for accessibility
-     * @param {jQuery|Element} chatContainer - Chat container element
-     */
-    enhanceChatInterface: function(chatContainer) {
-        const $container = jQuery(chatContainer);
-        
-        // Add role to chat area
-        const $messages = $container.find('.mpcc-chat-messages, #mpcc-chat-messages');
-        $messages.attr({
-            'role': 'log',
-            'aria-label': 'Chat messages',
-            'aria-live': 'polite'
-        });
-        
-        // Enhance input field
-        const $input = $container.find('input[type="text"], textarea').first();
-        const $sendButton = $container.find('button[type="submit"], button.send-message').first();
-        
-        if ($input.length) {
-            $input.attr({
-                'aria-label': 'Type your message',
-                'placeholder': 'Type your message...'
-            });
-        }
-        
-        if ($sendButton.length) {
-            this.enhanceButton($sendButton, {
-                label: 'Send message'
-            });
-        }
-    },
-    
-    /**
-     * Create skip links for better navigation
-     */
-    createSkipLinks: function() {
-        const skipLinks = [
-            { href: '#mpcc-main-content', text: 'Skip to main content' },
-            { href: '#mpcc-ai-chat', text: 'Skip to AI chat' }
-        ];
-        
-        const $skipNav = jQuery('<nav class="mpcc-skip-links" aria-label="Skip links">');
-        
-        skipLinks.forEach(link => {
-            jQuery('<a>', {
-                href: link.href,
-                class: 'screen-reader-text',
-                text: link.text
-            }).appendTo($skipNav);
-        });
-        
-        $skipNav.prependTo('body');
-    },
-    
-    /**
-     * Helper function to manage aria-busy state
-     * @param {jQuery|Element} element - Element to update
-     * @param {boolean} isBusy - Busy state
-     */
-    setBusy: function(element, isBusy) {
-        jQuery(element).attr('aria-busy', isBusy ? 'true' : 'false');
-    },
-    
-    /**
-     * Focus management utilities
-     */
-    focus: {
-        /**
-         * Save current focus
-         */
-        save: function() {
-            return document.activeElement;
-        },
-        
-        /**
-         * Restore focus to element
-         * @param {Element} element - Element to focus
-         */
-        restore: function(element) {
-            if (element && jQuery(element).is(':visible')) {
-                element.focus();
-            }
-        },
-        
-        /**
-         * Move focus to next focusable element
-         * @param {jQuery|Element} container - Container to search within
-         */
-        next: function(container) {
-            const $container = jQuery(container || document);
-            const $current = jQuery(document.activeElement);
-            const $focusable = $container.find('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])').filter(':visible');
-            const currentIndex = $focusable.index($current);
-            
-            if (currentIndex < $focusable.length - 1) {
-                $focusable.eq(currentIndex + 1).focus();
-            }
-        },
-        
-        /**
-         * Move focus to previous focusable element
-         * @param {jQuery|Element} container - Container to search within
-         */
-        previous: function(container) {
-            const $container = jQuery(container || document);
-            const $current = jQuery(document.activeElement);
-            const $focusable = $container.find('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])').filter(':visible');
-            const currentIndex = $focusable.index($current);
-            
-            if (currentIndex > 0) {
-                $focusable.eq(currentIndex - 1).focus();
-            }
-        }
-    }
-};
-
-// Initialize on document ready
-jQuery(document).ready(function() {
-    MPCCAccessibility.init();
-});
-
-// Add screen reader only CSS if not already present
-if (!jQuery('#mpcc-accessibility-styles').length) {
-    jQuery('<style id="mpcc-accessibility-styles">')
-        .text(`
-            .sr-only {
-                position: absolute !important;
-                width: 1px !important;
-                height: 1px !important;
-                padding: 0 !important;
-                margin: -1px !important;
-                overflow: hidden !important;
-                clip: rect(0,0,0,0) !important;
-                white-space: nowrap !important;
-                border: 0 !important;
+                
+                // Store trap for cleanup
+                $modal.data('mpcc-focus-trap', focusTrap);
             }
             
-            .screen-reader-text {
-                position: absolute !important;
-                left: -10000px;
-                top: auto;
-                width: 1px;
-                height: 1px;
-                overflow: hidden;
-            }
-            
-            .screen-reader-text:focus {
-                position: absolute !important;
-                left: 6px;
-                top: 7px;
-                height: auto;
-                width: auto;
-                display: block;
-                font-size: 14px;
-                font-weight: 600;
-                padding: 15px 20px;
-                background: #f1f1f1;
-                color: #0073aa;
-                z-index: 100000;
-                text-decoration: none;
-                box-shadow: 0 0 2px 2px rgba(0,0,0,.6);
-            }
-            
-            .mpcc-skip-links a {
-                position: absolute !important;
-                left: -10000px;
-                top: auto;
-                width: 1px;
-                height: 1px;
-                overflow: hidden;
-            }
-            
-            .mpcc-skip-links a:focus {
-                position: absolute !important;
-                left: 6px;
-                top: 7px;
-                height: auto;
-                width: auto;
-                display: block;
-                font-size: 14px;
-                font-weight: 600;
-                padding: 15px 20px;
-                background: #f1f1f1;
-                color: #0073aa;
-                z-index: 100000;
-                text-decoration: none;
-                box-shadow: 0 0 2px 2px rgba(0,0,0,.6);
-            }
-            
-            /* Focus indicators */
-            .mpcc-modal-overlay *:focus,
-            .mpcc-chat-interface *:focus,
-            .mpcc-editor-ai-modal *:focus {
-                outline: 2px solid #0073aa !important;
-                outline-offset: 2px !important;
-            }
-            
-            /* High contrast mode support */
-            @media (prefers-contrast: high) {
-                .mpcc-modal-overlay,
-                .mpcc-chat-interface {
-                    border: 2px solid;
+            return {
+                destroy: () => {
+                    const trap = $modal.data('mpcc-focus-trap');
+                    if (trap) {
+                        trap.deactivate();
+                        $modal.removeData('mpcc-focus-trap');
+                    }
                 }
-            }
-            
-            /* Reduced motion support */
-            @media (prefers-reduced-motion: reduce) {
-                .mpcc-modal-overlay,
-                .mpcc-chat-interface,
-                .mpcc-typing-dot {
-                    animation: none !important;
-                    transition: none !important;
+            };
+        };
+        
+        // Singleton pattern
+        return {
+            /**
+             * Get singleton instance
+             * @returns {AccessibilityCore} The singleton instance
+             */
+            getInstance: function() {
+                if (!instance) {
+                    instance = new AccessibilityCore();
                 }
+                return instance;
             }
-        `)
-        .appendTo('head');
-}
+        };
+    })();
+    
+    // Create and expose the singleton instance
+    const mpccAccessibility = window.MPCCAccessibility.getInstance();
+    
+    // Expose convenience methods on the MPCCAccessibility object
+    Object.getOwnPropertyNames(Object.getPrototypeOf(mpccAccessibility)).forEach(method => {
+        if (method !== 'constructor' && !method.startsWith('_')) {
+            window.MPCCAccessibility[method] = mpccAccessibility[method].bind(mpccAccessibility);
+        }
+    });
+    
+    // Auto-initialize when DOM is ready
+    $(document).ready(function() {
+        // Ensure initialization
+        mpccAccessibility._init();
+    });
+    
+})(jQuery);
