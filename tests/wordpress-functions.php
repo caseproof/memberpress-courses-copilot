@@ -42,6 +42,14 @@ use function current_user_can;
 use function wp_create_nonce;
 use function get_post;
 use function is_wp_error;
+use function wp_json_encode;
+use function esc_html;
+use function esc_js;
+use function esc_url;
+use function wp_kses_post;
+use function wp_remote_post;
+use function wp_remote_retrieve_response_code;
+use function wp_remote_retrieve_body;
 
 namespace MemberPressCoursesCopilot\Utilities;
 
