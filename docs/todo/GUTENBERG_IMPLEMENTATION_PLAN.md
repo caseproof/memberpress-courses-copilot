@@ -2,7 +2,7 @@
 ## MemberPress Courses Copilot - Issue #96
 
 ### Executive Summary
-This document outlines the implementation plan for adding Gutenberg block editor compatibility to the MemberPress Courses Copilot plugin while maintaining backward compatibility with the Classic Editor. The goal is to generate content in a format that works seamlessly with both editors.
+This document outlines the implementation plan for adding Gutenberg block editor compatibility to the MemberPress Courses Copilot plugin while maintaining backward compatibility with the Classic Editor. The implementation uses **fully automated detection** to determine the active editor and generate appropriate content format - no user configuration or settings required.
 
 ---
 
@@ -42,9 +42,11 @@ This document outlines the implementation plan for adding Gutenberg block editor
 ```
 
 ### 2.2 Detection Requirements
-- Detect active editor type (Gutenberg vs Classic)
+- **Fully Automated Detection** - No user configuration required
+- Detect active editor type (Gutenberg vs Classic) automatically
 - Support WordPress 5.0+ with Gutenberg
-- Handle Classic Editor plugin scenarios
+- Handle Classic Editor plugin scenarios seamlessly
+- Detection happens at runtime for each request
 
 ### 2.3 Compatibility Requirements
 - Content must work in both editors
@@ -217,10 +219,10 @@ if ($this->editorDetection->isGutenbergActive()) {
 4. **Editor detection failures**: Implement fallback mechanisms
 
 ### 7.2 Rollback Strategy
-1. Feature flag for Gutenberg support
-2. Ability to disable via settings
-3. Maintain Classic Editor as default fallback
-4. Version control for easy reversion
+1. Automatic detection ensures proper format always used
+2. No manual intervention required - system auto-detects editor
+3. Maintain Classic Editor as default fallback if detection fails
+4. Version control for easy reversion if needed
 
 ---
 
