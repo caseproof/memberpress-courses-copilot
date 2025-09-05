@@ -490,6 +490,7 @@
                                 <select id="mpcc-modal-lesson-select" class="mpcc-select">
                                     <option value="">Loading lessons...</option>
                                 </select>
+                                <div id="mpcc-lesson-select-error" class="mpcc-field-error" role="alert" style="display: none; color: #dc3545; font-size: 13px; margin-top: 5px;"></div>
                                 <div id="mpcc-course-context" style="margin-top: 5px; font-size: 12px; color: #666;"></div>
                             </div>
                             
@@ -511,6 +512,7 @@
                                 </label>
                                 <input type="number" id="mpcc-modal-question-count" class="mpcc-input" 
                                        value="10" min="1" max="50">
+                                <div id="mpcc-question-count-error" class="mpcc-field-error" role="alert" style="display: none; color: #dc3545; font-size: 13px; margin-top: 5px;"></div>
                             </div>
                             
                             <div class="mpcc-modal-section">
@@ -651,6 +653,19 @@
                             border: 1px solid #ddd;
                             border-radius: 4px;
                             font-size: 14px;
+                        }
+                        
+                        .mpcc-select[aria-invalid="true"],
+                        .mpcc-input[aria-invalid="true"],
+                        .mpcc-textarea[aria-invalid="true"] {
+                            border-color: #dc3545;
+                            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+                        }
+                        
+                        .mpcc-field-error {
+                            color: #dc3545;
+                            font-size: 13px;
+                            margin-top: 5px;
                         }
                         
                         .mpcc-textarea {
@@ -1118,7 +1133,17 @@
             if (!this.currentCourseId || this.currentCourseId <= 0) {
                 this.logger?.error('Invalid course ID for loading lessons:', this.currentCourseId);
                 $select.html('<option value="">No course selected</option>');
-                this.showModalError('No course context available for lesson filtering');
+                
+                // Set validation error on lesson select
+                $('#mpcc-modal-lesson-select')
+                    .attr('aria-invalid', 'true')
+                    .attr('aria-describedby', 'mpcc-lesson-select-error');
+                
+                $('#mpcc-lesson-select-error')
+                    .text('No course context available for lesson filtering')
+                    .show();
+                
+                this._a11y('announce', 'Error: No course context available for lesson filtering', {priority: 'assertive'});
                 return;
             }
             
@@ -1129,7 +1154,17 @@
             // mpcc_ajax is localized by WordPress and contains URL/nonce
             if (typeof mpcc_ajax === 'undefined') {
                 this.logger?.error('mpcc_ajax is not defined');
-                this.showModalError('Configuration error: AJAX settings not loaded');
+                
+                // Set validation error on lesson select
+                $('#mpcc-modal-lesson-select')
+                    .attr('aria-invalid', 'true')
+                    .attr('aria-describedby', 'mpcc-lesson-select-error');
+                
+                $('#mpcc-lesson-select-error')
+                    .text('Configuration error: AJAX settings not loaded')
+                    .show();
+                
+                this._a11y('announce', 'Error: Configuration error. AJAX settings not loaded', {priority: 'assertive'});
                 return;
             }
             
@@ -1147,6 +1182,9 @@
                     // Validate response structure follows WordPress AJAX standards
                     if (response.success && response.data.lessons) {
                         const lessons = response.data.lessons;
+                        
+                        // Clear any previous validation errors
+                        this.clearFieldError('mpcc-modal-lesson-select');
                         
                         // Rebuild lesson selector with course-specific options
                         $select.empty();
@@ -1246,6 +1284,9 @@
                         id: lesson.id,
                         title: { rendered: lesson.title.rendered }
                     }];
+                    
+                    // Clear any previous validation errors
+                    this.clearFieldError('mpcc-modal-lesson-select');
                     
                     $select.empty();
                     $select.append('<option value="">Select a lesson...</option>');
@@ -1414,6 +1455,9 @@
          * @return {void}
          */        
         populateLessonDropdown($select, lessons) {
+            // Clear any previous validation errors
+            this.clearFieldError('mpcc-modal-lesson-select');
+            
             $select.empty();
             $select.append('<option value="">Select a lesson...</option>');
             
@@ -1490,9 +1534,11 @@
                 this.generateQuestions('medium');
             });
             
-            // Custom prompt
+            // Custom prompt - removed auto-generation on input
+            // Users should click the Generate button to submit
             $('#mpcc-quiz-prompt').on('input', () => {
-                this.generateQuestions('custom');
+                // Just clear any errors if the field had them
+                // Don't auto-generate on every keystroke
             });
             
             // Apply questions
@@ -1510,8 +1556,57 @@
                 this.generateQuestions('medium');
             });
             
+            // Clear validation errors on field changes
+            $('#mpcc-modal-lesson-select').on('change', () => {
+                if ($('#mpcc-modal-lesson-select').val()) {
+                    this.clearFieldError('mpcc-modal-lesson-select');
+                }
+            });
+            
+            $('#mpcc-modal-question-count').on('input change', () => {
+                const value = parseInt($('#mpcc-modal-question-count').val());
+                if (value >= 1 && value <= 50) {
+                    this.clearFieldError('mpcc-modal-question-count');
+                }
+            });
+            
             // Initialize keyboard navigation
             this.initializeKeyboardNavigation();
+        }
+        
+        /**
+         * Clear validation errors for all fields
+         * 
+         * @return {void}
+         */
+        clearValidationErrors() {
+            // Clear lesson select
+            this.clearFieldError('mpcc-modal-lesson-select');
+            
+            // Clear question count
+            this.clearFieldError('mpcc-modal-question-count');
+        }
+        
+        /**
+         * Clear validation error for a specific field
+         * 
+         * @param {string} fieldId - The ID of the field to clear errors for
+         * @return {void}
+         */
+        clearFieldError(fieldId) {
+            const $field = $('#' + fieldId);
+            const errorId = fieldId + '-error';
+            
+            // Remove aria-invalid and aria-describedby
+            $field
+                .removeAttr('aria-invalid')
+                .removeAttr('aria-describedby');
+            
+            // Hide error message
+            $('#' + errorId).hide().text('');
+            
+            // Announce that error has been cleared (optional)
+            // this._a11y('announce', 'Error cleared');
         }
         /**
          * Generate quiz questions with comprehensive input validation
@@ -1559,15 +1654,30 @@
          * @return {void}
          */
         generateQuestions(difficulty = 'medium') {
+            // Clear any previous validation errors
+            this.clearValidationErrors();
+            
             // Critical Input Validation: Lesson ID is required for content generation
             const lessonId = $('#mpcc-modal-lesson-select').val();
             if (!lessonId) {
                 const errorMessage = 'Please select a lesson to generate questions from';
-                const suggestion = 'Choose a lesson from the dropdown above to provide content for quiz generation';
                 
-                // Show both modal error and page notice for visibility
-                this.showNotice(errorMessage, 'warning');
-                this.showModalError(errorMessage, suggestion);
+                // Set aria-invalid and aria-describedby
+                $('#mpcc-modal-lesson-select')
+                    .attr('aria-invalid', 'true')
+                    .attr('aria-describedby', 'mpcc-lesson-select-error');
+                
+                // Show error message
+                $('#mpcc-lesson-select-error')
+                    .text(errorMessage)
+                    .show();
+                
+                // Announce error for screen readers
+                this._a11y('announce', 'Error: ' + errorMessage, {priority: 'assertive'});
+                
+                // Focus the invalid field
+                $('#mpcc-modal-lesson-select').focus();
+                
                 return;
             }
             
@@ -1577,6 +1687,29 @@
             const questionType = $('#mpcc-modal-question-type').val() || 'multiple_choice';
             const customPrompt = $('#mpcc-quiz-prompt').val();
             
+            // Validate question count
+            if (questionCount < 1 || questionCount > 50) {
+                const errorMessage = `Please enter a number between 1 and 50 (you entered ${questionCount})`;
+                
+                // Set aria-invalid and aria-describedby
+                $('#mpcc-modal-question-count')
+                    .attr('aria-invalid', 'true')
+                    .attr('aria-describedby', 'mpcc-question-count-error');
+                
+                // Show error message
+                $('#mpcc-question-count-error')
+                    .text(errorMessage)
+                    .show();
+                
+                // Announce error for screen readers
+                this._a11y('announce', 'Error: ' + errorMessage, {priority: 'assertive'});
+                
+                // Focus the invalid field
+                $('#mpcc-modal-question-count').focus();
+                
+                return;
+            }
+            
             // UI State: Show loading state and disable interaction
             const $button = $('#mpcc-generate-quiz');
             const originalText = $button.html();  // Store for restoration
@@ -1585,6 +1718,10 @@
             // Clear previous results to avoid confusion
             $('#mpcc-quiz-results').hide();
             $('#mpcc-modal-error').hide();
+            
+            // Set aria-busy and announce generation start
+            $('.mpcc-modal-body').attr('aria-busy', 'true');
+            this._a11y('announce', 'Starting AI generation. Please wait while questions are being generated.');
             
             // Execute AI generation request with comprehensive error handling
             $.ajax({
@@ -1610,6 +1747,9 @@
                         this.generatedQuestions = response.data.questions;
                         this.displayQuestions(response.data.questions);
                         
+                        // Announce successful generation
+                        this._a11y('announce', `AI generation complete. Generated ${response.data.questions.length} questions successfully.`);
+                        
                         // Display AI suggestions if provided (content improvement hints)
                         if (response.data.suggestion) {
                             this.showNotice(response.data.suggestion, 'info');
@@ -1620,6 +1760,8 @@
                         // Extract suggestion from nested response structure (WordPress error format)
                         const suggestion = response.data?.data?.suggestion || response.data?.suggestion || null;
                         this.showModalError(errorMsg, suggestion);
+                        // Announce error
+                        this._a11y('announce', `Error during AI generation: ${errorMsg}`);
                     }
                 },
                 error: (xhr, status, error) => {
@@ -1651,11 +1793,15 @@
                     }
                     
                     this.showModalError(errorMsg, suggestion);
+                    // Announce error
+                    this._a11y('announce', `Error during AI generation: ${errorMsg}`);
                 },
                 complete: () => {
                     // Always restore button state, regardless of success/failure
                     // This ensures UI remains functional after any outcome
                     $button.prop('disabled', false).html(originalText);
+                    // Remove aria-busy
+                    $('.mpcc-modal-body').attr('aria-busy', 'false');
                 }
             });
         }

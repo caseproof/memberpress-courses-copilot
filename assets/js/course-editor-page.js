@@ -14,6 +14,8 @@
         isSaving: false,
         publishedCourseId: null,
         publishedCourseUrl: null,
+        messageHistory: [],
+        messageHistoryIndex: -1,
         
         init: function() {
             this.sessionId = mpccEditorSettings.sessionId;
@@ -178,9 +180,11 @@
             this.initializeSortable();
             
             // Save the updated structure
+            MPCCAccessibility.announce('Saving section order...');
             this.saveConversation();
             
             MPCCUtils.showSuccess('Section order updated');
+            MPCCAccessibility.announce('Section order saved successfully');
         },
         
         updateLessonOrder: function() {
@@ -212,9 +216,11 @@
             this.initializeSortable();
             
             // Save the updated structure
+            MPCCAccessibility.announce('Saving lesson order...');
             this.saveConversation();
             
             MPCCUtils.showSuccess('Lesson order updated');
+            MPCCAccessibility.announce('Lesson order saved successfully');
         },
         
         initializeChat: function() {
@@ -316,9 +322,19 @@
         
         rebuildChatHistory: function() {
             $('#mpcc-chat-messages').empty();
+            
+            // Rebuild message history from conversation history
+            this.messageHistory = [];
             this.conversationHistory.forEach(msg => {
                 this.addMessage(msg.role, msg.content, false);
+                // Add user messages to message history for arrow navigation
+                if (msg.role === 'user') {
+                    this.messageHistory.push(msg.content);
+                }
             });
+            
+            // Reset message history index
+            this.messageHistoryIndex = this.messageHistory.length;
             
             // Hide quickstart suggestions if there are any AI responses in history
             const hasAssistantMessages = this.conversationHistory.some(msg => msg.role === 'assistant');
@@ -332,6 +348,10 @@
             const message = input.val().trim();
             
             if (!message) return;
+            
+            // Add message to history
+            this.messageHistory.push(message);
+            this.messageHistoryIndex = this.messageHistory.length;
             
             // Create session ID if we don't have one yet
             if (!this.sessionId || this.sessionId === 'pending') {
@@ -425,6 +445,10 @@
             $('#mpcc-chat-messages').append(typingHtml);
             this.scrollToBottom();
             
+            // Set aria-busy and announce generation start
+            $('#mpcc-chat-messages').attr('aria-busy', 'true');
+            MPCCAccessibility.announce('Starting AI generation. Processing your request.');
+            
             $.ajax({
                 url: mpccEditorSettings.ajaxUrl,
                 type: 'POST',
@@ -492,16 +516,31 @@
                         
                         // Auto-save conversation
                         this.saveConversation();
+                        
+                        // Announce completion
+                        if (response.data.course_structure) {
+                            MPCCAccessibility.announce('AI generation complete. Course structure has been created.');
+                        } else {
+                            MPCCAccessibility.announce('AI response received successfully.');
+                        }
                     } else {
-                        MPCCUtils.showError(response.data || 'An error occurred');
+                        const errorMsg = response.data || 'An error occurred';
+                        MPCCUtils.showError(errorMsg);
+                        // Announce error
+                        MPCCAccessibility.announce(`Error during AI generation: ${errorMsg}`);
                     }
                 },
                 error: () => {
                     $('#' + typingId).remove();
-                    MPCCUtils.showError('Failed to communicate with the AI. Please try again.');
+                    const errorMsg = 'Failed to communicate with the AI. Please try again.';
+                    MPCCUtils.showError(errorMsg);
+                    // Announce error
+                    MPCCAccessibility.announce(`Error during AI generation: ${errorMsg}`);
                 },
                 complete: () => {
                     button.prop('disabled', false).html('<span class="dashicons dashicons-arrow-right-alt"></span> Send');
+                    // Remove aria-busy
+                    $('#mpcc-chat-messages').attr('aria-busy', 'false');
                 }
             });
         },
@@ -792,7 +831,10 @@
             const button = $('#mpcc-generate-lesson-content');
             
             button.prop('disabled', true).html('<span class="dashicons dashicons-update spin" aria-hidden="true"></span> Generating...');
-            MPCCAccessibility.announce('Generating lesson content with AI...');
+            
+            // Set aria-busy and announce generation start
+            $('#mpcc-lesson-editor').attr('aria-busy', 'true');
+            MPCCAccessibility.announce('Starting AI generation. Processing your request for lesson content.');
             
             $.ajax({
                 url: mpccEditorSettings.ajaxUrl,
@@ -813,15 +855,25 @@
                     if (response.success) {
                         $('#mpcc-lesson-textarea').val(response.data.content);
                         this.autoSaveLesson();
+                        // Announce successful generation
+                        MPCCAccessibility.announce('AI generation complete. Lesson content has been generated successfully.');
                     } else {
-                        MPCCUtils.showError(response.data || 'Failed to generate content');
+                        const errorMsg = response.data || 'Failed to generate content';
+                        MPCCUtils.showError(errorMsg);
+                        // Announce error
+                        MPCCAccessibility.announce(`Error during AI generation: ${errorMsg}`);
                     }
                 },
                 error: () => {
-                    MPCCUtils.showError('Failed to generate content. Please try again.');
+                    const errorMsg = 'Failed to generate content. Please try again.';
+                    MPCCUtils.showError(errorMsg);
+                    // Announce error
+                    MPCCAccessibility.announce(`Error during AI generation: ${errorMsg}`);
                 },
                 complete: () => {
                     button.prop('disabled', false).html('<span class="dashicons dashicons-welcome-write-blog" aria-hidden="true"></span> Generate');
+                    // Remove aria-busy
+                    $('#mpcc-lesson-editor').attr('aria-busy', 'false');
                 }
             });
         },
@@ -872,6 +924,7 @@
             
             this.isSaving = true;
             $('.mpcc-save-indicator').text('Saving...').removeClass('saved error').addClass('saving');
+            MPCCAccessibility.announce('Saving lesson content...');
             
             const saveData = {
                 action: 'mpcc_save_lesson_content',
@@ -890,6 +943,7 @@
                 success: (response) => {
                     if (response.success) {
                         MPCCUtils.ui.updateSaveIndicator('saved');
+                        MPCCAccessibility.announce('Lesson saved successfully');
                         
                         // Update local structure
                         lesson.draft_content = content;
@@ -901,12 +955,14 @@
                     } else {
                         MPCCUtils.ui.updateSaveIndicator('error');
                         MPCCUtils.showError(response.data || 'Failed to save');
+                        MPCCAccessibility.announce('Error: Failed to save lesson. ' + (response.data || 'Please try again'), 'assertive');
                     }
                 },
                 error: (xhr, status, error) => {
                     console.error('Save lesson AJAX error:', {status, error, response: xhr.responseText});
                     MPCCUtils.ui.updateSaveIndicator('error');
                     MPCCUtils.showError('Failed to save: ' + error);
+                    MPCCAccessibility.announce('Error: Failed to save lesson. ' + error, 'assertive');
                 },
                 complete: () => {
                     this.isSaving = false;
@@ -1000,6 +1056,7 @@
             
             const button = $('#mpcc-create-course');
             button.prop('disabled', true).text('Creating...');
+            MPCCAccessibility.announce('Creating course...');
             
             $.ajax({
                 url: mpccEditorSettings.ajaxUrl,
@@ -1023,6 +1080,7 @@
                         button.html('<span class="dashicons dashicons-yes-alt"></span> Course Created').prop('disabled', true);
                         
                         MPCCUtils.showSuccess('Course created successfully! Redirecting...');
+                        MPCCAccessibility.announce('Course created successfully! Redirecting to course editor.');
                         
                         // Redirect to the created course after short delay
                         setTimeout(() => {
@@ -1030,10 +1088,12 @@
                         }, 2000);
                     } else {
                         MPCCUtils.showError(response.data || 'Failed to create course');
+                        MPCCAccessibility.announce('Error: Failed to create course. ' + (response.data || 'Please try again'), 'assertive');
                     }
                 },
                 error: () => {
                     MPCCUtils.showError('Failed to create course. Please try again.');
+                    MPCCAccessibility.announce('Error: Failed to create course. Please try again.', 'assertive');
                 },
                 complete: () => {
                     button.prop('disabled', false).html('<span class="dashicons dashicons-yes"></span> Create Course');
@@ -1417,6 +1477,7 @@
             if (confirm('Duplicate this course as a draft? This will create a new editing session with all the course content.')) {
                 const button = $('#mpcc-duplicate-course');
                 button.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Duplicating...');
+                MPCCAccessibility.announce('Duplicating course...');
                 
                 $.ajax({
                     url: mpccEditorSettings.ajaxUrl,
@@ -1430,6 +1491,7 @@
                     success: (response) => {
                         if (response.success) {
                             MPCCUtils.showSuccess('Course duplicated successfully! Redirecting to new session...');
+                            MPCCAccessibility.announce('Course duplicated successfully! Redirecting to new session.');
                             
                             // Redirect to the new session
                             setTimeout(() => {
@@ -1437,10 +1499,12 @@
                             }, 1500);
                         } else {
                             MPCCUtils.showError(response.data || 'Failed to duplicate course');
+                            MPCCAccessibility.announce('Error: Failed to duplicate course. ' + (response.data || 'Please try again'), 'assertive');
                         }
                     },
                     error: () => {
                         MPCCUtils.showError('Failed to duplicate course. Please try again.');
+                        MPCCAccessibility.announce('Error: Failed to duplicate course. Please try again.', 'assertive');
                     },
                     complete: () => {
                         button.prop('disabled', false).html('<span class="dashicons dashicons-admin-page"></span> Duplicate Course');
@@ -1469,8 +1533,10 @@
             if (newTitle && newTitle.trim() && newTitle !== section.title) {
                 this.courseStructure.sections[sectionIndex].title = newTitle.trim();
                 this.renderCourseStructure();
+                MPCCAccessibility.announce('Saving section title...');
                 this.saveConversation();
                 MPCCUtils.showSuccess('Section title updated');
+                MPCCAccessibility.announce('Section title saved successfully');
             }
         },
         
@@ -1494,8 +1560,10 @@
             this.courseStructure.sections.splice(sectionIndex, 1);
             this.renderCourseStructure();
             this.initializeSortable();
+            MPCCAccessibility.announce('Deleting section...');
             this.saveConversation(); // This saves the entire updated structure
             MPCCUtils.showSuccess('Section deleted');
+            MPCCAccessibility.announce('Section deleted successfully');
         },
         
         handleDeleteLesson: function(sectionIndex, lessonIndex) {
@@ -1516,8 +1584,10 @@
             this.courseStructure.sections[sectionIndex].lessons.splice(lessonIndex, 1);
             this.renderCourseStructure();
             this.initializeSortable();
+            MPCCAccessibility.announce('Deleting lesson...');
             this.saveConversation(); // This saves the entire updated structure
             MPCCUtils.showSuccess('Lesson deleted');
+            MPCCAccessibility.announce('Lesson deleted successfully');
         },
         
         // Mobile tabs functionality
@@ -1629,10 +1699,50 @@
             
             // Chat input keyboard navigation
             $('#mpcc-chat-input').on('keydown', (e) => {
+                // Ctrl/Cmd + Enter to send
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    this.sendMessage();
+                    MPCCAccessibility.announce('Message sent');
+                    return false;
+                }
+                
                 // Shift+Enter for new line in chat (normal Enter already sends)
                 if (e.key === 'Enter' && e.shiftKey) {
                     // Default behavior creates new line
                     return true;
+                }
+                
+                // Arrow key navigation for message history
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.navigateMessageHistory('up');
+                    return false;
+                }
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.navigateMessageHistory('down');
+                    return false;
+                }
+                
+                // Enter key to confirm selection when navigating history
+                if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                    // Check if we're in history navigation mode
+                    if (this.messageHistoryIndex < this.messageHistory.length && this.messageHistoryIndex >= 0) {
+                        // We have a selected message from history
+                        const currentValue = e.target.value;
+                        const expectedHistoryValue = this.messageHistory[this.messageHistoryIndex];
+                        
+                        // Only prevent default if the current value matches our history value
+                        if (currentValue === expectedHistoryValue) {
+                            // Reset history index to allow normal send
+                            this.messageHistoryIndex = this.messageHistory.length;
+                            $('.mpcc-chat-message').removeClass('mpcc-history-highlight');
+                            MPCCAccessibility.announce('Message copied from history');
+                        }
+                    }
+                    // Normal enter behavior will send the message
                 }
             });
             
@@ -1939,6 +2049,85 @@
                     $firstFocusable.focus();
                 }
             });
+        },
+        
+        /**
+         * Navigate through message history using arrow keys
+         */
+        navigateMessageHistory: function(direction) {
+            if (this.messageHistory.length === 0) return;
+            
+            const $input = $('#mpcc-chat-input');
+            const $messages = $('.mpcc-chat-message.user');
+            
+            if (direction === 'up') {
+                // Move up in history (older messages)
+                if (this.messageHistoryIndex > 0) {
+                    this.messageHistoryIndex--;
+                    const historicalMessage = this.messageHistory[this.messageHistoryIndex];
+                    $input.val(historicalMessage);
+                    
+                    // Highlight the corresponding message
+                    this.highlightHistoryMessage(this.messageHistoryIndex);
+                    
+                    // Announce to screen reader
+                    MPCCAccessibility.announce(`Navigated to previous message: ${historicalMessage.substring(0, 50)}...`);
+                }
+            } else if (direction === 'down') {
+                // Move down in history (newer messages)
+                if (this.messageHistoryIndex < this.messageHistory.length - 1) {
+                    this.messageHistoryIndex++;
+                    const historicalMessage = this.messageHistory[this.messageHistoryIndex];
+                    $input.val(historicalMessage);
+                    
+                    // Highlight the corresponding message
+                    this.highlightHistoryMessage(this.messageHistoryIndex);
+                    
+                    // Announce to screen reader
+                    MPCCAccessibility.announce(`Navigated to next message: ${historicalMessage.substring(0, 50)}...`);
+                } else if (this.messageHistoryIndex === this.messageHistory.length - 1) {
+                    // At the end of history, clear input
+                    this.messageHistoryIndex = this.messageHistory.length;
+                    $input.val('');
+                    
+                    // Remove all highlights
+                    $('.mpcc-chat-message').removeClass('mpcc-history-highlight');
+                    
+                    MPCCAccessibility.announce('Cleared message input');
+                }
+            }
+        },
+        
+        /**
+         * Highlight a message in the chat history
+         */
+        highlightHistoryMessage: function(index) {
+            // Remove all existing highlights
+            $('.mpcc-chat-message').removeClass('mpcc-history-highlight');
+            
+            // Find and highlight the user message at the given index
+            const $userMessages = $('.mpcc-chat-message.user');
+            if (index >= 0 && index < $userMessages.length) {
+                const $targetMessage = $userMessages.eq(index);
+                $targetMessage.addClass('mpcc-history-highlight');
+                
+                // Scroll the message into view
+                const messagesContainer = $('#mpcc-chat-messages')[0];
+                const messageElement = $targetMessage[0];
+                
+                if (messageElement && messagesContainer) {
+                    const messageTop = messageElement.offsetTop;
+                    const messageHeight = messageElement.offsetHeight;
+                    const containerHeight = messagesContainer.clientHeight;
+                    const scrollTop = messagesContainer.scrollTop;
+                    
+                    // Check if message is not fully visible
+                    if (messageTop < scrollTop || messageTop + messageHeight > scrollTop + containerHeight) {
+                        // Scroll to center the message in view
+                        messagesContainer.scrollTop = messageTop - (containerHeight / 2) + (messageHeight / 2);
+                    }
+                }
+            }
         }
     };
     
