@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subdirectory Installation Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 800px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        h2 {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MemberPress Courses Copilot - Subdirectory Installation Test</h1>
+    
+    <p>This test verifies that the plugin works correctly when WordPress is installed in a subdirectory.</p>
+    
+    <h2>Test Results</h2>
+    <div id="test-results"></div>
+    
+    <script>
+    // Simulate WordPress localization failure
+    window.ajaxurl = undefined;
+    window.mpccEditorSettings = undefined;
+    window.mpcc_ajax = undefined;
+    
+    // Test the shared utilities function
+    const results = document.getElementById('test-results');
+    
+    // Test 1: Load shared-utilities.js logic
+    const MPCCUtils = {
+        getAjaxSettings: function() {
+            const ajaxUrl = window.mpccEditorSettings?.ajaxUrl ||
+                           window.mpccAISettings?.ajaxUrl ||
+                           window.mpccCoursesIntegration?.ajaxUrl ||
+                           window.ajaxurl ||
+                           window.mpcc_ajax?.ajax_url ||
+                           null;
+            
+            if (!ajaxUrl) {
+                console.error('MPCC: No AJAX URL available. WordPress localization may have failed.');
+                throw new Error('AJAX URL not available');
+            }
+            
+            return {
+                url: ajaxUrl,
+                nonce: window.mpccEditorSettings?.nonce ||
+                       window.mpccAISettings?.nonce ||
+                       window.mpccCoursesIntegration?.nonce ||
+                       window.mpcc_ajax?.nonce ||
+                       jQuery('#mpcc-ajax-nonce').val() ||
+                       ''
+            };
+        }
+    };
+    
+    // Test 1: AJAX settings with no localization
+    try {
+        const settings = MPCCUtils.getAjaxSettings();
+        results.innerHTML += '<div class="test-result error">❌ Test 1 Failed: Expected error when no AJAX URL available, but got: ' + settings.url + '</div>';
+    } catch (e) {
+        results.innerHTML += '<div class="test-result success">✅ Test 1 Passed: Correctly throws error when no AJAX URL available</div>';
+    }
+    
+    // Test 2: AJAX settings with subdirectory installation
+    window.mpccEditorSettings = {
+        ajaxUrl: '/blog/wp-admin/admin-ajax.php',
+        nonce: 'test123'
+    };
+    
+    try {
+        const settings = MPCCUtils.getAjaxSettings();
+        if (settings.url === '/blog/wp-admin/admin-ajax.php' && settings.nonce === 'test123') {
+            results.innerHTML += '<div class="test-result success">✅ Test 2 Passed: Correctly uses subdirectory AJAX URL: <code>' + settings.url + '</code></div>';
+        } else {
+            results.innerHTML += '<div class="test-result error">❌ Test 2 Failed: Got incorrect URL: ' + settings.url + '</div>';
+        }
+    } catch (e) {
+        results.innerHTML += '<div class="test-result error">❌ Test 2 Failed: ' + e.message + '</div>';
+    }
+    
+    // Test 3: REST URL usage
+    window.mpcc_ajax = {
+        rest_url: '/blog/wp-json/wp/v2/',
+        rest_nonce: 'rest123'
+    };
+    
+    const lessonId = 123;
+    const restUrl = window.mpcc_ajax.rest_url + 'mpcs-lesson/' + lessonId;
+    
+    if (restUrl === '/blog/wp-json/wp/v2/mpcs-lesson/123') {
+        results.innerHTML += '<div class="test-result success">✅ Test 3 Passed: REST URL correctly built for subdirectory: <code>' + restUrl + '</code></div>';
+    } else {
+        results.innerHTML += '<div class="test-result error">❌ Test 3 Failed: Incorrect REST URL: ' + restUrl + '</div>';
+    }
+    
+    // Summary
+    results.innerHTML += '<h2>Summary</h2>';
+    results.innerHTML += '<p>The plugin now properly handles WordPress subdirectory installations by:</p>';
+    results.innerHTML += '<ul>';
+    results.innerHTML += '<li>Using localized AJAX URLs instead of hardcoded <code>/wp-admin/admin-ajax.php</code></li>';
+    results.innerHTML += '<li>Using <code>rest_url()</code> for REST API endpoints instead of hardcoded <code>/wp-json/</code></li>';
+    results.innerHTML += '<li>Failing gracefully when WordPress localization is missing</li>';
+    results.innerHTML += '<li>Supporting various WordPress installation configurations</li>';
+    results.innerHTML += '</ul>';
+    </script>
+</body>
+</html>

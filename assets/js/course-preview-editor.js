@@ -347,12 +347,14 @@
                 this.sessionId = sessionId;
             }
             
+            const ajaxSettings = MPCCUtils.getAjaxSettings();
+            
             $.ajax({
-                url: window.mpccCoursesIntegration?.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php',
+                url: ajaxSettings.url,
                 type: 'POST',
                 data: {
                     action: 'mpcc_generate_lesson_content',
-                    nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
+                    nonce: ajaxSettings.nonce,
                     session_id: sessionId,
                     section_id: this.currentEditingLesson.sectionId,
                     lesson_id: this.currentEditingLesson.lessonId,
@@ -452,12 +454,14 @@
             
             console.log('CoursePreviewEditor: Loading drafts for session:', this.sessionId);
             
+            const ajaxSettings = MPCCUtils.getAjaxSettings();
+            
             $.ajax({
-                url: window.mpccCoursesIntegration?.ajaxUrl || window.ajaxurl || '/wp-admin/admin-ajax.php',
+                url: ajaxSettings.url,
                 type: 'POST',
                 data: {
                     action: 'mpcc_load_all_drafts',
-                    nonce: window.mpccCoursesIntegration?.nonce || $('#mpcc-ajax-nonce').val() || window.mpccAISettings?.nonce || '',
+                    nonce: ajaxSettings.nonce,
                     session_id: this.sessionId || sessionStorage.getItem('mpcc_current_session_id')
                 },
                 success: (response) => {

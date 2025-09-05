@@ -188,8 +188,9 @@
             var contextData = mpccEditorModal.contextData;
             
             // Send AJAX request
+            const ajaxSettings = MPCCUtils.getAjaxSettings();
             $.ajax({
-                url: ajaxurl,
+                url: ajaxSettings.url,
                 type: 'POST',
                 data: {
                     action: mpccEditorModal.ajaxAction,
@@ -355,8 +356,9 @@
             console.log('MPCC: Final content to apply (length: ' + editorContent.length + '):', editorContent);
             
             // Update the post content via AJAX
+            const ajaxSettings = MPCCUtils.getAjaxSettings();
             $.ajax({
-                url: ajaxurl,
+                url: ajaxSettings.url,
                 type: 'POST',
                 data: {
                     action: mpccEditorModal.updateAction,

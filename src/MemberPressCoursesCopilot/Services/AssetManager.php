@@ -287,10 +287,11 @@ class AssetManager extends BaseService
 
         // Course editor localizations
         wp_localize_script('mpcc-course-editor', 'mpccEditorSettings', [
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'apiUrl'  => home_url('/wp-json/wp/v2/'),
-            'nonce'   => NonceConstants::create(NonceConstants::EDITOR_NONCE),
-            'strings' => $this->getEditorStrings(),
+            'ajaxUrl'    => admin_url('admin-ajax.php'),
+            'apiUrl'     => rest_url('wp/v2/'),
+            'rest_nonce' => wp_create_nonce('wp_rest'),
+            'nonce'      => NonceConstants::create(NonceConstants::EDITOR_NONCE),
+            'strings'    => $this->getEditorStrings(),
         ]);
 
         // Course edit AI chat localizations
