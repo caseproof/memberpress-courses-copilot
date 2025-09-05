@@ -71,7 +71,7 @@ class QuizPermissionTest extends TestCase
 
         // Should not fail with permission error (might fail for other reasons like empty content)
         $this->assertFalse($response['success']); // Fails due to empty content, not permissions
-        $this->assertStringNotContains('Insufficient permissions', $response['data']['message']);
+        $this->assertStringNotContains('Insufficient permissions', $response['error']['message'] ?? '');
     }
 
     /**
@@ -95,8 +95,8 @@ class QuizPermissionTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Insufficient permissions', $response['data']['message']);
-        $this->assertEquals(403, $response['data']['code'] ?? 0);
+        $this->assertStringContains('Insufficient permissions', $response['error']['message']);
+        $this->assertEquals('mpcc_insufficient_permissions', $response['error']['code'] ?? '');
     }
 
     /**
@@ -128,7 +128,7 @@ class QuizPermissionTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Insufficient permissions', $response['data']['message']);
+        $this->assertStringContains('Insufficient permissions', $response['error']['message']);
     }
 
     /**
@@ -168,7 +168,7 @@ class QuizPermissionTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Insufficient permissions', $response['data']['message']);
+        $this->assertStringContains('Insufficient permissions', $response['error']['message']);
     }
 
     /**
@@ -199,7 +199,7 @@ class QuizPermissionTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Insufficient permissions', $response['data']['message']);
+        $this->assertStringContains('Insufficient permissions', $response['error']['message']);
     }
 
     /**
@@ -230,7 +230,7 @@ class QuizPermissionTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Insufficient permissions', $response['data']['message']);
+        $this->assertStringContains('Insufficient permissions', $response['error']['message']);
     }
 
     /**
@@ -261,7 +261,7 @@ class QuizPermissionTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Insufficient permissions', $response['data']['message']);
+        $this->assertStringContains('Insufficient permissions', $response['error']['message']);
     }
 
     /**
@@ -417,8 +417,8 @@ class QuizPermissionTest extends TestCase
             });
 
             $this->assertFalse($response['success'], "Endpoint $endpoint should reject invalid nonce");
-            $this->assertStringContains('Security check failed', $response['data']['message']);
-            $this->assertEquals(403, $response['data']['code'] ?? 0);
+            $this->assertStringContains('Security check failed', $response['error']['message']);
+            $this->assertEquals('mpcc_invalid_nonce', $response['error']['code'] ?? '');
         }
     }
 
@@ -456,8 +456,8 @@ class QuizPermissionTest extends TestCase
             });
 
             $this->assertFalse($response['success'], "Endpoint $endpoint should require edit_posts capability");
-            $this->assertStringContains('Insufficient permissions', $response['data']['message']);
-            $this->assertEquals(403, $response['data']['code'] ?? 0);
+            $this->assertStringContains('Insufficient permissions', $response['error']['message']);
+            $this->assertEquals('mpcc_insufficient_permissions', $response['error']['code'] ?? '');
         }
     }
 
@@ -729,8 +729,8 @@ class QuizPermissionTest extends TestCase
 
             // Each should fail gracefully with proper error message
             $this->assertFalse($response['success']);
-            $this->assertEquals('Insufficient permissions', $response['data']['message']);
-            $this->assertEquals(403, $response['data']['code']);
+            $this->assertEquals('Insufficient permissions', $response['error']['message']);
+            $this->assertEquals('mpcc_insufficient_permissions', $response['error']['code']);
         }
     }
 
@@ -857,7 +857,7 @@ class QuizPermissionTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Insufficient permissions', $response['data']['message']);
+        $this->assertStringContains('Insufficient permissions', $response['error']['message']);
     }
 
     /**
@@ -881,8 +881,8 @@ class QuizPermissionTest extends TestCase
 
         // Should fail on nonce verification, not permission check
         $this->assertFalse($response['success']);
-        $this->assertStringContains('Security check failed', $response['data']['message']);
-        $this->assertStringNotContains('Insufficient permissions', $response['data']['message']);
+        $this->assertStringContains('Security check failed', $response['error']['message']);
+        $this->assertStringNotContains('Insufficient permissions', $response['error']['message']);
     }
 
     /**

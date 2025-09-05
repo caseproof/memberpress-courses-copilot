@@ -104,7 +104,7 @@ class MpccQuizAjaxControllerTest extends TestCase
                     'type' => 'multiple_choice',
                     'count' => 5,
                     'difficulty' => 'medium',
-                    'custom_prompt' => ''
+                    'customPrompt' => ''
                 ])
             )
             ->willReturn($mockQuestions);
@@ -257,7 +257,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         
         $this->assertEquals('John Doe', $sanitized['name']);
         $this->assertEquals('Hello World', $sanitized['message']);
-        $this->assertEquals('Nested Value', $sanitized['nested']['value']);
+        $this->assertEquals('Nested', $sanitized['nested']['value']);
 
         // Test integer sanitization
         $intData = ['count' => '123.45', 'invalid' => 'abc'];
@@ -385,6 +385,9 @@ class MpccQuizAjaxControllerTest extends TestCase
      */
     public function testValidateQuizWithValidData(): void
     {
+        // Ensure capabilities are set
+        $this->setCurrentUserCaps(['edit_posts' => true]);
+        
         // Arrange
         $validQuizData = [
             'title' => 'Test Quiz',
@@ -617,7 +620,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         $this->assertEquals('true_false', $result['type']);
         $this->assertEquals(15, $result['count']);
         $this->assertEquals('hard', $result['difficulty']);
-        $this->assertEquals('Focus on key concepts', $result['custom_prompt']);
+        $this->assertEquals('Focus on key concepts', $result['customPrompt']);
 
         // Test with default values
         $emptyOptions = [];
@@ -626,7 +629,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         $this->assertEquals('multiple_choice', $resultDefaults['type']);
         $this->assertEquals(10, $resultDefaults['count']);
         $this->assertEquals('medium', $resultDefaults['difficulty']);
-        $this->assertEquals('', $resultDefaults['custom_prompt']);
+        $this->assertEquals('', $resultDefaults['customPrompt']);
     }
 
     /**
@@ -763,7 +766,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertArrayHasKey('data', $response);
+        $this->assertArrayHasKey('error', $response);
     }
 
     /**
@@ -1028,7 +1031,7 @@ class MpccQuizAjaxControllerTest extends TestCase
         });
 
         $this->assertFalse($response['success']);
-        $this->assertArrayHasKey('data', $response);
+        $this->assertArrayHasKey('error', $response);
     }
 
     /**

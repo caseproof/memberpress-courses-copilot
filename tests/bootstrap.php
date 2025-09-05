@@ -32,13 +32,23 @@ if (!function_exists('__')) {
 
 if (!function_exists('esc_html')) {
     function esc_html($text) {
-        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+        if ($text === null) {
+            return '';
+        }
+        $text = (string) $text;
+        $text = htmlspecialchars($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return $text;
     }
 }
 
 if (!function_exists('esc_attr')) {
     function esc_attr($text) {
-        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+        if ($text === null) {
+            return '';
+        }
+        $text = (string) $text;
+        $text = htmlspecialchars($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return $text;
     }
 }
 
@@ -65,8 +75,6 @@ if (!function_exists('sanitize_text_field')) {
         $str = strip_tags($str);
         // Trim whitespace from beginning and end
         $str = trim($str);
-        // Normalize internal whitespace (convert multiple spaces to single space)
-        $str = preg_replace('/\s+/', ' ', $str);
         return $str;
     }
 }
@@ -88,8 +96,6 @@ if (!function_exists('sanitize_textarea_field')) {
         $str = preg_replace('/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $str);
         // Trim whitespace from beginning and end
         $str = trim($str);
-        // Normalize internal whitespace (convert multiple spaces to single space)
-        $str = preg_replace('/\s+/', ' ', $str);
         return $str;
     }
 }
@@ -167,6 +173,15 @@ if (!function_exists('wp_remote_retrieve_response_code')) {
     function wp_remote_retrieve_response_code($response) {
         if (is_array($response) && isset($response['response']['code'])) {
             return $response['response']['code'];
+        }
+        return '';
+    }
+}
+
+if (!function_exists('wp_remote_retrieve_body')) {
+    function wp_remote_retrieve_body($response) {
+        if (is_array($response) && isset($response['body'])) {
+            return $response['body'];
         }
         return '';
     }
@@ -575,6 +590,43 @@ if (!function_exists('add_query_arg')) {
     }
 }
 
+if (!function_exists('wp_json_encode')) {
+    function wp_json_encode($data, $options = 0, $depth = 512) {
+        $json = json_encode($data, $options, $depth);
+        
+        // Handle json_encode failure
+        if ($json === false) {
+            return false;
+        }
+        
+        // WordPress applies these conversions for security
+        $json = str_replace('<', '\u003c', $json);
+        $json = str_replace('>', '\u003e', $json);
+        $json = str_replace('&', '\u0026', $json);
+        
+        return $json;
+    }
+}
+
+if (!function_exists('esc_url')) {
+    function esc_url($url, $protocols = null, $_context = 'display') {
+        if (empty($url)) {
+            return '';
+        }
+        
+        // Basic URL sanitization
+        $url = str_replace(' ', '%20', $url);
+        $url = preg_replace('|[^a-z0-9-~+_.?#=!&;,/:%@$\|*\'()\[\]\\x80-\\xff]|i', '', $url);
+        
+        // Remove dangerous protocols
+        if (stripos($url, 'javascript:') === 0 || stripos($url, 'data:') === 0) {
+            return '';
+        }
+        
+        return $url;
+    }
+}
+
 // Initialize global test variables
 global $test_transients, $test_localized_data, $test_user_caps, $test_options, $test_post_meta, $test_status_headers;
 $test_transients = [];
@@ -586,6 +638,13 @@ $test_status_headers = [];
 
 // Import WordPress functions into namespaces used by the plugin
 require_once __DIR__ . '/wordpress-functions.php';
+
+// Load wpdb mock
+require_once __DIR__ . '/Mocks/wpdb.php';
+
+// Initialize global wpdb instance
+global $wpdb;
+$wpdb = new wpdb();
 
 // Output test environment info
 echo PHP_EOL . 'MemberPress Courses Copilot Test Suite' . PHP_EOL;

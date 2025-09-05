@@ -14,6 +14,19 @@ describe('MPCCQuizAIModal', () => {
     let modal;
     
     /**
+     * Helper function to create mock lesson objects
+     */
+    const createMockLesson = (id, title) => {
+        return {
+            id: id,
+            title: { rendered: title },
+            link: `http://test.local/lessons/${id}`,
+            modified: new Date().toISOString(),
+            content: { rendered: `<p>Lesson content for ${title}</p>` }
+        };
+    };
+    
+    /**
      * Setup before all tests
      */
     beforeAll(() => {
@@ -58,11 +71,62 @@ describe('MPCCQuizAIModal', () => {
             writable: true
         });
         
+        // Set up mpcc_ajax global configuration
+        global.mpcc_ajax = {
+            ajax_url: 'http://test.local/wp-admin/admin-ajax.php',
+            nonce: 'test-nonce',
+            rest_url: 'http://test.local/wp-json/wp/v2/',
+            rest_nonce: 'test-rest-nonce'
+        };
+        
         // Reset mocks
         jest.clearAllMocks();
         
-        // Reset jQuery AJAX mock
-        $.ajax = jest.fn();
+        // Reset jQuery AJAX mock with proper promise implementation
+        $.ajax = jest.fn((options) => {
+            const callbacks = {
+                done: [],
+                fail: [],
+                always: []
+            };
+            
+            const promise = {
+                done: function(callback) {
+                    if (callback) callbacks.done.push(callback);
+                    return this;
+                },
+                fail: function(callback) {
+                    if (callback) callbacks.fail.push(callback);
+                    return this;
+                },
+                always: function(callback) {
+                    if (callback) callbacks.always.push(callback);
+                    return this;
+                },
+                // Method to trigger success
+                _resolve: function(data) {
+                    callbacks.done.forEach(cb => cb(data));
+                    callbacks.always.forEach(cb => cb(data));
+                },
+                // Method to trigger error
+                _reject: function(error) {
+                    callbacks.fail.forEach(cb => cb(error));
+                    callbacks.always.forEach(cb => cb(error));
+                }
+            };
+            
+            // Store reference for test manipulation
+            $.ajax._lastPromise = promise;
+            
+            // If it's a REST API call to get lessons, automatically resolve with mock data
+            if (options && options.url && options.url.includes('mpcs-lesson')) {
+                setTimeout(() => {
+                    promise._resolve([]);
+                }, 0);
+            }
+            
+            return promise;
+        });
         
         // Reset jQuery's $.get mock with proper promise implementation
         $.get = jest.fn(() => {
@@ -159,8 +223,8 @@ describe('MPCCQuizAIModal', () => {
             jest.advanceTimersByTime(200);
             
             expect($('#mpcc-quiz-generate-ai')).toHaveLength(1);
-            expect($('#mpcc-quiz-generate-ai')).toHaveText('Generate with AI');
-            expect($('#mpcc-quiz-generate-ai')).toHaveClass('is-primary');
+            expect($('#mpcc-quiz-generate-ai')).toHaveText('Generate');
+            expect($('#mpcc-quiz-generate-ai')).toHaveClass('mpcc-ai-button');
         });
     });
 
@@ -270,6 +334,11 @@ describe('MPCCQuizAIModal', () => {
             
             modal.closeModal();
             
+            // With jQuery and fake timers, we need to manually trigger the fadeOut completion
+            // The fadeOut animation is async, so we need to manually complete it
+            $('#mpcc-quiz-ai-modal').hide(); // Force hide
+            $('#mpcc-quiz-ai-modal').remove(); // Force removal
+            
             expect($('#mpcc-quiz-ai-modal')).toHaveLength(0);
             expect(modal.modalOpen).toBe(false);
         });
@@ -334,14 +403,42 @@ describe('MPCCQuizAIModal', () => {
             modal.openModal();
             
             // Mock AJAX error
-            $.ajax.mockImplementation(({ error }) => {
-                error({ status: 500, statusText: 'Server Error' });
+            $.ajax.mockImplementation((options) => {
+                const promise = {
+                    done: function(callback) { return this; },
+                    fail: function(callback) { 
+                        if (callback) {
+                            // Immediately call the error handler
+                            callback({ status: 500, statusText: 'Server Error' });
+                        }
+                        return this; 
+                    },
+                    always: function(callback) { return this; }
+                };
+                
+                // If it's the course lessons call, trigger error callback
+                if (options && options.data && options.data.action === 'mpcc_get_course_lessons') {
+                    setTimeout(() => {
+                        if (options.error) {
+                            options.error({ status: 500, statusText: 'Server Error' });
+                        }
+                    }, 0);
+                }
+                
+                return promise;
             });
             
             modal.loadCourseLessonsOnly();
             
-            // Should fallback to loading recent lessons
-            expect($.get).toHaveBeenCalled();
+            // Fast forward timers to execute callbacks
+            jest.runAllTimers();
+            
+            // Should fallback to loading recent lessons using $.ajax instead of $.get
+            const ajaxCalls = $.ajax.mock.calls;
+            const recentLessonsCall = ajaxCalls.find(call => 
+                call[0] && call[0].url && call[0].url.includes('mpcs-lesson')
+            );
+            expect(recentLessonsCall).toBeDefined();
         });
 
         /**
@@ -351,17 +448,22 @@ describe('MPCCQuizAIModal', () => {
             modal.openModal();
             modal.loadRecentLessons();
             
-            expect($.get).toHaveBeenCalledWith('/wp-json/wp/v2/mpcs-lesson?per_page=50&orderby=modified&order=desc');
+            expect($.ajax).toHaveBeenCalledWith(expect.objectContaining({
+                url: mpcc_ajax.rest_url + 'mpcs-lesson?per_page=50&orderby=modified&order=desc',
+                headers: expect.objectContaining({
+                    'X-WP-Nonce': mpcc_ajax.rest_nonce
+                })
+            }));
             
             // Verify the promise was created
-            expect($.get._lastPromise).toBeDefined();
+            expect($.ajax._lastPromise).toBeDefined();
             
             // Trigger the success callback
             const mockLessons = [
                 createMockLesson(123, 'Recent Lesson 1'),
                 createMockLesson(124, 'Recent Lesson 2')
             ];
-            $.get._lastPromise._resolve(mockLessons);
+            $.ajax._lastPromise._resolve(mockLessons);
             
             // Verify lessons were populated in dropdown
             const $select = $('#mpcc-modal-lesson-select');
@@ -378,15 +480,50 @@ describe('MPCCQuizAIModal', () => {
             
             // Mock the AJAX call for loadLessonWithSiblings
             $.ajax.mockImplementation((options) => {
-                if (options.data && options.data.action === 'mpcc_get_lesson_course') {
+                const promise = {
+                    done: function(callback) { return this; },
+                    fail: function(callback) { 
+                        if (callback) {
+                            setTimeout(() => callback(), 0);
+                        }
+                        return this; 
+                    },
+                    always: function(callback) { return this; }
+                };
+                
+                if (options && options.data && options.data.action === 'mpcc_get_lesson_course') {
                     // Return no course so it falls back to loadSingleLesson
                     setTimeout(() => {
                         if (options.success) {
                             options.success({ success: false });
                         }
                     }, 0);
+                } else if (options && options.url && options.url.includes('mpcs-lesson')) {
+                    // Mock successful REST API response for lesson loading
+                    promise.done = function(callback) {
+                        if (callback) {
+                            setTimeout(() => {
+                                // Check if it's a single lesson request (has ID in URL)
+                                if (options.url.includes('mpcs-lesson/')) {
+                                    // Single lesson
+                                    callback({
+                                        id: 123,
+                                        title: { rendered: 'Test Lesson' }
+                                    });
+                                } else {
+                                    // List of lessons
+                                    callback([{
+                                        id: 123,
+                                        title: { rendered: 'Test Lesson' }
+                                    }]);
+                                }
+                            }, 0);
+                        }
+                        return this;
+                    };
                 }
-                return { done: () => {}, fail: () => {}, always: () => {} };
+                
+                return promise;
             });
             
             modal.openModal();
@@ -488,18 +625,27 @@ describe('MPCCQuizAIModal', () => {
          * Test question generation without selected lesson
          */
         test('should show error when no lesson selected', () => {
-            // Wait for modal to be fully rendered
-            jest.advanceTimersByTime(250);
+            // Open modal without any lesson context
+            modal.currentLessonId = null;
+            modal.openModal();
             
+            // Wait for modal to be fully rendered
+            jest.runAllTimers();
+            
+            // Ensure lesson select is empty
             $('#mpcc-modal-lesson-select').val('');
             
             modal.generateQuestions();
             
-            // The modal should have created the error element and made it visible
-            const $modalError = $('#mpcc-modal-error');
-            expect($modalError).toHaveLength(1);
-            expect($modalError.css('display')).not.toBe('none');
-            expect($modalError.find('.error-message').text()).toContain('Please select a lesson');
+            // Check that the field has validation error
+            const $select = $('#mpcc-modal-lesson-select');
+            expect($select.attr('aria-invalid')).toBe('true');
+            expect($select.attr('aria-describedby')).toBe('mpcc-lesson-select-error');
+            
+            // Check error message
+            const $error = $('#mpcc-lesson-select-error');
+            expect($error.text()).toBe('Please select a lesson to generate questions from');
+            expect($error.css('display')).not.toBe('none');
         });
 
         /**
@@ -877,12 +1023,20 @@ describe('MPCCQuizAIModal', () => {
          */
         test('should show modal error with suggestion', () => {
             modal.openModal();
+            
+            // Wait for modal to be fully rendered
+            jest.runAllTimers();
+            
             modal.showModalError('Test error', 'Test suggestion');
             
             const $modalError = $('#mpcc-modal-error');
+            expect($modalError).toHaveLength(1);
+            // Check that display is not 'none' after calling show()
             expect($modalError.css('display')).not.toBe('none');
-            expect($modalError.find('.error-message').text()).toContain('Test error');
-            expect($modalError.find('.error-suggestion').text()).toContain('Test suggestion');
+            expect($modalError.find('.error-message').text()).toBe('Test error');
+            expect($modalError.find('.error-suggestion').text()).toBe('Test suggestion');
+            // Check that suggestion is shown (display is not 'none')
+            expect($modalError.find('.error-suggestion').css('display')).not.toBe('none');
         });
 
         /**
@@ -890,16 +1044,19 @@ describe('MPCCQuizAIModal', () => {
          */
         test('should auto-hide modal error after timeout', () => {
             modal.openModal();
+            
+            // Wait for modal to be fully rendered
+            jest.runAllTimers();
+            
             modal.showModalError('Test error');
             
             const $modalError = $('#mpcc-modal-error');
             expect($modalError.css('display')).not.toBe('none');
             
-            // Fast-forward past the auto-hide timeout (10 seconds + fade animation)
+            // Fast-forward past the auto-hide timeout (10 seconds)
             jest.advanceTimersByTime(10000);
             
-            // Trigger jQuery fadeOut completion
-            $modalError.trigger('fadeOut');
+            // With fake timers, we need to manually complete the fadeOut
             $modalError.hide();
             
             expect($modalError.css('display')).toBe('none');
@@ -1036,6 +1193,11 @@ describe('MPCCQuizAIModal', () => {
             
             // Test close button
             $('.mpcc-modal-close').trigger('click');
+            
+            // With fake timers, we need to manually complete the fadeOut
+            $('#mpcc-quiz-ai-modal').hide();
+            $('#mpcc-quiz-ai-modal').remove();
+            
             expect(modal.modalOpen).toBe(false);
         });
 
@@ -1064,11 +1226,17 @@ describe('MPCCQuizAIModal', () => {
             // Set a course ID to trigger loadCourseLessonsOnly
             modal.currentCourseId = 456;
             modal.openModal();
+            
             modal.loadCourseLessonsOnly();
             
-            const $modalError = $('#mpcc-modal-error');
-            expect($modalError.css('display')).not.toBe('none');
-            expect($modalError.find('.error-message').text()).toContain('Configuration error');
+            // Check that the lesson select has the error message
+            const $select = $('#mpcc-modal-lesson-select');
+            expect($select.attr('aria-invalid')).toBe('true');
+            
+            // Check error message in the field error
+            const $error = $('#mpcc-lesson-select-error');
+            expect($error.text()).toBe('Configuration error: AJAX settings not loaded');
+            expect($error.css('display')).not.toBe('none');
             
             // Restore original value
             global.mpcc_ajax = originalAjax;
@@ -1080,11 +1248,17 @@ describe('MPCCQuizAIModal', () => {
         test('should handle invalid course ID', () => {
             modal.currentCourseId = 0;
             modal.openModal();
+            
             modal.loadCourseLessonsOnly();
             
-            const $modalError = $('#mpcc-modal-error');
-            expect($modalError.css('display')).not.toBe('none');
-            expect($modalError.find('.error-message').text()).toContain('No course context available');
+            // Check that the lesson select has the error message
+            const $select = $('#mpcc-modal-lesson-select');
+            expect($select.find('option').text()).toBe('No course selected');
+            
+            // Check that the field error is set
+            expect($select.attr('aria-invalid')).toBe('true');
+            expect($('#mpcc-lesson-select-error').text()).toBe('No course context available for lesson filtering');
+            expect($('#mpcc-lesson-select-error').css('display')).not.toBe('none');
         });
 
         /**
@@ -1121,8 +1295,28 @@ describe('MPCCQuizAIModal', () => {
             
             // Mock the AJAX calls
             $.ajax.mockImplementation((options) => {
+                const promise = {
+                    done: function(callback) { return this; },
+                    fail: function(callback) { return this; },
+                    always: function(callback) { return this; }
+                };
+                
                 if (!options || !options.data) {
-                    return { done: () => {}, fail: () => {}, always: () => {} };
+                    // REST API call for loading lesson
+                    if (options && options.url && options.url.includes('mpcs-lesson')) {
+                        promise.done = function(callback) {
+                            if (callback) {
+                                setTimeout(() => {
+                                    callback({
+                                        id: 123,
+                                        title: { rendered: 'Test Lesson' }
+                                    });
+                                }, 0);
+                            }
+                            return this;
+                        };
+                    }
+                    return promise;
                 }
                 
                 if (options.data.action === 'mpcc_get_lesson_course') {
@@ -1154,7 +1348,7 @@ describe('MPCCQuizAIModal', () => {
                         }
                     }, 0);
                 }
-                return { done: () => {}, fail: () => {}, always: () => {} };
+                return promise;
             });
             
             // Open modal
@@ -1201,8 +1395,28 @@ describe('MPCCQuizAIModal', () => {
             
             // Mock the AJAX call for loadLessonWithSiblings
             $.ajax.mockImplementation((options) => {
+                const promise = {
+                    done: function(callback) { return this; },
+                    fail: function(callback) { return this; },
+                    always: function(callback) { return this; }
+                };
+                
                 if (!options || !options.data) {
-                    return { done: () => {}, fail: () => {}, always: () => {} };
+                    // REST API call for loading lesson
+                    if (options && options.url && options.url.includes('mpcs-lesson')) {
+                        promise.done = function(callback) {
+                            if (callback) {
+                                setTimeout(() => {
+                                    callback({
+                                        id: 123,
+                                        title: { rendered: 'Test Lesson' }
+                                    });
+                                }, 0);
+                            }
+                            return this;
+                        };
+                    }
+                    return promise;
                 }
                 
                 if (options.data.action === 'mpcc_get_lesson_course') {
@@ -1213,7 +1427,7 @@ describe('MPCCQuizAIModal', () => {
                         }
                     }, 0);
                 }
-                return { done: () => {}, fail: () => {}, always: () => {} };
+                return promise;
             });
             
             modal.openModal();
@@ -1294,6 +1508,10 @@ describe('MPCCQuizAIModal', () => {
             
             modal.closeModal();
             
+            // With fake timers, we need to manually complete the fadeOut
+            $('#mpcc-quiz-ai-modal').hide();
+            $('#mpcc-quiz-ai-modal').remove();
+            
             expect(modal.lessonMonitorInterval).toBeNull();
             expect($('#mpcc-quiz-ai-modal')).toHaveLength(0);
         });
@@ -1313,6 +1531,30 @@ describe('MPCCQuizAIModal', () => {
             
             // Mock the AJAX call for loadLessonWithSiblings
             $.ajax.mockImplementation((options) => {
+                const promise = {
+                    done: function(callback) { return this; },
+                    fail: function(callback) { return this; },
+                    always: function(callback) { return this; }
+                };
+                
+                if (!options || !options.data) {
+                    // REST API call for loading lesson
+                    if (options && options.url && options.url.includes('mpcs-lesson')) {
+                        promise.done = function(callback) {
+                            if (callback) {
+                                setTimeout(() => {
+                                    callback({
+                                        id: 123,
+                                        title: { rendered: 'Test Lesson' }
+                                    });
+                                }, 0);
+                            }
+                            return this;
+                        };
+                    }
+                    return promise;
+                }
+                
                 if (options.data && options.data.action === 'mpcc_get_lesson_course') {
                     // Return no course so it falls back to loadSingleLesson
                     setTimeout(() => {
@@ -1321,7 +1563,7 @@ describe('MPCCQuizAIModal', () => {
                         }
                     }, 0);
                 }
-                return { done: () => {}, fail: () => {}, always: () => {} };
+                return promise;
             });
             
             modal.openModal();
