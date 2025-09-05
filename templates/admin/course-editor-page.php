@@ -17,6 +17,13 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
 ?>
 
 <div class="wrap mpcc-course-editor-wrap">
+    <!-- Skip Links for Keyboard Navigation -->
+    <div class="mpcc-skip-links">
+        <a href="#mpcc-chat-container" class="screen-reader-text"><?php echo esc_html__('Skip to AI chat', 'memberpress-courses-copilot'); ?></a>
+        <a href="#mpcc-course-structure" class="screen-reader-text"><?php echo esc_html__('Skip to course structure', 'memberpress-courses-copilot'); ?></a>
+        <a href="#mpcc-preview-actions" class="screen-reader-text"><?php echo esc_html__('Skip to main actions', 'memberpress-courses-copilot'); ?></a>
+    </div>
+    
     <div id="mpcc-editor-container" class="mpcc-editor-container" data-session-id="<?php echo esc_attr($session_id); ?>" role="main" aria-label="<?php echo esc_attr__('AI Course Creator Interface', 'memberpress-courses-copilot'); ?>">
         <!-- Header Bar -->
         <div class="mpcc-editor-header" role="banner" aria-label="<?php echo esc_attr__('Course Editor Header', 'memberpress-courses-copilot'); ?>">
@@ -94,7 +101,7 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
             <div class="mpcc-editor-main" role="region" aria-label="<?php echo esc_attr__('Course Content Preview and Editor', 'memberpress-courses-copilot'); ?>">
                 <div class="mpcc-preview-header">
                     <h2><?php echo esc_html__('Course Preview', 'memberpress-courses-copilot'); ?></h2>
-                    <div class="mpcc-preview-actions">
+                    <div id="mpcc-preview-actions" class="mpcc-preview-actions">
                         <button type="button" id="mpcc-view-course" style="display: none;" aria-label="<?php echo esc_attr__('View published course in new window', 'memberpress-courses-copilot'); ?>">
                             <span class="dashicons dashicons-external" aria-hidden="true"></span>
                             <?php echo esc_html__('View Course', 'memberpress-courses-copilot'); ?>
@@ -127,27 +134,28 @@ use MemberPressCoursesCopilot\Security\NonceConstants;
                 <div id="mpcc-lesson-editor-overlay" class="mpcc-lesson-editor-overlay" aria-hidden="true"></div>
                 
                 <!-- Lesson Editor -->
-                <div id="mpcc-lesson-editor" class="mpcc-editor-panel mpcc-lesson-editor" style="display: none;" role="dialog" aria-labelledby="mpcc-lesson-title" aria-modal="true" aria-hidden="true">
-                    <div class="mpcc-lesson-header">
-                        <h3 id="mpcc-lesson-title"></h3>
-                        <button type="button" class="button-link" id="mpcc-close-lesson" aria-label="<?php echo esc_attr__('Close lesson editor', 'memberpress-courses-copilot'); ?>">
-                            <span class="dashicons dashicons-no" aria-hidden="true"></span>
-                        </button>
-                    </div>
-                    
-                    <div class="mpcc-lesson-toolbar">
-                        <button type="button" class="button" id="mpcc-generate-lesson-content" aria-label="<?php echo esc_attr__('Generate lesson content using AI', 'memberpress-courses-copilot'); ?>">
-                            <span class="dashicons dashicons-welcome-write-blog" aria-hidden="true"></span>
-                            <?php echo esc_html__('Generate', 'memberpress-courses-copilot'); ?>
-                        </button>
-                        <span class="mpcc-save-indicator" role="status" aria-live="polite" aria-label="<?php echo esc_attr__('Save status', 'memberpress-courses-copilot'); ?>"></span>
-                    </div>
-                    
-                    <div class="mpcc-lesson-content">
-                        <textarea 
-                            id="mpcc-lesson-textarea" 
-                            class="mpcc-lesson-textarea"
-                            placeholder="<?php echo esc_attr__('Enter lesson content...', 'memberpress-courses-copilot'); ?>"
+                <div id="mpcc-lesson-editor" class="mpcc-lesson-editor" style="display: none;" role="dialog" aria-labelledby="mpcc-lesson-title" aria-modal="true" aria-hidden="true">
+                    <div class="mpcc-lesson-editor-content">
+                        <div class="mpcc-lesson-header">
+                            <h3 id="mpcc-lesson-title"></h3>
+                            <button type="button" class="button-link" id="mpcc-close-lesson" aria-label="<?php echo esc_attr__('Close lesson editor', 'memberpress-courses-copilot'); ?>">
+                                <span class="dashicons dashicons-no" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                        
+                        <div class="mpcc-lesson-toolbar">
+                            <button type="button" class="button" id="mpcc-generate-lesson-content" aria-label="<?php echo esc_attr__('Generate lesson content using AI', 'memberpress-courses-copilot'); ?>">
+                                <span class="dashicons dashicons-welcome-write-blog" aria-hidden="true"></span>
+                                <?php echo esc_html__('Generate', 'memberpress-courses-copilot'); ?>
+                            </button>
+                            <span class="mpcc-save-indicator" role="status" aria-live="polite" aria-label="<?php echo esc_attr__('Save status', 'memberpress-courses-copilot'); ?>"></span>
+                        </div>
+                        
+                        <div class="mpcc-lesson-body">
+                            <textarea 
+                                id="mpcc-lesson-textarea" 
+                                class="mpcc-lesson-textarea"
+                                placeholder="<?php echo esc_attr__('Enter lesson content...', 'memberpress-courses-copilot'); ?>"
                             rows="20"
                             aria-label="<?php echo esc_attr__('Lesson content editor', 'memberpress-courses-copilot'); ?>"
                         ></textarea>

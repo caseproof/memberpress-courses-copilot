@@ -167,9 +167,10 @@
             var typingId = MPCCUtils.ui.addTypingIndicator($messages);
             isSending = true;
             
-            // Set aria-busy on messages container
+            // Set aria-busy on messages container and announce generation start
             if (window.MPCCAccessibility) {
                 MPCCAccessibility.setARIA('#mpcc-editor-ai-messages', {'aria-busy': 'true'});
+                MPCCAccessibility.announce('Starting AI generation. Processing your request.');
             }
             
             // Prepare context data
@@ -220,7 +221,7 @@
                         
                         // Announce AI response
                         if (window.MPCCAccessibility) {
-                            MPCCAccessibility.announce('AI Assistant responded');
+                            MPCCAccessibility.announce('AI generation complete. Response received successfully.');
                             MPCCAccessibility.setARIA('#mpcc-editor-ai-messages', {'aria-busy': 'false'});
                         }
                         
@@ -241,9 +242,16 @@
                             }
                         }
                     } else {
+                        var errorText = response.data || 'Failed to get AI response';
                         var errorMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #ffe7e7; border-radius: 4px;">' +
-                            '<strong>Error:</strong> ' + (response.data || 'Failed to get AI response') + '</div>';
+                            '<strong>Error:</strong> ' + errorText + '</div>';
                         $('#mpcc-editor-ai-messages').append(errorMsg);
+                        
+                        // Announce error
+                        if (window.MPCCAccessibility) {
+                            MPCCAccessibility.announce('Error during AI generation: ' + errorText);
+                            MPCCAccessibility.setARIA('#mpcc-editor-ai-messages', {'aria-busy': 'false'});
+                        }
                     }
                     
                     MPCCUtils.ui.scrollToBottom($messages);
@@ -251,9 +259,16 @@
                 error: function() {
                     MPCCUtils.ui.removeTypingIndicator(typingId);
                     isSending = false;
+                    var errorText = 'Network error. Please try again.';
                     var errorMsg = '<div class="mpcc-ai-message" style="margin-bottom: 10px; padding: 8px; background: #ffe7e7; border-radius: 4px;">' +
-                        '<strong>Error:</strong> Network error. Please try again.</div>';
+                        '<strong>Error:</strong> ' + errorText + '</div>';
                     $('#mpcc-editor-ai-messages').append(errorMsg);
+                    
+                    // Announce error
+                    if (window.MPCCAccessibility) {
+                        MPCCAccessibility.announce('Error during AI generation: ' + errorText);
+                        MPCCAccessibility.setARIA('#mpcc-editor-ai-messages', {'aria-busy': 'false'});
+                    }
                     
                     MPCCUtils.ui.scrollToBottom('#mpcc-editor-ai-messages');
                 }
@@ -291,6 +306,11 @@
         $(document).off('click.apply-content').on('click.apply-content', '.mpcc-apply-editor-content', function() {
             var $button = $(this);
             $button.prop('disabled', true).text('Applying...');
+            
+            // Announce applying content
+            if (window.MPCCAccessibility) {
+                MPCCAccessibility.announce('Applying AI-generated content to editor.');
+            }
             
             // Get the AI-generated content
             var $aiMessage = $(this).closest('.mpcc-editor-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
@@ -362,24 +382,44 @@
                         }
                         
                         $button.text('Applied!');
+                        
+                        // Announce success
+                        if (window.MPCCAccessibility) {
+                            MPCCAccessibility.announce('Content applied successfully to editor.');
+                        }
+                        
                         setTimeout(function() {
                             $('.mpcc-editor-content-update-buttons').fadeOut();
                         }, 2000);
                     } else {
                         $button.text('Failed').addClass('button-disabled');
+                        var errorText = response.data || 'Failed to update content';
+                        
+                        // Announce error
+                        if (window.MPCCAccessibility) {
+                            MPCCAccessibility.announce('Error applying content: ' + errorText);
+                        }
+                        
                         if (window.MPCCToast) {
-                            window.MPCCToast.error('Error: ' + (response.data || 'Failed to update content'));
+                            window.MPCCToast.error('Error: ' + errorText);
                         } else {
-                            console.error('Error: ' + (response.data || 'Failed to update content'));
+                            console.error('Error: ' + errorText);
                         }
                     }
                 },
                 error: function() {
                     $button.text('Failed').addClass('button-disabled');
+                    var errorText = 'Network error. Please try again.';
+                    
+                    // Announce error
+                    if (window.MPCCAccessibility) {
+                        MPCCAccessibility.announce('Error applying content: ' + errorText);
+                    }
+                    
                     if (window.MPCCToast) {
-                        window.MPCCToast.error('Network error. Please try again.');
+                        window.MPCCToast.error(errorText);
                     } else {
-                        console.error('Network error. Please try again.');
+                        console.error(errorText);
                     }
                 }
             });
