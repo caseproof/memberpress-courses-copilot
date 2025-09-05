@@ -190,7 +190,12 @@
          */
         loadAllLessons() {
             // Get lessons using REST API
-            $.get('/wp-json/wp/v2/mpcs-lesson?per_page=100', (lessons) => {
+            $.ajax({
+                url: mpcc_ajax.rest_url + 'mpcs-lesson?per_page=100',
+                headers: {
+                    'X-WP-Nonce': mpcc_ajax.rest_nonce
+                }
+            }).done((lessons) => {
                 const $select = $('#mpcc-lesson-select');
                 $select.empty().append('<option value="">Select a lesson...</option>');
                 
