@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test List Content Transmission</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Test List Content Transmission</h1>
+    
+    <div id="test-content">
+<!-- wp:list {"ordered":true} -->
+<ol>
+<li>Market Need</li>
+<li>Does your idea solve a real problem?</li>
+<li>Are people actively looking for this solution?</li>
+<li>Is the problem frequent and urgent enough?</li>
+</ol>
+<!-- /wp:list -->
+    </div>
+    
+    <button onclick="testTransmission()">Test Transmission</button>
+    
+    <h2>Results:</h2>
+    <pre id="results"></pre>
+    
+    <script>
+    function testTransmission() {
+        const results = document.getElementById('results');
+        let output = '';
+        
+        // Test 1: Direct content
+        const content = document.getElementById('test-content').innerHTML.trim();
+        output += "TEST 1: Direct Content\n";
+        output += "List items found: " + (content.match(/<li>/g) || []).length + "\n";
+        output += "Sample: " + content.substring(0, 100) + "...\n\n";
+        
+        // Test 2: jQuery .html()
+        const jqueryHtml = $('#test-content').html().trim();
+        output += "TEST 2: jQuery .html()\n";
+        output += "List items found: " + (jqueryHtml.match(/<li>/g) || []).length + "\n";
+        output += "Equals direct: " + (jqueryHtml === content) + "\n\n";
+        
+        // Test 3: jQuery .text()
+        const jqueryText = $('#test-content').text().trim();
+        output += "TEST 3: jQuery .text()\n";
+        output += "HTML stripped: " + (jqueryText.indexOf('<li>') === -1) + "\n";
+        output += "Text content: " + jqueryText.substring(0, 100) + "...\n\n";
+        
+        // Test 4: JSON encoding
+        const courseData = {
+            sections: [{
+                lessons: [{
+                    content: content
+                }]
+            }]
+        };
+        
+        const json = JSON.stringify(courseData);
+        const parsed = JSON.parse(json);
+        const parsedContent = parsed.sections[0].lessons[0].content;
+        
+        output += "TEST 4: JSON Encoding\n";
+        output += "List items after JSON: " + (parsedContent.match(/<li>/g) || []).length + "\n";
+        output += "Content preserved: " + (parsedContent.indexOf('Market Need') !== -1) + "\n\n";
+        
+        // Test 5: Form data encoding (like AJAX)
+        const formData = new FormData();
+        formData.append('course_data', json);
+        
+        // Simulate what would be sent
+        output += "TEST 5: AJAX Simulation\n";
+        output += "JSON length: " + json.length + "\n";
+        output += "First 200 chars: " + json.substring(0, 200) + "...\n\n";
+        
+        // Show the actual list content
+        output += "TEST 6: List Content Check\n";
+        const listMatch = content.match(/<!-- wp:list[\s\S]*?<!-- \/wp:list -->/);
+        if (listMatch) {
+            output += "List block found:\n" + listMatch[0] + "\n\n";
+        }
+        
+        results.textContent = output;
+    }
+    
+    // Run test on load
+    window.onload = function() {
+        testTransmission();
+    };
+    </script>
+</body>
+</html>

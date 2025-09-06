@@ -546,9 +546,47 @@ class SimpleAjaxController
             $sessionId  = sanitize_text_field($_POST['session_id'] ?? '');
             $courseData = json_decode(stripslashes($_POST['course_data'] ?? '{}'), true);
 
-            // Sanitize course data array after JSON decode
+            // Custom sanitization for course data to preserve HTML in description
             if (is_array($courseData)) {
-                $courseData = $this->sanitizeArray($courseData);
+                // Sanitize top-level fields
+                if (isset($courseData['title'])) {
+                    $courseData['title'] = sanitize_text_field($courseData['title']);
+                }
+                
+                // Preserve description content - use textarea field to preserve line breaks
+                // Note: Description in course structure JSON should be plain text, not HTML/Gutenberg
+                if (isset($courseData['description'])) {
+                    $courseData['description'] = sanitize_textarea_field($courseData['description']);
+                }
+                
+                // Sanitize sections array
+                if (isset($courseData['sections']) && is_array($courseData['sections'])) {
+                    foreach ($courseData['sections'] as $sectionIndex => $section) {
+                        if (isset($section['title'])) {
+                            $courseData['sections'][$sectionIndex]['title'] = sanitize_text_field($section['title']);
+                        }
+                        if (isset($section['description'])) {
+                            $courseData['sections'][$sectionIndex]['description'] = sanitize_textarea_field($section['description']);
+                        }
+                        
+                        // Sanitize lessons within sections
+                        if (isset($section['lessons']) && is_array($section['lessons'])) {
+                            foreach ($section['lessons'] as $lessonIndex => $lesson) {
+                                if (isset($lesson['title'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['title'] = sanitize_text_field($lesson['title']);
+                                }
+                                if (isset($lesson['content'])) {
+                                    // Don't use wp_kses_post as it strips Gutenberg block comments
+                                    // Content is already sanitized by the AI and contains Gutenberg blocks
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = $lesson['content'];
+                                }
+                                if (isset($lesson['duration'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['duration'] = sanitize_text_field($lesson['duration']);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             if (empty($courseData['title'])) {
@@ -556,8 +594,29 @@ class SimpleAjaxController
                 return;
             }
 
+            // Log the course data before mapping drafts
+            $this->logger->debug('Course data before draft mapping', [
+                'sections_count' => count($courseData['sections'] ?? []),
+                'first_lesson_content_sample' => isset($courseData['sections'][0]['lessons'][0]['content']) 
+                    ? substr($courseData['sections'][0]['lessons'][0]['content'], 0, 200) 
+                    : 'No content',
+                'first_lesson_list_items' => isset($courseData['sections'][0]['lessons'][0]['content'])
+                    ? substr_count($courseData['sections'][0]['lessons'][0]['content'], '<li>')
+                    : 0
+            ]);
+
             // Get any drafted lesson content
             $courseData = $this->lessonDraftService->mapDraftsToStructure($sessionId, $courseData);
+            
+            // Log after draft mapping
+            $this->logger->debug('Course data after draft mapping', [
+                'first_lesson_content_sample' => isset($courseData['sections'][0]['lessons'][0]['content']) 
+                    ? substr($courseData['sections'][0]['lessons'][0]['content'], 0, 200) 
+                    : 'No content',
+                'first_lesson_list_items' => isset($courseData['sections'][0]['lessons'][0]['content'])
+                    ? substr_count($courseData['sections'][0]['lessons'][0]['content'], '<li>')
+                    : 0
+            ]);
 
             // Use the CourseGeneratorService to create the course
             $result = $this->courseGenerator->generateCourse($courseData);
@@ -631,7 +690,8 @@ class SimpleAjaxController
             $sessionId   = sanitize_text_field($_POST['session_id'] ?? '');
             $lessonId    = sanitize_text_field($_POST['lesson_id'] ?? '');
             $lessonTitle = sanitize_text_field($_POST['lesson_title'] ?? '');
-            $content     = sanitize_textarea_field($_POST['content'] ?? '');
+            // Don't use wp_kses_post as it strips Gutenberg block comments
+            $content     = stripslashes($_POST['content'] ?? '');
 
             if (empty($lessonId) || empty($sessionId)) {
                 throw new \Exception('Lesson ID and Session ID are required');
@@ -801,6 +861,14 @@ Format the content with clear headings and sections.";
   ]
 }
 ```
+
+CRITICAL: Do NOT include lesson content in the course structure JSON. The JSON should only contain:
+- Course title and description
+- Section titles
+- Lesson titles and duration
+- NO lesson content, NO HTML, NO Gutenberg blocks in the JSON
+
+Lesson content will be generated separately when users click on individual lessons.
 
 If modifying an existing course, include ALL sections and lessons (both existing and new) in your response.";
         }
@@ -1086,9 +1154,47 @@ If modifying an existing course, include ALL sections and lessons (both existing
             $sessionId  = sanitize_text_field($_POST['session_id'] ?? '');
             $courseData = json_decode(stripslashes($_POST['course_data'] ?? '{}'), true);
 
-            // Sanitize course data array after JSON decode
+            // Custom sanitization for course data to preserve HTML in description
             if (is_array($courseData)) {
-                $courseData = $this->sanitizeArray($courseData);
+                // Sanitize top-level fields
+                if (isset($courseData['title'])) {
+                    $courseData['title'] = sanitize_text_field($courseData['title']);
+                }
+                
+                // Preserve description content - use textarea field to preserve line breaks
+                // Note: Description in course structure JSON should be plain text, not HTML/Gutenberg
+                if (isset($courseData['description'])) {
+                    $courseData['description'] = sanitize_textarea_field($courseData['description']);
+                }
+                
+                // Sanitize sections array
+                if (isset($courseData['sections']) && is_array($courseData['sections'])) {
+                    foreach ($courseData['sections'] as $sectionIndex => $section) {
+                        if (isset($section['title'])) {
+                            $courseData['sections'][$sectionIndex]['title'] = sanitize_text_field($section['title']);
+                        }
+                        if (isset($section['description'])) {
+                            $courseData['sections'][$sectionIndex]['description'] = sanitize_textarea_field($section['description']);
+                        }
+                        
+                        // Sanitize lessons within sections
+                        if (isset($section['lessons']) && is_array($section['lessons'])) {
+                            foreach ($section['lessons'] as $lessonIndex => $lesson) {
+                                if (isset($lesson['title'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['title'] = sanitize_text_field($lesson['title']);
+                                }
+                                if (isset($lesson['content'])) {
+                                    // Don't use wp_kses_post as it strips Gutenberg block comments
+                                    // Content is already sanitized by the AI and contains Gutenberg blocks
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = $lesson['content'];
+                                }
+                                if (isset($lesson['duration'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['duration'] = sanitize_text_field($lesson['duration']);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             if (empty($sessionId)) {

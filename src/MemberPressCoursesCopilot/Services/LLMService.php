@@ -661,8 +661,8 @@ class LLMService extends BaseService implements ILLMService
             throw new \Exception('Failed to generate lesson content: ' . $response['message']);
         }
 
-        // Process and format the content
-        $content = $this->formatLessonContent($response['content'], $requirements);
+        // Return content as-is since AI now generates Gutenberg blocks directly
+        $content = $response['content'];
 
         // Log successful generation
         $this->logger->info('Lesson content generated successfully', [
@@ -828,9 +828,17 @@ class LLMService extends BaseService implements ILLMService
         $prompt .= "- Use clear, conversational language appropriate for the {$params['difficulty']} level\n";
         $prompt .= "- Include practical examples and analogies\n";
         $prompt .= "- Maintain an encouraging, supportive tone\n";
-        $prompt .= "- Format with proper Markdown (headings, lists, emphasis)\n";
+        $prompt .= "- Format content using WordPress Gutenberg blocks (see format below)\n";
         $prompt .= "- Ensure content flows logically from simple to complex\n";
-        $prompt .= "- Make it engaging and interactive where possible\n";
+        $prompt .= "- Make it engaging and interactive where possible\n\n";
+        
+        $prompt .= "IMPORTANT - USE GUTENBERG BLOCK FORMAT:\n";
+        $prompt .= "Format all content using WordPress Gutenberg block comments. Examples:\n\n";
+        $prompt .= "<!-- wp:heading -->\n<h2>Your Heading</h2>\n<!-- /wp:heading -->\n\n";
+        $prompt .= "<!-- wp:paragraph -->\n<p>Your paragraph text here.</p>\n<!-- /wp:paragraph -->\n\n";
+        $prompt .= "<!-- wp:list -->\n<ul>\n<li>First item</li>\n<li>Second item</li>\n</ul>\n<!-- /wp:list -->\n\n";
+        $prompt .= "<!-- wp:list {\"ordered\":true} -->\n<ol>\n<li>Step one</li>\n<li>Step two</li>\n</ol>\n<!-- /wp:list -->\n\n";
+        $prompt .= "Do NOT use plain text or markdown. ALL content must be wrapped in proper Gutenberg block comments.\n";
 
         return $prompt;
     }

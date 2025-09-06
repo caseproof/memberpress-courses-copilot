@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>List Corruption Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Testing List Corruption in MemberPress Courses Copilot</h1>
+    
+    <h2>Simulated AI Response:</h2>
+    <div id="ai-message" class="mpcc-ai-message">
+        <strong>AI Assistant:</strong>
+        <div class="ai-content">[LESSON_CONTENT]
+<!-- wp:heading {"level":2} -->
+<h2>Introduction</h2>
+<!-- /wp:heading -->
+
+<!-- wp:list -->
+<ul>
+<li>First item in the list</li>
+<li>Second item in the list</li>
+<li>Third item in the list</li>
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>This is a paragraph after the list.</p>
+<!-- /wp:paragraph -->
+[/LESSON_CONTENT]</div>
+    </div>
+    
+    <h2>Test Results:</h2>
+    <div id="results"></div>
+    
+    <script>
+        // Simulate the actual code from editor-ai-modal.js
+        var contentTag = 'LESSON_CONTENT';
+        
+        // Simple markdown to HTML converter (from editor-ai-modal.js)
+        function markdownToHtml(markdown) {
+            var html = markdown;
+            
+            // Headers
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+            
+            // Bold and italic
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            
+            // Bullet lists
+            html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>\n?)+/g, function(match) {
+                return '<ul>' + match + '</ul>';
+            });
+            
+            // Numbered lists  
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+            
+            // Paragraphs
+            var lines = html.split('\n');
+            html = lines.map(function(line) {
+                line = line.trim();
+                if (line && !line.match(/^<[^>]+>/)) {
+                    return '<p>' + line + '</p>';
+                }
+                return line;
+            }).join('\n');
+            
+            return html;
+        }
+        
+        // Test 1: Extract with .text() (current implementation)
+        var $aiMessage = $('#ai-message').find('.ai-content');
+        var fullContent = $aiMessage.text();
+        
+        $('#results').append('<h3>Step 1: Content extracted with .text():</h3>');
+        $('#results').append('<pre>' + fullContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+        
+        // Extract content between tags
+        var contentRegex = new RegExp('\\[' + contentTag + '\\]([\\s\\S]*?)\\[\\/' + contentTag + '\\]');
+        var contentMatch = fullContent.match(contentRegex);
+        
+        if (contentMatch && contentMatch[1]) {
+            var extractedContent = contentMatch[1].trim();
+            $('#results').append('<h3>Step 2: Extracted content between tags:</h3>');
+            $('#results').append('<pre>' + extractedContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+            
+            // Check for Gutenberg blocks
+            if (extractedContent.includes('<!-- wp:')) {
+                $('#results').append('<p><strong>Gutenberg blocks detected:</strong> ' + (extractedContent.includes('<!-- wp:') ? 'YES' : 'NO') + '</p>');
+                $('#results').append('<p style="color: red;"><strong>BUG:</strong> This check will always fail because .text() strips the HTML comments!</p>');
+            } else {
+                $('#results').append('<p><strong>No Gutenberg blocks detected, applying markdown conversion...</strong></p>');
+                var convertedContent = markdownToHtml(extractedContent);
+                $('#results').append('<h3>Step 3: After markdown conversion:</h3>');
+                $('#results').append('<pre>' + convertedContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+            }
+        }
+        
+        // Test 2: Extract with .html() (proposed fix)
+        $('#results').append('<hr><h2>Proposed Fix: Using .html() instead of .text()</h2>');
+        var fullContentHtml = $aiMessage.html();
+        $('#results').append('<h3>Content extracted with .html():</h3>');
+        $('#results').append('<pre>' + fullContentHtml.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+        
+        var contentMatchHtml = fullContentHtml.match(contentRegex);
+        if (contentMatchHtml && contentMatchHtml[1]) {
+            var extractedContentHtml = contentMatchHtml[1].trim();
+            $('#results').append('<h3>Extracted content preserves Gutenberg blocks:</h3>');
+            $('#results').append('<pre>' + extractedContentHtml.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>');
+            $('#results').append('<p><strong>Gutenberg blocks detected:</strong> ' + (extractedContentHtml.includes('<!-- wp:') ? 'YES' : 'NO') + '</p>');
+        }
+    </script>
+</body>
+</html>
