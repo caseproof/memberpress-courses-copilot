@@ -360,6 +360,31 @@ graph TD
 
 ---
 
+## Content Display and Editing
+
+### Course Editor Preview
+1. **Lesson Content Preview** - Shows first 200 characters of lesson content in course structure
+2. **Readable Format** - Gutenberg blocks are converted to readable text for preview
+3. **Preserved Formatting** - Lists, headings, and paragraphs display correctly
+
+### Lesson Editor
+1. **Gutenberg to Readable** - Content is converted from Gutenberg blocks to readable text for editing
+2. **Original Preservation** - Original Gutenberg blocks are stored and used when saving
+3. **Autosave Support** - Preserves Gutenberg blocks during autosave operations
+
+### Content Flow in Editor
+```
+Lesson Draft (Gutenberg blocks)
+    ↓
+Load in Editor → Convert to readable text (gutenbergToReadable)
+    ↓
+User Edits (plain text in textarea)
+    ↓
+Save → Use original Gutenberg blocks (preserved in data attribute)
+    ↓
+Course Creation → Gutenberg blocks saved to WordPress
+```
+
 ## Content Generation Best Practices
 
 1. **AI Generates Gutenberg Blocks** - AI generates content directly in Gutenberg block format
@@ -370,6 +395,7 @@ graph TD
 6. **Provide Context** - Include parent course info when generating lessons
 7. **Log Everything** - Use logger for debugging content issues
 8. **Avoid wp_kses_post()** - This function strips Gutenberg block comments
+9. **Display vs Edit** - Show readable text for editing, preserve Gutenberg blocks for saving
 
 ---
 
@@ -381,8 +407,9 @@ graph TD
 4. **Content Refinement** - Iterative improvement of generated content
 5. **Media Integration** - AI-suggested images and videos
 6. **Learning Path Creation** - Multi-course curriculum generation
+7. **WYSIWYG Editor** - Replace textarea with rich text editor that preserves Gutenberg blocks
 
 ---
 
-*Last updated: [Current Date]*
-*Version: 1.0.0*
+*Last updated: 2025-09-06*
+*Version: 1.1.0*
