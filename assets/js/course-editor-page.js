@@ -706,6 +706,32 @@
             
             const draftStatus = hasDraft ? ' - has draft content' : '';
             
+            // Get lesson content preview
+            const content = lesson.draft_content || lesson.content || '';
+            let contentPreview = '';
+            
+            if (content) {
+                // Convert Gutenberg blocks to readable format
+                if (content.includes('<!-- wp:')) {
+                    const readableContent = this.gutenbergToReadable(content);
+                    // Show first 200 characters of the readable content
+                    const preview = readableContent.substring(0, 200);
+                    contentPreview = `
+                        <div class="mpcc-lesson-preview">
+                            ${this.escapeHtml(preview)}${readableContent.length > 200 ? '...' : ''}
+                        </div>
+                    `;
+                } else {
+                    // Plain text content
+                    const preview = content.substring(0, 200);
+                    contentPreview = `
+                        <div class="mpcc-lesson-preview">
+                            ${this.escapeHtml(preview)}${content.length > 200 ? '...' : ''}
+                        </div>
+                    `;
+                }
+            }
+            
             return `
                 <div class="mpcc-lesson-item${hasDraft ? ' has-draft' : ''}${lockedClass}" 
                      data-lesson-id="${lessonId}"
@@ -716,6 +742,7 @@
                     <div class="mpcc-lesson-info">
                         <div class="mpcc-lesson-title">${this.escapeHtml(lesson.title)}</div>
                         <div class="mpcc-lesson-meta" aria-label="Duration">${lesson.duration || 'Duration not set'}</div>
+                        ${contentPreview}
                     </div>
                     ${lockIcon}
                     ${actionButtons}
@@ -762,8 +789,22 @@
             
             // Show editor
             $('#mpcc-lesson-title').text(lesson.title);
-            // Display content as-is (should be Gutenberg blocks)
-            $('#mpcc-lesson-textarea').val(lesson.draft_content || lesson.content || '');
+            
+            // Get the content
+            const content = lesson.draft_content || lesson.content || '';
+            
+            // For the textarea, we want to show a readable version
+            if (content.includes('<!-- wp:')) {
+                // Convert Gutenberg blocks to readable format for editing
+                const readableContent = this.gutenbergToReadable(content);
+                $('#mpcc-lesson-textarea').val(readableContent);
+                
+                // Store the original Gutenberg content
+                $('#mpcc-lesson-textarea').data('gutenberg-content', content);
+            } else {
+                // Plain text content
+                $('#mpcc-lesson-textarea').val(content);
+            }
             
             // Show overlay on mobile
             if (window.innerWidth <= 960) {
@@ -812,7 +853,20 @@
                 },
                 success: (response) => {
                     if (response.success && response.data.draft && response.data.draft.content) {
-                        $('#mpcc-lesson-textarea').val(response.data.draft.content);
+                        const content = response.data.draft.content;
+                        
+                        // Check if content has Gutenberg blocks
+                        if (content.includes('<!-- wp:')) {
+                            // Convert to readable format for display
+                            const readableContent = this.gutenbergToReadable(content);
+                            $('#mpcc-lesson-textarea').val(readableContent);
+                            
+                            // Store the original Gutenberg content
+                            $('#mpcc-lesson-textarea').data('gutenberg-content', content);
+                        } else {
+                            // Plain text content
+                            $('#mpcc-lesson-textarea').val(content);
+                        }
                     }
                 }
             });
@@ -854,8 +908,21 @@
                 },
                 success: (response) => {
                     if (response.success) {
-                        // The content already contains Gutenberg blocks, display as-is
-                        $('#mpcc-lesson-textarea').val(response.data.content);
+                        const content = response.data.content;
+                        
+                        // Check if content has Gutenberg blocks
+                        if (content.includes('<!-- wp:')) {
+                            // Convert to readable format for display
+                            const readableContent = this.gutenbergToReadable(content);
+                            $('#mpcc-lesson-textarea').val(readableContent);
+                            
+                            // Store the original Gutenberg content
+                            $('#mpcc-lesson-textarea').data('gutenberg-content', content);
+                        } else {
+                            // Plain text content
+                            $('#mpcc-lesson-textarea').val(content);
+                        }
+                        
                         this.autoSaveLesson();
                         // Announce successful generation
                         MPCCAccessibility.announce('AI generation complete. Lesson content has been generated successfully.');
@@ -883,10 +950,17 @@
         saveLesson: function() {
             if (!this.currentLessonId) return;
             
-            const content = $('#mpcc-lesson-textarea').val();
+            // Check if we have stored Gutenberg content
+            let content = $('#mpcc-lesson-textarea').data('gutenberg-content');
+            
+            // If no Gutenberg content stored, use the plain text
+            if (!content) {
+                content = $('#mpcc-lesson-textarea').val();
+            }
+            
             const [sectionIndex, lessonIndex] = this.currentLessonId.split('-').map(Number);
             
-            // Update local structure
+            // Update local structure with the Gutenberg content
             this.courseStructure.sections[sectionIndex].lessons[lessonIndex].draft_content = content;
             
             // Save to server
@@ -899,7 +973,14 @@
         autoSaveLesson: function() {
             if (!this.currentLessonId) return;
             
-            const content = $('#mpcc-lesson-textarea').val();
+            // Check if we have stored Gutenberg content
+            let content = $('#mpcc-lesson-textarea').data('gutenberg-content');
+            
+            // If no Gutenberg content stored, use the plain text
+            if (!content) {
+                content = $('#mpcc-lesson-textarea').val();
+            }
+            
             this.saveLessonToServer(content);
         },
         
@@ -1517,6 +1598,77 @@
         
         escapeHtml: function(text) {
             return MPCCUtils.escapeHtml(text);
+        },
+        
+        gutenbergToReadable: function(content) {
+            // Convert Gutenberg blocks to a readable preview format
+            let readable = content;
+            
+            // Remove Gutenberg comments but keep the content
+            readable = readable.replace(/<!-- wp:[\w\-\/]+(?: \{[^}]*\})? -->/g, '');
+            readable = readable.replace(/<!-- \/wp:[\w\-\/]+ -->/g, '');
+            
+            // Remove extra whitespace
+            readable = readable.replace(/\n\s*\n\s*\n/g, '\n\n');
+            readable = readable.trim();
+            
+            // Create a temporary div to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = readable;
+            
+            // Extract text content while preserving structure
+            let textContent = '';
+            
+            const processNode = (node) => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    textContent += node.textContent;
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    const tagName = node.tagName.toLowerCase();
+                    
+                    switch (tagName) {
+                        case 'h1':
+                        case 'h2':
+                        case 'h3':
+                        case 'h4':
+                        case 'h5':
+                        case 'h6':
+                            textContent += '\n\n' + node.textContent.toUpperCase() + '\n';
+                            break;
+                        case 'p':
+                            textContent += '\n' + node.textContent + '\n';
+                            break;
+                        case 'ul':
+                        case 'ol':
+                            textContent += '\n';
+                            const listItems = node.querySelectorAll('li');
+                            listItems.forEach((li, index) => {
+                                const prefix = tagName === 'ol' ? `${index + 1}. ` : '• ';
+                                textContent += prefix + li.textContent + '\n';
+                            });
+                            break;
+                        case 'li':
+                            // Already handled in ul/ol
+                            break;
+                        case 'pre':
+                        case 'code':
+                            textContent += '\n' + node.textContent + '\n';
+                            break;
+                        default:
+                            for (let child of node.childNodes) {
+                                processNode(child);
+                            }
+                    }
+                }
+            };
+            
+            for (let child of tempDiv.childNodes) {
+                processNode(child);
+            }
+            
+            // Clean up extra newlines
+            textContent = textContent.replace(/\n{3,}/g, '\n\n').trim();
+            
+            return textContent;
         },
         
         handleEditSection: function(sectionIndex) {
