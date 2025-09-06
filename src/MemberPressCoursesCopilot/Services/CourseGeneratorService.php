@@ -123,8 +123,21 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
     {
         // Convert content to Gutenberg blocks if needed
         $description = $courseData['description'] ?? '';
+        
+        $this->logger->debug('Creating course with description', [
+            'has_description' => !empty($description),
+            'description_length' => strlen($description),
+            'description_preview' => substr($description, 0, 100) . '...'
+        ]);
+        
         if (!empty($description)) {
             $description = $this->convertToGutenbergBlocks($description);
+            
+            $this->logger->debug('Description after Gutenberg conversion', [
+                'converted_length' => strlen($description),
+                'has_gutenberg_blocks' => strpos($description, '<!-- wp:') !== false,
+                'converted_preview' => substr($description, 0, 200) . '...'
+            ]);
         }
         
         // Prepare course post data
@@ -595,6 +608,18 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
             return $this->fixMalformedGutenbergLists($content);
         }
         
+        // Log the content being converted
+        $this->logger->debug('Converting content to Gutenberg blocks', [
+            'content_length' => strlen($content),
+            'content_preview' => substr($content, 0, 100) . '...',
+            'has_html_tags' => strip_tags($content) !== $content
+        ]);
+        
+        // If content is plain text without HTML tags, wrap it in a paragraph block
+        if (strip_tags($content) === $content && !empty(trim($content))) {
+            return "<!-- wp:paragraph -->\n<p>" . esc_html($content) . "</p>\n<!-- /wp:paragraph -->";
+        }
+        
         // Convert HTML to Gutenberg blocks using DOMDocument for better parsing
         $blocks = [];
         
@@ -611,8 +636,18 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
             return $content; // Fallback if parsing fails
         }
         
-        // Process each child element
+        // Process each child node (both element and text nodes)
         foreach ($wrapper->childNodes as $node) {
+            // Handle text nodes
+            if ($node->nodeType === XML_TEXT_NODE) {
+                $text = trim($node->textContent);
+                if (!empty($text)) {
+                    $blocks[] = "<!-- wp:paragraph -->\n<p>" . esc_html($text) . "</p>\n<!-- /wp:paragraph -->";
+                }
+                continue;
+            }
+            
+            // Skip non-element nodes
             if ($node->nodeType !== XML_ELEMENT_NODE) {
                 continue;
             }

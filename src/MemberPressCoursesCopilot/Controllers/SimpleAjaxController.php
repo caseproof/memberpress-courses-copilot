@@ -546,9 +546,44 @@ class SimpleAjaxController
             $sessionId  = sanitize_text_field($_POST['session_id'] ?? '');
             $courseData = json_decode(stripslashes($_POST['course_data'] ?? '{}'), true);
 
-            // Sanitize course data array after JSON decode
+            // Custom sanitization for course data to preserve HTML in description
             if (is_array($courseData)) {
-                $courseData = $this->sanitizeArray($courseData);
+                // Sanitize top-level fields
+                if (isset($courseData['title'])) {
+                    $courseData['title'] = sanitize_text_field($courseData['title']);
+                }
+                
+                // Preserve HTML content in description - use textarea field to preserve line breaks
+                if (isset($courseData['description'])) {
+                    $courseData['description'] = sanitize_textarea_field($courseData['description']);
+                }
+                
+                // Sanitize sections array
+                if (isset($courseData['sections']) && is_array($courseData['sections'])) {
+                    foreach ($courseData['sections'] as $sectionIndex => $section) {
+                        if (isset($section['title'])) {
+                            $courseData['sections'][$sectionIndex]['title'] = sanitize_text_field($section['title']);
+                        }
+                        if (isset($section['description'])) {
+                            $courseData['sections'][$sectionIndex]['description'] = sanitize_textarea_field($section['description']);
+                        }
+                        
+                        // Sanitize lessons within sections
+                        if (isset($section['lessons']) && is_array($section['lessons'])) {
+                            foreach ($section['lessons'] as $lessonIndex => $lesson) {
+                                if (isset($lesson['title'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['title'] = sanitize_text_field($lesson['title']);
+                                }
+                                if (isset($lesson['content'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = sanitize_textarea_field($lesson['content']);
+                                }
+                                if (isset($lesson['duration'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['duration'] = sanitize_text_field($lesson['duration']);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             if (empty($courseData['title'])) {
@@ -1086,9 +1121,44 @@ If modifying an existing course, include ALL sections and lessons (both existing
             $sessionId  = sanitize_text_field($_POST['session_id'] ?? '');
             $courseData = json_decode(stripslashes($_POST['course_data'] ?? '{}'), true);
 
-            // Sanitize course data array after JSON decode
+            // Custom sanitization for course data to preserve HTML in description
             if (is_array($courseData)) {
-                $courseData = $this->sanitizeArray($courseData);
+                // Sanitize top-level fields
+                if (isset($courseData['title'])) {
+                    $courseData['title'] = sanitize_text_field($courseData['title']);
+                }
+                
+                // Preserve HTML content in description - use textarea field to preserve line breaks
+                if (isset($courseData['description'])) {
+                    $courseData['description'] = sanitize_textarea_field($courseData['description']);
+                }
+                
+                // Sanitize sections array
+                if (isset($courseData['sections']) && is_array($courseData['sections'])) {
+                    foreach ($courseData['sections'] as $sectionIndex => $section) {
+                        if (isset($section['title'])) {
+                            $courseData['sections'][$sectionIndex]['title'] = sanitize_text_field($section['title']);
+                        }
+                        if (isset($section['description'])) {
+                            $courseData['sections'][$sectionIndex]['description'] = sanitize_textarea_field($section['description']);
+                        }
+                        
+                        // Sanitize lessons within sections
+                        if (isset($section['lessons']) && is_array($section['lessons'])) {
+                            foreach ($section['lessons'] as $lessonIndex => $lesson) {
+                                if (isset($lesson['title'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['title'] = sanitize_text_field($lesson['title']);
+                                }
+                                if (isset($lesson['content'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = sanitize_textarea_field($lesson['content']);
+                                }
+                                if (isset($lesson['duration'])) {
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['duration'] = sanitize_text_field($lesson['duration']);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             if (empty($sessionId)) {

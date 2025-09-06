@@ -260,8 +260,8 @@ The system ensures all content is saved as Gutenberg blocks:
 
 1. **AI Instructions**
    ```
-   INSTRUCTION: Provide content in WordPress Gutenberg block format
-   Use proper block comments like <!-- wp:paragraph -->, <!-- wp:heading {"level":2} -->
+   INSTRUCTION: Provide content in clean HTML format
+   Use standard HTML tags: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>
    ```
 
 2. **List Format Fixing**
@@ -288,11 +288,11 @@ The system ensures all content is saved as Gutenberg blocks:
 ```
 User Input: "Create a lesson about CSS basics"
     ↓
-AI Response: Gutenberg-formatted content in [LESSON_CONTENT] tags
+AI Response: Clean HTML content in [LESSON_CONTENT] tags
     ↓
-Display: Preserved in <pre> tag to maintain formatting
+Display: HTML renders nicely in the chat interface
     ↓
-Apply: Extract content, preserve blocks, save to post
+Apply: Convert HTML to Gutenberg blocks when saving
     ↓
 Result: Properly formatted Gutenberg blocks in editor
 ```
@@ -362,13 +362,14 @@ graph TD
 
 ## Content Generation Best Practices
 
-1. **Always Request Gutenberg Format** - AI should generate content with block comments
-2. **Preserve Block Structure** - Never use `.text()` on content with blocks
+1. **AI Generates Clean HTML** - AI should generate standard HTML, not Gutenberg blocks
+2. **Convert on Save** - HTML is converted to Gutenberg blocks when saving to database
 3. **Fix Lists Aggressively** - Multiple `<ul>` tags should be consolidated
 4. **Use Content Tags** - Wrap generated content in appropriate tags for extraction
 5. **Handle Both Editors** - Support Block Editor and Classic Editor
 6. **Provide Context** - Include parent course info when generating lessons
 7. **Log Everything** - Use logger for debugging content issues
+8. **Avoid wp_kses_post()** - This function strips Gutenberg block comments
 
 ---
 
