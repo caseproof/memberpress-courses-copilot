@@ -1871,9 +1871,20 @@ class CourseAjaxService extends BaseService
         $prompt .= "3. Includes practical applications\n";
         $prompt .= "4. Summarizes key points\n";
         $prompt .= "5. Uses clear formatting with proper headings, paragraphs, and lists\n\n";
-        $prompt .= 'Format the content as clean, readable plain text with proper spacing and structure . ';
-        $prompt .= 'use line breaks between sections, bullet points for lists, and clear headings . ';
-        $prompt .= 'do NOT use HTML tags or markdown - just plain, well - formatted text . ';
+        
+        $prompt .= "IMPORTANT - USE WORDPRESS GUTENBERG BLOCK FORMAT:\n";
+        $prompt .= "Format ALL content using WordPress Gutenberg block comments. Examples:\n\n";
+        $prompt .= "For headings:\n";
+        $prompt .= "<!-- wp:heading -->\n<h2>Your Heading</h2>\n<!-- /wp:heading -->\n\n";
+        $prompt .= "For paragraphs:\n";
+        $prompt .= "<!-- wp:paragraph -->\n<p>Your paragraph text here.</p>\n<!-- /wp:paragraph -->\n\n";
+        $prompt .= "For bullet lists:\n";
+        $prompt .= "<!-- wp:list -->\n<ul>\n<li>First item</li>\n<li>Second item</li>\n</ul>\n<!-- /wp:list -->\n\n";
+        $prompt .= "For numbered lists:\n";
+        $prompt .= "<!-- wp:list {\"ordered\":true} -->\n<ol>\n<li>Step one</li>\n<li>Step two</li>\n</ol>\n<!-- /wp:list -->\n\n";
+        $prompt .= "For code blocks:\n";
+        $prompt .= "<!-- wp:code -->\n<pre class=\"wp-block-code\"><code>your code here</code></pre>\n<!-- /wp:code -->\n\n";
+        $prompt .= "Do NOT use plain text or markdown. ALL content must be wrapped in proper Gutenberg block comments.";
 
         return $prompt;
     }

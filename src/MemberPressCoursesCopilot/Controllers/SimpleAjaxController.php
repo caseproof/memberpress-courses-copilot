@@ -553,7 +553,8 @@ class SimpleAjaxController
                     $courseData['title'] = sanitize_text_field($courseData['title']);
                 }
                 
-                // Preserve HTML content in description - use textarea field to preserve line breaks
+                // Preserve description content - use textarea field to preserve line breaks
+                // Note: Description in course structure JSON should be plain text, not HTML/Gutenberg
                 if (isset($courseData['description'])) {
                     $courseData['description'] = sanitize_textarea_field($courseData['description']);
                 }
@@ -861,6 +862,14 @@ Format the content with clear headings and sections.";
 }
 ```
 
+CRITICAL: Do NOT include lesson content in the course structure JSON. The JSON should only contain:
+- Course title and description
+- Section titles
+- Lesson titles and duration
+- NO lesson content, NO HTML, NO Gutenberg blocks in the JSON
+
+Lesson content will be generated separately when users click on individual lessons.
+
 If modifying an existing course, include ALL sections and lessons (both existing and new) in your response.";
         }
 
@@ -1152,7 +1161,8 @@ If modifying an existing course, include ALL sections and lessons (both existing
                     $courseData['title'] = sanitize_text_field($courseData['title']);
                 }
                 
-                // Preserve HTML content in description - use textarea field to preserve line breaks
+                // Preserve description content - use textarea field to preserve line breaks
+                // Note: Description in course structure JSON should be plain text, not HTML/Gutenberg
                 if (isset($courseData['description'])) {
                     $courseData['description'] = sanitize_textarea_field($courseData['description']);
                 }
