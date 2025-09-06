@@ -615,9 +615,49 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
             'has_html_tags' => strip_tags($content) !== $content
         ]);
         
-        // If content is plain text without HTML tags, wrap it in a paragraph block
+        // If content is plain text without HTML tags, convert it properly
         if (strip_tags($content) === $content && !empty(trim($content))) {
-            return "<!-- wp:paragraph -->\n<p>" . esc_html($content) . "</p>\n<!-- /wp:paragraph -->";
+            // Split content by double line breaks to create paragraphs
+            $paragraphs = preg_split('/\n\s*\n/', $content);
+            $blocks = [];
+            
+            foreach ($paragraphs as $paragraph) {
+                $paragraph = trim($paragraph);
+                if (empty($paragraph)) continue;
+                
+                // Check if it's a heading (starts with UPPERCASE TITLE or has heading markers)
+                if (preg_match('/^[A-Z][A-Z\s]+$/', $paragraph) || preg_match('/^#+\s/', $paragraph)) {
+                    // Remove markdown heading markers if present
+                    $paragraph = preg_replace('/^#+\s*/', '', $paragraph);
+                    $blocks[] = "<!-- wp:heading -->\n<h2>" . esc_html($paragraph) . "</h2>\n<!-- /wp:heading -->";
+                }
+                // Check if it's a list (contains bullet points or numbered items)
+                elseif (preg_match('/^[\s]*[•\-\*]|\d+\./', $paragraph)) {
+                    // Convert bullet points to proper list
+                    $lines = explode("\n", $paragraph);
+                    $listItems = [];
+                    
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        // Remove bullet markers
+                        $line = preg_replace('/^[•\-\*]\s*/', '', $line);
+                        $line = preg_replace('/^\d+\.\s*/', '', $line);
+                        if (!empty($line)) {
+                            $listItems[] = "<li>" . esc_html($line) . "</li>";
+                        }
+                    }
+                    
+                    if (!empty($listItems)) {
+                        $blocks[] = "<!-- wp:list -->\n<ul>\n" . implode("\n", $listItems) . "\n</ul>\n<!-- /wp:list -->";
+                    }
+                }
+                else {
+                    // Regular paragraph
+                    $blocks[] = "<!-- wp:paragraph -->\n<p>" . esc_html($paragraph) . "</p>\n<!-- /wp:paragraph -->";
+                }
+            }
+            
+            return implode("\n\n", $blocks);
         }
         
         // Convert HTML to Gutenberg blocks using DOMDocument for better parsing

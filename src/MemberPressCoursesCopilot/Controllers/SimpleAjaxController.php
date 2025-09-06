@@ -575,7 +575,8 @@ class SimpleAjaxController
                                     $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['title'] = sanitize_text_field($lesson['title']);
                                 }
                                 if (isset($lesson['content'])) {
-                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = sanitize_textarea_field($lesson['content']);
+                                    // Use wp_kses_post to preserve HTML formatting in lesson content
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = wp_kses_post($lesson['content']);
                                 }
                                 if (isset($lesson['duration'])) {
                                     $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['duration'] = sanitize_text_field($lesson['duration']);
@@ -666,7 +667,8 @@ class SimpleAjaxController
             $sessionId   = sanitize_text_field($_POST['session_id'] ?? '');
             $lessonId    = sanitize_text_field($_POST['lesson_id'] ?? '');
             $lessonTitle = sanitize_text_field($_POST['lesson_title'] ?? '');
-            $content     = sanitize_textarea_field($_POST['content'] ?? '');
+            // Use wp_kses_post to preserve HTML formatting in lesson content
+            $content     = wp_kses_post($_POST['content'] ?? '');
 
             if (empty($lessonId) || empty($sessionId)) {
                 throw new \Exception('Lesson ID and Session ID are required');
@@ -1150,7 +1152,8 @@ If modifying an existing course, include ALL sections and lessons (both existing
                                     $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['title'] = sanitize_text_field($lesson['title']);
                                 }
                                 if (isset($lesson['content'])) {
-                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = sanitize_textarea_field($lesson['content']);
+                                    // Use wp_kses_post to preserve HTML formatting in lesson content
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = wp_kses_post($lesson['content']);
                                 }
                                 if (isset($lesson['duration'])) {
                                     $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['duration'] = sanitize_text_field($lesson['duration']);
