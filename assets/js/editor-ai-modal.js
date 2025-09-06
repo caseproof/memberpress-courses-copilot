@@ -59,6 +59,75 @@
             return html;
         }
         
+        // Convert clean HTML to Gutenberg blocks
+        function convertHtmlToGutenbergBlocks(html) {
+            var blocks = '';
+            
+            // Parse the HTML
+            var $html = $('<div>').html(html);
+            
+            $html.children().each(function() {
+                var $elem = $(this);
+                var tagName = this.tagName.toLowerCase();
+                
+                switch(tagName) {
+                    case 'h1':
+                    case 'h2':
+                    case 'h3':
+                    case 'h4':
+                    case 'h5':
+                    case 'h6':
+                        var level = tagName.charAt(1);
+                        blocks += '<!-- wp:heading {"level":' + level + '} -->\n';
+                        blocks += '<' + tagName + '>' + $elem.html() + '</' + tagName + '>\n';
+                        blocks += '<!-- /wp:heading -->\n\n';
+                        break;
+                        
+                    case 'p':
+                        blocks += '<!-- wp:paragraph -->\n';
+                        blocks += '<p>' + $elem.html() + '</p>\n';
+                        blocks += '<!-- /wp:paragraph -->\n\n';
+                        break;
+                        
+                    case 'ul':
+                        blocks += '<!-- wp:list -->\n';
+                        blocks += '<ul>\n';
+                        $elem.find('li').each(function() {
+                            blocks += '<li>' + $(this).html() + '</li>\n';
+                        });
+                        blocks += '</ul>\n';
+                        blocks += '<!-- /wp:list -->\n\n';
+                        break;
+                        
+                    case 'ol':
+                        blocks += '<!-- wp:list {"ordered":true} -->\n';
+                        blocks += '<ol>\n';
+                        $elem.find('li').each(function() {
+                            blocks += '<li>' + $(this).html() + '</li>\n';
+                        });
+                        blocks += '</ol>\n';
+                        blocks += '<!-- /wp:list -->\n\n';
+                        break;
+                        
+                    case 'blockquote':
+                        blocks += '<!-- wp:quote -->\n';
+                        blocks += '<blockquote class="wp-block-quote">' + $elem.html() + '</blockquote>\n';
+                        blocks += '<!-- /wp:quote -->\n\n';
+                        break;
+                        
+                    default:
+                        // For any other content, wrap in paragraph
+                        if ($elem.text().trim()) {
+                            blocks += '<!-- wp:paragraph -->\n';
+                            blocks += '<p>' + $elem.html() + '</p>\n';
+                            blocks += '<!-- /wp:paragraph -->\n\n';
+                        }
+                }
+            });
+            
+            return blocks.trim();
+        }
+        
         // Enhance modal for accessibility
         if (window.MPCCAccessibility) {
             const $modal = $(modalId);
@@ -218,10 +287,9 @@
                         var displayText = messageText;
                         
                         if (contentMatch) {
-                            // Format the markdown content for display
-                            var markdownContent = contentMatch[1].trim();
-                            var htmlContent = markdownToHtml(markdownContent);
-                            displayText = htmlContent;
+                            // Extract and display the HTML content directly
+                            displayText = contentMatch[1].trim();
+                            console.log('MPCC: Displaying HTML content from AI');
                         } else {
                             // Regular message formatting
                             displayText = messageText.replace(/\n/g, '<br>');
@@ -326,87 +394,174 @@
             
             // Get the AI-generated content
             var $aiMessage = $(this).closest('.mpcc-editor-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
-            var fullContent = $aiMessage.text(); // Use .text() to get raw content without HTML
+            var fullContent = $aiMessage.html(); // Use .html() to preserve structure
             
             console.log('MPCC: Extracting content from:', fullContent);
             
-            var editorContent = '';
+            var htmlContent = '';
             
             // Look for content between content tags
             var contentRegex = new RegExp('\\[' + contentTag + '\\]([\\s\\S]*?)\\[\\/' + contentTag + '\\]');
             var contentMatch = fullContent.match(contentRegex);
             
             if (contentMatch && contentMatch[1]) {
-                // Found markdown content
-                var markdownContent = contentMatch[1].trim();
-                console.log('MPCC: Found markdown content:', markdownContent);
-                
-                // Convert markdown to HTML
-                editorContent = markdownToHtml(markdownContent);
-                console.log('MPCC: Converted to HTML:', editorContent);
+                // Extract HTML content
+                htmlContent = contentMatch[1].trim();
+                console.log('MPCC: Found HTML content:', htmlContent);
             } else {
                 // Fallback: use the full content if no tags found
                 console.log('MPCC: No content tags found, using full content');
-                editorContent = $aiMessage.html()
-                    .replace(/<br\s*\/?>/gi, '\n')
-                    .replace(/\n{3,}/g, '\n\n')
-                    .trim();
+                htmlContent = $aiMessage.html();
             }
-                
-            console.log('MPCC: Final content to apply (length: ' + editorContent.length + '):', editorContent);
             
-            // Update the post content via AJAX
-            const ajaxSettings = MPCCUtils.getAjaxSettings();
-            $.ajax({
-                url: ajaxSettings.url,
-                type: 'POST',
-                data: {
-                    action: mpccEditorModal.updateAction,
-                    nonce: $('#mpcc_editor_ai_nonce').val(),
-                    post_id: mpccEditorModal.postId,
-                    content: editorContent
-                },
-                success: function(response) {
-                    console.log('MPCC: AJAX response:', response);
+            // Check if we're in the Block Editor
+            var isBlockEditor = typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor');
+            
+            if (isBlockEditor) {
+                console.log('MPCC: Using Block Editor approach');
+                
+                // Parse HTML and create actual Gutenberg blocks
+                var $html = $('<div>').html(htmlContent);
+                var blocks = [];
+                
+                $html.children().each(function() {
+                    var $elem = $(this);
+                    var tagName = this.tagName.toLowerCase();
+                    var block = null;
                     
-                    if (response.success) {
-                        // For Block Editor - we need to reload the post data
-                        if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor')) {
-                            console.log('MPCC: Updating Block Editor');
-                            // Force refresh the post content
-                            wp.data.dispatch('core').receiveEntityRecords('postType', postType, [
-                                {
-                                    id: mpccEditorModal.postId,
-                                    content: { raw: editorContent, rendered: editorContent }
-                                }
-                            ]);
-                            // Also update via editPost
-                            wp.data.dispatch('core/editor').editPost({content: editorContent});
-                        } else if (typeof tinyMCE !== 'undefined' && tinyMCE.get('content')) {
-                            // For classic editor
-                            console.log('MPCC: Updating Classic Editor (TinyMCE)');
-                            tinyMCE.get('content').setContent(editorContent);
-                        } else if ($('#content').length) {
-                            // For text editor
-                            console.log('MPCC: Updating Text Editor');
-                            $('#content').val(editorContent);
+                    switch(tagName) {
+                        case 'h1':
+                        case 'h2':
+                        case 'h3':
+                        case 'h4':
+                        case 'h5':
+                        case 'h6':
+                            var level = parseInt(tagName.charAt(1));
+                            block = wp.blocks.createBlock('core/heading', {
+                                content: $elem.html(),
+                                level: level
+                            });
+                            break;
+                            
+                        case 'p':
+                            block = wp.blocks.createBlock('core/paragraph', {
+                                content: $elem.html()
+                            });
+                            break;
+                            
+                        case 'ul':
+                            var listItems = [];
+                            $elem.find('li').each(function() {
+                                listItems.push($(this).html());
+                            });
+                            var listHtml = '<ul>' + listItems.map(item => '<li>' + item + '</li>').join('') + '</ul>';
+                            block = wp.blocks.createBlock('core/list', {
+                                values: listHtml
+                            });
+                            break;
+                            
+                        case 'ol':
+                            var listItems = [];
+                            $elem.find('li').each(function() {
+                                listItems.push($(this).html());
+                            });
+                            var listHtml = '<ol>' + listItems.map(item => '<li>' + item + '</li>').join('') + '</ol>';
+                            block = wp.blocks.createBlock('core/list', {
+                                values: listHtml,
+                                ordered: true
+                            });
+                            break;
+                            
+                        case 'blockquote':
+                            block = wp.blocks.createBlock('core/quote', {
+                                value: '<p>' + $elem.html() + '</p>'
+                            });
+                            break;
+                            
+                        default:
+                            // For any other content, wrap in paragraph
+                            if ($elem.text().trim()) {
+                                block = wp.blocks.createBlock('core/paragraph', {
+                                    content: $elem.html()
+                                });
+                            }
+                    }
+                    
+                    if (block) {
+                        blocks.push(block);
+                    }
+                });
+                
+                // Clear existing blocks and insert new ones
+                wp.data.dispatch('core/block-editor').resetBlocks(blocks);
+                
+                // Mark the post as dirty so the Update button is enabled
+                wp.data.dispatch('core/editor').editPost({ meta: { _edit_lock: Date.now() } });
+                
+                $button.text('Applied!');
+                
+                // Announce success
+                if (window.MPCCAccessibility) {
+                    MPCCAccessibility.announce('Content applied successfully to editor.');
+                }
+                
+                setTimeout(function() {
+                    $('.mpcc-editor-content-update-buttons').fadeOut();
+                }, 2000);
+                
+            } else {
+                // For Classic Editor or Text Editor, send HTML and let server convert
+                console.log('MPCC: Sending HTML content for server-side conversion');
+                
+                // Update the post content via AJAX
+                const ajaxSettings = MPCCUtils.getAjaxSettings();
+                $.ajax({
+                    url: ajaxSettings.url,
+                    type: 'POST',
+                    data: {
+                        action: mpccEditorModal.updateAction,
+                        nonce: $('#mpcc_editor_ai_nonce').val(),
+                        post_id: mpccEditorModal.postId,
+                        content: htmlContent,
+                        convert_to_blocks: true  // Tell server to convert HTML to blocks
+                    },
+                    success: function(response) {
+                        console.log('MPCC: AJAX response:', response);
+                        
+                        if (response.success) {
+                            // Reload the page to show the updated content with Gutenberg blocks
+                            console.log('MPCC: Content updated on server, reloading page');
+                            location.reload();
+                            
+                            $button.text('Applied!');
+                            
+                            // Announce success
+                            if (window.MPCCAccessibility) {
+                                MPCCAccessibility.announce('Content applied successfully to editor.');
+                            }
+                            
+                            setTimeout(function() {
+                                $('.mpcc-editor-content-update-buttons').fadeOut();
+                            }, 2000);
                         } else {
-                            console.log('MPCC: No editor found to update');
+                            $button.text('Failed').addClass('button-disabled');
+                            var errorText = response.data || 'Failed to update content';
+                            
+                            // Announce error
+                            if (window.MPCCAccessibility) {
+                                MPCCAccessibility.announce('Error applying content: ' + errorText);
+                            }
+                            
+                            if (window.MPCCToast) {
+                                window.MPCCToast.error('Error: ' + errorText);
+                            } else {
+                                console.error('Error: ' + errorText);
+                            }
                         }
-                        
-                        $button.text('Applied!');
-                        
-                        // Announce success
-                        if (window.MPCCAccessibility) {
-                            MPCCAccessibility.announce('Content applied successfully to editor.');
-                        }
-                        
-                        setTimeout(function() {
-                            $('.mpcc-editor-content-update-buttons').fadeOut();
-                        }, 2000);
-                    } else {
+                    },
+                    error: function() {
                         $button.text('Failed').addClass('button-disabled');
-                        var errorText = response.data || 'Failed to update content';
+                        var errorText = 'Network error. Please try again.';
                         
                         // Announce error
                         if (window.MPCCAccessibility) {
@@ -414,47 +569,32 @@
                         }
                         
                         if (window.MPCCToast) {
-                            window.MPCCToast.error('Error: ' + errorText);
+                            window.MPCCToast.error(errorText);
                         } else {
-                            console.error('Error: ' + errorText);
+                            console.error(errorText);
                         }
                     }
-                },
-                error: function() {
-                    $button.text('Failed').addClass('button-disabled');
-                    var errorText = 'Network error. Please try again.';
-                    
-                    // Announce error
-                    if (window.MPCCAccessibility) {
-                        MPCCAccessibility.announce('Error applying content: ' + errorText);
-                    }
-                    
-                    if (window.MPCCToast) {
-                        window.MPCCToast.error(errorText);
-                    } else {
-                        console.error(errorText);
-                    }
-                }
-            });
+                });
+            }
         });
         
         // Handle copy content button - use event delegation
         $(document).off('click.copy-content').on('click.copy-content', '.mpcc-copy-editor-content', function() {
             // Get the AI-generated content
             var $aiMessage = $(this).closest('.mpcc-editor-content-update-buttons').prev('.mpcc-ai-message').find('.ai-content');
-            var fullContent = $aiMessage.text();
+            var fullContent = $aiMessage.html(); // Use .html() to preserve structure
             var contentToCopy = '';
             
-            // Look for markdown content
+            // Look for content between content tags
             var contentRegex = new RegExp('\\[' + contentTag + '\\]([\\s\\S]*?)\\[\\/' + contentTag + '\\]');
             var contentMatch = fullContent.match(contentRegex);
             
             if (contentMatch && contentMatch[1]) {
-                // Copy just the markdown content
+                // Copy the raw HTML content (let user's editor handle conversion)
                 contentToCopy = contentMatch[1].trim();
             } else {
-                // Copy the full text content
-                contentToCopy = fullContent;
+                // Fallback: use the full HTML content
+                contentToCopy = $aiMessage.html();
             }
             
             console.log('MPCC: Copy button - Content to copy:', contentToCopy);

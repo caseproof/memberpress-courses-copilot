@@ -121,10 +121,16 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
      */
     private function createCourse(array $courseData): int
     {
+        // Convert content to Gutenberg blocks if needed
+        $description = $courseData['description'] ?? '';
+        if (!empty($description)) {
+            $description = $this->convertToGutenbergBlocks($description);
+        }
+        
         // Prepare course post data
         $postData = [
             'post_title'   => $courseData['title'] ?? 'Untitled Course',
-            'post_content' => $courseData['description'] ?? '',
+            'post_content' => $description,
             'post_status'  => 'draft', // Always create as draft
             'post_type'    => 'mpcs-course',
             'post_author'  => get_current_user_id(),
@@ -247,9 +253,15 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
             'lesson_keys'    => array_keys($lessonData),
         ]);
 
+        // Convert content to Gutenberg blocks if needed
+        $content = $lessonData['content'] ?? '';
+        if (!empty($content)) {
+            $content = $this->convertToGutenbergBlocks($content);
+        }
+
         $postData = [
             'post_title'   => $lessonData['title'] ?? 'Lesson ' . $order,
-            'post_content' => $lessonData['content'] ?? '',
+            'post_content' => $content,
             'post_status'  => 'publish',
             'post_type'    => 'mpcs-lesson',
             'post_author'  => get_current_user_id(),
@@ -321,11 +333,17 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
                 throw new \Exception('Course not found');
             }
 
+            // Convert content to Gutenberg blocks if needed
+            $description = $courseData['description'] ?? $course->post_content;
+            if (!empty($description) && isset($courseData['description'])) {
+                $description = $this->convertToGutenbergBlocks($description);
+            }
+            
             // Update course title and description
             wp_update_post([
                 'ID'           => $courseId,
                 'post_title'   => $courseData['title'] ?? $course->post_title,
-                'post_content' => $courseData['description'] ?? $course->post_content,
+                'post_content' => $description,
             ]);
 
             // Update course meta if provided
@@ -559,5 +577,177 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
 
         // Return simple boolean result for interface compliance
         return $validation['valid'];
+    }
+
+    /**
+     * Convert plain HTML content to Gutenberg blocks
+     * 
+     * This method ensures content is properly formatted as Gutenberg blocks
+     * if it isn't already. It wraps HTML elements in the appropriate block comments.
+     * 
+     * @param string $content Content to convert
+     * @return string Content formatted as Gutenberg blocks
+     */
+    private function convertToGutenbergBlocks(string $content): string
+    {
+        // If content already has Gutenberg blocks, just fix any malformed lists
+        if (strpos($content, '<!-- wp:') !== false) {
+            return $this->fixMalformedGutenbergLists($content);
+        }
+        
+        // Convert HTML to Gutenberg blocks using DOMDocument for better parsing
+        $blocks = [];
+        
+        // Wrap content to ensure proper parsing
+        $wrappedContent = '<div>' . $content . '</div>';
+        
+        // Use DOMDocument to parse HTML
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($wrappedContent, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        
+        // Get the wrapper div
+        $wrapper = $dom->getElementsByTagName('div')->item(0);
+        if (!$wrapper) {
+            return $content; // Fallback if parsing fails
+        }
+        
+        // Process each child element
+        foreach ($wrapper->childNodes as $node) {
+            if ($node->nodeType !== XML_ELEMENT_NODE) {
+                continue;
+            }
+            
+            $tagName = strtolower($node->tagName);
+            $nodeContent = $dom->saveHTML($node);
+            
+            switch ($tagName) {
+                case 'h1':
+                case 'h2':
+                case 'h3':
+                case 'h4':
+                case 'h5':
+                case 'h6':
+                    $level = substr($tagName, 1);
+                    $text = $node->textContent;
+                    $blocks[] = "<!-- wp:heading {\"level\":{$level}} -->\n<{$tagName}>{$text}</{$tagName}>\n<!-- /wp:heading -->";
+                    break;
+                    
+                case 'p':
+                    $innerHTML = '';
+                    foreach ($node->childNodes as $child) {
+                        $innerHTML .= $dom->saveHTML($child);
+                    }
+                    $blocks[] = "<!-- wp:paragraph -->\n<p>{$innerHTML}</p>\n<!-- /wp:paragraph -->";
+                    break;
+                    
+                case 'ul':
+                    $listItems = '';
+                    foreach ($node->getElementsByTagName('li') as $li) {
+                        $liContent = '';
+                        foreach ($li->childNodes as $child) {
+                            $liContent .= $dom->saveHTML($child);
+                        }
+                        $listItems .= "<li>{$liContent}</li>\n";
+                    }
+                    $blocks[] = "<!-- wp:list -->\n<ul>\n{$listItems}</ul>\n<!-- /wp:list -->";
+                    break;
+                    
+                case 'ol':
+                    $listItems = '';
+                    foreach ($node->getElementsByTagName('li') as $li) {
+                        $liContent = '';
+                        foreach ($li->childNodes as $child) {
+                            $liContent .= $dom->saveHTML($child);
+                        }
+                        $listItems .= "<li>{$liContent}</li>\n";
+                    }
+                    $blocks[] = "<!-- wp:list {\"ordered\":true} -->\n<ol>\n{$listItems}</ol>\n<!-- /wp:list -->";
+                    break;
+                    
+                case 'blockquote':
+                    $innerHTML = '';
+                    foreach ($node->childNodes as $child) {
+                        $innerHTML .= $dom->saveHTML($child);
+                    }
+                    $blocks[] = "<!-- wp:quote -->\n<blockquote class=\"wp-block-quote\">{$innerHTML}</blockquote>\n<!-- /wp:quote -->";
+                    break;
+                    
+                default:
+                    // For any other content, wrap in paragraph if it has text
+                    $text = trim($node->textContent);
+                    if (!empty($text)) {
+                        $innerHTML = '';
+                        foreach ($node->childNodes as $child) {
+                            $innerHTML .= $dom->saveHTML($child);
+                        }
+                        $blocks[] = "<!-- wp:paragraph -->\n<p>{$innerHTML}</p>\n<!-- /wp:paragraph -->";
+                    }
+            }
+        }
+        
+        $result = implode("\n\n", $blocks);
+        
+        // Clean up any encoding issues from DOMDocument
+        $result = str_replace('&nbsp;', ' ', $result);
+        $result = html_entity_decode($result, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        return $result;
+    }
+    
+    /**
+     * Fix malformed Gutenberg lists that have nested ul/ol tags
+     * 
+     * This method fixes the common issue where AI generates lists with each item
+     * wrapped in its own <ul> tag instead of having all items in a single list.
+     * 
+     * @param string $content Content with potentially malformed lists
+     * @return string Content with fixed list formatting
+     */
+    private function fixMalformedGutenbergLists(string $content): string
+    {
+        // Pattern to match Gutenberg list blocks with malformed nested lists
+        $pattern = '/(<!-- wp:list(?:\s+\{[^}]*\})? -->)(.*?)(<!-- \/wp:list -->)/s';
+        
+        $content = preg_replace_callback($pattern, function($matches) {
+            $blockStart = $matches[1];
+            $listContent = $matches[2];
+            $blockEnd = $matches[3];
+            
+            // More aggressive check for ANY nested ul/ol tags
+            if (preg_match_all('/<(ul|ol)>/i', $listContent, $listTags) && count($listTags[0]) > 1) {
+                $this->logger->debug('Fixing malformed Gutenberg list with multiple ul/ol tags');
+                
+                // Determine if this is an ordered list
+                $isOrdered = strpos($blockStart, '"ordered":true') !== false;
+                $listTag = $isOrdered ? 'ol' : 'ul';
+                
+                // Extract all list items, removing ALL ul/ol tags
+                preg_match_all('/<li[^>]*>(.*?)<\/li>/si', $listContent, $liMatches);
+                
+                if (!empty($liMatches[0])) {
+                    // Rebuild the list with proper single-level structure
+                    $fixedList = "\n<{$listTag}>\n";
+                    foreach ($liMatches[0] as $li) {
+                        // Clean up the li item (remove any extra whitespace)
+                        $li = trim($li);
+                        $fixedList .= "    " . $li . "\n";
+                    }
+                    $fixedList .= "</{$listTag}>\n";
+                    
+                    $this->logger->debug('Fixed malformed list', [
+                        'original_structure' => substr(preg_replace('/\s+/', ' ', $listContent), 0, 200),
+                        'fixed_structure' => substr($fixedList, 0, 200),
+                        'ul_ol_count' => count($listTags[0])
+                    ]);
+                    
+                    return $blockStart . $fixedList . $blockEnd;
+                }
+            }
+            
+            // Return unchanged if not malformed
+            return $matches[0];
+        }, $content);
+        
+        return $content;
     }
 }

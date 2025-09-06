@@ -700,10 +700,35 @@ class EditorAIIntegrationService extends BaseService
             }
 
             $postId  = intval($_POST['post_id'] ?? 0);
-            $content = wp_kses_post($_POST['content'] ?? '');
+            $content = $_POST['content'] ?? '';
+            $convertToBlocks = !empty($_POST['convert_to_blocks']);
 
             if (empty($postId)) {
                 throw new \Exception('Post ID is required');
+            }
+
+            // Verify the user can edit this post
+            if (!current_user_can('edit_post', $postId)) {
+                throw new \Exception('You do not have permission to edit this post');
+            }
+
+            // Convert HTML to Gutenberg blocks if requested
+            if ($convertToBlocks && !empty($content)) {
+                // Get CourseGeneratorService to use its conversion method
+                $container = function_exists('mpcc_container') ? mpcc_container() : null;
+                if ($container && $container->has(\MemberPressCoursesCopilot\Services\CourseGeneratorService::class)) {
+                    $courseGenerator = $container->get(\MemberPressCoursesCopilot\Services\CourseGeneratorService::class);
+                    
+                    // Use reflection to access private method
+                    $reflection = new \ReflectionClass($courseGenerator);
+                    $method = $reflection->getMethod('convertToGutenbergBlocks');
+                    $method->setAccessible(true);
+                    
+                    $content = $method->invoke($courseGenerator, $content);
+                } else {
+                    // Fallback conversion if service not available
+                    $content = $this->simpleConvertToGutenbergBlocks($content);
+                }
             }
 
             // Update the post content
@@ -720,6 +745,92 @@ class EditorAIIntegrationService extends BaseService
         } catch (\Exception $e) {
             wp_send_json_error($e->getMessage());
         }
+    }
+
+    /**
+     * Simple HTML to Gutenberg blocks conversion
+     * Fallback method when CourseGeneratorService is not available
+     */
+    private function simpleConvertToGutenbergBlocks(string $content): string
+    {
+        // If content already has Gutenberg blocks, return as-is
+        if (strpos($content, '<!-- wp:') !== false) {
+            return $content;
+        }
+
+        $blocks = [];
+        
+        // Parse HTML content
+        $dom = new \DOMDocument();
+        @$dom->loadHTML('<div>' . $content . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        
+        $wrapper = $dom->getElementsByTagName('div')->item(0);
+        if (!$wrapper) {
+            return $content;
+        }
+
+        foreach ($wrapper->childNodes as $node) {
+            if ($node->nodeType !== XML_ELEMENT_NODE) {
+                continue;
+            }
+
+            $tagName = strtolower($node->tagName);
+            $nodeHtml = $dom->saveHTML($node);
+
+            switch ($tagName) {
+                case 'h1':
+                case 'h2':
+                case 'h3':
+                case 'h4':
+                case 'h5':
+                case 'h6':
+                    $level = intval(substr($tagName, 1));
+                    $blocks[] = sprintf(
+                        "<!-- wp:heading {\"level\":%d} -->\n%s\n<!-- /wp:heading -->",
+                        $level,
+                        $nodeHtml
+                    );
+                    break;
+
+                case 'p':
+                    $blocks[] = sprintf(
+                        "<!-- wp:paragraph -->\n%s\n<!-- /wp:paragraph -->",
+                        $nodeHtml
+                    );
+                    break;
+
+                case 'ul':
+                    $blocks[] = sprintf(
+                        "<!-- wp:list -->\n%s\n<!-- /wp:list -->",
+                        $nodeHtml
+                    );
+                    break;
+
+                case 'ol':
+                    $blocks[] = sprintf(
+                        "<!-- wp:list {\"ordered\":true} -->\n%s\n<!-- /wp:list -->",
+                        $nodeHtml
+                    );
+                    break;
+
+                case 'blockquote':
+                    $blocks[] = sprintf(
+                        "<!-- wp:quote -->\n<blockquote class=\"wp-block-quote\">%s</blockquote>\n<!-- /wp:quote -->",
+                        trim(str_replace(['<blockquote>', '</blockquote>'], '', $nodeHtml))
+                    );
+                    break;
+
+                default:
+                    if (trim($node->textContent)) {
+                        $blocks[] = sprintf(
+                            "<!-- wp:paragraph -->\n<p>%s</p>\n<!-- /wp:paragraph -->",
+                            trim($node->textContent)
+                        );
+                    }
+            }
+        }
+
+        return implode("\n\n", $blocks);
     }
 
     /**
@@ -762,13 +873,18 @@ class EditorAIIntegrationService extends BaseService
         $userWantsContent = preg_match('/\b(write|create|generate|make|build|develop)\b/i', $message);
 
         if ($userWantsContent) {
-            $prompt .= 'INSTRUCTION: Provide the lesson content in Markdown format '
+            $prompt .= 'INSTRUCTION: Provide the lesson content in clean HTML format '
                     . 'wrapped between [LESSON_CONTENT] and [/LESSON_CONTENT] tags. ';
+            $prompt .= 'Use standard HTML tags: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>. ';
+            $prompt .= 'CRITICAL for lists: Use proper HTML with a SINGLE <ul> or <ol> tag containing <li> items. '
+                    . 'NEVER nest multiple <ul> tags. ';
             $prompt .= 'Include an engaging introduction, clear explanations with examples, '
                     . 'practice activities, and a summary. ';
-            $prompt .= 'Use proper Markdown formatting with headers, bullet points, '
-                    . 'numbered lists, and emphasis where appropriate. ';
             $prompt .= 'Make the content educational, practical, and engaging for online learners. ';
+            $prompt .= 'Example format:\n'
+                    . '<h2>Introduction</h2>\n'
+                    . '<p>Content here...</p>\n'
+                    . '<ul>\n<li>First item</li>\n<li>Second item</li>\n</ul>\n';
             $prompt .= 'Do not include any text outside the [LESSON_CONTENT] tags.';
         } else {
             $prompt .= 'Provide helpful guidance about creating effective lesson content.';
@@ -811,11 +927,17 @@ class EditorAIIntegrationService extends BaseService
         $userWantsDescription = preg_match('/\b(write|create|update|improve|enhance|rewrite|new)\b/i', $message);
 
         if ($userWantsDescription) {
-            $prompt .= 'INSTRUCTION: Provide the course description in Markdown format '
+            $prompt .= 'INSTRUCTION: Provide the course description in clean HTML format '
                     . 'wrapped between [COURSE_CONTENT] and [/COURSE_CONTENT] tags. ';
+            $prompt .= 'Use standard HTML tags: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>. ';
+            $prompt .= 'CRITICAL for lists: Use proper HTML with a SINGLE <ul> or <ol> tag containing <li> items. '
+                    . 'NEVER nest multiple <ul> tags. ';
             $prompt .= 'Include 3-5 paragraphs covering the overview, benefits, '
                     . 'learning outcomes, target audience, and call-to-action. ';
-            $prompt .= 'Use proper Markdown formatting with headers, bullet points, and emphasis where appropriate. ';
+            $prompt .= 'Example format:\n'
+                    . '<h2>Course Overview</h2>\n'
+                    . '<p>Content here...</p>\n'
+                    . '<ul>\n<li>First benefit</li>\n<li>Second benefit</li>\n</ul>\n';
             $prompt .= 'Do not include any text outside the [COURSE_CONTENT] tags.';
         } else {
             $prompt .= 'Provide helpful guidance about the course description.';
