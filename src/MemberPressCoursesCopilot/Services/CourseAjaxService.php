@@ -1293,8 +1293,8 @@ class CourseAjaxService extends BaseService
         $sessionId  = sanitize_text_field($_POST['session_id'] ?? '');
         $sectionId  = sanitize_text_field($_POST['section_id'] ?? '');
         $lessonId   = sanitize_text_field($_POST['lesson_id'] ?? '');
-        // Use wp_kses_post to preserve HTML formatting in lesson content
-        $content    = wp_kses_post($_POST['content'] ?? '');
+        // Don't use wp_kses_post as it strips Gutenberg block comments
+        $content    = stripslashes($_POST['content'] ?? '');
         $orderIndex = isset($_POST['order_index']) ? (int) $_POST['order_index'] : 0;
 
         $this->logger->info('Save lesson content request', [

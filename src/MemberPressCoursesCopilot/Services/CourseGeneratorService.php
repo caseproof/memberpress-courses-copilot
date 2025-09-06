@@ -121,7 +121,7 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
      */
     private function createCourse(array $courseData): int
     {
-        // Convert content to Gutenberg blocks if needed
+        // Get description - it should already be in Gutenberg block format from AI
         $description = $courseData['description'] ?? '';
         
         $this->logger->debug('Creating course with description', [
@@ -130,7 +130,9 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
             'description_preview' => substr($description, 0, 100) . '...'
         ]);
         
-        if (!empty($description)) {
+        // Only convert if description exists and doesn't already have Gutenberg blocks
+        if (!empty($description) && strpos($description, '<!-- wp:') === false) {
+            $this->logger->debug('Converting non-block description to Gutenberg blocks');
             $description = $this->convertToGutenbergBlocks($description);
             
             $this->logger->debug('Description after Gutenberg conversion', [
@@ -266,10 +268,20 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
             'lesson_keys'    => array_keys($lessonData),
         ]);
 
-        // Convert content to Gutenberg blocks if needed
+        // Get content - it should already be in Gutenberg block format from AI
         $content = $lessonData['content'] ?? '';
-        if (!empty($content)) {
+        
+        // Only convert if content exists and doesn't already have Gutenberg blocks
+        if (!empty($content) && strpos($content, '<!-- wp:') === false) {
+            $this->logger->debug('Converting non-block content to Gutenberg blocks', [
+                'content_preview' => substr($content, 0, 100)
+            ]);
             $content = $this->convertToGutenbergBlocks($content);
+        } else {
+            $this->logger->debug('Content already has Gutenberg blocks or is empty', [
+                'has_blocks' => strpos($content, '<!-- wp:') !== false,
+                'content_preview' => substr($content, 0, 200)
+            ]);
         }
 
         $postData = [
@@ -280,12 +292,28 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
             'post_author'  => get_current_user_id(),
         ];
 
+        // Log content before saving
+        $this->logger->debug('Lesson content before wp_insert_post', [
+            'content_length' => strlen($content),
+            'has_list_items' => substr_count($content, '<li>'),
+            'sample_list' => substr($content, strpos($content, '<!-- wp:list'), 500)
+        ]);
+
         $lessonId = wp_insert_post($postData);
 
         if (is_wp_error($lessonId)) {
             $this->logger->error('Failed to create lesson: ' . $lessonId->get_error_message());
             return 0;
         }
+        
+        // Log content after saving
+        $savedPost = get_post($lessonId);
+        $this->logger->debug('Lesson content after wp_insert_post', [
+            'lesson_id' => $lessonId,
+            'saved_content_length' => strlen($savedPost->post_content),
+            'saved_list_items' => substr_count($savedPost->post_content, '<li>'),
+            'saved_sample_list' => substr($savedPost->post_content, strpos($savedPost->post_content, '<!-- wp:list'), 500)
+        ]);
 
         // Set the section ID and lesson order as post meta
         update_post_meta($lessonId, '_mpcs_lesson_section_id', $sectionId);
@@ -346,9 +374,11 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
                 throw new \Exception('Course not found');
             }
 
-            // Convert content to Gutenberg blocks if needed
+            // Get description - check if we need to convert to Gutenberg blocks
             $description = $courseData['description'] ?? $course->post_content;
-            if (!empty($description) && isset($courseData['description'])) {
+            
+            // Only convert if we have a new description that doesn't already have Gutenberg blocks
+            if (!empty($description) && isset($courseData['description']) && strpos($description, '<!-- wp:') === false) {
                 $description = $this->convertToGutenbergBlocks($description);
             }
             
@@ -603,9 +633,9 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
      */
     private function convertToGutenbergBlocks(string $content): string
     {
-        // If content already has Gutenberg blocks, just fix any malformed lists
+        // If content already has Gutenberg blocks, return as-is
         if (strpos($content, '<!-- wp:') !== false) {
-            return $this->fixMalformedGutenbergLists($content);
+            return $content;
         }
         
         // Log the content being converted
@@ -617,44 +647,124 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
         
         // If content is plain text without HTML tags, convert it properly
         if (strip_tags($content) === $content && !empty(trim($content))) {
-            // Split content by double line breaks to create paragraphs
+            // Split content by double line breaks or divider lines
+            $content = preg_replace('/\n[-]{3,}\n/', "\n\n", $content); // Replace divider lines with double breaks
             $paragraphs = preg_split('/\n\s*\n/', $content);
             $blocks = [];
+            $inList = false;
+            $currentList = [];
+            $listType = 'ul';
             
             foreach ($paragraphs as $paragraph) {
                 $paragraph = trim($paragraph);
                 if (empty($paragraph)) continue;
                 
-                // Check if it's a heading (starts with UPPERCASE TITLE or has heading markers)
-                if (preg_match('/^[A-Z][A-Z\s]+$/', $paragraph) || preg_match('/^#+\s/', $paragraph)) {
-                    // Remove markdown heading markers if present
-                    $paragraph = preg_replace('/^#+\s*/', '', $paragraph);
-                    $blocks[] = "<!-- wp:heading -->\n<h2>" . esc_html($paragraph) . "</h2>\n<!-- /wp:heading -->";
+                // If we were building a list and this isn't a list item, close the list
+                if ($inList && !preg_match('/^[\s]*[•\-\*]|^\d+\./', $paragraph)) {
+                    if (!empty($currentList)) {
+                        $listTag = $listType === 'ol' ? 'ol' : 'ul';
+                        $listAttr = $listType === 'ol' ? ' {"ordered":true}' : '';
+                        $blocks[] = "<!-- wp:list" . $listAttr . " -->\n<" . $listTag . ">\n" . implode("\n", $currentList) . "\n</" . $listTag . ">\n<!-- /wp:list -->";
+                    }
+                    $inList = false;
+                    $currentList = [];
                 }
-                // Check if it's a list (contains bullet points or numbered items)
-                elseif (preg_match('/^[\s]*[•\-\*]|\d+\./', $paragraph)) {
-                    // Convert bullet points to proper list
+                
+                // Check if it's a heading (all caps with optional colon, or specific keywords)
+                if (preg_match('/^[A-Z][A-Z\s]+:?\s*$/', $paragraph) || 
+                    preg_match('/^(LESSON OVERVIEW|KEY TAKEAWAYS|ASSIGNMENT|ADDITIONAL RESOURCES|NEXT LESSON PREVIEW)/', $paragraph)) {
+                    $blocks[] = "<!-- wp:heading -->\n<h2>" . esc_html(trim($paragraph, ':')) . "</h2>\n<!-- /wp:heading -->";
+                }
+                // Check if it's a sub-heading (Title Case or specific patterns)
+                elseif (preg_match('/^[A-Z][a-z]+(\s+[A-Z][a-z]+)*:?\s*$/', $paragraph) && strlen($paragraph) < 50) {
+                    $blocks[] = "<!-- wp:heading {\"level\":3} -->\n<h3>" . esc_html(trim($paragraph, ':')) . "</h3>\n<!-- /wp:heading -->";
+                }
+                // Check if it contains a list
+                elseif (strpos($paragraph, "\n") !== false && preg_match('/[•\-\*]|\d+\./', $paragraph)) {
+                    // This paragraph contains multiple lines with bullets/numbers
                     $lines = explode("\n", $paragraph);
-                    $listItems = [];
+                    $tempList = [];
+                    $nonListContent = '';
                     
                     foreach ($lines as $line) {
                         $line = trim($line);
-                        // Remove bullet markers
-                        $line = preg_replace('/^[•\-\*]\s*/', '', $line);
-                        $line = preg_replace('/^\d+\.\s*/', '', $line);
-                        if (!empty($line)) {
-                            $listItems[] = "<li>" . esc_html($line) . "</li>";
+                        if (empty($line)) continue;
+                        
+                        // Check if this line is a list item
+                        if (preg_match('/^[\s]*[•\-\*]\s*(.+)/', $line, $matches)) {
+                            if (!empty($nonListContent)) {
+                                $blocks[] = "<!-- wp:paragraph -->\n<p>" . esc_html($nonListContent) . "</p>\n<!-- /wp:paragraph -->";
+                                $nonListContent = '';
+                            }
+                            $tempList[] = "<li>" . esc_html($matches[1]) . "</li>";
+                        }
+                        elseif (preg_match('/^(\d+)\.\s*(.+)/', $line, $matches)) {
+                            if (!empty($nonListContent)) {
+                                $blocks[] = "<!-- wp:paragraph -->\n<p>" . esc_html($nonListContent) . "</p>\n<!-- /wp:paragraph -->";
+                                $nonListContent = '';
+                            }
+                            if ($matches[1] === '1' && !empty($tempList)) {
+                                // Starting a new numbered list, close the previous one
+                                $blocks[] = "<!-- wp:list -->\n<ul>\n" . implode("\n", $tempList) . "\n</ul>\n<!-- /wp:list -->";
+                                $tempList = [];
+                            }
+                            $tempList[] = "<li>" . esc_html($matches[2]) . "</li>";
+                            $listType = 'ol';
+                        }
+                        else {
+                            // Not a list item
+                            if (!empty($tempList)) {
+                                // Close current list
+                                $tag = ($listType === 'ol') ? 'ol' : 'ul';
+                                $attr = ($listType === 'ol') ? ' {"ordered":true}' : '';
+                                $blocks[] = "<!-- wp:list" . $attr . " -->\n<" . $tag . ">\n" . implode("\n", $tempList) . "\n</" . $tag . ">\n<!-- /wp:list -->";
+                                $tempList = [];
+                                $listType = 'ul';
+                            }
+                            $nonListContent .= ($nonListContent ? ' ' : '') . $line;
                         }
                     }
                     
-                    if (!empty($listItems)) {
-                        $blocks[] = "<!-- wp:list -->\n<ul>\n" . implode("\n", $listItems) . "\n</ul>\n<!-- /wp:list -->";
+                    // Handle any remaining content
+                    if (!empty($tempList)) {
+                        $tag = ($listType === 'ol') ? 'ol' : 'ul';
+                        $attr = ($listType === 'ol') ? ' {"ordered":true}' : '';
+                        $blocks[] = "<!-- wp:list" . $attr . " -->\n<" . $tag . ">\n" . implode("\n", $tempList) . "\n</" . $tag . ">\n<!-- /wp:list -->";
                     }
+                    if (!empty($nonListContent)) {
+                        $blocks[] = "<!-- wp:paragraph -->\n<p>" . esc_html($nonListContent) . "</p>\n<!-- /wp:paragraph -->";
+                    }
+                }
+                // Single line list items
+                elseif (preg_match('/^[\s]*[•\-\*]\s*(.+)/', $paragraph, $matches)) {
+                    $inList = true;
+                    $currentList[] = "<li>" . esc_html($matches[1]) . "</li>";
+                }
+                elseif (preg_match('/^(\d+)\.\s*(.+)/', $paragraph, $matches)) {
+                    if (!$inList || $matches[1] === '1') {
+                        // Close previous list if needed
+                        if ($inList && !empty($currentList)) {
+                            $listTag = $listType === 'ol' ? 'ol' : 'ul';
+                            $listAttr = $listType === 'ol' ? ' {"ordered":true}' : '';
+                            $blocks[] = "<!-- wp:list" . $listAttr . " -->\n<" . $listTag . ">\n" . implode("\n", $currentList) . "\n</" . $listTag . ">\n<!-- /wp:list -->";
+                            $currentList = [];
+                        }
+                        $listType = 'ol';
+                    }
+                    $inList = true;
+                    $currentList[] = "<li>" . esc_html($matches[2]) . "</li>";
                 }
                 else {
                     // Regular paragraph
                     $blocks[] = "<!-- wp:paragraph -->\n<p>" . esc_html($paragraph) . "</p>\n<!-- /wp:paragraph -->";
                 }
+            }
+            
+            // Close any remaining list
+            if ($inList && !empty($currentList)) {
+                $listTag = $listType === 'ol' ? 'ol' : 'ul';
+                $listAttr = $listType === 'ol' ? ' {"ordered":true}' : '';
+                $blocks[] = "<!-- wp:list" . $listAttr . " -->\n<" . $listTag . ">\n" . implode("\n", $currentList) . "\n</" . $listTag . ">\n<!-- /wp:list -->";
             }
             
             return implode("\n\n", $blocks);
@@ -718,11 +828,11 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
                 case 'ul':
                     $listItems = '';
                     foreach ($node->getElementsByTagName('li') as $li) {
-                        $liContent = '';
-                        foreach ($li->childNodes as $child) {
-                            $liContent .= $dom->saveHTML($child);
+                        // Simply use textContent to get the text, avoiding complex DOM manipulation
+                        $liContent = trim($li->textContent);
+                        if (!empty($liContent)) {
+                            $listItems .= "<li>" . esc_html($liContent) . "</li>\n";
                         }
-                        $listItems .= "<li>{$liContent}</li>\n";
                     }
                     $blocks[] = "<!-- wp:list -->\n<ul>\n{$listItems}</ul>\n<!-- /wp:list -->";
                     break;
@@ -730,11 +840,11 @@ class CourseGeneratorService extends BaseService implements ICourseGenerator
                 case 'ol':
                     $listItems = '';
                     foreach ($node->getElementsByTagName('li') as $li) {
-                        $liContent = '';
-                        foreach ($li->childNodes as $child) {
-                            $liContent .= $dom->saveHTML($child);
+                        // Simply use textContent to get the text, avoiding complex DOM manipulation
+                        $liContent = trim($li->textContent);
+                        if (!empty($liContent)) {
+                            $listItems .= "<li>" . esc_html($liContent) . "</li>\n";
                         }
-                        $listItems .= "<li>{$liContent}</li>\n";
                     }
                     $blocks[] = "<!-- wp:list {\"ordered\":true} -->\n<ol>\n{$listItems}</ol>\n<!-- /wp:list -->";
                     break;

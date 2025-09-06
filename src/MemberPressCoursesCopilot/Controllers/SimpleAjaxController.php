@@ -575,8 +575,9 @@ class SimpleAjaxController
                                     $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['title'] = sanitize_text_field($lesson['title']);
                                 }
                                 if (isset($lesson['content'])) {
-                                    // Use wp_kses_post to preserve HTML formatting in lesson content
-                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = wp_kses_post($lesson['content']);
+                                    // Don't use wp_kses_post as it strips Gutenberg block comments
+                                    // Content is already sanitized by the AI and contains Gutenberg blocks
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = $lesson['content'];
                                 }
                                 if (isset($lesson['duration'])) {
                                     $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['duration'] = sanitize_text_field($lesson['duration']);
@@ -592,8 +593,29 @@ class SimpleAjaxController
                 return;
             }
 
+            // Log the course data before mapping drafts
+            $this->logger->debug('Course data before draft mapping', [
+                'sections_count' => count($courseData['sections'] ?? []),
+                'first_lesson_content_sample' => isset($courseData['sections'][0]['lessons'][0]['content']) 
+                    ? substr($courseData['sections'][0]['lessons'][0]['content'], 0, 200) 
+                    : 'No content',
+                'first_lesson_list_items' => isset($courseData['sections'][0]['lessons'][0]['content'])
+                    ? substr_count($courseData['sections'][0]['lessons'][0]['content'], '<li>')
+                    : 0
+            ]);
+
             // Get any drafted lesson content
             $courseData = $this->lessonDraftService->mapDraftsToStructure($sessionId, $courseData);
+            
+            // Log after draft mapping
+            $this->logger->debug('Course data after draft mapping', [
+                'first_lesson_content_sample' => isset($courseData['sections'][0]['lessons'][0]['content']) 
+                    ? substr($courseData['sections'][0]['lessons'][0]['content'], 0, 200) 
+                    : 'No content',
+                'first_lesson_list_items' => isset($courseData['sections'][0]['lessons'][0]['content'])
+                    ? substr_count($courseData['sections'][0]['lessons'][0]['content'], '<li>')
+                    : 0
+            ]);
 
             // Use the CourseGeneratorService to create the course
             $result = $this->courseGenerator->generateCourse($courseData);
@@ -667,8 +689,8 @@ class SimpleAjaxController
             $sessionId   = sanitize_text_field($_POST['session_id'] ?? '');
             $lessonId    = sanitize_text_field($_POST['lesson_id'] ?? '');
             $lessonTitle = sanitize_text_field($_POST['lesson_title'] ?? '');
-            // Use wp_kses_post to preserve HTML formatting in lesson content
-            $content     = wp_kses_post($_POST['content'] ?? '');
+            // Don't use wp_kses_post as it strips Gutenberg block comments
+            $content     = stripslashes($_POST['content'] ?? '');
 
             if (empty($lessonId) || empty($sessionId)) {
                 throw new \Exception('Lesson ID and Session ID are required');
@@ -1152,8 +1174,9 @@ If modifying an existing course, include ALL sections and lessons (both existing
                                     $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['title'] = sanitize_text_field($lesson['title']);
                                 }
                                 if (isset($lesson['content'])) {
-                                    // Use wp_kses_post to preserve HTML formatting in lesson content
-                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = wp_kses_post($lesson['content']);
+                                    // Don't use wp_kses_post as it strips Gutenberg block comments
+                                    // Content is already sanitized by the AI and contains Gutenberg blocks
+                                    $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['content'] = $lesson['content'];
                                 }
                                 if (isset($lesson['duration'])) {
                                     $courseData['sections'][$sectionIndex]['lessons'][$lessonIndex]['duration'] = sanitize_text_field($lesson['duration']);

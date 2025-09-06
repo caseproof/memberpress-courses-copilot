@@ -450,22 +450,28 @@
                             break;
                             
                         case 'ul':
-                            var listItems = [];
+                            var listHtml = '<ul>';
                             $elem.find('li').each(function() {
-                                listItems.push($(this).html());
+                                var itemText = $(this).text().trim();
+                                if (itemText) {
+                                    listHtml += '<li>' + $('<div>').text(itemText).html() + '</li>';
+                                }
                             });
-                            var listHtml = '<ul>' + listItems.map(item => '<li>' + item + '</li>').join('') + '</ul>';
+                            listHtml += '</ul>';
                             block = wp.blocks.createBlock('core/list', {
                                 values: listHtml
                             });
                             break;
                             
                         case 'ol':
-                            var listItems = [];
+                            var listHtml = '<ol>';
                             $elem.find('li').each(function() {
-                                listItems.push($(this).html());
+                                var itemText = $(this).text().trim();
+                                if (itemText) {
+                                    listHtml += '<li>' + $('<div>').text(itemText).html() + '</li>';
+                                }
                             });
-                            var listHtml = '<ol>' + listItems.map(item => '<li>' + item + '</li>').join('') + '</ol>';
+                            listHtml += '</ol>';
                             block = wp.blocks.createBlock('core/list', {
                                 values: listHtml,
                                 ordered: true

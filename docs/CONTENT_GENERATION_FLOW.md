@@ -362,8 +362,8 @@ graph TD
 
 ## Content Generation Best Practices
 
-1. **AI Generates Clean HTML** - AI should generate standard HTML, not Gutenberg blocks
-2. **Convert on Save** - HTML is converted to Gutenberg blocks when saving to database
+1. **AI Generates Gutenberg Blocks** - AI generates content directly in Gutenberg block format
+2. **No Conversion Needed** - Content is saved as-is since it's already in the correct format
 3. **Fix Lists Aggressively** - Multiple `<ul>` tags should be consolidated
 4. **Use Content Tags** - Wrap generated content in appropriate tags for extraction
 5. **Handle Both Editors** - Support Block Editor and Classic Editor

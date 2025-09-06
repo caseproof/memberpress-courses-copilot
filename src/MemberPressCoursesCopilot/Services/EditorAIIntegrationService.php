@@ -873,18 +873,17 @@ class EditorAIIntegrationService extends BaseService
         $userWantsContent = preg_match('/\b(write|create|generate|make|build|develop)\b/i', $message);
 
         if ($userWantsContent) {
-            $prompt .= 'INSTRUCTION: Provide the lesson content in clean HTML format '
+            $prompt .= 'INSTRUCTION: Generate lesson content in WordPress Gutenberg block format '
                     . 'wrapped between [LESSON_CONTENT] and [/LESSON_CONTENT] tags. ';
-            $prompt .= 'Use standard HTML tags: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>. ';
-            $prompt .= 'CRITICAL for lists: Use proper HTML with a SINGLE <ul> or <ol> tag containing <li> items. '
-                    . 'NEVER nest multiple <ul> tags. ';
+            $prompt .= 'Use Gutenberg block comments with proper HTML inside. ';
+            $prompt .= 'Example format:\n'
+                    . '<!-- wp:heading -->\n<h2>Introduction</h2>\n<!-- /wp:heading -->\n\n'
+                    . '<!-- wp:paragraph -->\n<p>Your paragraph content here.</p>\n<!-- /wp:paragraph -->\n\n'
+                    . '<!-- wp:list -->\n<ul>\n<li>First item</li>\n<li>Second item</li>\n</ul>\n<!-- /wp:list -->\n\n'
+                    . '<!-- wp:list {"ordered":true} -->\n<ol>\n<li>Step one</li>\n<li>Step two</li>\n</ol>\n<!-- /wp:list -->\n';
             $prompt .= 'Include an engaging introduction, clear explanations with examples, '
                     . 'practice activities, and a summary. ';
             $prompt .= 'Make the content educational, practical, and engaging for online learners. ';
-            $prompt .= 'Example format:\n'
-                    . '<h2>Introduction</h2>\n'
-                    . '<p>Content here...</p>\n'
-                    . '<ul>\n<li>First item</li>\n<li>Second item</li>\n</ul>\n';
             $prompt .= 'Do not include any text outside the [LESSON_CONTENT] tags.';
         } else {
             $prompt .= 'Provide helpful guidance about creating effective lesson content.';

@@ -762,6 +762,7 @@
             
             // Show editor
             $('#mpcc-lesson-title').text(lesson.title);
+            // Display content as-is (should be Gutenberg blocks)
             $('#mpcc-lesson-textarea').val(lesson.draft_content || lesson.content || '');
             
             // Show overlay on mobile
@@ -853,6 +854,7 @@
                 },
                 success: (response) => {
                     if (response.success) {
+                        // The content already contains Gutenberg blocks, display as-is
                         $('#mpcc-lesson-textarea').val(response.data.content);
                         this.autoSaveLesson();
                         // Announce successful generation
